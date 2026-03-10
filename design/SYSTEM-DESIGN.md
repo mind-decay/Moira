@@ -24,6 +24,7 @@ Forge is a meta-orchestration framework for Claude Code that transforms Claude f
 - [Multi-Developer](subsystems/multi-developer.md) — locks, branch-scoped state, knowledge merge
 - [Checkpoint & Resume](subsystems/checkpoint-resume.md) — state persistence, resume validation
 - [Orchestrator Self-Monitoring](subsystems/self-monitoring.md) — guard hooks, context tracking
+- [Testing](subsystems/testing.md) — structural verification, behavioral bench, live telemetry
 
 ### Implementation
 - [Implementation Guide](IMPLEMENTATION-GUIDE.md) — full context for implementing agents (read BEFORE any work)
@@ -35,6 +36,7 @@ Forge is a meta-orchestration framework for Claude Code that transforms Claude f
 
 ### Decisions
 - [Decision Log](decisions/log.md) — all architectural decisions with reasoning
+- [Blocker Resolution Design](decisions/2026-03-11-blocker-resolution-design.md) — pre-implementation review: Classifier, YAML schemas, distribution, guard mechanism, bootstrap scanners
 
 ### UX
 - [Command Reference](architecture/commands.md) — user-facing commands and flows

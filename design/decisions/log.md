@@ -208,3 +208,52 @@ All architectural decisions made during Forge system design.
 - CI/CD pipeline — not available in Claude Code context
 - Single agent for everything — too much responsibility, unclear output
 **Reasoning:** Pre-change analysis prevents bad changes from being made. Post-change verification catches what slipped through. Two agents with clear roles match Forge's own design philosophy.
+
+## D-023: Layered Testing Architecture
+
+**Context:** How to test both orchestration correctness and agent output quality?
+**Decision:** Three-layer architecture: Structural Verifier (bash, 0 tokens, deterministic), Behavioral Bench (full Forge runs on fixtures, LLM-judge), Live Telemetry (passive metrics during real use).
+**Alternatives rejected:**
+- Test-as-Pipeline (testing as another Forge pipeline) — circular dependency, broken Forge = broken tests
+- External Harness (separate tool outside Forge) — duplicates orchestration logic, two things to maintain
+**Reasoning:** Structural layer is independent (works even if Forge is broken). Behavioral layer tests real behavior without duplication. Live layer is nearly free. Each layer catches different failure modes.
+
+## D-024: LLM-Judge with Anchored Rubrics
+
+**Context:** How to evaluate stochastic agent output quality objectively?
+**Decision:** Separate Claude call evaluates results against rubrics with concrete anchored examples per score level (1-5). Hybrid approach: automated checks (compile/lint) as hard pass/fail, LLM-judge for qualitative assessment.
+**Alternatives rejected:**
+- Automated checks only — too shallow, passing lint doesn't mean good code
+- Free-form LLM evaluation — too noisy, unpredictable scores
+- Structured rubric without anchors — less calibrated, subjective interpretation of scale
+**Reasoning:** Anchored examples minimize judge subjectivity. Calibration set validates judge stability. Judge SHOULD use a different model tier than agents when budget allows; same-tier evaluation is acceptable but marked in reports. Model tiers (not pinned versions) are specified in design to avoid staleness.
+
+## D-025: Statistical Confidence Bands for Metrics
+
+**Context:** How to distinguish real regressions from stochastic noise in LLM outputs?
+**Decision:** Baseline + variance tracking per metric. Three zones: NORMAL (within band, ignore), WARN (1-2σ, observe), ALERT (>2σ, investigate). Minimum effect size threshold prevents reacting to insignificant changes.
+**Alternatives rejected:**
+- Fixed thresholds — don't account for natural variance per metric
+- Multiple runs per test — too expensive in tokens
+- No statistical model — every fluctuation looks like regression
+**Reasoning:** Accumulation over time builds statistical profile cheaply. Cold start protocol handles initial lack of data. Deterministic checks separated entirely (binary, no variance).
+
+## D-026: Tiered Test Execution by Change Risk
+
+**Context:** When to run full bench vs quick checks?
+**Decision:** Three tiers: Tier 1 (structural smoke, 0 tokens, always), Tier 2 (targeted bench, 3-5 tests, for prompt/rule changes), Tier 3 (full bench, all tests, for pipeline/gate/role boundary changes). Auto-detected from git diff, user can override.
+**Alternatives rejected:**
+- Always full bench — too expensive, burns token budget
+- Always smoke only — misses behavioral regressions
+- Manual selection only — requires user to know which tests matter
+**Reasoning:** Proportional testing matches Forge's own risk classification (RED/ORANGE/YELLOW/GREEN). Budget guards prevent runaway spending.
+
+## D-027: Privacy-First Live Telemetry
+
+**Context:** How to collect metrics from real projects without leaking sensitive data?
+**Decision:** Record only numbers and enums, never content. Three privacy levels: local-only (default), anonymized export (opt-in), team sharing (aggregates only). Sanitization pipeline rejects unexpected strings.
+**Alternatives rejected:**
+- No live telemetry — lose the most valuable real-world signal
+- Full logging — privacy risk, storage bloat
+- Opt-in only — most users won't opt in, insufficient data
+**Reasoning:** Default-safe (local-only, gitignored) builds trust. Metrics without content is sufficient for all decision-making. Sanitization catches bugs that might leak content.
