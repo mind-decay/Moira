@@ -1,0 +1,46 @@
+#!/bin/bash
+set -euo pipefail
+
+# ═══════════════════════════════════════════
+#  Forge Commit Message Hook
+#  Validates commit message format
+# ═══════════════════════════════════════════
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG=$(head -1 "$COMMIT_MSG_FILE")
+
+# Expected format: forge(<scope>): <description>
+# Scopes: design, agents, pipeline, rules, knowledge, quality,
+#         budget, hooks, mcp, reflection, metrics, audit,
+#         checkpoint, ux, infra, docs
+
+VALID_SCOPES="design|agents|pipeline|rules|knowledge|quality|budget|hooks|mcp|reflection|metrics|audit|checkpoint|ux|infra|docs"
+
+if [[ ! "$COMMIT_MSG" =~ ^forge\(($VALID_SCOPES)\):\ .+ ]]; then
+    echo ""
+    echo "ERROR: Invalid commit message format."
+    echo ""
+    echo "Expected: forge(<scope>): <description>"
+    echo ""
+    echo "Valid scopes:"
+    echo "  design, agents, pipeline, rules, knowledge, quality,"
+    echo "  budget, hooks, mcp, reflection, metrics, audit,"
+    echo "  checkpoint, ux, infra, docs"
+    echo ""
+    echo "Examples:"
+    echo "  forge(design): add distribution architecture document"
+    echo "  forge(agents): implement explorer agent prompt"
+    echo "  forge(infra): add pre-commit hook and gitignore"
+    echo ""
+    exit 1
+fi
+
+# Check description is not too short
+DESCRIPTION="${COMMIT_MSG#*: }"
+if [ ${#DESCRIPTION} -lt 10 ]; then
+    echo "ERROR: Commit description too short (min 10 chars)."
+    echo "Current: '$DESCRIPTION'"
+    exit 1
+fi
+
+exit 0

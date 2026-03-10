@@ -1,0 +1,92 @@
+#!/bin/bash
+set -euo pipefail
+
+# ═══════════════════════════════════════════
+#  Forge Pre-Commit Hook
+#  Validates system integrity before commits
+# ═══════════════════════════════════════════
+
+FORGE_ROOT="$(git rev-parse --show-toplevel)"
+ERRORS=0
+WARNINGS=0
+
+echo "Forge: running pre-commit checks..."
+
+# ── Check 1: Constitution not modified by automation ─────
+# Constitution should only be edited intentionally by a human.
+# If it's staged, warn (don't block — human might be editing it).
+if git diff --cached --name-only | grep -q "design/CONSTITUTION.md"; then
+    echo "⚠ WARNING: CONSTITUTION.md is being modified."
+    echo "  Ensure this is an intentional amendment, not accidental."
+    ((WARNINGS++))
+fi
+
+# ── Check 2: Design docs exist for all referenced paths ──
+if [ -f "$FORGE_ROOT/design/SYSTEM-DESIGN.md" ]; then
+    # Extract .md references from SYSTEM-DESIGN.md
+    REFERENCED_FILES=$(grep -oP '\((?:architecture|subsystems|decisions)/[^)]+\.md\)' \
+        "$FORGE_ROOT/design/SYSTEM-DESIGN.md" 2>/dev/null | tr -d '()' || true)
+
+    for ref in $REFERENCED_FILES; do
+        if [ ! -f "$FORGE_ROOT/design/$ref" ]; then
+            echo "ERROR: SYSTEM-DESIGN.md references design/$ref but file doesn't exist"
+            ((ERRORS++))
+        fi
+    done
+fi
+
+# ── Check 3: Agent role files have NEVER constraints ─────
+AGENT_DIR="$FORGE_ROOT/src/core/rules/roles"
+if [ -d "$AGENT_DIR" ]; then
+    for agent_file in "$AGENT_DIR"/*.yaml "$AGENT_DIR"/*.md; do
+        [ -f "$agent_file" ] || continue
+        if ! grep -qi "NEVER\|MUST NOT\|PROHIBITED" "$agent_file" 2>/dev/null; then
+            echo "ERROR: $(basename "$agent_file") has no boundary constraints (missing NEVER/MUST NOT)"
+            ((ERRORS++))
+        fi
+    done
+fi
+
+# ── Check 4: Base rules inviolable section exists ────────
+BASE_RULES="$FORGE_ROOT/src/core/rules/base.yaml"
+if [ -f "$BASE_RULES" ]; then
+    if ! grep -q "inviolable" "$BASE_RULES" 2>/dev/null; then
+        echo "ERROR: base.yaml missing 'inviolable' section"
+        ((ERRORS++))
+    fi
+fi
+
+# ── Check 5: No secrets or credentials ───────────────────
+STAGED_FILES=$(git diff --cached --name-only)
+for file in $STAGED_FILES; do
+    [ -f "$file" ] || continue
+    if grep -qiP '(api[_-]?key|secret|password|token|credential)\s*[:=]' "$file" 2>/dev/null; then
+        echo "ERROR: Possible secret in staged file: $file"
+        ((ERRORS++))
+    fi
+done
+
+# ── Check 6: No empty design documents ───────────────────
+for file in $STAGED_FILES; do
+    if [[ "$file" == design/*.md ]] && [ -f "$file" ]; then
+        LINES=$(wc -l < "$file" | tr -d ' ')
+        if [ "$LINES" -lt 3 ]; then
+            echo "ERROR: Design document appears empty: $file ($LINES lines)"
+            ((ERRORS++))
+        fi
+    fi
+done
+
+# ── Report ────────────────────────────────────────────────
+echo ""
+if [ "$ERRORS" -gt 0 ]; then
+    echo "BLOCKED: $ERRORS error(s), $WARNINGS warning(s)"
+    echo "Fix errors before committing."
+    exit 1
+elif [ "$WARNINGS" -gt 0 ]; then
+    echo "PASSED with $WARNINGS warning(s)"
+    exit 0
+else
+    echo "PASSED: all checks clean"
+    exit 0
+fi

@@ -1,0 +1,28 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node (if any tooling is added later)
+node_modules/
+
+# Forge runtime state (never committed — per-developer)
+# These paths are for PROJECTS that use Forge, not this repo.
+# Listed here as reference and for local testing.
+.claude/forge/state/tasks/
+.claude/forge/state/locks.yaml
+.claude/forge/state/bypass-log.yaml
+.claude/forge/state/current.yaml
+.claude/forge/state/queue.yaml
+.claude/forge/state/budget-log.txt
+
+# Local testing artifacts
+tmp/
+*.tmp
+*.log
