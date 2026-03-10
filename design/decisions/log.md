@@ -257,3 +257,61 @@ All architectural decisions made during Forge system design.
 - Full logging — privacy risk, storage bloat
 - Opt-in only — most users won't opt in, insufficient data
 **Reasoning:** Default-safe (local-only, gitignored) builds trust. Metrics without content is sufficient for all decision-making. Sanitization catches bugs that might leak content.
+
+## D-028: Classifier as Full Agent
+
+**Context:** pipelines.md references a Classifier agent but agents.md doesn't define it. Is it a separate agent or orchestrator function?
+**Decision:** Classifier is the 10th agent (8 base + Auditor + Classifier) with full role definition, NEVER constraints, and budget allocation.
+**Alternatives rejected:**
+- Orchestrator-embedded classification — violates Art 1.1 (orchestrator purity), creates exception to "orchestrator never executes"
+**Reasoning:** Preserves Art 1.1 completely. Consistent with architecture principle that all work is done by agents. Classification is a decision that benefits from knowledge context (L1 access).
+
+## D-029: Full YAML Schemas Upfront
+
+**Context:** Five state files (manifest.yaml, current.yaml, queue.yaml, config.yaml, status.yaml) referenced throughout design but no schemas defined. Should we define them minimally or fully?
+**Decision:** Full schemas designed upfront for all 12 phases.
+**Alternatives rejected:**
+- Minimal schemas (Phase 1-3 only) — requires schema migration later, risks ad-hoc decisions
+- Minimal + reserved sections — false precision for unknown fields
+**Reasoning:** Per D-018, design documents must be updated first. Inventing schemas during implementation = making architectural decisions ad-hoc. Full schemas prevent this. All 12 phases have enough design context to specify fields now.
+
+## D-030: Native Custom Commands for Distribution
+
+**Context:** How to make `/forge` commands available to users?
+**Decision:** Use Claude Code native custom commands (`~/.claude/commands/forge/*.md`). Same file convention as GSD, but zero GSD runtime dependency.
+**Alternatives rejected:**
+- Plugin system (marketplace) — requires marketplace infrastructure, overkill for v1
+- CLAUDE.md-only — no slash command entry points, poor UX
+- GSD runtime dependency — violates D-013 (self-contained)
+**Reasoning:** Custom commands are a native Claude Code feature. File-based discovery (markdown + YAML frontmatter). `install.sh` copies files — consistent with D-020 (file-copy distribution). No external dependencies — consistent with D-013.
+
+## D-031: Three-Layer Guard Mechanism
+
+**Context:** Design assumed PreToolUse hooks for blocking orchestrator violations. Research confirmed PreToolUse does not exist in Claude Code — only PostToolUse.
+**Decision:** Three-layer defense replacing single guard.sh:
+1. `allowed-tools` in command frontmatter (prevention — orchestrator physically cannot call Edit/Grep/Glob/Bash)
+2. PostToolUse `guard.sh` hook (detection — logs violations, injects warning into context)
+3. CLAUDE.md prompt enforcement (guidance — inviolable rules about orchestrator boundaries)
+**Alternatives rejected:**
+- Prompt-only enforcement — no structural guarantee, relies on model compliance
+- PostToolUse with rollback — too complex, cannot undo all side effects
+**Reasoning:** `allowed-tools` is stronger than PreToolUse would have been — it prevents the tool from being available at all, not just blocking individual calls. PostToolUse provides audit trail for constitutional verification (Art 6.3). Prompt rules are defense-in-depth.
+
+## D-032: Bootstrap Scanners as Explorer Invocations
+
+**Context:** knowledge.md introduces 4 scanner agents (Tech, Structure, Convention, Pattern) not defined in agents.md. Should they be new agent types?
+**Decision:** Scanners are Explorer agent invocations with different task-specific instructions (Layer 4 rules). No new agent types.
+**Alternatives rejected:**
+- 4 separate agents — agent proliferation (13 total), each scanner does exactly what Explorer does
+- Single Scanner agent with mode parameter — unnecessary abstraction for 4 invocations
+**Reasoning:** Explorer's role is "reads code, reports facts — NEVER proposes solutions." Scanning is exactly this. Layer 4 instructions customize what facts to report. Consistent with D-005 (modular rules, Layer 4 = task-specific). No new NEVER constraints needed — Explorer's existing constraints apply.
+
+## D-033: Locks in Committed Zone with TTL
+
+**Context:** locks.yaml was in gitignored state/ directory, but locks must be visible across developers.
+**Decision:** Move locks.yaml to committed config zone (`.claude/forge/config/locks.yaml`). Add TTL (`expires_at` field) for stale lock detection.
+**Alternatives rejected:**
+- Keep in gitignored state — defeats purpose of locks (invisible to other developers)
+- External lock service — violates D-013 (self-contained)
+- Shared network file — requires infrastructure beyond git
+**Reasoning:** Locks exist for cross-developer coordination. Must be in git to be shared. TTL prevents permanent locks from crashed sessions. Stale lock detection runs during audit (D-012). Standard git merge handles conflicts.
