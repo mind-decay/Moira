@@ -136,15 +136,16 @@ install_global() {
     echo "✓ Global layer installed"
 }
 
-# ── Step 4: Register skills in Claude ────
-register_skills() {
-    echo "  Registering Forge skills with Claude Code..."
+# ── Step 4: Install command files ─────────
+install_commands() {
+    echo "  Installing Forge commands..."
 
-    # Claude Code loads skills from specific locations.
-    # We symlink or configure based on CC's mechanism.
-    # This step adapts to Claude Code's skill loading.
+    # Native Claude Code custom commands (D-030)
+    # Same file convention as GSD, zero runtime dependency
+    mkdir -p "$HOME/.claude/commands/forge"
+    cp -r "$FORGE_SOURCE/src/commands/forge/"* "$HOME/.claude/commands/forge/"
 
-    echo "✓ Skills registered"
+    echo "✓ Commands installed (/forge:init, /forge:task, etc.)"
 }
 
 # ── Step 5: Verify installation ──────────
@@ -171,7 +172,7 @@ verify() {
 check_prerequisites
 fetch_source
 install_global
-register_skills
+install_commands
 verify
 
 echo ""
@@ -206,7 +207,8 @@ After installation, `~/.claude/forge/` contains:
 │   └── rules/
 │       ├── base.yaml                 # Layer 1: inviolable + overridable rules
 │       ├── roles/
-│       │   ├── explorer.yaml         # Layer 2: agent role rules
+│       │   ├── classifier.yaml       # Layer 2: agent role rules
+│       │   ├── explorer.yaml
 │       │   ├── analyst.yaml
 │       │   ├── architect.yaml
 │       │   ├── planner.yaml
@@ -222,16 +224,19 @@ After installation, `~/.claude/forge/` contains:
 │           └── standards.yaml        # SOLID, KISS, DRY
 │
 ├── skills/
-│   ├── orchestrator.md               # Main orchestrator skill (/forge)
-│   ├── init.md                       # Bootstrap skill (/forge init)
-│   ├── continue.md                   # Resume skill (/forge continue)
-│   ├── status.md                     # Status skill (/forge status)
-│   ├── audit.md                      # Audit skill (/forge audit)
-│   ├── metrics.md                    # Metrics skill (/forge metrics)
-│   ├── knowledge.md                  # Knowledge viewer skill
-│   ├── refresh.md                    # Refresh skill (/forge refresh)
-│   ├── upgrade.md                    # Self-upgrade skill
-│   └── help.md                       # Help system
+│   └── orchestrator.md               # Main orchestrator skill (referenced by commands)
+│
+├── commands/forge/                   # User-facing slash commands (D-030)
+│   ├── init.md                      # /forge:init
+│   ├── task.md                      # /forge:task — main entry point
+│   ├── status.md                    # /forge:status
+│   ├── metrics.md                   # /forge:metrics
+│   ├── audit.md                     # /forge:audit
+│   ├── knowledge.md                 # /forge:knowledge
+│   ├── bypass.md                    # /forge:bypass
+│   ├── resume.md                    # /forge:resume
+│   ├── refresh.md                   # /forge:refresh
+│   └── help.md                      # /forge:help
 │
 ├── hooks/
 │   ├── guard.sh                      # Orchestrator tool restriction
@@ -353,7 +358,6 @@ claude                    # start Claude Code
 ```
 # .gitignore additions by Forge
 .claude/forge/state/tasks/     # task execution state (per-developer)
-.claude/forge/state/locks.yaml # file locks (per-developer)
 .claude/forge/state/bypass-log.yaml
 
 # These ARE committed (shared with team):
@@ -363,6 +367,22 @@ claude                    # start Claude Code
 .claude/forge/knowledge/
 .claude/forge/state/metrics/   # team-visible metrics
 ```
+
+### Existing `.claude/` Compatibility
+
+1. **`.claude/` already exists** — Forge creates only `.claude/forge/` subdirectory. Does not touch anything outside `forge/`.
+2. **`.claude/CLAUDE.md` already exists** — Forge appends its section wrapped in markers:
+   ```markdown
+   <!-- forge:start -->
+   ## Forge Orchestration System
+   ...orchestrator instructions...
+   <!-- forge:end -->
+   ```
+   On re-init or refresh — replaces only content between markers.
+3. **`.claude/CLAUDE.md` does not exist** — Creates file with Forge section.
+4. **`.claude/commands/` already exists** (GSD or other) — Forge uses its own `commands/forge/` namespace, no conflicts.
+5. **Repeated `/forge:init`** — Idempotent. No duplicate sections, preserves knowledge.
+6. **`/forge:init --force`** — Full reinitialization: recreates config, reruns scanners, preserves accumulated knowledge.
 
 This means: when another developer clones the repo and runs `/forge init`, they get:
 - All project-specific rules (already configured)

@@ -98,6 +98,9 @@ User decides the approach was wrong. Roll back and try differently.
 User chooses re-entry point + provides reason
   │
   ├─ Git revert of task changes
+  │   Note: Git revert is executed by a dedicated Implementer agent dispatch,
+  │   not by the orchestrator directly. This preserves D-001 (orchestrator
+  │   never runs commands) and Art 1.1 (orchestrator purity).
   │
   ├─ Archive previous attempt:
   │   architecture-v1.md → marked "rejected: <reason>"

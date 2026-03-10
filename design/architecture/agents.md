@@ -2,7 +2,7 @@
 
 ## Core Agents
 
-8 base agents, each with strict responsibility boundaries.
+10 agents, each with strict responsibility boundaries (D-028: Classifier added as 10th agent).
 
 ## Agent Response Contract
 
@@ -18,6 +18,42 @@ NEXT: <recommended next step>
 ```
 
 Orchestrator NEVER reads full artifact files. It reads only summaries and decides next pipeline step. If orchestrator needs a detail — it spawns an agent to extract specific information.
+
+---
+
+## Classifier
+
+**Purpose:** Determines task size and selects pipeline type. First step of every pipeline (D-028).
+
+**Input:** User's task description + optional size hint + project-model summary
+**Output:** Classification result
+
+**Response format:**
+```
+STATUS: success
+SUMMARY: size=medium, confidence=high, pipeline=standard
+ARTIFACTS: [classification.md]
+NEXT: explore+analyze
+```
+
+**Rules:**
+- Classification is a pure function of task analysis (Art 2.1)
+- Does NOT read project source code
+- Does NOT propose solutions or architecture
+- Does NOT change the task description
+- NEVER skip classification — always return a result
+- If user provides size hint, may agree or override with reasoning
+
+**Pipeline mapping (Art 2.1):**
+- small + high confidence → Quick Pipeline
+- small + low confidence → Standard Pipeline
+- medium → Standard Pipeline
+- large → Full Pipeline
+- epic → Decomposition Pipeline
+
+**Knowledge access:** L1 (project-model summary)
+
+**Budget:** 20k (minimal — fast classification)
 
 ---
 
@@ -257,3 +293,5 @@ Rationale:
 - Foreground for sequential: orchestrator MUST see previous step summary to decide next step
 - Background for parallel: batches are independent by design (Planner guarantees this)
 - Background for reflection: doesn't block user from starting next task
+
+Note: Bootstrap scanners (Tech/Structure/Convention/Pattern) are Explorer invocations with Layer 4 task-specific instructions, not separate agents (D-032).

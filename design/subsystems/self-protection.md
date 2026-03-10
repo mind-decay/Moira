@@ -55,7 +55,7 @@ REGRESSION CHECKS:
 │   Decomposition pipeline still has all required steps?
 │
 ├─ Agent completeness
-│   All 9 agents still defined?
+│   All 10 agents still defined?
 │   Each agent still has: identity, capabilities, constraints, output contract?
 │   No agent lost its "NEVER" constraints?
 │
@@ -201,7 +201,7 @@ Or for a valid change:
 
 ### What it checks
 
-The 23 invariants from CONSTITUTION.md. These are binary — pass or fail, no gray area.
+The 19 invariants from CONSTITUTION.md. These are binary — pass or fail, no gray area.
 
 ### Verification implementation
 

@@ -51,7 +51,7 @@ ONLY "2" confirms bypass. Not "yes", "y", "sure", "proceed".
 
 ```
   Bypass confirmed.
-  Running direct implementation...
+  Dispatching Implementer directly (Art 1.1 preserved)...
 
   Modified: src/middleware/auth.ts (+1 line)
 

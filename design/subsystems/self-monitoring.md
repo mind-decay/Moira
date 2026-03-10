@@ -10,76 +10,84 @@ The orchestrator (main Claude) might violate its own rules:
 
 Rules alone don't prevent this 100%. We need structural enforcement.
 
-## Hook-Based Enforcement
+## Three-Layer Guard Mechanism (D-031)
 
-### Guard Hook
+`allowed-tools` is the primary enforcement layer. Hooks provide audit and detection. Prompt rules provide guidance.
+
+### Hook Registration
 
 ```jsonc
-// .claude/settings.json
+// .claude/settings.json (merged by install.sh)
 {
   "hooks": {
-    "on_tool_call": [
+    "PostToolUse": [
       {
-        "name": "forge_orchestrator_guard",
-        "command": "bash .claude/forge/hooks/guard.sh"
-      }
-    ],
-    "on_agent_complete": [
-      {
-        "name": "forge_budget_tracker",
-        "command": "bash .claude/forge/hooks/budget-track.sh"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/forge/hooks/guard.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/forge/hooks/budget-track.sh"
+          }
+        ]
       }
     ]
   }
 }
 ```
 
-### Guard Hook Logic
+### Layer 1: `allowed-tools` in command frontmatter (PREVENTION)
+
+Orchestrator command files (`~/.claude/commands/forge/*.md`) restrict available tools:
+```yaml
+allowed-tools:
+  - Agent          # dispatch subagents
+  - Read           # read forge state/config files ONLY
+  - Write          # write forge state files ONLY
+  - TaskCreate     # todo tracking
+  - TaskUpdate
+  - TaskList
+  # NOT included: Edit, Grep, Glob, Bash — orchestrator cannot touch project files (D-001)
+```
+
+The orchestrator physically cannot invoke Edit, Grep, Glob, or Bash because these tools are not in its allowed set. This is stronger than PreToolUse blocking — the tools don't exist in the orchestrator's context at all.
+
+### Layer 2: PostToolUse `guard.sh` hook (DETECTION + AUDIT)
 
 ```bash
 #!/bin/bash
-# .claude/forge/hooks/guard.sh
+# PostToolUse hook — fires AFTER every tool call
+# Logs all tool usage, detects and reports violations
 
-TOOL_NAME="$1"
-FILE_PATH="$2"
-FORGE_PATH=".claude/forge/"
+input=$(cat)
+tool_name=$(echo "$input" | jq -r '.tool_name // empty')
+file_path=$(echo "$input" | jq -r '.tool_input.file_path // .tool_input.command // empty')
+state_dir="$HOME/.claude/forge/state"
 
-case "$TOOL_NAME" in
-  "Agent"|"Skill")
-    exit 0  # always allowed
-    ;;
-  "Read"|"Write"|"Edit")
-    if [[ "$FILE_PATH" == *"$FORGE_PATH"* ]]; then
-      exit 0  # forge files: allowed
-    else
-      echo "VIOLATION: Orchestrator attempted $TOOL_NAME on $FILE_PATH"
-      echo "Orchestrator must delegate file operations to agents."
-      exit 1  # blocks the tool call
-    fi
-    ;;
-  "Bash"|"Grep"|"Glob")
-    echo "VIOLATION: Orchestrator attempted $TOOL_NAME"
-    echo "Orchestrator must not use execution tools directly."
-    exit 1
-    ;;
-esac
+# Only monitor forge sessions
+if [ ! -f "$state_dir/current.yaml" ]; then
+  exit 0
+fi
+
+# Log all tool usage for audit trail
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $tool_name $file_path" >> "$state_dir/tool-usage.log"
+
+# Check for violations — orchestrator touching project files
+forge_path=".claude/forge"
+if [[ "$tool_name" =~ ^(Read|Write|Edit|Grep|Glob)$ ]]; then
+  if [[ -n "$file_path" && "$file_path" != *"$forge_path"* ]]; then
+    echo "{\"hookSpecificOutput\":{\"additionalContext\":\"CONSTITUTIONAL VIOLATION: Orchestrator used $tool_name on $file_path. Art 1.1 prohibits direct project file operations.\"}}"
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) VIOLATION $tool_name $file_path" >> "$state_dir/violations.log"
+  fi
+fi
 ```
 
-### Budget Tracker Hook
+### Layer 3: CLAUDE.md prompt enforcement (GUIDANCE)
 
-Logs context usage after each agent completes:
-
-```bash
-#!/bin/bash
-# .claude/forge/hooks/budget-track.sh
-
-AGENT_NAME="$1"
-TASK_ID="$2"
-
-# Log agent completion and estimated context usage
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $AGENT_NAME $TASK_ID" \
-  >> .claude/forge/state/budget-log.txt
-```
+Forge section in project CLAUDE.md contains inviolable rules about orchestrator boundaries.
 
 ## Orchestrator Context Monitoring
 

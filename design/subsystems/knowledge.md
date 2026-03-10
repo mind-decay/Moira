@@ -18,6 +18,7 @@ Every knowledge document exists in three forms:
 
 | Agent | project-model | conventions | decisions | patterns | quality-map |
 |-------|--------------|-------------|-----------|----------|-------------|
+| Classifier | L1 | — | — | — | — |
 | Explorer | L0 | — | — | — | — |
 | Analyst | L1 | — | L0 | — | — |
 | Architect | L1 | L0 | L2 (full!) | L1 | L1 |
@@ -97,11 +98,11 @@ Assessment of existing code quality. See [quality.md](quality.md) for full quali
 
 ### Phase 0: Quick Scan (at /forge init, ~2-3 min)
 
-4 parallel quick-scan agents:
-1. **Tech Scanner** → reads package.json, configs → stack.yaml
-2. **Structure Scanner** → directory tree, index files → project-model/summary.md
-3. **Convention Scanner** → linter configs, 5 sample files per dir → conventions.yaml
-4. **Pattern Scanner** → 3-5 representative files per layer → patterns.yaml + quality-map/summary.md
+4 parallel Explorer invocations with Layer 4 task-specific instructions (D-032):
+1. **Explorer (tech scan)** → reads package.json, configs → stack.yaml
+2. **Explorer (structure scan)** → directory tree, index files → project-model/summary.md
+3. **Explorer (convention scan)** → linter configs, 5 sample files per dir → conventions.yaml
+4. **Explorer (pattern scan)** → 3-5 representative files per layer → patterns.yaml + quality-map/summary.md
 
 Result: System ready with BASIC knowledge. Quality map marked "preliminary."
 

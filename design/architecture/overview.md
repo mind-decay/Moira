@@ -17,8 +17,9 @@
                        │ executes via
 ┌──────────────────────▼──────────────────────────┐
 │              EXECUTION LAYER (agents)            │
-│  Explorer, Analyst, Architect, Planner,          │
-│  Implementer, Reviewer, Tester, Reflector        │
+│  Classifier, Explorer, Analyst, Architect,       │
+│  Planner, Implementer, Reviewer, Tester,         │
+│  Reflector, Auditor                              │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -84,7 +85,8 @@ User → /forge <task>
 │   └── rules/
 │       ├── base.yaml              # Layer 1: universal rules (inviolable + overridable)
 │       ├── roles/
-│       │   ├── explorer.yaml      # Layer 2: per-agent role rules
+│       │   ├── classifier.yaml    # Layer 2: per-agent role rules
+│       │   ├── explorer.yaml
 │       │   ├── analyst.yaml
 │       │   ├── architect.yaml
 │       │   ├── planner.yaml
@@ -108,7 +110,8 @@ User → /forge <task>
 │
 ├── config/
 │   ├── mcp-registry.yaml         # MCP tools registry
-│   └── budgets.yaml              # Context budget allocations
+│   ├── budgets.yaml              # Context budget allocations
+│   └── locks.yaml                # File reservation locks (committed for cross-developer visibility, D-033)
 │
 ├── knowledge/
 │   ├── project-model/
@@ -139,7 +142,6 @@ User → /forge <task>
 ├── state/
 │   ├── current.yaml              # Current task state machine
 │   ├── queue.yaml                # Task queue (for epics)
-│   ├── locks.yaml                # File reservation locks
 │   ├── bypass-log.yaml           # Escape hatch usage log
 │   ├── tasks/
 │   │   └── {task-id}/
@@ -177,10 +179,10 @@ User → /forge <task>
 - Track pipeline progress
 - Handle errors (retry, escalate, abort)
 
-### DOES NOT (enforced by hook):
-- Read project source files
-- Write/edit project source files
-- Run bash commands (except agent dispatch)
-- Use Grep/Glob on project files
+### DOES NOT (enforced by `allowed-tools` + PostToolUse hook, D-031):
+- Read project source files (prevented by `allowed-tools` exclusion)
+- Write/edit project source files (prevented by `allowed-tools` exclusion)
+- Run bash commands (prevented by `allowed-tools` exclusion)
+- Use Grep/Glob on project files (prevented by `allowed-tools` exclusion)
 - Make architectural decisions
 - Rationalize bypassing pipeline steps

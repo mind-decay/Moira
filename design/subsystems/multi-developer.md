@@ -17,9 +17,11 @@ Multiple engineers on same project, each with their own Claude sessions:
 ├── core/          ← SHARED (git-tracked)
 ├── project/       ← SHARED (git-tracked)
 │
+├── config/        ← SHARED (git-tracked)
+│   └── locks.yaml ← file reservation system (committed for cross-developer visibility, D-033)
+│
 ├── state/         ← BRANCH-SCOPED
-│   ├── .gitignore ← ignores task state, keeps structure
-│   ├── locks.yaml ← file reservation system
+│   ├── .gitignore
 │   └── tasks/     ← per-task, per-branch isolation
 │
 ├── metrics/       ← SHARED (git-tracked, append-friendly)
@@ -41,7 +43,7 @@ Multiple engineers on same project, each with their own Claude sessions:
 ## File Lock System
 
 ```yaml
-# .claude/forge/state/locks.yaml
+# .claude/forge/config/locks.yaml
 
 active_tasks:
   - id: "078"
@@ -51,6 +53,7 @@ active_tasks:
       - "src/middleware/auth.ts"
       - "src/middleware/authorize.ts"
     started: "2024-01-15T10:30:00Z"
+    expires_at: "2024-01-15T16:00:00Z"  # TTL for stale detection
 
   - id: "079"
     branch: "feature/search"
@@ -58,6 +61,7 @@ active_tasks:
     files_reserved:
       - "src/services/search.ts"
     started: "2024-01-15T11:00:00Z"
+    expires_at: "2024-01-15T17:00:00Z"  # TTL for stale detection
 ```
 
 ### Lock Checking
