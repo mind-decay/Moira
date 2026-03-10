@@ -25,6 +25,10 @@ Forge is a meta-orchestration framework for Claude Code that transforms Claude f
 - [Checkpoint & Resume](subsystems/checkpoint-resume.md) — state persistence, resume validation
 - [Orchestrator Self-Monitoring](subsystems/self-monitoring.md) — guard hooks, context tracking
 
+### Implementation
+- [Implementation Guide](IMPLEMENTATION-GUIDE.md) — full context for implementing agents (read BEFORE any work)
+- [Implementation Roadmap](IMPLEMENTATION-ROADMAP.md) — 12-phase build order with dependencies
+
 ### Self-Protection
 - [Constitution](CONSTITUTION.md) — inviolable system invariants
 - [Self-Protection System](subsystems/self-protection.md) — three-layer defense against degradation
