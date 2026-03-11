@@ -2,7 +2,7 @@
 
 > **Spec:** `design/subsystems/testing.md`
 > **Approach:** Testing is woven into existing roadmap phases, not a standalone phase.
-> Each section below maps to a Forge roadmap phase and lists concrete deliverables.
+> Each section below maps to a Moira roadmap phase and lists concrete deliverables.
 
 ---
 
@@ -135,7 +135,7 @@ Extracts from pipeline state:
 
 ### aggregator.sh
 
-Called periodically or by `/forge health`. Reads all `telemetry.yaml` files for current month, produces aggregated metrics for the `testing:` section in `metrics/monthly-{YYYY-MM}.yaml`.
+Called periodically or by `/moira health`. Reads all `telemetry.yaml` files for current month, produces aggregated metrics for the `testing:` section in `metrics/monthly-{YYYY-MM}.yaml`.
 
 ### Done Criteria
 
@@ -169,15 +169,15 @@ src/testing/
 │   │   └── ... (initial set, ~10-15 cases)
 │   ├── fixtures/
 │   │   ├── greenfield-webapp/     # Minimal project (~5 files)
-│   │   │   ├── .forge-fixture.yaml
+│   │   │   ├── .moira-fixture.yaml
 │   │   │   ├── package.json
 │   │   │   ├── tsconfig.json
 │   │   │   └── src/index.ts
 │   │   ├── mature-webapp/         # Consistent project (~25 files)
-│   │   │   ├── .forge-fixture.yaml
+│   │   │   ├── .moira-fixture.yaml
 │   │   │   └── ... (full project structure)
 │   │   └── legacy-webapp/         # Messy project (~45 files)
-│   │       ├── .forge-fixture.yaml
+│   │       ├── .moira-fixture.yaml
 │   │       └── ... (inconsistent structure)
 │   └── results/                   # Created at runtime
 │       └── aggregate.yaml
@@ -192,7 +192,7 @@ src/testing/
 4. For each test case:
    a. Reset fixture (git checkout clean && git clean -fd)
    b. Verify clean state
-   c. Invoke Forge pipeline with task description
+   c. Invoke Moira pipeline with task description
    d. Inject gate_responses at gates
    e. Inject blocked_responses if agent blocks
    f. On completion: collect artifacts from state/
@@ -282,7 +282,7 @@ Each fixture is a git repo with a `clean` branch as reset point.
 
 ## Phase 10 Deliverables (with Reflection Engine)
 
-**Goal:** LLM-Judge, rubrics, calibration, `/forge health` command.
+**Goal:** LLM-Judge, rubrics, calibration, `/moira health` command.
 
 ### Files to Create
 
@@ -301,8 +301,8 @@ src/testing/
 │   │   └── poor-implementation/
 │   └── scorer.sh                  # Updated: includes judge scores
 ├── commands/
-│   ├── forge-bench.md             # /forge bench skill definition
-│   └── forge-health.md            # /forge health skill definition
+│   ├── moira-bench.md             # /moira bench skill definition
+│   └── moira-health.md            # /moira health skill definition
 ```
 
 ### judge-prompt.md
@@ -347,7 +347,7 @@ quality = automated_pass ? (judge_composite - 1) * 25 : min((judge_composite - 1
 composite = conformance * 0.3 + quality * 0.5 + efficiency * 0.2
 ```
 
-### /forge bench Command
+### /moira bench Command
 
 Skill definition that orchestrates the bench UX flow from design:
 1. Scan changes → recommend tier
@@ -355,7 +355,7 @@ Skill definition that orchestrates the bench UX flow from design:
 3. Execute via runner.sh
 4. Display results
 
-### /forge health Command
+### /moira health Command
 
 Skill definition for live health check:
 1. Run verify.sh (Tier 1)
@@ -369,8 +369,8 @@ Skill definition for live health check:
 - Judge produces valid YAML scores for all test cases
 - Calibration passes (judge within ±1 of expected on all calibration examples)
 - Composite score calculation matches design formula
-- `/forge bench` full flow works end-to-end
-- `/forge health` shows meaningful data from live telemetry
+- `/moira bench` full flow works end-to-end
+- `/moira health` shows meaningful data from live telemetry
 - Reports show regression detection with NORMAL/WARN/ALERT
 
 ---

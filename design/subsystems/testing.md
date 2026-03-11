@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Automated testing system for Forge that provides objective metrics on both orchestration health (pipelines, gates, constitutional invariants) and result quality (code produced by agents). Enables data-driven development decisions instead of intuition-based ones.
+Automated testing system for Moira that provides objective metrics on both orchestration health (pipelines, gates, constitutional invariants) and result quality (code produced by agents). Enables data-driven development decisions instead of intuition-based ones.
 
 ## Design Decisions
 
@@ -12,7 +12,7 @@ Automated testing system for Forge that provides objective metrics on both orche
 - **Reproducibility:** deterministic tests run once (must be 100% stable), stochastic metrics accumulate over time
 - **Budget-conscious:** tiered testing, statistical accumulation instead of expensive multiple runs
 - **Privacy-first:** metrics without content, local-only by default, opt-in anonymized export
-- **No external dependencies:** YAML storage, bash scripts, file-based, consistent with Forge philosophy
+- **No external dependencies:** YAML storage, bash scripts, file-based, consistent with Moira philosophy
 
 ---
 
@@ -22,7 +22,7 @@ Automated testing system for Forge that provides objective metrics on both orche
 
 ```
 Layer 1: Structural Verifier
-  Purpose: deterministic checks on Forge integrity
+  Purpose: deterministic checks on Moira integrity
   Tools: bash + grep + yaml-parse
   Cost: 0 Claude tokens
   Speed: seconds
@@ -34,8 +34,8 @@ Layer 1: Structural Verifier
     - File structure validation
 
 Layer 2: Behavioral Bench
-  Purpose: end-to-end testing of Forge on controlled tasks
-  Tools: Forge pipelines + Claude (LLM-judge)
+  Purpose: end-to-end testing of Moira on controlled tasks
+  Tools: Moira pipelines + Claude (LLM-judge)
   Cost: high (agents + judge per test)
   Speed: minutes per test
   Process:
@@ -54,13 +54,13 @@ Layer 3: Live Telemetry
   Process:
     - Structured logging to state files on task completion
     - Monthly aggregation into existing metrics
-    - On-demand evaluation via /forge health
+    - On-demand evaluation via /moira health
 ```
 
 ### File Structure
 
 ```
-.claude/forge/testing/
+.claude/moira/testing/
 ├── bench/
 │   ├── results/              # per-run results (max 5 retained)
 │   │   ├── run-{NNN}/
@@ -85,7 +85,7 @@ Layer 3: Live Telemetry
 ## Composite Score
 
 ```
-Forge Health Score (0-100)
+Moira Health Score (0-100)
 ├── Structural Conformance (0-100), weight 30%
 │   ├── Constitutional invariants pass rate
 │   ├── Pipeline definition integrity
@@ -158,7 +158,7 @@ Raw Output → Per-run Report → Aggregate Summary → Archive
 **Bench mode:**
 - Raw artifacts: deleted after per-run report generated
 - Per-run reports: 5 most recent retained. Older archived to one-line: `{date, composite_score, regressions_count}`
-- Aggregate summary: recalculated each run. Rolling averages, trends, top-5 issues. Only thing loaded into context for `/forge bench report`
+- Aggregate summary: recalculated each run. Rolling averages, trends, top-5 issues. Only thing loaded into context for `/moira bench report`
 
 **Live mode:**
 - Per-task telemetry: written to existing `state/tasks/{id}/telemetry.yaml` (~200 bytes). Lives as long as task state
@@ -188,7 +188,7 @@ live_telemetry:
   pipeline_overhead: ~200 tokens per task (telemetry.yaml write)
   context_overhead: 0 (write-only during pipeline)
 
-forge_test_command:
+moira_test_command:
   loads: live/index.yaml (L0, ~200 tokens)
   drill_down: agent reads specific period on demand
 ```
@@ -279,11 +279,11 @@ cold_start:
 
 1. **Deterministic tests — separate.** Structural Verifier gives binary results. No variance — if constitutional check fails, it's 100% regression. Statistical model applies ONLY to stochastic metrics (LLM-judge, quality scores).
 
-2. **Paired comparison, not absolute.** When evaluating a Forge change — run same test set before and after. Compare pairwise, not against historical baseline. Removes drift influence.
+2. **Paired comparison, not absolute.** When evaluating a Moira change — run same test set before and after. Compare pairwise, not against historical baseline. Removes drift influence.
 
-3. **Variable isolation.** One Forge change → one bench run. Multiple changes → warning in report:
+3. **Variable isolation.** One Moira change → one bench run. Multiple changes → warning in report:
 ```yaml
-forge_changes_since_last_run:
+moira_changes_since_last_run:
   - file: src/agents/explorer.md
     type: prompt_change
   - file: src/agents/reviewer.md
@@ -353,7 +353,7 @@ tier_3:  # structural + full bench
 
 ### Tier Auto-Detection
 
-On `/forge bench`:
+On `/moira bench`:
 1. Scan git diff since last bench run
 2. Classify changed files by trigger matrix
 3. Select maximum tier across all changes
@@ -503,7 +503,7 @@ bench/fixtures/
 └── legacy-webapp/          # 40-60 files, inconsistent, tech debt
 ```
 
-Each fixture has `.forge-fixture.yaml`:
+Each fixture has `.moira-fixture.yaml`:
 
 ```yaml
 name: "mature-webapp"
@@ -545,7 +545,7 @@ fixture_lifecycle:
     - next test will reset before starting
 ```
 
-Stack-agnostic expansion: start with one stack, add more to verify Forge works across stacks.
+Stack-agnostic expansion: start with one stack, add more to verify Moira works across stacks.
 
 ---
 
@@ -554,7 +554,7 @@ Stack-agnostic expansion: start with one stack, add more to verify Forge works a
 ### Architecture
 
 Judge is a separate Claude call that:
-1. Does NOT participate in the Forge pipeline
+1. Does NOT participate in the Moira pipeline
 2. Receives artifacts from state files AFTER task completion
 3. Evaluates against strict rubric with anchored examples
 4. Returns structured YAML, not free-form text
@@ -701,11 +701,11 @@ RECORDED:                           NOT RECORDED:
 ### Per-Task Telemetry Format
 
 ```yaml
-# .claude/forge/state/tasks/{id}/telemetry.yaml (gitignored)
+# .claude/moira/state/tasks/{id}/telemetry.yaml (gitignored)
 
 task_id: "t-2026-03-11-004"
 timestamp: "2026-03-11T14:32:00Z"
-forge_version: "0.3.1"
+moira_version: "0.3.1"
 
 pipeline:
   type: standard
@@ -747,7 +747,7 @@ local_only:            # default
   telemetry: state/ (gitignored)
   sharing: nothing leaves the machine
 
-anonymized_export:     # opt-in via /forge test export
+anonymized_export:     # opt-in via /moira test export
   export: aggregated numbers without identifiers
   review_before_send: true
 
@@ -772,17 +772,17 @@ unexpected_string: replace with "[REDACTED]" + log warning
 ### Command Reference
 
 ```
-/forge bench              — run bench testing
-/forge bench report       — report on recent runs
-/forge bench compare      — compare two runs
-/forge bench calibrate    — calibrate LLM-judge
+/moira bench              — run bench testing
+/moira bench report       — report on recent runs
+/moira bench compare      — compare two runs
+/moira bench calibrate    — calibrate LLM-judge
 
-/forge health              — health check on current project
-/forge health report       — live metrics report
-/forge health export       — anonymized export
+/moira health              — health check on current project
+/moira health report       — live metrics report
+/moira health export       — anonymized export
 ```
 
-### /forge bench Flow
+### /moira bench Flow
 
 1. Scan git diff since last bench run
 2. Classify changes → recommend tier
@@ -792,7 +792,7 @@ unexpected_string: replace with "[REDACTED]" + log warning
 6. Show results with zone indicators (NORMAL / WARN / ALERT)
 7. On regression: show probable cause, recommend action
 
-### /forge health Flow
+### /moira health Flow
 
 1. Run Structural Verifier (Tier 1) — instant
 2. Load live telemetry aggregate
@@ -811,8 +811,8 @@ Testing Subsystem:
   reads from:    Constitution, Pipeline definitions, Agent definitions,
                  Rules, State files
   writes to:     testing/ directory, metrics/ (extends monthly aggregates)
-  invokes:       Forge pipelines (bench), Claude (LLM-judge)
-  invoked by:    /forge bench, /forge health, pipeline completion (passive)
+  invokes:       Moira pipelines (bench), Claude (LLM-judge)
+  invoked by:    /moira bench, /moira health, pipeline completion (passive)
   never touches: Project source code, Agent prompts, Pipeline engine,
                  Orchestrator skill
 ```
@@ -867,7 +867,7 @@ phase_6:  # Quality Gates
     - Bench runner (Tier 2 + Tier 3)
     - Test case format and first test cases
     - Fixture projects (initial set)
-    - /forge bench command
+    - /moira bench command
     - Budget guards
   rationale: "Full bench needs quality gates to test meaningful pipeline behavior"
 
@@ -877,7 +877,7 @@ phase_10:  # Reflection Engine
     - Rubrics with anchored examples
     - Calibration set
     - Judge calibration command
-    - /forge health command (full version with judge-based quality scores)
+    - /moira health command (full version with judge-based quality scores)
   rationale: "Judge evaluates the same dimensions as Reflector, benefits from its patterns"
 ```
 

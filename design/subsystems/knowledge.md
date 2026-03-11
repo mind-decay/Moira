@@ -96,7 +96,7 @@ Assessment of existing code quality. See [quality.md](quality.md) for full quali
 
 ## Bootstrapping — Hybrid Approach
 
-### Phase 0: Quick Scan (at /forge init, ~2-3 min)
+### Phase 0: Quick Scan (at /moira init, ~2-3 min)
 
 4 parallel Explorer invocations with Layer 4 task-specific instructions (D-032):
 1. **Explorer (tech scan)** → reads package.json, configs → stack.yaml
@@ -120,7 +120,7 @@ User gets notification when complete:
 ```
 ℹ Deep scan complete. Knowledge base updated.
   12 patterns documented, 3 quality concerns found.
-  Run /forge knowledge to review.
+  Run /moira knowledge to review.
 ```
 
 ### Phase 2: Organic Growth (ongoing)
@@ -144,7 +144,7 @@ New knowledge is checked against existing:
 Every fact is tagged:
 
 ```markdown
-<!-- forge:freshness task-078 2024-01-20 -->
+<!-- moira:freshness task-078 2024-01-20 -->
 ## API Error Handling Pattern
 ...
 ```
@@ -154,7 +154,7 @@ Freshness categories:
 - **Aging** (10-20 tasks ago): still used but may be outdated
 - **Stale** (> 20 tasks ago): needs verification
 
-Stale entries are flagged by Audit and verified by Explorer at next `/forge refresh`.
+Stale entries are flagged by Audit and verified by Explorer at next `/moira refresh`.
 
 ## Size Management — Archival Rotation
 

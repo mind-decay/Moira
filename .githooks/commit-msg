@@ -2,25 +2,25 @@
 set -euo pipefail
 
 # ═══════════════════════════════════════════
-#  Forge Commit Message Hook
+#  Moira Commit Message Hook
 #  Validates commit message format
 # ═══════════════════════════════════════════
 
 COMMIT_MSG_FILE="$1"
 COMMIT_MSG=$(head -1 "$COMMIT_MSG_FILE")
 
-# Expected format: forge(<scope>): <description>
+# Expected format: moira(<scope>): <description>
 # Scopes: design, agents, pipeline, rules, knowledge, quality,
 #         budget, hooks, mcp, reflection, metrics, audit,
 #         checkpoint, ux, infra, docs
 
 VALID_SCOPES="design|agents|pipeline|rules|knowledge|quality|budget|hooks|mcp|reflection|metrics|audit|checkpoint|ux|infra|docs"
 
-if [[ ! "$COMMIT_MSG" =~ ^forge\(($VALID_SCOPES)\):\ .+ ]]; then
+if [[ ! "$COMMIT_MSG" =~ ^moira\(($VALID_SCOPES)\):\ .+ ]]; then
     echo ""
     echo "ERROR: Invalid commit message format."
     echo ""
-    echo "Expected: forge(<scope>): <description>"
+    echo "Expected: moira(<scope>): <description>"
     echo ""
     echo "Valid scopes:"
     echo "  design, agents, pipeline, rules, knowledge, quality,"
@@ -28,9 +28,9 @@ if [[ ! "$COMMIT_MSG" =~ ^forge\(($VALID_SCOPES)\):\ .+ ]]; then
     echo "  checkpoint, ux, infra, docs"
     echo ""
     echo "Examples:"
-    echo "  forge(design): add distribution architecture document"
-    echo "  forge(agents): implement explorer agent prompt"
-    echo "  forge(infra): add pre-commit hook and gitignore"
+    echo "  moira(design): add distribution architecture document"
+    echo "  moira(agents): implement explorer agent prompt"
+    echo "  moira(infra): add pre-commit hook and gitignore"
     echo ""
     exit 1
 fi

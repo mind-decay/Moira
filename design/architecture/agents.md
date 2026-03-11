@@ -7,7 +7,7 @@
 ## Agent Response Contract
 
 Every agent MUST:
-1. Write detailed results to: `.claude/forge/state/tasks/{id}/{agent}.md`
+1. Write detailed results to: `.claude/moira/state/tasks/{id}/{agent}.md`
 2. Return to orchestrator ONLY:
 
 ```
@@ -263,12 +263,12 @@ NEXT: explore+analyze
 
 **Purpose:** Independent system health verification.
 
-**Input:** All forge files (rules, knowledge, config, state, metrics)
+**Input:** All moira files (rules, knowledge, config, state, metrics)
 **Output:** Audit report with findings and recommendations
 
 **Rules:**
 - Independent from pipeline (not part of task execution)
-- READ-ONLY — never modifies forge or project files
+- READ-ONLY — never modifies moira or project files
 - Audits 5 domains: rules, knowledge, agents, config, cross-consistency
 - Can read project files to verify knowledge accuracy
 - Recommendations must be actionable and specific

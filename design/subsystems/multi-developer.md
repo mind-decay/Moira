@@ -11,7 +11,7 @@ Multiple engineers on same project, each with their own Claude sessions:
 ## Solution: Branch-Scoped State + Shared Knowledge
 
 ```
-.claude/forge/
+.claude/moira/
 ├── knowledge/     ← SHARED (git-tracked, merges with PRs)
 ├── config/        ← SHARED (git-tracked)
 ├── core/          ← SHARED (git-tracked)
@@ -43,7 +43,7 @@ Multiple engineers on same project, each with their own Claude sessions:
 ## File Lock System
 
 ```yaml
-# .claude/forge/config/locks.yaml
+# .claude/moira/config/locks.yaml
 
 active_tasks:
   - id: "078"
@@ -116,8 +116,8 @@ Both sections coexist. No merge conflict. If semantic conflict exists, Reflector
 
 If locks are ignored and both modify same file:
 - This is handled by GIT (normal merge conflict)
-- Forge's contribution: both tasks have full architecture.md and plan.md, giving merge reviewer full context
-- Optional: `/forge resolve-conflict` spawns architect to analyze both changes and propose merge strategy
+- Moira's contribution: both tasks have full architecture.md and plan.md, giving merge reviewer full context
+- Optional: `/moira resolve-conflict` spawns architect to analyze both changes and propose merge strategy
 
 ## Developer Isolation Guarantees
 

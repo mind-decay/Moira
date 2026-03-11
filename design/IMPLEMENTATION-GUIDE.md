@@ -1,6 +1,6 @@
 # Implementation Guide
 
-This document provides the full context needed to implement Forge correctly. It captures the intent, priorities, and implicit knowledge from the design sessions that aren't fully expressed in the architectural documents alone.
+This document provides the full context needed to implement Moira correctly. It captures the intent, priorities, and implicit knowledge from the design sessions that aren't fully expressed in the architectural documents alone.
 
 **Read this BEFORE starting any implementation work. Read it fully, not skimming.**
 
@@ -8,11 +8,11 @@ This document provides the full context needed to implement Forge correctly. It 
 
 ## Who Is This For
 
-You are an AI agent (Claude) tasked with implementing parts of the Forge system. You do NOT have the context of the original design conversations. This document bridges that gap.
+You are an AI agent (Claude) tasked with implementing parts of the Moira system. You do NOT have the context of the original design conversations. This document bridges that gap.
 
-## What Forge Is — The Real Motivation
+## What Moira Is — The Real Motivation
 
-Forge exists because Claude Code, when used directly, has fundamental problems:
+Moira exists because Claude Code, when used directly, has fundamental problems:
 
 1. **Context pollution** — Claude reads files, fills its context, starts hallucinating toward the end of complex tasks
 2. **Unpredictable quality** — same task can produce wildly different results depending on session state
@@ -20,7 +20,7 @@ Forge exists because Claude Code, when used directly, has fundamental problems:
 4. **No learning** — knowledge from one task is lost in the next session
 5. **No structure** — Claude wings it, with no systematic process from requirements to implementation
 
-Forge solves this by making Claude a **pure orchestrator** that NEVER touches code directly. Instead, it dispatches specialized agents through fixed pipelines. This is not a suggestion — it's the core architectural constraint.
+Moira solves this by making Claude a **pure orchestrator** that NEVER touches code directly. Instead, it dispatches specialized agents through fixed pipelines. This is not a suggestion — it's the core architectural constraint.
 
 ### The Owner's Philosophy
 
@@ -37,7 +37,7 @@ The system owner (the engineer who designed this with the original Claude sessio
 
 ### The Target Test Project
 
-The first project Forge will be tested on is "ЛК ЮЛ" (личный кабинет юридических лиц — a B2B web portal). It already has some form of orchestration system that Forge will replace. The existing system is considered inadequate — don't reference or build on it.
+The first project Moira will be tested on is "ЛК ЮЛ" (личный кабинет юридических лиц — a B2B web portal). It already has some form of orchestration system that Moira will replace. The existing system is considered inadequate — don't reference or build on it.
 
 ### Why Not MVP
 
@@ -92,7 +92,7 @@ The specific checklist you must complete (from quality.md).
 Project knowledge loaded for this task (assembled by Planner).
 ```
 
-**Key prompt engineering principles for Forge agents:**
+**Key prompt engineering principles for Moira agents:**
 
 1. **Be explicit about what NOT to do.** Claude tends to be helpful and do extra work. Every agent needs clear "NEVER" constraints.
 
@@ -119,7 +119,7 @@ READ state → DETERMINE next step → DISPATCH agent → READ status → TRANSI
 It should NOT:
 - Accumulate agent outputs in its context
 - Make decisions that agents should make
-- Read any file outside `.claude/forge/`
+- Read any file outside `.claude/moira/`
 - "Optimize" by combining agent steps
 
 **The orchestrator's internal monologue should be:**
@@ -143,7 +143,7 @@ Rules are assembled by the Planner into per-agent instruction files. The assembl
 
 This is important because it means the Planner is a critical component that determines agent quality. A bad Planner = bad instructions = bad agent output.
 
-### Bootstrap (/forge init — Phase 5)
+### Bootstrap (/moira init — Phase 5)
 
 Bootstrap must work on ANY project type. The stack presets (nextjs.yaml, express.yaml, etc.) are starting points, not rigid templates.
 
@@ -225,7 +225,7 @@ During work:
 - [ ] File-based communication maintained (no context leaking)
 
 After work:
-- [ ] Run forge-verifier agent
+- [ ] Run moira-verifier agent
 - [ ] All constitutional invariants still hold
 - [ ] Design docs still match implementation
 - [ ] New decisions documented in Decision Log

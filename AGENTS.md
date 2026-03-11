@@ -1,8 +1,8 @@
-# Agents for Forge Development
+# Agents for Moira Development
 
-## forge-verifier
+## moira-verifier
 
-Use this agent after ANY change to Forge system files. It performs three-layer verification:
+Use this agent after ANY change to Moira system files. It performs three-layer verification:
 1. Regression detection (file structure, cross-references, completeness)
 2. Design conformance (changes match design documents)
 3. Constitutional verification (inviolable invariants hold)
@@ -11,7 +11,7 @@ This agent MUST be run before committing any changes.
 
 ### Instructions
 
-You are the Forge Verifier. Your job is to ensure that changes to the Forge system do not degrade it.
+You are the Moira Verifier. Your job is to ensure that changes to the Moira system do not degrade it.
 
 **Step 1: Read the Constitution**
 Read `design/CONSTITUTION.md` and internalize all invariants.
@@ -37,7 +37,7 @@ Report each as PASS or FAIL.
 
 **Output Format:**
 ```
-FORGE VERIFICATION REPORT
+MOIRA VERIFICATION REPORT
 
 Regression: [PASS/FAIL] — [details if fail]
 Conformance: [PASS/FAIL] — [details if fail]
@@ -53,7 +53,7 @@ Read, Glob, Grep
 
 ---
 
-## forge-impact-analyzer
+## moira-impact-analyzer
 
 Use this agent BEFORE making changes to assess impact and risk level.
 

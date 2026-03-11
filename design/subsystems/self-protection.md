@@ -1,8 +1,8 @@
-# Self-Protection System — Immune System for Forge
+# Self-Protection System — Immune System for Moira
 
 ## Problem
 
-Forge is developed iteratively. Each session with Claude adds, modifies, or refactors parts of the system. Without protection:
+Moira is developed iteratively. Each session with Claude adds, modifies, or refactors parts of the system. Without protection:
 
 1. A "small improvement" can break a core invariant
 2. Agent prompt changes can subtly weaken quality guarantees
@@ -34,7 +34,7 @@ Forge is developed iteratively. Each session with Claude adds, modifies, or refa
 
 ### What it checks
 
-After any change to Forge system files, verify that existing functionality still works:
+After any change to Moira system files, verify that existing functionality still works:
 
 ```
 REGRESSION CHECKS:
@@ -78,12 +78,12 @@ Regression checks are implemented as a verification script that:
 
 ```bash
 # Conceptual — actual implementation will be more sophisticated
-forge-verify regression
+moira-verify regression
 ```
 
 ### When it runs
 
-- Before every commit to the forge repo
+- Before every commit to the moira repo
 - After every implementation session
 - Can be triggered manually
 
@@ -215,9 +215,9 @@ article_1_1:
   check_type: "pattern_absence"
   target: "src/skills/orchestrator.md"
   forbidden_patterns:
-    - "Read tool" targeting non-.claude/forge/ paths
-    - "Write tool" targeting non-.claude/forge/ paths
-    - "Edit tool" targeting non-.claude/forge/ paths
+    - "Read tool" targeting non-.claude/moira/ paths
+    - "Write tool" targeting non-.claude/moira/ paths
+    - "Edit tool" targeting non-.claude/moira/ paths
     - "Grep tool"
     - "Glob tool"
     - "Bash tool" for non-agent operations
@@ -264,7 +264,7 @@ article_4_4:
   check_type: "logic_verification"
   target: "src/skills/orchestrator.md"
   required:
-    - Bypass activates ONLY on "/forge bypass:" prefix
+    - Bypass activates ONLY on "/moira bypass:" prefix
     - Confirmation accepts ONLY "2"
     - No alternative activation paths
   severity: "CONSTITUTIONAL_VIOLATION"
@@ -354,7 +354,7 @@ Or when a violation is found:
 
 ## Development Session Protocol
 
-Every session working on Forge follows this protocol:
+Every session working on Moira follows this protocol:
 
 ### Session Start
 

@@ -1,8 +1,8 @@
-# Forge — System Design
+# Moira — System Design
 
 ## Overview
 
-Forge is a meta-orchestration framework for Claude Code that transforms Claude from a code executor into a pure orchestrator. The system ensures predictable, high-quality engineering output by enforcing deterministic pipelines, strict agent boundaries, and continuous quality control.
+Moira is a meta-orchestration framework for Claude Code that transforms Claude from a code executor into a pure orchestrator. The system ensures predictable, high-quality engineering output by enforcing deterministic pipelines, strict agent boundaries, and continuous quality control.
 
 ## Design Documents
 
@@ -12,6 +12,7 @@ Forge is a meta-orchestration framework for Claude Code that transforms Claude f
 - [Pipeline Architecture](architecture/pipelines.md) — execution flows per task size
 - [Rules Architecture](architecture/rules.md) — modular rule system, layers, assembly
 - [Distribution & Installation](architecture/distribution.md) — install, setup, update, team adoption
+- [Naming & Identity](architecture/naming.md) — mythology-based naming system, display conventions
 
 ### Subsystems
 - [Context Budget Management](subsystems/context-budget.md) — token tracking, allocation, monitoring

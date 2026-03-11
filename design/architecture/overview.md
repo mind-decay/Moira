@@ -10,7 +10,7 @@
 └──────────────────────┬──────────────────────────┘
                        │ generates
 ┌──────────────────────▼──────────────────────────┐
-│           PROJECT LAYER (.claude/forge/)          │
+│           PROJECT LAYER (.claude/moira/)          │
 │  Project-specific agents, rules, conventions,    │
 │  knowledge base, state machine                   │
 └──────────────────────┬──────────────────────────┘
@@ -37,7 +37,7 @@ Installed once. Project-independent. Contains:
 
 ## Project Layer
 
-Generated per project via `/forge init`. Project-specific:
+Generated per project via `/moira init`. Project-specific:
 
 - **Adapted agents** — agent templates customized for project stack/conventions
 - **Project rules** — stack, conventions, patterns, boundaries
@@ -58,13 +58,13 @@ Agents that do the actual work. Each agent:
 ## Data Flow
 
 ```
-User → /forge <task>
+User → /moira <task>
   │
   Orchestrator reads: pipeline definition + task state
   Orchestrator spawns: Classifier agent
   │
   Classifier reads: project-model summary, task description
-  Classifier writes: .forge/state/tasks/{id}/classification.md
+  Classifier writes: .moira/state/tasks/{id}/classification.md
   Classifier returns: "STATUS: success | SUMMARY: medium task | NEXT: explore+analyze"
   │
   Orchestrator reads: classifier summary (not full file)
@@ -79,7 +79,7 @@ User → /forge <task>
 ## File Structure
 
 ```
-.claude/forge/
+.claude/moira/
 ├── config.yaml                    # Project configuration
 ├── core/
 │   └── rules/

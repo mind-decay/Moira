@@ -9,7 +9,7 @@ Long tasks (large, epic) may exceed orchestrator context or require multiple ses
 Every task maintains a manifest tracking full execution state:
 
 ```yaml
-# .claude/forge/state/tasks/078/manifest.yaml
+# .claude/moira/state/tasks/078/manifest.yaml
 
 task:
   id: "078"
@@ -95,7 +95,7 @@ resume_context: |
 | User requests | Manual checkpoint |
 | Session end (unexpected) | State is already persisted in manifest |
 
-## Resume Flow (/forge continue)
+## Resume Flow (/moira continue)
 
 ```
 1. Read manifest.yaml
@@ -166,7 +166,7 @@ If issues found → flag before continuing further steps.
 For epics, each sub-task is fully independent:
 
 ```yaml
-# .claude/forge/state/queue.yaml
+# .claude/moira/state/queue.yaml
 
 epic:
   id: "E-012"
@@ -193,7 +193,7 @@ epic:
   integration_verified: false
 ```
 
-`/forge continue` on an epic:
+`/moira continue` on an epic:
 1. Reads queue.yaml
 2. Finds first non-completed task
 3. If task is in_progress → resumes it

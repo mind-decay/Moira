@@ -2,15 +2,15 @@
 set -euo pipefail
 
 # ═══════════════════════════════════════════
-#  Forge Pre-Commit Hook
+#  Moira Pre-Commit Hook
 #  Validates system integrity before commits
 # ═══════════════════════════════════════════
 
-FORGE_ROOT="$(git rev-parse --show-toplevel)"
+MOIRA_ROOT="$(git rev-parse --show-toplevel)"
 ERRORS=0
 WARNINGS=0
 
-echo "Forge: running pre-commit checks..."
+echo "Moira: running pre-commit checks..."
 
 # ── Check 1: Constitution not modified by automation ─────
 # Constitution should only be edited intentionally by a human.
@@ -22,13 +22,13 @@ if git diff --cached --name-only | grep -q "design/CONSTITUTION.md"; then
 fi
 
 # ── Check 2: Design docs exist for all referenced paths ──
-if [ -f "$FORGE_ROOT/design/SYSTEM-DESIGN.md" ]; then
+if [ -f "$MOIRA_ROOT/design/SYSTEM-DESIGN.md" ]; then
     # Extract .md references from SYSTEM-DESIGN.md
     REFERENCED_FILES=$(grep -oP '\((?:architecture|subsystems|decisions)/[^)]+\.md\)' \
-        "$FORGE_ROOT/design/SYSTEM-DESIGN.md" 2>/dev/null | tr -d '()' || true)
+        "$MOIRA_ROOT/design/SYSTEM-DESIGN.md" 2>/dev/null | tr -d '()' || true)
 
     for ref in $REFERENCED_FILES; do
-        if [ ! -f "$FORGE_ROOT/design/$ref" ]; then
+        if [ ! -f "$MOIRA_ROOT/design/$ref" ]; then
             echo "ERROR: SYSTEM-DESIGN.md references design/$ref but file doesn't exist"
             ((ERRORS++))
         fi
@@ -36,7 +36,7 @@ if [ -f "$FORGE_ROOT/design/SYSTEM-DESIGN.md" ]; then
 fi
 
 # ── Check 3: Agent role files have NEVER constraints ─────
-AGENT_DIR="$FORGE_ROOT/src/core/rules/roles"
+AGENT_DIR="$MOIRA_ROOT/src/core/rules/roles"
 if [ -d "$AGENT_DIR" ]; then
     for agent_file in "$AGENT_DIR"/*.yaml "$AGENT_DIR"/*.md; do
         [ -f "$agent_file" ] || continue
@@ -48,7 +48,7 @@ if [ -d "$AGENT_DIR" ]; then
 fi
 
 # ── Check 4: Base rules inviolable section exists ────────
-BASE_RULES="$FORGE_ROOT/src/core/rules/base.yaml"
+BASE_RULES="$MOIRA_ROOT/src/core/rules/base.yaml"
 if [ -f "$BASE_RULES" ]; then
     if ! grep -q "inviolable" "$BASE_RULES" 2>/dev/null; then
         echo "ERROR: base.yaml missing 'inviolable' section"

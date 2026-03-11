@@ -83,7 +83,7 @@ constraints:
 
 ## Layer 3: Project Rules (project/rules/*.yaml)
 
-Generated at `/forge init`, refined over time.
+Generated at `/moira init`, refined over time.
 
 ### stack.yaml
 ```yaml
@@ -199,6 +199,6 @@ Rules are updated through two paths:
 - Batch approval (low-risk auto, high-risk manual)
 
 ### Path 3: User Direct
-- User manually edits rules in .claude/forge/
+- User manually edits rules in .claude/moira/
 - Next task picks up changes automatically
 - Audit verifies consistency on next run

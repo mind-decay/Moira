@@ -6,7 +6,7 @@ The escape hatch exists for cases where an engineer genuinely needs to bypass th
 
 ## Activation
 
-ONLY through explicit command: `/forge bypass: <description>`
+ONLY through explicit command: `/moira bypass: <description>`
 
 ### What does NOT activate bypass:
 - "just do it without the pipeline"
@@ -21,7 +21,7 @@ ONLY through explicit command: `/forge bypass: <description>`
 ### Activation Flow
 
 ```
-> /forge bypass: just add console.log to auth middleware
+> /moira bypass: just add console.log to auth middleware
 
 ═══════════════════════════════════════════
   ⚠ PIPELINE BYPASS REQUESTED
@@ -68,7 +68,7 @@ Some rules remain inviolable:
 
 ## Logging
 
-All bypasses logged in `.claude/forge/state/bypass-log.yaml`:
+All bypasses logged in `.claude/moira/state/bypass-log.yaml`:
 
 ```yaml
 bypasses:
@@ -97,7 +97,7 @@ for "quick fixes" — it catches issues.
 # core/rules/escape-hatch.yaml (INVIOLABLE)
 
 activation:
-  only_trigger: "/forge bypass:"
+  only_trigger: "/moira bypass:"
   only_confirm: "2"
 
 not_triggers:

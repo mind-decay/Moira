@@ -1,8 +1,8 @@
-# Forge Development Rules
+# Moira Development Rules
 
 ## What Is This Project
 
-Forge is a meta-orchestration framework for Claude Code. It transforms Claude from a code executor into a pure orchestrator that dispatches specialized agents through deterministic pipelines.
+Moira is a meta-orchestration framework for Claude Code. It transforms Claude from a code executor into a pure orchestrator that dispatches specialized agents through deterministic pipelines.
 
 **Design documents are the source of truth.** All implementation must conform to `design/` documents.
 
@@ -91,11 +91,11 @@ Follow the phase order in `design/IMPLEMENTATION-ROADMAP.md`. Each phase builds 
 
 ## Commit Messages
 
-Format: `forge(<scope>): <description>`
+Format: `moira(<scope>): <description>`
 
 Scopes: design, agents, pipeline, rules, knowledge, quality, budget, hooks, mcp, reflection, metrics, audit, checkpoint, ux
 
 Examples:
-- `forge(design): add self-protection system documentation`
-- `forge(agents): implement explorer agent prompt definition`
-- `forge(pipeline): implement standard pipeline state machine`
+- `moira(design): add self-protection system documentation`
+- `moira(agents): implement explorer agent prompt definition`
+- `moira(pipeline): implement standard pipeline state machine`

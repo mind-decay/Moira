@@ -10,21 +10,21 @@ Onboarding is:
 
 ## Trigger
 
-First `/forge init` on any project.
+First `/moira init` on any project.
 
 ## Flow
 
 ### Entry Point
 
 ```
-/forge init
+/moira init
 
 ═══════════════════════════════════════════
-  FORGE — First time setup
+  MOIRA — First time setup
 ═══════════════════════════════════════════
   Scanning project... done.
 
-  Welcome! Forge orchestrates engineering tasks
+  Welcome! Moira orchestrates engineering tasks
   with predictable, high-quality results.
 
   ▸ start — 3-minute interactive walkthrough
@@ -36,10 +36,10 @@ First `/forge init` on any project.
 
 ```
 ═══════════════════════════════════════════
-  HOW FORGE WORKS
+  HOW MOIRA WORKS
 ═══════════════════════════════════════════
 
-  You describe a task → Forge orchestrates agents:
+  You describe a task → Moira orchestrates agents:
 
   You ──→ Classify ──→ Analyze ──→ Plan ──→ Build ──→ Review
              │           │          │         │         │
@@ -60,11 +60,11 @@ First `/forge init` on any project.
   COMMANDS — just 5 to remember
 ═══════════════════════════════════════════
 
-  /forge <task>      — do a task
-  /forge continue    — resume interrupted work
-  /forge status      — where am I?
-  /forge knowledge   — what does the system know?
-  /forge metrics     — how well is it working?
+  /moira <task>      — do a task
+  /moira continue    — resume interrupted work
+  /moira status      — where am I?
+  /moira knowledge   — what does the system know?
+  /moira metrics     — how well is it working?
 
   Everything else happens through prompts.
 
@@ -115,10 +115,10 @@ System executes real task through Quick Pipeline with annotations:
   ▸ done — accept (this is an approval gate!)
   ▸ undo — revert
 
-  That's Forge! Larger tasks have more steps
+  That's Moira! Larger tasks have more steps
   and approval points.
 
-  Try /forge with a bigger task when ready.
+  Try /moira with a bigger task when ready.
 ═══════════════════════════════════════════
 ```
 
@@ -128,13 +128,13 @@ System executes real task through Quick Pipeline with annotations:
 > skip
 
   Quick reference:
-  /forge <task>  — execute a task
-  /forge status  — check state
-  /forge help    — detailed help
+  /moira <task>  — execute a task
+  /moira status  — check state
+  /moira help    — detailed help
 
   Project configured. Ready to use.
 ```
 
 ## Re-Onboarding
 
-If user wants to see onboarding again: `/forge help onboarding`
+If user wants to see onboarding again: `/moira help onboarding`

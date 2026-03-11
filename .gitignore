@@ -12,15 +12,15 @@ Thumbs.db
 # Node (if any tooling is added later)
 node_modules/
 
-# Forge runtime state (never committed — per-developer)
-# These paths are for PROJECTS that use Forge, not this repo.
+# Moira runtime state (never committed — per-developer)
+# These paths are for PROJECTS that use Moira, not this repo.
 # Listed here as reference and for local testing.
-.claude/forge/state/tasks/
-.claude/forge/state/locks.yaml
-.claude/forge/state/bypass-log.yaml
-.claude/forge/state/current.yaml
-.claude/forge/state/queue.yaml
-.claude/forge/state/budget-log.txt
+.claude/moira/state/tasks/
+.claude/moira/state/locks.yaml
+.claude/moira/state/bypass-log.yaml
+.claude/moira/state/current.yaml
+.claude/moira/state/queue.yaml
+.claude/moira/state/budget-log.txt
 
 # Local testing artifacts
 tmp/

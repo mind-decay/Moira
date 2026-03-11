@@ -1,6 +1,6 @@
 # Decision Log
 
-All architectural decisions made during Forge system design.
+All architectural decisions made during Moira system design.
 
 ---
 
@@ -116,17 +116,17 @@ All architectural decisions made during Forge system design.
 
 ## D-013: Self-Contained System
 
-**Context:** Should Forge depend on external skill systems (GSD, Superpowers, etc.)?
-**Decision:** Forge is self-contained with no external dependencies.
+**Context:** Should Moira depend on external skill systems (GSD, Superpowers, etc.)?
+**Decision:** Moira is self-contained with no external dependencies.
 **Alternatives rejected:**
-- Build on GSD — external changes could break Forge
+- Build on GSD — external changes could break Moira
 - Integrate Superpowers — creates coupling
-**Reasoning:** Independence ensures stability. External system changes cannot break Forge.
+**Reasoning:** Independence ensures stability. External system changes cannot break Moira.
 
 ## D-014: Escape Hatch with Explicit Activation Only
 
 **Context:** Should engineers be able to bypass the pipeline?
-**Decision:** Yes, but only through `/forge bypass:` command with explicit "2" confirmation. Cannot be triggered by prompt manipulation.
+**Decision:** Yes, but only through `/moira bypass:` command with explicit "2" confirmation. Cannot be triggered by prompt manipulation.
 **Alternatives rejected:**
 - No bypass — too rigid for experienced engineers
 - Easy bypass — becomes default, undermines system
@@ -141,10 +141,10 @@ All architectural decisions made during Forge system design.
 - All background — orchestrator can't make step-dependent decisions
 **Reasoning:** Quality requires seeing each step's result before deciding next step. Speed comes from parallelizing independent batches.
 
-## D-016: User Documentation Inside Forge
+## D-016: User Documentation Inside Moira
 
 **Context:** How to help users learn the system?
-**Decision:** Built-in help system (`/forge help <topic>`) + micro-onboarding + progressive disclosure.
+**Decision:** Built-in help system (`/moira help <topic>`) + micro-onboarding + progressive disclosure.
 **Alternatives rejected:**
 - External docs only — hard to access during work
 - No docs, intuitive UX only — complex system needs reference
@@ -158,7 +158,7 @@ All architectural decisions made during Forge system design.
 - Tests only — can't catch architectural violations, only functional ones
 - Code review only — relies on reviewer catching every invariant, not systematic
 - No formal protection — "we'll be careful" is not a strategy
-**Reasoning:** Forge is complex enough that accidental degradation is inevitable without structural protection. Constitution makes invariants explicit and verifiable. Three layers catch different types of regression.
+**Reasoning:** Moira is complex enough that accidental degradation is inevitable without structural protection. Constitution makes invariants explicit and verifiable. Three layers catch different types of regression.
 
 ## D-018: Design-First Development Protocol
 
@@ -180,19 +180,19 @@ All architectural decisions made during Forge system design.
 
 ## D-020: File-Copy Distribution Model
 
-**Context:** How should users install Forge?
-**Decision:** Single shell script (`install.sh`) that copies files to `~/.claude/forge/`. No package manager, no build step, no runtime dependencies beyond Claude Code + git + bash.
+**Context:** How should users install Moira?
+**Decision:** Single shell script (`install.sh`) that copies files to `~/.claude/moira/`. No package manager, no build step, no runtime dependencies beyond Claude Code + git + bash.
 **Alternatives rejected:**
 - npm package — adds Node.js dependency, unnecessary complexity for non-JS projects
 - Homebrew formula — platform-specific, adds maintenance burden
 - Claude Code plugin/extension system — doesn't exist yet, can't depend on future features
 - Docker — absurd overhead for config files
-**Reasoning:** Forge is just markdown + YAML + shell scripts. Installation = file copy. Simplest possible distribution. Works on any OS with Claude Code. Install in <30 sec.
+**Reasoning:** Moira is just markdown + YAML + shell scripts. Installation = file copy. Simplest possible distribution. Works on any OS with Claude Code. Install in <30 sec.
 
-## D-021: Verification Agents for Forge Development
+## D-021: Verification Agents for Moira Development
 
 **Context:** How to automate the three-layer verification?
-**Decision:** Two dedicated agents: forge-verifier (post-change) and forge-impact-analyzer (pre-change). Defined in AGENTS.md for the Forge project itself.
+**Decision:** Two dedicated agents: moira-verifier (post-change) and moira-impact-analyzer (pre-change). Defined in AGENTS.md for the Moira project itself.
 
 ## D-022: Project Config via Git, State via Gitignore
 
@@ -207,16 +207,16 @@ All architectural decisions made during Forge system design.
 - Manual verification only — humans miss things, especially after long sessions
 - CI/CD pipeline — not available in Claude Code context
 - Single agent for everything — too much responsibility, unclear output
-**Reasoning:** Pre-change analysis prevents bad changes from being made. Post-change verification catches what slipped through. Two agents with clear roles match Forge's own design philosophy.
+**Reasoning:** Pre-change analysis prevents bad changes from being made. Post-change verification catches what slipped through. Two agents with clear roles match Moira's own design philosophy.
 
 ## D-023: Layered Testing Architecture
 
 **Context:** How to test both orchestration correctness and agent output quality?
-**Decision:** Three-layer architecture: Structural Verifier (bash, 0 tokens, deterministic), Behavioral Bench (full Forge runs on fixtures, LLM-judge), Live Telemetry (passive metrics during real use).
+**Decision:** Three-layer architecture: Structural Verifier (bash, 0 tokens, deterministic), Behavioral Bench (full Moira runs on fixtures, LLM-judge), Live Telemetry (passive metrics during real use).
 **Alternatives rejected:**
-- Test-as-Pipeline (testing as another Forge pipeline) — circular dependency, broken Forge = broken tests
-- External Harness (separate tool outside Forge) — duplicates orchestration logic, two things to maintain
-**Reasoning:** Structural layer is independent (works even if Forge is broken). Behavioral layer tests real behavior without duplication. Live layer is nearly free. Each layer catches different failure modes.
+- Test-as-Pipeline (testing as another Moira pipeline) — circular dependency, broken Moira = broken tests
+- External Harness (separate tool outside Moira) — duplicates orchestration logic, two things to maintain
+**Reasoning:** Structural layer is independent (works even if Moira is broken). Behavioral layer tests real behavior without duplication. Live layer is nearly free. Each layer catches different failure modes.
 
 ## D-024: LLM-Judge with Anchored Rubrics
 
@@ -246,7 +246,7 @@ All architectural decisions made during Forge system design.
 - Always full bench — too expensive, burns token budget
 - Always smoke only — misses behavioral regressions
 - Manual selection only — requires user to know which tests matter
-**Reasoning:** Proportional testing matches Forge's own risk classification (RED/ORANGE/YELLOW/GREEN). Budget guards prevent runaway spending.
+**Reasoning:** Proportional testing matches Moira's own risk classification (RED/ORANGE/YELLOW/GREEN). Budget guards prevent runaway spending.
 
 ## D-027: Privacy-First Live Telemetry
 
@@ -277,8 +277,8 @@ All architectural decisions made during Forge system design.
 
 ## D-030: Native Custom Commands for Distribution
 
-**Context:** How to make `/forge` commands available to users?
-**Decision:** Use Claude Code native custom commands (`~/.claude/commands/forge/*.md`). Same file convention as GSD, but zero GSD runtime dependency.
+**Context:** How to make `/moira` commands available to users?
+**Decision:** Use Claude Code native custom commands (`~/.claude/commands/moira/*.md`). Same file convention as GSD, but zero GSD runtime dependency.
 **Alternatives rejected:**
 - Plugin system (marketplace) — requires marketplace infrastructure, overkill for v1
 - CLAUDE.md-only — no slash command entry points, poor UX
@@ -306,10 +306,20 @@ All architectural decisions made during Forge system design.
 - Single Scanner agent with mode parameter — unnecessary abstraction for 4 invocations
 **Reasoning:** Explorer's role is "reads code, reports facts — NEVER proposes solutions." Scanning is exactly this. Layer 4 instructions customize what facts to report. Consistent with D-005 (modular rules, Layer 4 = task-specific). No new NEVER constraints needed — Explorer's existing constraints apply.
 
+## D-034: Greek Mythology Naming System
+
+**Context:** System needs a memorable, unique, viral-friendly identity. Original name "Forge" is overloaded (SourceForge, Electron Forge, Minecraft Forge, etc.), has poor SEO, and doesn't convey orchestration.
+**Decision:** Rename system to **Moira** (the three Fates). All agents, components, and pipeline phases named after Greek mythological figures. Every name displayed as `Name (role)` format — always, everywhere, no exceptions.
+**Alternatives rejected:**
+- Keep "Forge" — poor googlability, crowded namespace, no mythological depth for subsystem naming
+- Latin/Norse mythology — Greek has strongest cultural recognition and largest namespace
+- Abstract tech names — forgettable, no narrative cohesion
+**Reasoning:** Greek mythology provides: (1) meaningful metaphors (three Fates = three pipeline phases), (2) vast extensible namespace, (3) cultural resonance that aids memorability and word-of-mouth, (4) unique identity in dev tooling space. The `Name (role)` convention ensures mythology never becomes a barrier to understanding. Full mapping in `architecture/naming.md`.
+
 ## D-033: Locks in Committed Zone with TTL
 
 **Context:** locks.yaml was in gitignored state/ directory, but locks must be visible across developers.
-**Decision:** Move locks.yaml to committed config zone (`.claude/forge/config/locks.yaml`). Add TTL (`expires_at` field) for stale lock detection.
+**Decision:** Move locks.yaml to committed config zone (`.claude/moira/config/locks.yaml`). Add TTL (`expires_at` field) for stale lock detection.
 **Alternatives rejected:**
 - Keep in gitignored state — defeats purpose of locks (invisible to other developers)
 - External lock service — violates D-013 (self-contained)

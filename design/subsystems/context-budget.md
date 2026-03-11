@@ -25,7 +25,7 @@ Context is the only non-renewable resource. An agent with a full context halluci
 ## Budget Allocations Per Agent
 
 ```yaml
-# .claude/forge/config/budgets.yaml
+# .claude/moira/config/budgets.yaml
 
 agent_budgets:
   explorer:

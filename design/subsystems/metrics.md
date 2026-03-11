@@ -42,7 +42,7 @@
 ## Metric Storage
 
 ```yaml
-# .claude/forge/state/metrics/monthly-{YYYY-MM}.yaml
+# .claude/moira/state/metrics/monthly-{YYYY-MM}.yaml
 
 period: "2024-01"
 tasks:
@@ -81,7 +81,7 @@ Per-task data also stored for drill-down.
 
 ## Dashboard Display
 
-### Main dashboard (/forge metrics)
+### Main dashboard (/moira metrics)
 
 Shows last 30 days with trend indicators:
 - ↑ improving
@@ -90,18 +90,18 @@ Shows last 30 days with trend indicators:
 
 Sections: Tasks, Quality, Accuracy, Efficiency, Knowledge, Evolution, Trends
 
-### Drill-down (/forge metrics details <section>)
+### Drill-down (/moira metrics details <section>)
 
 Shows individual data points:
 - Which tasks needed tweaks and why
 - Which tasks triggered retries and what failed
 - Per-agent budget usage distribution
 
-### Comparison (/forge metrics compare)
+### Comparison (/moira metrics compare)
 
 Side-by-side with previous period.
 
-### Export (/forge metrics export)
+### Export (/moira metrics export)
 
 Markdown report for sharing with team.
 

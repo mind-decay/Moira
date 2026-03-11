@@ -1,4 +1,4 @@
-# Forge Implementation Blockers — Resolution Design
+# Moira Implementation Blockers — Resolution Design
 
 **Date:** 2026-03-11
 **Status:** Approved
@@ -28,7 +28,7 @@
   - medium → Standard
   - large → Full
   - epic → Decomposition
-- **Size hint handling:** If user provides `/forge small: ...`, hint is passed to Classifier as input. Classifier may agree or override with reasoning.
+- **Size hint handling:** If user provides `/moira small: ...`, hint is passed to Classifier as input. Classifier may agree or override with reasoning.
 
 **Decision log:** Extends D-004 (agents list).
 
@@ -43,7 +43,7 @@
 ### 2.1: `config.yaml` — Project Configuration (committed)
 
 ```yaml
-# .claude/forge/config/config.yaml
+# .claude/moira/config/config.yaml
 version: "1.0"
 project:
   name: string                    # project name
@@ -109,7 +109,7 @@ hooks:
 ### 2.2: `current.yaml` — Active Pipeline State (gitignored)
 
 ```yaml
-# .claude/forge/state/current.yaml
+# .claude/moira/state/current.yaml
 task_id: "task-042"                # active task ID (null if idle)
 pipeline: standard                 # pipeline type
 started_at: "2026-03-11T14:30:00Z"
@@ -154,7 +154,7 @@ bypass:
 ### 2.3: `status.yaml` — Per-Task Status (gitignored)
 
 ```yaml
-# .claude/forge/state/tasks/{id}/status.yaml
+# .claude/moira/state/tasks/{id}/status.yaml
 task_id: "task-042"
 description: "Add pagination to user list endpoint"
 size: medium
@@ -226,7 +226,7 @@ completion:                        # filled on completion
 ### 2.4: `manifest.yaml` — Checkpoint for Resume (gitignored)
 
 ```yaml
-# .claude/forge/state/tasks/{id}/manifest.yaml
+# .claude/moira/state/tasks/{id}/manifest.yaml
 task_id: "task-042"
 pipeline: standard
 developer: "alice"
@@ -283,7 +283,7 @@ validation:                        # for resume verification
 ### 2.5: `queue.yaml` — Epic Task Queue (gitignored)
 
 ```yaml
-# .claude/forge/state/queue.yaml
+# .claude/moira/state/queue.yaml
 epic_id: "epic-003"
 description: "Migrate authentication from JWT to session-based"
 created_at: "2026-03-11T10:00:00Z"
@@ -344,14 +344,14 @@ progress:
 
 ## Blocker 3: Skill Registration Mechanism
 
-**Problem:** `register_skills()` in `install.sh` is a stub. No mechanism for making `/forge` commands available.
+**Problem:** `register_skills()` in `install.sh` is a stub. No mechanism for making `/moira` commands available.
 
-**Resolution:** Forge uses the Claude Code native custom commands pattern (markdown files in `~/.claude/commands/`) — the same file convention GSD uses, but with zero GSD runtime dependency. This is consistent with D-013 (self-contained system).
+**Resolution:** Moira uses the Claude Code native custom commands pattern (markdown files in `~/.claude/commands/`) — the same file convention GSD uses, but with zero GSD runtime dependency. This is consistent with D-013 (self-contained system).
 
 **Structure:**
 ```
 ~/.claude/
-├── forge/                              # core system
+├── moira/                              # core system
 │   ├── skills/
 │   │   └── orchestrator.md             # main orchestrator skill
 │   ├── core/
@@ -392,17 +392,17 @@ progress:
 │   │   └── budget-track.sh
 │   └── VERSION
 │
-├── commands/forge/                     # user-facing slash commands
-│   ├── init.md                         # /forge:init
-│   ├── task.md                         # /forge — main entry point
-│   ├── status.md                       # /forge:status
-│   ├── metrics.md                      # /forge:metrics
-│   ├── audit.md                        # /forge:audit
-│   ├── knowledge.md                    # /forge:knowledge
-│   ├── bypass.md                       # /forge:bypass
-│   ├── resume.md                       # /forge:resume
-│   ├── refresh.md                      # /forge:refresh
-│   └── help.md                         # /forge:help
+├── commands/moira/                     # user-facing slash commands
+│   ├── init.md                         # /moira:init
+│   ├── task.md                         # /moira — main entry point
+│   ├── status.md                       # /moira:status
+│   ├── metrics.md                      # /moira:metrics
+│   ├── audit.md                        # /moira:audit
+│   ├── knowledge.md                    # /moira:knowledge
+│   ├── bypass.md                       # /moira:bypass
+│   ├── resume.md                       # /moira:resume
+│   ├── refresh.md                      # /moira:refresh
+│   └── help.md                         # /moira:help
 │
 └── settings.json                       # hooks registration (merge)
 ```
@@ -410,13 +410,13 @@ progress:
 **Command file format** (GSD model):
 ```yaml
 ---
-name: forge:task
-description: Execute a task through the Forge orchestration pipeline
+name: moira:task
+description: Execute a task through the Moira orchestration pipeline
 argument-hint: "[small:|medium:|large:] <task description>"
 allowed-tools:
   - Agent          # dispatch subagents
-  - Read           # read forge state/config files ONLY (.claude/forge/ paths)
-  - Write          # write forge state files ONLY (.claude/forge/state/ paths)
+  - Read           # read moira state/config files ONLY (.claude/moira/ paths)
+  - Write          # write moira state files ONLY (.claude/moira/state/ paths)
   - TaskCreate     # todo tracking
   - TaskUpdate
   - TaskList
@@ -426,19 +426,19 @@ allowed-tools:
 
 **Existing `.claude/` compatibility rules:**
 
-1. **`.claude/` already exists** — Forge creates only `.claude/forge/` subdirectory. Does not touch anything outside `forge/`.
-2. **`.claude/CLAUDE.md` already exists** — Forge appends its section wrapped in markers:
+1. **`.claude/` already exists** — Moira creates only `.claude/moira/` subdirectory. Does not touch anything outside `moira/`.
+2. **`.claude/CLAUDE.md` already exists** — Moira appends its section wrapped in markers:
    ```markdown
-   <!-- forge:start -->
-   ## Forge Orchestration System
+   <!-- moira:start -->
+   ## Moira Orchestration System
    ...orchestrator instructions...
-   <!-- forge:end -->
+   <!-- moira:end -->
    ```
    On re-init or refresh — replaces only content between markers.
-3. **`.claude/CLAUDE.md` does not exist** — Creates file with Forge section.
-4. **`.claude/commands/` already exists** (GSD or other) — Forge uses its own `commands/forge/` namespace, no conflicts.
-5. **Repeated `/forge:init`** — Idempotent. No duplicate sections, preserves knowledge. Regenerates config, updates CLAUDE.md section, rescans project.
-6. **`/forge:init --force`** — Full reinitialization: recreates config, reruns scanners, **preserves** accumulated knowledge.
+3. **`.claude/CLAUDE.md` does not exist** — Creates file with Moira section.
+4. **`.claude/commands/` already exists** (GSD or other) — Moira uses its own `commands/moira/` namespace, no conflicts.
+5. **Repeated `/moira:init`** — Idempotent. No duplicate sections, preserves knowledge. Regenerates config, updates CLAUDE.md section, rescans project.
+6. **`/moira:init --force`** — Full reinitialization: recreates config, reruns scanners, **preserves** accumulated knowledge.
 
 ---
 
@@ -462,22 +462,22 @@ allowed-tools:
 
 1. **`allowed-tools` in command frontmatter** (prevention) — Orchestrator commands exclude Edit/Grep/Glob. Orchestrator physically cannot invoke forbidden tools.
 2. **PostToolUse `guard.sh` hook** (detection) — Monitors all tool calls, logs violations, injects constitutional violation warning into context via `additionalContext`.
-3. **CLAUDE.md prompt enforcement** (guidance) — Forge section in project CLAUDE.md contains inviolable rules about orchestrator boundaries.
+3. **CLAUDE.md prompt enforcement** (guidance) — Moira section in project CLAUDE.md contains inviolable rules about orchestrator boundaries.
 
 **guard.sh implementation:**
 
 ```bash
 #!/bin/bash
-# PostToolUse hook — fires AFTER every tool call in forge sessions
+# PostToolUse hook — fires AFTER every tool call in moira sessions
 # Reads JSON from stdin, checks for violations, logs audit trail
 
 input=$(cat)
 tool_name=$(echo "$input" | jq -r '.tool_name // empty')
 file_path=$(echo "$input" | jq -r '.tool_input.file_path // .tool_input.command // empty')
 session_id=$(echo "$input" | jq -r '.session_id // empty')
-state_dir="$HOME/.claude/forge/state"
+state_dir="$HOME/.claude/moira/state"
 
-# Only monitor forge sessions
+# Only monitor moira sessions
 if [ ! -f "$state_dir/current.yaml" ]; then
   exit 0
 fi
@@ -486,19 +486,19 @@ fi
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $tool_name $file_path" >> "$state_dir/tool-usage.log"
 
 # Check for violations — orchestrator touching project files with forbidden tools
-# Covers full Art 1.1 test: Read/Write/Edit/Grep/Glob on non-forge paths
-forge_path=".claude/forge"
+# Covers full Art 1.1 test: Read/Write/Edit/Grep/Glob on non-moira paths
+moira_path=".claude/moira"
 if [[ "$tool_name" =~ ^(Read|Write|Edit|Grep|Glob)$ ]]; then
-  if [[ -n "$file_path" && "$file_path" != *"$forge_path"* ]]; then
+  if [[ -n "$file_path" && "$file_path" != *"$moira_path"* ]]; then
     echo "{\"hookSpecificOutput\":{\"additionalContext\":\"CONSTITUTIONAL VIOLATION: Orchestrator used $tool_name on $file_path. Art 1.1 prohibits direct project file operations. This is logged and will appear in audit.\"}}"
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) VIOLATION $tool_name $file_path" >> "$state_dir/violations.log"
   fi
 fi
 
-# Check for Bash violations — only forge state reads allowed, not project commands
+# Check for Bash violations — only moira state reads allowed, not project commands
 if [[ "$tool_name" == "Bash" ]]; then
-  if [[ -n "$file_path" && ! "$file_path" =~ ^(cat|head|tail).*\.claude/forge ]]; then
-    echo "{\"hookSpecificOutput\":{\"additionalContext\":\"WARNING: Orchestrator used Bash with command: $file_path. D-001 prohibits running commands. Only forge state reads are allowed.\"}}"
+  if [[ -n "$file_path" && ! "$file_path" =~ ^(cat|head|tail).*\.claude/moira ]]; then
+    echo "{\"hookSpecificOutput\":{\"additionalContext\":\"WARNING: Orchestrator used Bash with command: $file_path. D-001 prohibits running commands. Only moira state reads are allowed.\"}}"
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) WARN-BASH $file_path" >> "$state_dir/violations.log"
   fi
 fi
@@ -529,7 +529,7 @@ fi
 **Pattern Scanner** — Explorer with instruction:
 > Scan source code and report ONLY recurring patterns: component/module structure, API endpoints, data access, state management, common abstractions. Output: pattern catalog with file path evidence. NO opinions, NO recommendations.
 
-**Dispatch:** All 4 launched in parallel via Agent tool with `run_in_background: true`. Results written to `.claude/forge/knowledge/` as L2 (full) documents, from which L1 (summary) and L0 (index) are generated.
+**Dispatch:** All 4 launched in parallel via Agent tool with `run_in_background: true`. Results written to `.claude/moira/knowledge/` as L2 (full) documents, from which L1 (summary) and L0 (index) are generated.
 
 **Budget:** Each scanner uses standard Explorer budget (140k tokens). Total bootstrap ≈ 560k tokens (quick scan). Deep scan launches in background during first task with increased budget for Convention and Pattern scanners.
 
@@ -541,7 +541,7 @@ fi
 
 **Problem:** `locks.yaml` is in gitignored `state/` directory, but locks must be visible across developers.
 
-**Resolution:** Move `locks.yaml` to committed zone: `.claude/forge/config/locks.yaml`. On conflicts — standard git merge. Locks include TTL (`expires_at` field) and stale detection during audit.
+**Resolution:** Move `locks.yaml` to committed zone: `.claude/moira/config/locks.yaml`. On conflicts — standard git merge. Locks include TTL (`expires_at` field) and stale detection during audit.
 
 ### Defect 7: Escape Hatch vs Orchestrator Purity
 
@@ -555,7 +555,7 @@ fi
 
 **Resolution:** Orchestrator dispatches a minimal Implementer agent with a single instruction: execute the git revert. The orchestrator does NOT run Bash directly for git revert — this preserves D-001 ("never runs commands") and Art 1.1 (orchestrator purity). The Implementer agent has Bash in its allowed-tools and can execute git operations as part of its implementation role.
 
-Note: the orchestrator's `allowed-tools` includes `Bash` for reading forge state files only (e.g., `cat .claude/forge/state/current.yaml`). Git revert is NOT an orchestrator Bash operation — it is delegated to an agent.
+Note: the orchestrator's `allowed-tools` includes `Bash` for reading moira state files only (e.g., `cat .claude/moira/state/current.yaml`). Git revert is NOT an orchestrator Bash operation — it is delegated to an agent.
 
 ### Defect 9: Constitutional Invariant Count
 
@@ -572,7 +572,7 @@ Based on all resolutions above, the following design documents need updates:
 | Document | Changes |
 |---|---|
 | `design/architecture/agents.md` | Add Classifier as 10th agent; note that bootstrap scanners are Explorer invocations |
-| `design/architecture/overview.md` | Add `allowed-tools` enforcement; update file tree with `commands/forge/`; add `config/locks.yaml` |
+| `design/architecture/overview.md` | Add `allowed-tools` enforcement; update file tree with `commands/moira/`; add `config/locks.yaml` |
 | `design/architecture/pipelines.md` | Reference Classifier agent definition |
 | `design/architecture/distribution.md` | Replace plugin model with GSD command model; update `register_skills()` to file copy + commands |
 | `design/architecture/escape-hatch.md` | Clarify bypass = direct Implementer dispatch, not orchestrator execution |

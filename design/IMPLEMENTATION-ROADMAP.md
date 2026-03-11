@@ -8,11 +8,11 @@ Based on dependency analysis. Each phase builds on previous.
 
 ## Phase 1: Foundation — File Structure & State Management
 
-**Goal:** Forge directory structure exists, state can be read/written/resumed.
+**Goal:** Moira directory structure exists, state can be read/written/resumed.
 
 **Deliverables:**
-- Directory scaffold generator (creates `~/.claude/forge/` global tree + `.claude/forge/` project tree)
-- Command files in `~/.claude/commands/forge/` (native custom commands, D-030)
+- Directory scaffold generator (creates `~/.claude/moira/` global tree + `.claude/moira/` project tree)
+- Command files in `~/.claude/commands/moira/` (native custom commands, D-030)
 - YAML state schemas — full schemas per D-029:
   - `config.yaml` — project configuration (committed)
   - `current.yaml` — active pipeline state (gitignored)
@@ -22,7 +22,7 @@ Based on dependency analysis. Each phase builds on previous.
   - `locks.yaml` — multi-developer locks (committed, in config/, D-033)
 - State management (read/write/validate for all schemas above)
 - Task ID generation
-- `install.sh` — copies files to `~/.claude/forge/` + `~/.claude/commands/forge/`, merges hooks into `settings.json`
+- `install.sh` — copies files to `~/.claude/moira/` + `~/.claude/commands/moira/`, merges hooks into `settings.json`
 
 **Testing (Tier 1 — Structural Verifier):**
 - Directory structure validation scripts (bash + grep, 0 tokens)
@@ -60,7 +60,7 @@ Based on dependency analysis. Each phase builds on previous.
 **Goal:** Orchestrator can execute all 4 pipeline types (Quick/Standard/Full/Decomposition).
 
 **Deliverables:**
-- Orchestrator command file (`commands/forge/task.md`) with `allowed-tools` restriction (D-031)
+- Orchestrator command file (`commands/moira/task.md`) with `allowed-tools` restriction (D-031)
 - Pipeline state machine (classify → analyze → plan → implement → review → test)
 - Gate presentation system
 - Agent dispatch via native Agent tool (foreground/background, parallel)
@@ -94,9 +94,9 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 5: Bootstrap Engine (/forge init)
+## Phase 5: Bootstrap Engine (/moira init)
 
-**Goal:** `/forge init` fully works — scans project, generates config, creates knowledge base.
+**Goal:** `/moira init` fully works — scans project, generates config, creates knowledge base.
 
 **Deliverables:**
 - 4x Explorer invocations with Layer 4 instructions (D-032):
@@ -106,11 +106,11 @@ Based on dependency analysis. Each phase builds on previous.
   - Pattern scan (component structure, API patterns)
 - All 4 scanners dispatched in parallel via Agent tool
 - Config generator (`config.yaml` from scan results + stack preset)
-- `.claude/CLAUDE.md` integration (forge:start/forge:end markers, idempotent)
+- `.claude/CLAUDE.md` integration (moira:start/moira:end markers, idempotent)
 - Existing `.claude/` compatibility (no conflicts with GSD/other tools)
 - Deep scan (background) trigger on first task
 - Onboarding flow
-- `/forge:init --force` (full reinit, preserves knowledge)
+- `/moira:init --force` (full reinit, preserves knowledge)
 
 **Why fifth:** Bootstrap uses agents + rules + knowledge system. Needs all of them working.
 
@@ -214,7 +214,7 @@ Based on dependency analysis. Each phase builds on previous.
 **Deliverables:**
 - Metrics collection per task
 - Monthly aggregation
-- Dashboard display (/forge metrics)
+- Dashboard display (/moira metrics)
 - Drill-down views
 - 5-domain audit system
 - Batch recommendation approval
@@ -235,7 +235,7 @@ Based on dependency analysis. Each phase builds on previous.
 - Epic decomposition pipeline (`queue.yaml`)
 - Tweak flow
 - Redo flow with re-entry points (git revert delegated to Implementer agent, not orchestrator)
-- Version migration (`/forge:upgrade`)
+- Version migration (`/moira:upgrade`)
 
 **Testing (Tier 3 — Full Bench):**
 - Full behavioral bench across all fixture projects
@@ -255,7 +255,7 @@ Three-layer architecture woven across phases (D-023):
 - Runs on every change (always)
 - Validates: file structure, YAML schemas, NEVER constraints, gate presence, Art 1.1 compliance
 
-**Tier 2 — Behavioral Bench (full Forge runs on fixtures, LLM-judge):**
+**Tier 2 — Behavioral Bench (full Moira runs on fixtures, LLM-judge):**
 - Fixtures created during Phase 6
 - LLM-judge operational by Phase 10 (D-024)
 - Runs on prompt/rule changes (targeted, 3-5 tests)
@@ -278,7 +278,7 @@ Three-layer architecture woven across phases (D-023):
 ## Success Criteria
 
 System is complete when:
-- [ ] `/forge init` bootstraps correctly on ЛК ЮЛ project
+- [ ] `/moira init` bootstraps correctly on ЛК ЮЛ project
 - [ ] Small/medium/large tasks execute through correct pipelines
 - [ ] Orchestrator context stays < 25% on average
 - [ ] First-pass acceptance rate > 80%

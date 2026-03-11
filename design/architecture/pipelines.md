@@ -161,7 +161,7 @@ USER → epic description (from YouTrack, Slack, etc.)
   └─ Epic-level reflection
 
   Each sub-task creates a checkpoint. User can close session,
-  open new one, run /forge continue to pick up next task.
+  open new one, run /moira continue to pick up next task.
 ```
 
 ---

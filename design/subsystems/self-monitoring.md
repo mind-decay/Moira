@@ -26,11 +26,11 @@ Rules alone don't prevent this 100%. We need structural enforcement.
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/forge/hooks/guard.sh"
+            "command": "bash ~/.claude/moira/hooks/guard.sh"
           },
           {
             "type": "command",
-            "command": "bash ~/.claude/forge/hooks/budget-track.sh"
+            "command": "bash ~/.claude/moira/hooks/budget-track.sh"
           }
         ]
       }
@@ -41,12 +41,12 @@ Rules alone don't prevent this 100%. We need structural enforcement.
 
 ### Layer 1: `allowed-tools` in command frontmatter (PREVENTION)
 
-Orchestrator command files (`~/.claude/commands/forge/*.md`) restrict available tools:
+Orchestrator command files (`~/.claude/commands/moira/*.md`) restrict available tools:
 ```yaml
 allowed-tools:
   - Agent          # dispatch subagents
-  - Read           # read forge state/config files ONLY
-  - Write          # write forge state files ONLY
+  - Read           # read moira state/config files ONLY
+  - Write          # write moira state files ONLY
   - TaskCreate     # todo tracking
   - TaskUpdate
   - TaskList
@@ -65,9 +65,9 @@ The orchestrator physically cannot invoke Edit, Grep, Glob, or Bash because thes
 input=$(cat)
 tool_name=$(echo "$input" | jq -r '.tool_name // empty')
 file_path=$(echo "$input" | jq -r '.tool_input.file_path // .tool_input.command // empty')
-state_dir="$HOME/.claude/forge/state"
+state_dir="$HOME/.claude/moira/state"
 
-# Only monitor forge sessions
+# Only monitor moira sessions
 if [ ! -f "$state_dir/current.yaml" ]; then
   exit 0
 fi
@@ -76,9 +76,9 @@ fi
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $tool_name $file_path" >> "$state_dir/tool-usage.log"
 
 # Check for violations — orchestrator touching project files
-forge_path=".claude/forge"
+moira_path=".claude/moira"
 if [[ "$tool_name" =~ ^(Read|Write|Edit|Grep|Glob)$ ]]; then
-  if [[ -n "$file_path" && "$file_path" != *"$forge_path"* ]]; then
+  if [[ -n "$file_path" && "$file_path" != *"$moira_path"* ]]; then
     echo "{\"hookSpecificOutput\":{\"additionalContext\":\"CONSTITUTIONAL VIOLATION: Orchestrator used $tool_name on $file_path. Art 1.1 prohibits direct project file operations.\"}}"
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) VIOLATION $tool_name $file_path" >> "$state_dir/violations.log"
   fi
@@ -87,7 +87,7 @@ fi
 
 ### Layer 3: CLAUDE.md prompt enforcement (GUIDANCE)
 
-Forge section in project CLAUDE.md contains inviolable rules about orchestrator boundaries.
+Moira section in project CLAUDE.md contains inviolable rules about orchestrator boundaries.
 
 ## Orchestrator Context Monitoring
 
@@ -110,7 +110,7 @@ Quality of orchestration may degrade.
 
 Recommendation: checkpoint and continue in fresh session.
 
-▸ checkpoint — save state, run /forge continue later
+▸ checkpoint — save state, run /moira continue later
 ▸ proceed    — continue (not recommended)
 ```
 
@@ -138,8 +138,8 @@ Embedded in orchestrator's CLAUDE.md:
 You are an ORCHESTRATOR. You are NOT an executor.
 
 NEVER:
-- Use Read on files outside .claude/forge/
-- Use Edit or Write on files outside .claude/forge/
+- Use Read on files outside .claude/moira/
+- Use Edit or Write on files outside .claude/moira/
 - Use Bash for anything except agent dispatch
 - Use Grep or Glob on project files
 

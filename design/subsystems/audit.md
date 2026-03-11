@@ -2,18 +2,18 @@
 
 ## Principle: Trust But Verify
 
-The Audit system is an independent observer verifying health of ALL Forge components. Not part of the pipeline, not part of reflection — a separate subsystem.
+The Audit system is an independent observer verifying health of ALL Moira components. Not part of the pipeline, not part of reflection — a separate subsystem.
 
 ## Audit Triggers
 
 ### Automatic
 - After every 20 tasks: full audit
-- On `/forge upgrade`: compatibility audit
-- On `/forge refresh`: knowledge audit subset
+- On `/moira upgrade`: compatibility audit
+- On `/moira refresh`: knowledge audit subset
 
 ### Manual
-- `/forge audit`: full audit (all 5 domains)
-- `/forge audit <domain>`: specific domain audit
+- `/moira audit`: full audit (all 5 domains)
+- `/moira audit <domain>`: specific domain audit
 
 ### Passive (lightweight, during normal operation)
 - On task start: check locks, check state consistency
@@ -111,7 +111,7 @@ Most important. Verifies ALL components are aligned:
 
 ### Summary (displayed to user)
 ```
-FORGE SYSTEM AUDIT
+MOIRA SYSTEM AUDIT
 ├─ Rules: 1 issue (conventions drift)
 ├─ Knowledge: 3 issues (1 stale, 1 gap, 1 missing reasoning)
 ├─ Agents: 4 recommendations
@@ -121,7 +121,7 @@ Total: 11 findings (2 high, 5 medium, 4 low risk)
 ```
 
 ### Detailed report
-Written to: `.claude/forge/state/audits/{date}-audit.md`
+Written to: `.claude/moira/state/audits/{date}-audit.md`
 
 ## Recommendation Approval
 
@@ -177,7 +177,7 @@ identity: |
   You are INDEPENDENT from the pipeline.
 
 capabilities:
-  - Read ALL forge files (rules, knowledge, config, state, metrics)
+  - Read ALL moira files (rules, knowledge, config, state, metrics)
   - Read project files (to verify knowledge accuracy)
   - Cross-reference between any components
   - Statistical analysis of metrics data
@@ -189,6 +189,6 @@ constraints:
   - Classify findings by risk: low / medium / high
 
 output:
-  detailed: .claude/forge/state/audits/{date}-audit.md
+  detailed: .claude/moira/state/audits/{date}-audit.md
   summary: returned to orchestrator for display
 ```

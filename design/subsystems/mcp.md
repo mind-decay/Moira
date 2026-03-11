@@ -12,10 +12,10 @@ RIGHT: Planner determines which MCP tools are needed per step,
 
 ## MCP Registry
 
-Generated at `/forge init` by scanning available MCP servers.
+Generated at `/moira init` by scanning available MCP servers.
 
 ```yaml
-# .claude/forge/config/mcp-registry.yaml
+# .claude/moira/config/mcp-registry.yaml
 
 servers:
   context7:
@@ -143,11 +143,11 @@ These are loaded as project context instead of making MCP calls.
 
 ## MCP Server Discovery
 
-At `/forge init`, system discovers available MCP servers:
+At `/moira init`, system discovers available MCP servers:
 1. Scan MCP configuration
 2. List available tools per server
 3. Classify each tool (type, cost, reliability)
 4. Generate mcp-registry.yaml
 5. User reviews and adjusts
 
-New MCP servers added later → `/forge refresh` updates registry.
+New MCP servers added later → `/moira refresh` updates registry.

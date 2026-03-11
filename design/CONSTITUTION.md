@@ -1,8 +1,8 @@
-# Forge Constitution
+# Moira Constitution
 
 ## Purpose
 
-This document defines **inviolable invariants** of the Forge system. These are architectural properties that MUST hold true at all times, across all versions, in all contexts.
+This document defines **inviolable invariants** of the Moira system. These are architectural properties that MUST hold true at all times, across all versions, in all contexts.
 
 Any change that violates a constitutional invariant MUST be rejected — regardless of who proposes it, regardless of the reasoning.
 
@@ -15,7 +15,7 @@ The Constitution can only be amended through explicit user approval with documen
 ### 1.1 Orchestrator Purity
 The orchestrator (main Claude) MUST NOT directly read, write, or modify project source files. All project interaction happens through agents.
 
-**Test:** Grep orchestrator skill for Read/Write/Edit/Grep/Glob calls targeting non-forge paths. Count must be 0.
+**Test:** Grep orchestrator skill for Read/Write/Edit/Grep/Glob calls targeting non-moira paths. Count must be 0.
 
 ### 1.2 Agent Single Responsibility
 Each agent type has exactly ONE responsibility. An agent MUST NOT perform actions outside its defined role.
@@ -74,7 +74,7 @@ The system MUST NOT make decisions without either (a) following an explicit rule
 ### 3.1 All Decisions Are Traceable
 Every architectural decision, every plan, every implementation step MUST be written to state files. There must be no "invisible" steps.
 
-**Test:** Every pipeline step writes output to `.claude/forge/state/tasks/{id}/`. No step is fire-and-forget.
+**Test:** Every pipeline step writes output to `.claude/moira/state/tasks/{id}/`. No step is fire-and-forget.
 
 ### 3.2 Budget Visibility
 Context budget usage MUST be reported to the user. Budget tracking cannot be disabled or hidden.
@@ -106,7 +106,7 @@ Every task MUST be fully reversible. Code changes can be reverted. State can be 
 **Test:** Every implementation step is backed by git. Redo capability exists and works.
 
 ### 4.4 Escape Hatch Integrity
-The escape hatch (`/forge bypass:`) MUST require explicit activation AND explicit confirmation. No prompt, rule, or configuration can trigger bypass implicitly.
+The escape hatch (`/moira bypass:`) MUST require explicit activation AND explicit confirmation. No prompt, rule, or configuration can trigger bypass implicitly.
 
 **Test:** Bypass activation logic checks for exact command prefix. Confirmation accepts only "2". No alternative activation paths exist.
 
@@ -136,7 +136,7 @@ New knowledge MUST be validated against existing knowledge for contradictions be
 ### 6.1 Constitutional Immutability
 This Constitution MUST NOT be modified by any agent, skill, hook, or automated process. Only explicit user action (direct file edit) can amend the Constitution.
 
-**Test:** No forge code path writes to CONSTITUTION.md. File is not in any agent's write scope.
+**Test:** No moira code path writes to CONSTITUTION.md. File is not in any agent's write scope.
 
 ### 6.2 Design Document Authority
 Implementation MUST conform to design documents. If implementation needs to deviate, design documents MUST be updated FIRST (with user approval), not after.
@@ -152,7 +152,7 @@ A verification check MUST run before any system change is committed. The check v
 
 ## Invariant Verification Checklist
 
-This checklist is run by the Constitutional Verifier before any Forge system change:
+This checklist is run by the Constitutional Verifier before any Moira system change:
 
 ```
 ARTICLE 1: Separation of Concerns
@@ -174,7 +174,7 @@ ARTICLE 4: Safety
 [ ] 4.1 Fabrication prohibition present and inviolable in base rules
 [ ] 4.2 All gates require user action (no auto-proceed)
 [ ] 4.3 Git-backed reversibility for all code changes
-[ ] 4.4 Bypass requires exact "/forge bypass:" + confirmation "2"
+[ ] 4.4 Bypass requires exact "/moira bypass:" + confirmation "2"
 
 ARTICLE 5: Knowledge Integrity
 [ ] 5.1 Knowledge entries reference evidence

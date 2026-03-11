@@ -1,8 +1,8 @@
-# Forge
+# Moira
 
 **Meta-orchestration framework for Claude Code.**
 
-Forge transforms Claude from a code executor into a pure orchestrator. Instead of reading files and writing code directly, Claude dispatches specialized agents through deterministic pipelines — producing predictable, high-quality engineering output.
+Moira transforms Claude from a code executor into a pure orchestrator. Instead of reading files and writing code directly, Claude dispatches specialized agents through deterministic pipelines — producing predictable, high-quality engineering output.
 
 ## How It Works
 
@@ -21,9 +21,9 @@ You describe a task
 
 You approve at key checkpoints. Agents do the work. Claude orchestrates — never touches code directly.
 
-## Why Forge
+## Why Moira
 
-| Without Forge | With Forge |
+| Without Moira | With Moira |
 |---------------|------------|
 | Claude reads code, fills its context, starts hallucinating | Claude dispatches agents, context stays clean |
 | Unpredictable quality — depends on how much context is left | Deterministic pipelines — same task type, same process |
@@ -35,7 +35,7 @@ You approve at key checkpoints. Agents do the work. Claude orchestrates — neve
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<org>/forge/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/<org>/moira/main/install.sh | bash
 ```
 
 Requirements: [Claude Code CLI](https://docs.anthropic.com/claude-code), git, bash. Nothing else.
@@ -49,27 +49,27 @@ cd my-project
 # 2. Start Claude Code
 claude
 
-# 3. Initialize Forge for this project
-> /forge init
+# 3. Initialize Moira for this project
+> /moira init
 
 # 4. Run a task
-> /forge Add pagination to the products API endpoint
+> /moira Add pagination to the products API endpoint
 ```
 
-That's it. Forge scans your project, detects your stack and conventions, generates project-specific configuration, and you're ready.
+That's it. Moira scans your project, detects your stack and conventions, generates project-specific configuration, and you're ready.
 
 ## Commands
 
 | Command | What it does |
 |---------|-------------|
-| `/forge init` | Set up Forge for current project |
-| `/forge <task>` | Execute a task through the pipeline |
-| `/forge continue` | Resume interrupted task |
-| `/forge status` | Show current state |
-| `/forge knowledge` | View/manage knowledge base |
-| `/forge metrics` | Performance dashboard |
-| `/forge audit` | System health check |
-| `/forge help` | Help and documentation |
+| `/moira init` | Set up Moira for current project |
+| `/moira <task>` | Execute a task through the pipeline |
+| `/moira continue` | Resume interrupted task |
+| `/moira status` | Show current state |
+| `/moira knowledge` | View/manage knowledge base |
+| `/moira metrics` | Performance dashboard |
+| `/moira audit` | System health check |
+| `/moira help` | Help and documentation |
 
 ## Core Concepts
 
@@ -102,7 +102,7 @@ Task size determines the pipeline:
 
 ### Knowledge System
 
-Forge accumulates project knowledge over time:
+Moira accumulates project knowledge over time:
 
 - **Project model** — living understanding of your project's architecture
 - **Decisions log** — why decisions were made, not just what
@@ -124,7 +124,7 @@ Quality is built into every step, not checked at the end:
 
 ### Context Budget Management
 
-Every agent has a context budget. Forge tracks usage and prevents overflow:
+Every agent has a context budget. Moira tracks usage and prevents overflow:
 
 ```
 ╔═══════════════════════════════════════╗
@@ -143,8 +143,8 @@ Every agent has a context budget. Forge tracks usage and prevents overflow:
 ```bash
 curl -fsSL https://.../install.sh | bash     # one-time global install
 cd project && claude
-> /forge init                                  # generates project config
-# commit .claude/forge/ to repo
+> /moira init                                  # generates project config
+# commit .claude/moira/ to repo
 ```
 
 ### Everyone else
@@ -152,7 +152,7 @@ cd project && claude
 ```bash
 curl -fsSL https://.../install.sh | bash     # one-time global install
 git pull && cd project && claude
-> /forge init                                  # detects existing config, ready
+> /moira init                                  # detects existing config, ready
 ```
 
 Project configuration and accumulated knowledge are shared via git. Task state is per-developer (gitignored).
@@ -160,13 +160,13 @@ Project configuration and accumulated knowledge are shared via git. Task state i
 ## Architecture
 
 ```
-~/.claude/forge/              ← Global layer (installed once)
+~/.claude/moira/              ← Global layer (installed once)
 ├── core/rules/               ← Universal rules + quality criteria
 ├── skills/                   ← Orchestrator, init, audit, etc.
 ├── hooks/                    ← Guard hook, budget tracker
 └── templates/                ← Project bootstrapping templates
 
-<project>/.claude/forge/      ← Project layer (generated per project)
+<project>/.claude/moira/      ← Project layer (generated per project)
 ├── project/rules/            ← Stack, conventions, patterns
 ├── knowledge/                ← Project model, decisions, patterns
 ├── config/                   ← MCP registry, budgets
