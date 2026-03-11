@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — Moira installation script
 # Copies system files to ~/.claude/moira/ and ~/.claude/commands/moira/
-# No runtime dependencies beyond bash 4+, git, claude CLI.
+# No runtime dependencies beyond bash 3+, git, claude CLI.
 # Idempotent — re-run overwrites core files, preserves project state.
 
 set -euo pipefail
@@ -56,6 +56,11 @@ install_global() {
 
   # Copy lib/ utilities
   cp -f "$SCRIPT_DIR/global/lib/"*.sh "$MOIRA_HOME/lib/"
+
+  # Copy core files (Phase 2)
+  cp -f "$SCRIPT_DIR/global/core/rules/base.yaml" "$MOIRA_HOME/core/rules/"
+  cp -f "$SCRIPT_DIR/global/core/knowledge-access-matrix.yaml" "$MOIRA_HOME/core/"
+  cp -f "$SCRIPT_DIR/global/core/response-contract.yaml" "$MOIRA_HOME/core/"
 
   # Copy placeholder directories (don't fail if empty)
   if ls "$SCRIPT_DIR/global/core/rules/roles/"* &>/dev/null; then
@@ -159,6 +164,46 @@ verify() {
       else
         errors+="  ${cmd}.md missing required frontmatter (name/allowed-tools)\n"
       fi
+    fi
+  done
+
+  # Check: base.yaml exists
+  ((checks_total++))
+  if [[ -f "$MOIRA_HOME/core/rules/base.yaml" ]]; then
+    ((checks_passed++))
+  else
+    errors+="  core/rules/base.yaml not found\n"
+  fi
+
+  # Check: 10 role files exist
+  local role_agents=(apollo hermes athena metis daedalus hephaestus themis aletheia mnemosyne argus)
+  for agent in "${role_agents[@]}"; do
+    ((checks_total++))
+    if [[ -f "$MOIRA_HOME/core/rules/roles/${agent}.yaml" ]]; then
+      ((checks_passed++))
+    else
+      errors+="  core/rules/roles/${agent}.yaml not found\n"
+    fi
+  done
+
+  # Check: 5 quality files exist
+  local quality_files=(q1-completeness q2-soundness q3-feasibility q4-correctness q5-coverage)
+  for qfile in "${quality_files[@]}"; do
+    ((checks_total++))
+    if [[ -f "$MOIRA_HOME/core/rules/quality/${qfile}.yaml" ]]; then
+      ((checks_passed++))
+    else
+      errors+="  core/rules/quality/${qfile}.yaml not found\n"
+    fi
+  done
+
+  # Check: knowledge-access-matrix.yaml and response-contract.yaml
+  for core_file in knowledge-access-matrix.yaml response-contract.yaml; do
+    ((checks_total++))
+    if [[ -f "$MOIRA_HOME/core/${core_file}" ]]; then
+      ((checks_passed++))
+    else
+      errors+="  core/${core_file} not found\n"
     fi
   done
 
