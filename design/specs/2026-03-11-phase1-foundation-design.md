@@ -1,7 +1,7 @@
 # Phase 1: Foundation — File Structure & State Management
 
 **Date:** 2026-03-11
-**Status:** Approved
+**Status:** Complete
 **Phase:** 1 of 12
 **Goal:** Moira directory structure exists, state can be read/written/resumed, install.sh works.
 
@@ -323,16 +323,16 @@ These checks are added incrementally in Phase 2-3 as new `test-*.sh` files in th
 
 Phase 1 is complete when:
 
-- [ ] `install.sh` runs cleanly on a fresh machine (with Claude Code + git)
-- [ ] `~/.claude/moira/` has correct directory structure with .version file
-- [ ] `~/.claude/commands/moira/` has all 10 command stubs with valid frontmatter
-- [ ] All 6 YAML schemas are defined and `moira_yaml_validate` works for each
-- [ ] `moira_yaml_init` + `moira_yaml_get` + `moira_yaml_set` work correctly
-- [ ] `moira_task_id` generates unique, sortable task IDs
-- [ ] `moira_scaffold_global` and `moira_scaffold_project` create correct structures
-- [ ] `install.sh` is idempotent (re-run preserves state)
-- [ ] `tests/tier1/run-all.sh` passes all checks
-- [ ] `/moira:help` shows version and available commands
+- [x] `install.sh` runs cleanly on a fresh machine (with Claude Code + git)
+- [x] `~/.claude/moira/` has correct directory structure with .version file
+- [x] `~/.claude/commands/moira/` has all 10 command stubs with valid frontmatter
+- [x] All 6 YAML schemas are defined and `moira_yaml_validate` works for each
+- [x] `moira_yaml_init` + `moira_yaml_get` + `moira_yaml_set` work correctly
+- [x] `moira_task_id` generates unique, sortable task IDs
+- [x] `moira_scaffold_global` and `moira_scaffold_project` create correct structures
+- [x] `install.sh` is idempotent (re-run preserves state)
+- [x] `tests/tier1/run-all.sh` passes all checks (98/98)
+- [x] `/moira:help` shows version and available commands
 
 ---
 
