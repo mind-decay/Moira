@@ -1,0 +1,34 @@
+_meta:
+  name: q1-completeness
+  gate: Q1
+  description: Requirements Completeness
+  agent: athena
+  pipeline_step: analysis
+
+items:
+  - id: Q1-01
+    check: "Happy path clearly defined"
+    required: true
+  - id: Q1-02
+    check: "Error cases enumerated"
+    required: true
+  - id: Q1-03
+    check: "Edge cases identified (empty state, max values, concurrent access)"
+    required: true
+  - id: Q1-04
+    check: "Input validation rules specified"
+    required: true
+  - id: Q1-05
+    check: "Output format defined (NOT assumed)"
+    required: true
+  - id: Q1-06
+    check: "Performance expectations stated or marked as standard"
+    required: true
+  - id: Q1-07
+    check: "Security implications assessed"
+    required: true
+  - id: Q1-08
+    check: "Backwards compatibility impact assessed"
+    required: true
+
+on_missing: "STATUS: blocked — ask user for missing requirements"

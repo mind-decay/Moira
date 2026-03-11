@@ -1,0 +1,31 @@
+_meta:
+  name: q5-coverage
+  gate: Q5
+  description: Test Coverage
+  agent: aletheia
+  pipeline_step: testing
+
+items:
+  - id: Q5-01
+    check: "Happy path tested"
+    required: true
+  - id: Q5-02
+    check: "Each error case from requirements has a test"
+    required: true
+  - id: Q5-03
+    check: "Edge cases have tests"
+    required: true
+  - id: Q5-04
+    check: "Integration points tested"
+    required: true
+  - id: Q5-05
+    check: "Tests actually run and pass"
+    required: true
+  - id: Q5-06
+    check: "No brittle tests (testing implementation details)"
+    required: true
+  - id: Q5-07
+    check: "Tests match project testing patterns"
+    required: true
+
+on_missing: "STATUS: blocked — test coverage gaps found"

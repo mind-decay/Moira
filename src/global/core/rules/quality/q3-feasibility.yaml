@@ -1,0 +1,28 @@
+_meta:
+  name: q3-feasibility
+  gate: Q3
+  description: Plan Feasibility
+  agent: daedalus
+  pipeline_step: planning
+
+items:
+  - id: Q3-01
+    check: "Every file in plan actually exists (or is explicitly marked as new)"
+    required: true
+  - id: Q3-02
+    check: "Dependencies between steps are correctly ordered"
+    required: true
+  - id: Q3-03
+    check: "Context budget per step is within agent limits"
+    required: true
+  - id: Q3-04
+    check: "No step requires knowledge that previous steps don't produce"
+    required: true
+  - id: Q3-05
+    check: "Rollback path exists for each step"
+    required: true
+  - id: Q3-06
+    check: "Contract interfaces defined for parallel batches"
+    required: true
+
+on_missing: "STATUS: blocked — plan has feasibility gaps"

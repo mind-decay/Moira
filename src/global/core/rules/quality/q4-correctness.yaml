@@ -1,0 +1,110 @@
+_meta:
+  name: q4-correctness
+  gate: Q4
+  description: Code Correctness
+  agent: themis
+  pipeline_step: review
+
+sections:
+  correctness:
+    items:
+      - id: Q4-C01
+        check: "Implements exactly what plan specifies (no more, no less)"
+        required: true
+      - id: Q4-C02
+        check: "All acceptance criteria from requirements are met"
+        required: true
+      - id: Q4-C03
+        check: "Edge cases from requirements are handled"
+        required: true
+      - id: Q4-C04
+        check: "Error handling matches architecture decision"
+        required: true
+
+  standards:
+    items:
+      - id: Q4-S01
+        check: "SOLID principles respected"
+        required: true
+      - id: Q4-S02
+        check: "DRY — no copy-pasted logic (no premature abstractions either)"
+        required: true
+      - id: Q4-S03
+        check: "KISS — simplest solution that works"
+        required: true
+      - id: Q4-S04
+        check: "YAGNI — no code for unrequested future requirements"
+        required: true
+
+  performance:
+    items:
+      - id: Q4-P01
+        check: "No N+1 queries"
+        required: true
+      - id: Q4-P02
+        check: "No synchronous operations that should be async"
+        required: true
+      - id: Q4-P03
+        check: "No memory leaks (unclosed connections, growing arrays, unreleased listeners)"
+        required: true
+      - id: Q4-P04
+        check: "No unbounded operations (pagination where needed)"
+        required: true
+      - id: Q4-P05
+        check: "Database queries use indexes"
+        required: true
+
+  security:
+    items:
+      - id: Q4-X01
+        check: "No SQL/command injection (parameterized queries)"
+        required: true
+      - id: Q4-X02
+        check: "No XSS (output encoding)"
+        required: true
+      - id: Q4-X03
+        check: "No sensitive data in logs"
+        required: true
+      - id: Q4-X04
+        check: "Input validation at system boundary"
+        required: true
+      - id: Q4-X05
+        check: "Auth/authz checks where needed"
+        required: true
+
+  integration:
+    items:
+      - id: Q4-I01
+        check: "Imports resolve correctly"
+        required: true
+      - id: Q4-I02
+        check: "Types match across file boundaries"
+        required: true
+      - id: Q4-I03
+        check: "API contracts match between caller and callee"
+        required: true
+      - id: Q4-I04
+        check: "No hardcoded values that should be config"
+        required: true
+
+  project_conventions:
+    items:
+      - id: Q4-V01
+        check: "Naming matches conventions"
+        required: true
+      - id: Q4-V02
+        check: "File location matches structure"
+        required: true
+      - id: Q4-V03
+        check: "Code style matches codebase"
+        required: true
+      - id: Q4-V04
+        check: "Error handling pattern matches project pattern"
+        required: true
+
+severity:
+  critical: "Blocks pipeline, must fix (correctness, security, broken contracts)"
+  warning: "Should fix, can proceed with user approval"
+  suggestion: "Logged for reflection, doesn't block"
+
+on_critical: "STATUS: failure — critical code issues found"

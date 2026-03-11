@@ -1,0 +1,37 @@
+_meta:
+  name: q2-soundness
+  gate: Q2
+  description: Architecture Soundness
+  agent: metis
+  pipeline_step: architecture
+
+items:
+  - id: Q2-01
+    check: "Follows existing project patterns (or explicitly justified deviation)"
+    required: true
+  - id: Q2-02
+    check: "Single Responsibility — each component has one reason to change"
+    required: true
+  - id: Q2-03
+    check: "Open/Closed — extends without modifying existing contracts"
+    required: true
+  - id: Q2-04
+    check: "No circular dependencies introduced"
+    required: true
+  - id: Q2-05
+    check: "No God objects/functions (>200 lines = split)"
+    required: true
+  - id: Q2-06
+    check: "Data flow is unidirectional where possible"
+    required: true
+  - id: Q2-07
+    check: "External API contracts are VERIFIED (never assumed)"
+    required: true
+  - id: Q2-08
+    check: "Performance: no N+1 queries, no unbounded loops, no blocking I/O in hot paths"
+    required: true
+  - id: Q2-09
+    check: "Error boundaries defined"
+    required: true
+
+on_missing: "STATUS: blocked — architecture has unresolved soundness issues"
