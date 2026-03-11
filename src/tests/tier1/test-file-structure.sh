@@ -42,6 +42,17 @@ assert_dir_exists "$MOIRA_HOME/hooks" "hooks/ exists"
 assert_dir_exists "$MOIRA_HOME/templates/stack-presets" "templates/stack-presets/ exists"
 assert_dir_exists "$MOIRA_HOME/lib" "lib/ exists"
 assert_dir_exists "$MOIRA_HOME/schemas" "schemas/ exists"
+assert_dir_exists "$MOIRA_HOME/core/pipelines" "core/pipelines/ exists"
+
+# ── Pipeline definitions ────────────────────────────────────────────
+for pipeline in quick standard full decomposition; do
+  assert_file_exists "$MOIRA_HOME/core/pipelines/${pipeline}.yaml" "pipeline ${pipeline}.yaml exists"
+done
+
+# ── Skill files ─────────────────────────────────────────────────────
+for skill in orchestrator gates dispatch errors; do
+  assert_file_exists "$MOIRA_HOME/skills/${skill}.md" "skill ${skill}.md exists"
+done
 
 # ── Command stubs ────────────────────────────────────────────────────
 commands=(task init status resume knowledge metrics audit bypass refresh help)

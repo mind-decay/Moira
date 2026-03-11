@@ -66,10 +66,17 @@ install_global() {
   cp -f "$SCRIPT_DIR/global/core/rules/roles/"*.yaml "$MOIRA_HOME/core/rules/roles/"
   cp -f "$SCRIPT_DIR/global/core/rules/quality/"*.yaml "$MOIRA_HOME/core/rules/quality/"
 
-  # Copy optional directories (don't fail if empty — populated in later phases)
-  if ls "$SCRIPT_DIR/global/skills/"* &>/dev/null; then
-    cp -f "$SCRIPT_DIR/global/skills/"* "$MOIRA_HOME/skills/" 2>/dev/null || true
+  # Copy pipeline definitions (Phase 3)
+  if ls "$SCRIPT_DIR/global/core/pipelines/"*.yaml &>/dev/null; then
+    cp -f "$SCRIPT_DIR/global/core/pipelines/"*.yaml "$MOIRA_HOME/core/pipelines/"
   fi
+
+  # Copy skill files (Phase 3)
+  if ls "$SCRIPT_DIR/global/skills/"*.md &>/dev/null; then
+    cp -f "$SCRIPT_DIR/global/skills/"*.md "$MOIRA_HOME/skills/"
+  fi
+
+  # Copy optional directories (don't fail if empty — populated in later phases)
   if ls "$SCRIPT_DIR/global/hooks/"* &>/dev/null; then
     cp -f "$SCRIPT_DIR/global/hooks/"* "$MOIRA_HOME/hooks/" 2>/dev/null || true
   fi
@@ -204,6 +211,42 @@ verify() {
       errors+="  core/${core_file} not found\n"
     fi
   done
+
+  # Check: orchestrator skill exists and is non-empty (Phase 3)
+  ((checks_total++))
+  if [[ -s "$MOIRA_HOME/skills/orchestrator.md" ]]; then
+    ((checks_passed++))
+  else
+    errors+="  skills/orchestrator.md not found or empty\n"
+  fi
+
+  # Check: 4 pipeline definition files exist (Phase 3)
+  for pipeline in quick standard full decomposition; do
+    ((checks_total++))
+    if [[ -f "$MOIRA_HOME/core/pipelines/${pipeline}.yaml" ]]; then
+      ((checks_passed++))
+    else
+      errors+="  core/pipelines/${pipeline}.yaml not found\n"
+    fi
+  done
+
+  # Check: pipeline definitions contain gates section (Phase 3)
+  for pipeline in quick standard full decomposition; do
+    ((checks_total++))
+    if grep -q "gates:" "$MOIRA_HOME/core/pipelines/${pipeline}.yaml" 2>/dev/null; then
+      ((checks_passed++))
+    else
+      errors+="  core/pipelines/${pipeline}.yaml missing gates: section\n"
+    fi
+  done
+
+  # Check: telemetry schema exists (Phase 3)
+  ((checks_total++))
+  if [[ -f "$MOIRA_HOME/schemas/telemetry.schema.yaml" ]]; then
+    ((checks_passed++))
+  else
+    errors+="  schemas/telemetry.schema.yaml not found\n"
+  fi
 
   if [[ $checks_passed -eq $checks_total ]]; then
     echo "[OK] Verification passed ($checks_passed/$checks_total)"

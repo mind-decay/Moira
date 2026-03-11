@@ -1,0 +1,103 @@
+# Quick Pipeline Definition
+# Source: design/architecture/pipelines.md → Quick Pipeline
+# Trigger: small task + high classifier confidence (Art 2.1)
+
+_meta:
+  name: quick
+  description: "Fast pipeline for small, well-understood tasks"
+  trigger:
+    size: small
+    confidence: high
+
+steps:
+  - id: classification
+    agent: apollo
+    role: classifier
+    mode: foreground
+    writes_to: "tasks/{task_id}/classification.md"
+    reads_from: "tasks/{task_id}/input.md"
+
+  - id: exploration
+    agent: hermes
+    role: explorer
+    mode: foreground
+    writes_to: "tasks/{task_id}/context.md"
+    reads_from: "tasks/{task_id}/classification.md"
+
+  - id: implementation
+    agent: hephaestus
+    role: implementer
+    mode: foreground
+    writes_to: "tasks/{task_id}/implementation.md"
+    reads_from:
+      - "tasks/{task_id}/context.md"
+      - "tasks/{task_id}/classification.md"
+
+  - id: review
+    agent: themis
+    role: reviewer
+    mode: foreground
+    writes_to: "tasks/{task_id}/review.md"
+    reads_from:
+      - "tasks/{task_id}/implementation.md"
+      - "tasks/{task_id}/context.md"
+
+  - id: completion
+    agent: null
+    role: final-gate
+    mode: foreground
+    writes_to: "tasks/{task_id}/telemetry.yaml"
+    reads_from: "tasks/{task_id}/review.md"
+
+gates:
+  - id: classification_gate
+    after_step: classification
+    required: true
+    options:
+      - id: proceed
+        description: "Classification correct, continue"
+      - id: modify
+        description: "Provide different classification"
+      - id: abort
+        description: "Cancel task"
+
+  - id: final_gate
+    after_step: review
+    required: true
+    options:
+      - id: done
+        description: "Accept result"
+      - id: tweak
+        description: "Targeted modification"
+      - id: redo
+        description: "Rollback and redo"
+      - id: diff
+        description: "Show changes"
+      - id: test
+        description: "Run full test suite"
+
+error_handlers:
+  E1-INPUT:
+    action: pause
+    display: blocked_gate
+    escalation: ask_user
+  E5-QUALITY:
+    action: retry
+    max_attempts: 1
+    on_max: escalate
+    display: quality_failure_gate
+  E6-AGENT:
+    action: retry
+    max_attempts: 1
+    on_max: escalate
+    display: agent_failure_gate
+  E7-DRIFT:
+    action: log
+    note: "Stub — full detection in Phase 8"
+  E8-STALE:
+    action: log_and_escalate
+    note: "Stub — full detection in Phase 4"
+
+post:
+  reflection: lightweight
+  budget_report: true

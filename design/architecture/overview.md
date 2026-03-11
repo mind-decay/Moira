@@ -85,26 +85,34 @@ User → /moira <task>
 ├── moira/                             # Core system (installed once)
 │   ├── .version
 │   ├── core/
-│   │   └── rules/
-│   │       ├── base.yaml              # Layer 1: inviolable + overridable rules
-│   │       ├── roles/                 # Layer 2: per-agent role rules
-│   │       │   ├── classifier.yaml
-│   │       │   ├── explorer.yaml
-│   │       │   ├── analyst.yaml
-│   │       │   ├── architect.yaml
-│   │       │   ├── planner.yaml
-│   │       │   ├── implementer.yaml
-│   │       │   ├── reviewer.yaml
-│   │       │   ├── tester.yaml
-│   │       │   ├── reflector.yaml
-│   │       │   └── auditor.yaml
-│   │       └── quality/
-│   │           ├── correctness.yaml
-│   │           ├── performance.yaml
-│   │           ├── security.yaml
-│   │           └── standards.yaml     # SOLID, KISS, DRY
+│   │   ├── rules/
+│   │   │   ├── base.yaml              # Layer 1: inviolable + overridable rules
+│   │   │   ├── roles/                 # Layer 2: per-agent role rules (D-034 Greek names)
+│   │   │   │   ├── apollo.yaml        # Classifier
+│   │   │   │   ├── hermes.yaml        # Explorer
+│   │   │   │   ├── athena.yaml        # Analyst
+│   │   │   │   ├── metis.yaml         # Architect
+│   │   │   │   ├── daedalus.yaml      # Planner
+│   │   │   │   ├── hephaestus.yaml    # Implementer
+│   │   │   │   ├── themis.yaml        # Reviewer
+│   │   │   │   ├── aletheia.yaml      # Tester
+│   │   │   │   ├── mnemosyne.yaml     # Reflector
+│   │   │   │   └── argus.yaml         # Auditor
+│   │   │   └── quality/
+│   │   │       ├── correctness.yaml
+│   │   │       ├── performance.yaml
+│   │   │       ├── security.yaml
+│   │   │       └── standards.yaml     # SOLID, KISS, DRY
+│   │   └── pipelines/                 # Pipeline definitions (D-035)
+│   │       ├── quick.yaml
+│   │       ├── standard.yaml
+│   │       ├── full.yaml
+│   │       └── decomposition.yaml
 │   ├── skills/
-│   │   └── orchestrator.md            # Main orchestrator skill
+│   │   ├── orchestrator.md            # Main orchestrator skill
+│   │   ├── gates.md                   # Gate presentation templates
+│   │   ├── dispatch.md                # Agent dispatch instructions
+│   │   └── errors.md                  # Error handling procedures
 │   ├── hooks/
 │   │   ├── guard.sh                   # PostToolUse violation detection (D-031)
 │   │   └── budget-track.sh            # Context budget logging

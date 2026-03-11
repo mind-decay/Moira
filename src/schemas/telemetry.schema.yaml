@@ -1,0 +1,142 @@
+# Telemetry Schema — Per-Task Metrics
+# Source: design/subsystems/testing.md → Per-Task Telemetry Format
+# Privacy: numbers and enums only, never content strings (D-027)
+# Written at pipeline completion to: state/tasks/{id}/telemetry.yaml
+
+_meta:
+  name: telemetry
+  version: "1.0"
+  description: "Per-task execution telemetry for live metrics collection"
+
+fields:
+  task_id:
+    type: string
+    required: true
+    description: "Task identifier (task-YYYY-MM-DD-NNN)"
+
+  timestamp:
+    type: string
+    required: true
+    description: "ISO 8601 completion timestamp"
+
+  moira_version:
+    type: string
+    required: true
+    description: "Moira version at time of execution"
+
+  pipeline:
+    type: object
+    required: true
+    fields:
+      type:
+        type: enum
+        values: [quick, standard, full, decomposition]
+        required: true
+        description: "Pipeline type used"
+      classification_confidence:
+        type: enum
+        values: [high, low]
+        required: true
+        description: "Classifier confidence level"
+      classification_correct:
+        type: boolean
+        required: false
+        default: null
+        description: "Whether classification was correct (set by reflector)"
+
+  execution:
+    type: object
+    required: true
+    fields:
+      agents_called:
+        type: array
+        required: true
+        description: "Per-agent execution records"
+        item_fields:
+          role:
+            type: enum
+            values: [classifier, explorer, analyst, architect, planner, implementer, reviewer, tester, reflector, auditor]
+            required: true
+          status:
+            type: enum
+            values: [success, failure, blocked, budget_exceeded]
+            required: true
+          context_pct:
+            type: integer
+            required: false
+            description: "Estimated context usage percentage"
+          duration_sec:
+            type: integer
+            required: false
+            description: "Execution duration in seconds"
+      gates:
+        type: array
+        required: true
+        description: "Gate decision records"
+        item_fields:
+          name:
+            type: enum
+            values: [classification_gate, architecture_gate, plan_gate, phase_gate, decomposition_gate, subtask_gate, final_gate]
+            required: true
+          result:
+            type: enum
+            values: [proceed, modify, abort]
+            required: true
+            description: "Gate decision"
+          retry_count:
+            type: integer
+            required: false
+            default: 0
+      retries_total:
+        type: integer
+        required: true
+        default: 0
+        description: "Total retry count across all error types"
+      budget_total_tokens:
+        type: integer
+        required: false
+        default: 0
+        description: "Estimated total token usage across all agents"
+
+  quality:
+    type: object
+    required: true
+    fields:
+      reviewer_findings:
+        type: object
+        required: false
+        fields:
+          critical:
+            type: integer
+            default: 0
+          warning:
+            type: integer
+            default: 0
+          suggestion:
+            type: integer
+            default: 0
+      first_pass_accepted:
+        type: boolean
+        required: false
+        description: "Whether reviewer accepted on first pass"
+      final_result:
+        type: enum
+        values: [done, tweak, redo, abort]
+        required: true
+        description: "Final completion action chosen by user"
+
+  structural:
+    type: object
+    required: true
+    fields:
+      constitutional_pass:
+        type: boolean
+        required: true
+        description: "Whether all constitutional invariants held"
+      violations:
+        type: array
+        required: true
+        default: []
+        description: "List of constitutional violation codes (if any)"
+        item_type: string
+        item_pattern: "Art-[0-9]+\\.[0-9]+"

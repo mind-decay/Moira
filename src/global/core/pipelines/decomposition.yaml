@@ -1,0 +1,170 @@
+# Decomposition Pipeline Definition
+# Source: design/architecture/pipelines.md → Decomposition Pipeline
+# Trigger: epic task (Art 2.1)
+
+_meta:
+  name: decomposition
+  description: "Pipeline for epics — decomposes into independent sub-tasks executed via appropriate pipelines"
+  trigger:
+    size: epic
+    confidence: any
+
+steps:
+  - id: classification
+    agent: apollo
+    role: classifier
+    mode: foreground
+    writes_to: "tasks/{task_id}/classification.md"
+    reads_from: "tasks/{task_id}/input.md"
+
+  - id: analysis
+    agent: athena
+    role: analyst
+    mode: foreground
+    writes_to: "tasks/{task_id}/epic-requirements.md"
+    reads_from:
+      - "tasks/{task_id}/classification.md"
+      - "tasks/{task_id}/input.md"
+
+  - id: architecture
+    agent: metis
+    role: architect
+    mode: foreground
+    writes_to: "tasks/{task_id}/epic-architecture.md"
+    reads_from:
+      - "tasks/{task_id}/epic-requirements.md"
+      - "tasks/{task_id}/classification.md"
+
+  - id: decomposition
+    agent: daedalus
+    role: planner
+    mode: foreground
+    writes_to:
+      - "tasks/{task_id}/decomposition.md"
+      - "tasks/{task_id}/queue.yaml"
+    reads_from:
+      - "tasks/{task_id}/epic-architecture.md"
+      - "tasks/{task_id}/epic-requirements.md"
+
+  - id: implementation
+    repeatable_group:
+      gate_per_iteration: true
+      description: "Each sub-task executes via appropriate pipeline (standard/full)"
+      steps:
+        - id: implementation
+          agent: null
+          role: sub-pipeline
+          mode: foreground
+          writes_to: "tasks/{task_id}/subtasks/{subtask_n}/"
+          reads_from:
+            - "tasks/{task_id}/decomposition.md"
+            - "tasks/{task_id}/epic-architecture.md"
+
+  - id: integration
+    agent: aletheia
+    role: tester
+    mode: foreground
+    writes_to: "tasks/{task_id}/integration-results.md"
+    reads_from: "tasks/{task_id}/decomposition.md"
+
+  - id: completion
+    agent: null
+    role: final-gate
+    mode: foreground
+    writes_to: "tasks/{task_id}/telemetry.yaml"
+    reads_from:
+      - "tasks/{task_id}/integration-results.md"
+
+gates:
+  - id: classification_gate
+    after_step: classification
+    required: true
+    options:
+      - id: proceed
+        description: "Classification correct, continue"
+      - id: modify
+        description: "Provide different classification"
+      - id: abort
+        description: "Cancel task"
+
+  - id: decomposition_gate
+    after_step: decomposition
+    required: true
+    options:
+      - id: proceed
+        description: "Task breakdown approved, begin execution"
+      - id: modify
+        description: "Adjust decomposition"
+      - id: abort
+        description: "Cancel task"
+
+  - id: subtask_gate
+    after_step: "repeatable_group.implementation"
+    required: true
+    repeating: true
+    options:
+      - id: proceed
+        description: "Sub-task complete, continue to next"
+      - id: checkpoint
+        description: "Save progress and pause (resumable)"
+      - id: abort
+        description: "Stop execution"
+
+  - id: final_gate
+    after_step: integration
+    required: true
+    options:
+      - id: done
+        description: "Accept result"
+      - id: tweak
+        description: "Targeted modification"
+      - id: redo
+        description: "Rollback and redo"
+      - id: diff
+        description: "Show changes"
+      - id: test
+        description: "Run additional tests"
+
+error_handlers:
+  E1-INPUT:
+    action: pause
+    display: blocked_gate
+    escalation: ask_user
+  E2-SCOPE:
+    action: stop
+    display: scope_change_gate
+    options:
+      - upgrade
+      - split
+      - reduce
+      - continue
+  E3-CONFLICT:
+    action: stop
+    display: conflict_gate
+    escalation: user_chooses
+  E4-BUDGET:
+    pre_exec:
+      action: auto_split
+    mid_exec:
+      action: save_partial
+      then: spawn_new_agent
+  E5-QUALITY:
+    action: retry
+    max_attempts: 2
+    on_max: escalate
+    display: quality_failure_gate
+  E6-AGENT:
+    action: retry
+    max_attempts: 1
+    on_max: diagnose_and_escalate
+    display: agent_failure_gate
+  E7-DRIFT:
+    action: log
+    note: "Stub — full detection in Phase 8"
+  E8-STALE:
+    action: log_and_escalate
+    note: "Stub — full detection in Phase 4"
+
+post:
+  reflection: epic
+  budget_report: true

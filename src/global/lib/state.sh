@@ -58,7 +58,7 @@ moira_state_transition() {
   fi
 
   # Validate step name
-  local valid_steps="classification exploration analysis architecture plan implementation review testing reflection"
+  local valid_steps="classification exploration analysis architecture plan implementation review testing reflection decomposition integration completion"
   local step_valid=false
   for vs in $valid_steps; do
     if [[ "$new_step" == "$vs" ]]; then

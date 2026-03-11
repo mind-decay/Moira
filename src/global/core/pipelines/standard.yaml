@@ -1,0 +1,186 @@
+# Standard Pipeline Definition
+# Source: design/architecture/pipelines.md → Standard Pipeline
+# Trigger: medium task, or small task with low confidence (Art 2.1)
+
+_meta:
+  name: standard
+  description: "Full pipeline for medium tasks requiring exploration, architecture, and planning"
+  trigger:
+    size: medium
+    confidence: any
+  trigger_alt:
+    size: small
+    confidence: low
+
+steps:
+  - id: classification
+    agent: apollo
+    role: classifier
+    mode: foreground
+    writes_to: "tasks/{task_id}/classification.md"
+    reads_from: "tasks/{task_id}/input.md"
+
+  - id: exploration
+    mode: parallel
+    agents:
+      - agent: hermes
+        role: explorer
+        writes_to: "tasks/{task_id}/exploration.md"
+      - agent: athena
+        role: analyst
+        writes_to: "tasks/{task_id}/requirements.md"
+    reads_from:
+      - "tasks/{task_id}/classification.md"
+      - "tasks/{task_id}/input.md"
+
+  - id: architecture
+    agent: metis
+    role: architect
+    mode: foreground
+    writes_to: "tasks/{task_id}/architecture.md"
+    reads_from:
+      - "tasks/{task_id}/exploration.md"
+      - "tasks/{task_id}/requirements.md"
+
+  - id: plan
+    agent: daedalus
+    role: planner
+    mode: foreground
+    writes_to: "tasks/{task_id}/plan.md"
+    reads_from:
+      - "tasks/{task_id}/architecture.md"
+      - "tasks/{task_id}/exploration.md"
+      - "tasks/{task_id}/requirements.md"
+
+  - id: implementation
+    agent: hephaestus
+    role: implementer
+    mode: foreground
+    writes_to: "tasks/{task_id}/implementation.md"
+    reads_from:
+      - "tasks/{task_id}/plan.md"
+      - "tasks/{task_id}/architecture.md"
+
+  - id: review
+    agent: themis
+    role: reviewer
+    mode: foreground
+    writes_to: "tasks/{task_id}/review.md"
+    reads_from:
+      - "tasks/{task_id}/implementation.md"
+      - "tasks/{task_id}/plan.md"
+
+  - id: testing
+    agent: aletheia
+    role: tester
+    mode: foreground
+    writes_to: "tasks/{task_id}/test-results.md"
+    reads_from:
+      - "tasks/{task_id}/implementation.md"
+      - "tasks/{task_id}/review.md"
+
+  - id: completion
+    agent: null
+    role: final-gate
+    mode: foreground
+    writes_to: "tasks/{task_id}/telemetry.yaml"
+    reads_from:
+      - "tasks/{task_id}/review.md"
+      - "tasks/{task_id}/test-results.md"
+
+gates:
+  - id: classification_gate
+    after_step: classification
+    required: true
+    options:
+      - id: proceed
+        description: "Classification correct, continue"
+      - id: modify
+        description: "Provide different classification"
+      - id: abort
+        description: "Cancel task"
+
+  - id: architecture_gate
+    after_step: architecture
+    required: true
+    options:
+      - id: proceed
+        description: "Architecture approved, continue"
+      - id: details
+        description: "Show full architecture reasoning"
+      - id: modify
+        description: "Provide feedback for revision"
+      - id: abort
+        description: "Cancel task"
+
+  - id: plan_gate
+    after_step: plan
+    required: true
+    options:
+      - id: proceed
+        description: "Plan approved, continue to implementation"
+      - id: details
+        description: "Show full plan details"
+      - id: modify
+        description: "Provide feedback for revision"
+      - id: abort
+        description: "Cancel task"
+
+  - id: final_gate
+    after_step: testing
+    required: true
+    options:
+      - id: done
+        description: "Accept result"
+      - id: tweak
+        description: "Targeted modification"
+      - id: redo
+        description: "Rollback and redo"
+      - id: diff
+        description: "Show changes"
+      - id: test
+        description: "Run additional tests"
+
+error_handlers:
+  E1-INPUT:
+    action: pause
+    display: blocked_gate
+    escalation: ask_user
+  E2-SCOPE:
+    action: stop
+    display: scope_change_gate
+    options:
+      - upgrade
+      - split
+      - reduce
+      - continue
+  E3-CONFLICT:
+    action: stop
+    display: conflict_gate
+    escalation: user_chooses
+  E4-BUDGET:
+    pre_exec:
+      action: auto_split
+    mid_exec:
+      action: save_partial
+      then: spawn_new_agent
+  E5-QUALITY:
+    action: retry
+    max_attempts: 2
+    on_max: escalate
+    display: quality_failure_gate
+  E6-AGENT:
+    action: retry
+    max_attempts: 1
+    on_max: diagnose_and_escalate
+    display: agent_failure_gate
+  E7-DRIFT:
+    action: log
+    note: "Stub — full detection in Phase 8"
+  E8-STALE:
+    action: log_and_escalate
+    note: "Stub — full detection in Phase 4"
+
+post:
+  reflection: background
+  budget_report: true

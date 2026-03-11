@@ -30,6 +30,32 @@ assert_dir_exists "$TEST_HOME/.claude/commands/moira" "clean install: commands d
 assert_file_exists "$TEST_HOME/.claude/commands/moira/help.md" "clean install: help.md exists"
 assert_dir_exists "$MOIRA_HOME/schemas" "clean install: schemas dir exists"
 
+# Pipeline definitions
+assert_dir_exists "$MOIRA_HOME/core/pipelines" "clean install: pipelines dir exists"
+for pipeline in quick standard full decomposition; do
+  assert_file_exists "$MOIRA_HOME/core/pipelines/${pipeline}.yaml" "clean install: ${pipeline}.yaml exists"
+done
+
+# Pipeline definitions contain gates section
+for pipeline in quick standard full decomposition; do
+  assert_file_contains "$MOIRA_HOME/core/pipelines/${pipeline}.yaml" "gates:" "clean install: ${pipeline}.yaml has gates section"
+done
+
+# Skill files
+for skill in orchestrator gates dispatch errors; do
+  assert_file_exists "$MOIRA_HOME/skills/${skill}.md" "clean install: skill ${skill}.md exists"
+done
+
+# Orchestrator skill is non-empty
+if [[ -s "$MOIRA_HOME/skills/orchestrator.md" ]]; then
+  pass "clean install: orchestrator.md is non-empty"
+else
+  fail "clean install: orchestrator.md is empty"
+fi
+
+# Telemetry schema
+assert_file_exists "$MOIRA_HOME/schemas/telemetry.schema.yaml" "clean install: telemetry schema exists"
+
 # Count command stubs
 cmd_count=$(ls "$TEST_HOME/.claude/commands/moira/"*.md 2>/dev/null | wc -l | tr -d ' ')
 assert_equals "$cmd_count" "10" "clean install: 10 command stubs installed"

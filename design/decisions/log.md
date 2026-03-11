@@ -325,3 +325,39 @@ All architectural decisions made during Moira system design.
 - External lock service — violates D-013 (self-contained)
 - Shared network file — requires infrastructure beyond git
 **Reasoning:** Locks exist for cross-developer coordination. Must be in git to be shared. TTL prevents permanent locks from crashed sessions. Stale lock detection runs during audit (D-012). Standard git merge handles conflicts.
+
+## D-035: Pipeline Definitions as Separate YAML Files
+
+**Context:** Where should pipeline step sequences and gate definitions live — inline in the orchestrator skill or as separate data files?
+**Decision:** Separate YAML files in `core/pipelines/` (quick.yaml, standard.yaml, full.yaml, decomposition.yaml). Orchestrator reads the appropriate definition at runtime.
+**Alternatives rejected:**
+- Inline in orchestrator skill — mixes data with logic, not independently testable, harder to diff
+- Single pipelines.yaml — all 4 pipelines in one file makes targeted testing harder
+**Reasoning:** Separation of data from logic. Pipeline definitions are independently testable by Tier 1 structural checks. Changes are detectable by git diff for D-026 trigger matrix. One file per pipeline type matches the deterministic selection model (Art 2.1).
+
+## D-036: Extended Pipeline State Steps
+
+**Context:** `state.sh` defines valid pipeline steps for `moira_state_transition()`. Original set (Phase 1): classification, exploration, analysis, architecture, plan, implementation, review, testing, reflection. Phase 3 pipelines require additional steps.
+**Decision:** Add three step names: `decomposition` (Planner decomposes epic), `integration` (cross-phase/cross-task verification), `completion` (final gate + post-pipeline actions).
+**Alternatives rejected:**
+- Reuse existing names (e.g., `plan` for decomposition) — semantically wrong, confuses state tracking
+- Free-form step names without validation — loses determinism guarantee, any typo silently passes
+**Reasoning:** State machine step names must be explicit and validated. Each new step corresponds to a distinct pipeline phase that doesn't map to existing names. Validation prevents silent errors.
+
+## D-037: Final Gate Completion Actions Separate from Gate Decisions
+
+**Context:** `moira_state_gate()` validates gate decisions as proceed/modify/abort. But the final gate offers done/tweak/redo/diff/test — these don't fit the gate decision model.
+**Decision:** Final gate completion actions are NOT gate decisions. When user chooses any completion action, the gate is recorded as `proceed`. The completion action (done/tweak/redo/diff/test) triggers a separate orchestrator flow after the gate record.
+**Alternatives rejected:**
+- Extend `moira_state_gate()` to accept completion actions — mixes gate semantics (approve/reject/modify) with post-completion flow control
+- Don't record the final gate — violates Art 3.1 (all decisions traceable)
+**Reasoning:** Gates are approval checkpoints (Art 2.2). Completion actions are workflow routing. Keeping them separate preserves clean gate semantics and allows state.sh to remain simple and validated. The completion action is tracked separately in status.yaml `completion.action` field (already in schema).
+
+## D-038: E7/E8 Error Stubs in Phase 3
+
+**Context:** fault-tolerance.md defines 8 error types (E1-E8). E7 (rule drift) depends on guard hooks (Phase 8). E8 (stale knowledge) depends on knowledge system (Phase 4). Should Phase 3 implement full handlers or stubs?
+**Decision:** E1-E6 fully implemented. E7 and E8 are stub handlers: log if detected, escalate to user. No automated detection logic.
+**Alternatives rejected:**
+- Full E1-E8 implementation — impossible without Phase 4/8 dependencies
+- Omit E7/E8 entirely — errors.md would be incomplete, Phase 4/8 would need structural additions
+**Reasoning:** Stubs establish the handler structure so future phases only need to fill in detection logic, not restructure the error handling system.
