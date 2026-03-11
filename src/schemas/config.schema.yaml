@@ -83,7 +83,7 @@ fields:
   budgets.per_agent.analyst:
     type: number
     required: false
-    default: 60000
+    default: 80000
   budgets.per_agent.architect:
     type: number
     required: false
@@ -91,27 +91,27 @@ fields:
   budgets.per_agent.planner:
     type: number
     required: false
-    default: 80000
+    default: 70000
   budgets.per_agent.implementer:
     type: number
     required: false
-    default: 140000
+    default: 120000
   budgets.per_agent.reviewer:
     type: number
     required: false
-    default: 80000
+    default: 100000
   budgets.per_agent.tester:
     type: number
     required: false
-    default: 100000
+    default: 90000
   budgets.per_agent.reflector:
     type: number
     required: false
-    default: 60000
+    default: 80000
   budgets.per_agent.auditor:
     type: number
     required: false
-    default: 60000
+    default: 140000
   quality.mode:
     type: enum
     required: false
