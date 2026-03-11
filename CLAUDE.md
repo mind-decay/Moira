@@ -114,6 +114,8 @@ Every phase follows a strict 3-step process. Do NOT skip steps.
 - **Specs and plans go in `design/specs/`** — never in `docs/superpowers/` or other skill-specific directories
 - **Don't skip the plan.** Even if the spec is detailed, always write an explicit implementation plan with tasks, files, and dependency graph.
 - **Plans describe WHAT, not full code.** Do NOT write full file contents in plans — that's implementation.
+- **Plans NEVER make design decisions.** If you discover inconsistencies, missing steps, or new architectural choices while writing a plan — STOP. Update the design docs first (decision log, overview.md, etc.), get approval, then reference them from the plan. A plan only references design docs, never overrides or extends them.
+- **Verify each claim against source.** After writing a spec or plan, re-read each referenced design doc and cross-check every number, name, step list, and enum. Don't copy values without counting. Don't assume consistency — verify it.
 - **Start implementing when ready.** Don't get stuck in planning loops. Once plan is approved, move to code.
 - **Commit scope `foundation`** is valid for Phase 1 infrastructure work.
 

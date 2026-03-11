@@ -361,3 +361,48 @@ All architectural decisions made during Moira system design.
 - Full E1-E8 implementation — impossible without Phase 4/8 dependencies
 - Omit E7/E8 entirely — errors.md would be incomplete, Phase 4/8 would need structural additions
 **Reasoning:** Stubs establish the handler structure so future phases only need to fill in detection logic, not restructure the error handling system.
+
+## D-039: Full Knowledge Dimensions in Access Matrix
+
+**Context:** Phase 4 review revealed knowledge-access-matrix.yaml had only 4 dimensions (project_model, conventions, decisions, patterns) while knowledge.md defines 6 knowledge types (+ quality_map, failures). The plan hardcoded quality-map access for only 2 of 3 agents that need it, missing daedalus.
+**Decision:** Expand knowledge-access-matrix.yaml to include all 6 dimensions. quality_map: metis=L1, daedalus=L0, themis=L1, mnemosyne/argus=L2, rest=null. failures: mnemosyne/argus=L2, rest=null (populated by Reflector in Phase 10). Remove hardcoded special-casing from plan — all access is matrix-driven.
+**Alternatives rejected:**
+- Keep 4 dimensions + hardcode quality-map — fragile, easy to miss agents, violates single source of truth
+- Add failures access for more agents now — no content exists until Phase 10, premature
+**Reasoning:** Single source of truth for agent knowledge access. Matrix-driven access is testable and prevents hardcoded exceptions that diverge from design docs over time.
+
+## D-040: Daedalus Writes Instruction Files (Not Orchestrator)
+
+**Context:** Who should assemble the multi-layer instruction files for post-planning agents?
+**Decision:** Daedalus (planner) writes complete instruction files to `state/tasks/{id}/instructions/{agent}.md`. The orchestrator reads these files at dispatch time instead of constructing prompts inline.
+**Alternatives rejected:**
+- Orchestrator assembles instructions at dispatch time — moves complexity into orchestrator, violates Art 1.1 (orchestrator purity)
+- Separate "assembler" utility — adds a component when Daedalus already understands the plan context
+**Reasoning:** The Planner is the only agent that understands the full task plan and can determine which knowledge and rules each downstream agent needs. Keeps orchestrator simple.
+
+## D-041: Dual Prompt Construction Path
+
+**Context:** How do pre-planning agents (Apollo, Hermes, Athena) get their prompts when no instruction files exist yet?
+**Decision:** Two paths: pre-planning agents use simplified Phase 3 assembly; post-planning agents use pre-assembled instruction files from Daedalus. Quick pipeline uses simplified assembly throughout.
+**Alternatives rejected:**
+- Require Daedalus for all agents — creates circular dependency (classifier must run before planner)
+- Single assembly path with optional knowledge — loses the structured instruction file benefits
+**Reasoning:** Pre-planning agents run before Daedalus, so no instruction files can exist. The simplified path is the correct minimal-context path for agents that don't need full project knowledge.
+
+## D-042: Structural Consistency Validation (Not Semantic)
+
+**Context:** How should knowledge consistency be checked at write time?
+**Decision:** Shell-based keyword heuristics that catch obvious contradictions (same key, different value). Not LLM reasoning.
+**Alternatives rejected:**
+- Skip consistency checks entirely — risks silent knowledge corruption
+- Full semantic validation at write time — requires agent dispatch, too expensive for every write
+**Reasoning:** Shell can't do semantic reasoning. Structural checks catch the most common contradictions cheaply. Full semantic consistency is the Reflector's job (Phase 10/11).
+
+## D-043: Knowledge Templates as Installed Files
+
+**Context:** How should knowledge structure templates be distributed?
+**Decision:** Templates are part of the global installation (`~/.claude/moira/templates/knowledge/`) and copied to projects by `scaffold.sh`. Static files, not generated dynamically.
+**Alternatives rejected:**
+- Generate templates dynamically at init — adds runtime complexity, harder to test
+- Inline templates in scaffold.sh — harder to maintain, not inspectable
+**Reasoning:** Templates define structure, not content. File-based approach is testable, versionable, inspectable. Consistent with D-020 (file-copy distribution model).
