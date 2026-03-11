@@ -27,7 +27,7 @@ Size hint (optional):
 /moira large: add role-based access control to all API endpoints
 ```
 
-### `/moira continue`
+### `/moira resume`
 Resume an interrupted task from the last checkpoint.
 
 - Reads manifest.yaml for task state

@@ -108,13 +108,18 @@ User → /moira <task>
 │   ├── hooks/
 │   │   ├── guard.sh                   # PostToolUse violation detection (D-031)
 │   │   └── budget-track.sh            # Context budget logging
-│   └── templates/
-│       ├── project-claude-md.tmpl
-│       ├── project-config.tmpl
-│       └── stack-presets/
-│           ├── nextjs.yaml
-│           ├── generic.yaml
-│           └── ...
+│   ├── templates/
+│   │   ├── project-claude-md.tmpl
+│   │   ├── project-config.tmpl
+│   │   └── stack-presets/
+│   │       ├── nextjs.yaml
+│   │       ├── generic.yaml
+│   │       └── ...
+│   └── lib/
+│       ├── state.sh
+│       ├── scaffold.sh
+│       ├── task-id.sh
+│       └── yaml-utils.sh
 │
 ├── commands/moira/                    # User-facing slash commands (D-030)
 │   ├── init.md                        # /moira:init

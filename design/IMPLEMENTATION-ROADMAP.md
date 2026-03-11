@@ -22,7 +22,7 @@ Based on dependency analysis. Each phase builds on previous.
   - `locks.yaml` — multi-developer locks (committed, in config/, D-033)
 - State management (read/write/validate for all schemas above)
 - Task ID generation
-- `install.sh` — copies files to `~/.claude/moira/` + `~/.claude/commands/moira/`, merges hooks into `settings.json`
+- `install.sh` — copies files to `~/.claude/moira/` + `~/.claude/commands/moira/`
 
 **Testing (Tier 1 — Structural Verifier):**
 - Directory structure validation scripts (bash + grep, 0 tokens)

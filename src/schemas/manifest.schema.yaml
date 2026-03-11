@@ -1,0 +1,64 @@
+_meta:
+  name: manifest
+  file: manifest.yaml
+  location: .claude/moira/state/tasks/{id}/
+  git: gitignored
+  description: Checkpoint for resume
+
+fields:
+  task_id:
+    type: string
+    required: true
+  pipeline:
+    type: enum
+    required: true
+    enum: [quick, standard, full, decomposition]
+  developer:
+    type: string
+    required: true
+  checkpoint.step:
+    type: string
+    required: true
+  checkpoint.batch:
+    type: number
+    required: false
+    default: null
+  checkpoint.created_at:
+    type: string
+    required: true
+  checkpoint.reason:
+    type: enum
+    required: true
+    enum: [context_limit, user_pause, error, session_end]
+  resume_context:
+    type: block
+    required: false
+    default: null
+  decisions_made:
+    type: block
+    required: false
+    default: null
+  files_modified:
+    type: block
+    required: false
+    default: null
+  files_expected:
+    type: block
+    required: false
+    default: null
+  dependencies:
+    type: block
+    required: false
+    default: null
+  validation.git_branch:
+    type: string
+    required: false
+    default: null
+  validation.git_head_at_checkpoint:
+    type: string
+    required: false
+    default: null
+  validation.external_changes_expected:
+    type: boolean
+    required: false
+    default: false

@@ -1,0 +1,104 @@
+_meta:
+  name: status
+  file: status.yaml
+  location: .claude/moira/state/tasks/{id}/
+  git: gitignored
+  description: Per-task status
+
+fields:
+  task_id:
+    type: string
+    required: true
+  description:
+    type: string
+    required: true
+    default: ""
+  size:
+    type: enum
+    required: true
+    enum: [small, medium, large, epic]
+  confidence:
+    type: enum
+    required: true
+    enum: [high, low]
+  pipeline:
+    type: enum
+    required: true
+    enum: [quick, standard, full, decomposition]
+  developer:
+    type: string
+    required: true
+    default: ""
+  status:
+    type: enum
+    required: false
+    enum: [pending, in_progress, completed, failed, aborted]
+    default: pending
+  created_at:
+    type: string
+    required: true
+  completed_at:
+    type: string
+    required: false
+    default: null
+  classification.classifier_size:
+    type: enum
+    required: false
+    enum: [small, medium, large, epic]
+  classification.classifier_confidence:
+    type: enum
+    required: false
+    enum: [high, low]
+  classification.user_hint:
+    type: string
+    required: false
+    default: null
+  classification.overridden:
+    type: boolean
+    required: false
+    default: false
+  classification.reasoning:
+    type: string
+    required: false
+    default: ""
+  artifacts:
+    type: block
+    required: false
+    default: null
+  gates:
+    type: block
+    required: false
+    default: null
+  retries:
+    type: block
+    required: false
+    default: null
+  budget.estimated_tokens:
+    type: number
+    required: false
+    default: 0
+  budget.actual_tokens:
+    type: number
+    required: false
+    default: 0
+  budget.by_agent:
+    type: block
+    required: false
+    default: null
+  completion.action:
+    type: enum
+    required: false
+    enum: [done, tweak, redo]
+    default: null
+  completion.tweak_count:
+    type: number
+    required: false
+    default: 0
+  completion.redo_count:
+    type: number
+    required: false
+    default: 0
+  completion.final_review_passed:
+    type: boolean
+    required: false
+    default: false

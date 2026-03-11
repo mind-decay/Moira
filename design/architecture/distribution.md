@@ -231,24 +231,29 @@ After installation, `~/.claude/` contains:
 │   │   ├── guard.sh                      # Orchestrator tool restriction
 │   │   └── budget-track.sh              # Context usage logging
 │   │
-│   └── templates/
-│       ├── project-claude-md.tmpl        # CLAUDE.md template for projects
-│       ├── project-agents-md.tmpl        # AGENTS.md template for projects
-│       ├── project-config.tmpl           # config.yaml template
-│       ├── project-model.tmpl            # project-model skeleton
-│       ├── conventions.tmpl              # conventions.yaml skeleton
-│       ├── patterns.tmpl                 # patterns.yaml skeleton
-│       ├── quality-map.tmpl              # quality-map skeleton
-│       └── stack-presets/
-│           ├── nextjs.yaml               # Preset: Next.js project
-│           ├── react-vite.yaml           # Preset: React + Vite
-│           ├── express.yaml              # Preset: Express.js API
-│           ├── nestjs.yaml               # Preset: NestJS
-│           ├── fastapi.yaml              # Preset: Python FastAPI
-│           ├── django.yaml               # Preset: Python Django
-│           ├── go-api.yaml               # Preset: Go API
-│           ├── vue-nuxt.yaml             # Preset: Vue/Nuxt
-│           └── generic.yaml              # Fallback: unknown stack
+│   ├── templates/
+│   │   ├── project-claude-md.tmpl        # CLAUDE.md template for projects
+│   │   ├── project-agents-md.tmpl        # AGENTS.md template for projects
+│   │   ├── project-config.tmpl           # config.yaml template
+│   │   ├── project-model.tmpl            # project-model skeleton
+│   │   ├── conventions.tmpl              # conventions.yaml skeleton
+│   │   ├── patterns.tmpl                 # patterns.yaml skeleton
+│   │   ├── quality-map.tmpl              # quality-map skeleton
+│   │   └── stack-presets/
+│   │       ├── nextjs.yaml               # Preset: Next.js project
+│   │       ├── react-vite.yaml           # Preset: React + Vite
+│   │       ├── express.yaml              # Preset: Express.js API
+│   │       ├── nestjs.yaml               # Preset: NestJS
+│   │       ├── fastapi.yaml              # Preset: Python FastAPI
+│   │       ├── django.yaml               # Preset: Python Django
+│   │       ├── go-api.yaml               # Preset: Go API
+│   │       ├── vue-nuxt.yaml             # Preset: Vue/Nuxt
+│   │       └── generic.yaml              # Fallback: unknown stack
+│   └── lib/
+│       ├── state.sh                      # State management utilities
+│       ├── scaffold.sh                   # Directory scaffold generator
+│       ├── task-id.sh                    # Task ID generation
+│       └── yaml-utils.sh                # YAML read/write/validate (pure bash)
 │
 ├── commands/moira/                       # User-facing slash commands (D-030)
 │   ├── init.md                           # /moira:init

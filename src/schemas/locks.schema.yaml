@@ -1,0 +1,12 @@
+_meta:
+  name: locks
+  file: locks.yaml
+  location: .claude/moira/config/
+  git: committed
+  description: Multi-developer file locks with TTL
+
+fields:
+  locks:
+    type: block
+    required: false
+    default: null

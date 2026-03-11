@@ -1,0 +1,79 @@
+_meta:
+  name: current
+  file: current.yaml
+  location: .claude/moira/state/
+  git: gitignored
+  description: Active pipeline state
+
+fields:
+  task_id:
+    type: string
+    required: true
+    default: null
+  pipeline:
+    type: enum
+    required: true
+    enum: [quick, standard, full, decomposition]
+    default: null
+  started_at:
+    type: string
+    required: false
+    default: null
+  developer:
+    type: string
+    required: false
+    default: null
+  step:
+    type: string
+    required: false
+    default: null
+  step_status:
+    type: enum
+    required: false
+    enum: [pending, in_progress, awaiting_gate, completed, failed]
+    default: pending
+  step_started_at:
+    type: string
+    required: false
+    default: null
+  gate_pending:
+    type: string
+    required: false
+    default: null
+  gate_options:
+    type: array
+    required: false
+    default: []
+  history:
+    type: block
+    required: false
+    default: null
+  context_budget.orchestrator_tokens_used:
+    type: number
+    required: false
+    default: 0
+  context_budget.orchestrator_percent:
+    type: number
+    required: false
+    default: 0
+  context_budget.total_agent_tokens:
+    type: number
+    required: false
+    default: 0
+  context_budget.warning_level:
+    type: enum
+    required: false
+    enum: [normal, warning, critical]
+    default: normal
+  bypass.active:
+    type: boolean
+    required: false
+    default: false
+  bypass.reason:
+    type: string
+    required: false
+    default: null
+  bypass.confirmed_at:
+    type: string
+    required: false
+    default: null

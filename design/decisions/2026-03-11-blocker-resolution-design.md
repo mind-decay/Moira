@@ -43,7 +43,7 @@
 ### 2.1: `config.yaml` — Project Configuration (committed)
 
 ```yaml
-# .claude/moira/config/config.yaml
+# .claude/moira/config.yaml
 version: "1.0"
 project:
   name: string                    # project name

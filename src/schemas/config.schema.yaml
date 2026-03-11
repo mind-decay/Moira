@@ -1,0 +1,165 @@
+_meta:
+  name: config
+  file: config.yaml
+  location: .claude/moira/
+  git: committed
+  description: Project configuration
+
+fields:
+  version:
+    type: string
+    required: true
+    default: "1.0"
+  project.name:
+    type: string
+    required: true
+    default: ""
+  project.root:
+    type: string
+    required: true
+    default: ""
+  project.stack:
+    type: enum
+    required: true
+    enum: [nextjs, react, vue, python, go, rust, java, generic]
+    default: generic
+  classification.default_pipeline:
+    type: enum
+    required: false
+    enum: [quick, standard, full, decomposition]
+    default: standard
+  classification.size_hints_override:
+    type: boolean
+    required: false
+    default: false
+  pipelines.quick.max_retries:
+    type: number
+    required: false
+    default: 1
+  pipelines.quick.gates:
+    type: array
+    required: false
+    default: [classification, final]
+  pipelines.standard.max_retries:
+    type: number
+    required: false
+    default: 2
+  pipelines.standard.gates:
+    type: array
+    required: false
+    default: [classification, architecture, plan, final]
+  pipelines.full.max_retries:
+    type: number
+    required: false
+    default: 2
+  pipelines.full.gates:
+    type: array
+    required: false
+    default: [classification, architecture, plan, per-phase, final]
+  pipelines.decomposition.max_retries:
+    type: number
+    required: false
+    default: 2
+  pipelines.decomposition.gates:
+    type: array
+    required: false
+    default: [classification, decomposition, per-task, final]
+  budgets.orchestrator_max_percent:
+    type: number
+    required: false
+    default: 25
+  budgets.agent_max_load_percent:
+    type: number
+    required: false
+    default: 70
+  budgets.per_agent.classifier:
+    type: number
+    required: false
+    default: 20000
+  budgets.per_agent.explorer:
+    type: number
+    required: false
+    default: 140000
+  budgets.per_agent.analyst:
+    type: number
+    required: false
+    default: 60000
+  budgets.per_agent.architect:
+    type: number
+    required: false
+    default: 100000
+  budgets.per_agent.planner:
+    type: number
+    required: false
+    default: 80000
+  budgets.per_agent.implementer:
+    type: number
+    required: false
+    default: 140000
+  budgets.per_agent.reviewer:
+    type: number
+    required: false
+    default: 80000
+  budgets.per_agent.tester:
+    type: number
+    required: false
+    default: 100000
+  budgets.per_agent.reflector:
+    type: number
+    required: false
+    default: 60000
+  budgets.per_agent.auditor:
+    type: number
+    required: false
+    default: 60000
+  quality.mode:
+    type: enum
+    required: false
+    enum: [conform, evolve]
+    default: conform
+  quality.evolution_threshold:
+    type: number
+    required: false
+    default: 3
+  quality.review_severity_minimum:
+    type: enum
+    required: false
+    enum: [low, medium, high, critical]
+    default: medium
+  knowledge.freshness_days:
+    type: number
+    required: false
+    default: 30
+  knowledge.archival_max_entries:
+    type: number
+    required: false
+    default: 100
+  audit.light_every_n_tasks:
+    type: number
+    required: false
+    default: 10
+  audit.standard_every_n_tasks:
+    type: number
+    required: false
+    default: 20
+  audit.auto_batch_apply_risk:
+    type: enum
+    required: false
+    enum: [low, medium, high]
+    default: low
+  mcp.enabled:
+    type: boolean
+    required: false
+    default: false
+  mcp.registry_path:
+    type: string
+    required: false
+    default: config/mcp-registry.yaml
+  hooks.guard_enabled:
+    type: boolean
+    required: false
+    default: true
+  hooks.budget_tracking_enabled:
+    type: boolean
+    required: false
+    default: true
