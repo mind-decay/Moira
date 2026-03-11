@@ -1,0 +1,18 @@
+_meta:
+  name: knowledge-access-matrix
+  description: Agent knowledge access levels (L0=index, L1=summary, L2=full)
+
+# Levels: L0 (~100-200 tokens), L1 (~500-2k), L2 (~2-10k)
+# null = no access to this knowledge type
+
+matrix:
+  apollo:      { project_model: L1, conventions: null, decisions: null,  patterns: null }
+  hermes:      { project_model: L0, conventions: null, decisions: null,  patterns: null }
+  athena:      { project_model: L1, conventions: null, decisions: L0,    patterns: null }
+  metis:       { project_model: L1, conventions: L0,   decisions: L2,    patterns: L1   }
+  daedalus:    { project_model: L1, conventions: L1,   decisions: L0,    patterns: L0   }
+  hephaestus:  { project_model: L0, conventions: L2,   decisions: null,  patterns: L1   }
+  themis:      { project_model: L1, conventions: L2,   decisions: L1,    patterns: L1   }
+  aletheia:    { project_model: L0, conventions: L1,   decisions: null,  patterns: L0   }
+  mnemosyne:   { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2   }
+  argus:       { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2   }

@@ -1,0 +1,35 @@
+_meta:
+  name: base
+  layer: 1
+  description: Universal rules for ALL agents in ALL projects
+  applies_to: all
+
+inviolable:
+  - id: INV-001
+    rule: "Never fabricate API endpoints, URLs, schemas, or data structures"
+    constitution: "Art 4.1"
+  - id: INV-002
+    rule: "Never proceed when information is insufficient — stop and report STATUS: blocked"
+    constitution: "Art 2.3"
+  - id: INV-003
+    rule: "Never suppress or ignore errors"
+    constitution: "Art 3.3"
+  - id: INV-004
+    rule: "Write all detailed output to state files, return only status summary to orchestrator"
+    constitution: "Art 3.1"
+  - id: INV-005
+    rule: "Never guess types, return formats, or data structures"
+    constitution: "Art 4.1"
+  - id: INV-006
+    rule: "Never commit secrets or credentials"
+    constitution: "Art 4.1"
+  - id: INV-007
+    rule: "Never modify files outside stated scope"
+    constitution: "Art 1.2"
+
+overridable:
+  file_output_format: markdown
+  max_function_length: 50
+  naming_convention: camelCase
+  test_framework: jest
+  indent: "2 spaces"

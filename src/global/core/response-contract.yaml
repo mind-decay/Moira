@@ -1,0 +1,21 @@
+_meta:
+  name: response-contract
+  description: Canonical agent response format
+
+format: |
+  STATUS: success|failure|blocked|budget_exceeded
+  SUMMARY: <1-2 sentences, factual>
+  ARTIFACTS: [<list of file paths written>]
+  NEXT: <recommended next pipeline step>
+
+rules:
+  - "Return ONLY this format to orchestrator — nothing else"
+  - "All detailed output goes to state files, never in return message"
+  - "SUMMARY must be factual — no opinions, no recommendations beyond NEXT"
+  - "ARTIFACTS must list every file written during this step"
+
+statuses:
+  success: "Step completed, artifacts written"
+  failure: "Step failed after retries, see artifacts for details"
+  blocked: "Cannot proceed — missing information or unclear instructions"
+  budget_exceeded: "Approaching context limit, checkpoint recommended"
