@@ -79,11 +79,43 @@ Before making any change, you MUST read:
 ## File Structure Conventions
 
 - Design documents: `design/` (markdown)
+- Implementation specs: `design/specs/` (per-phase implementation specs, NOT in docs/superpowers/)
 - Implementation source: `src/` (to be created per roadmap phases)
 - Agent definitions: `src/agents/` (markdown prompt files)
 - Skills: `src/skills/` (markdown skill files)
 - Core rules: `src/core/rules/` (YAML)
 - Hooks: `src/hooks/` (shell scripts)
+
+## Phase Implementation Process
+
+Every phase follows a strict 3-step process. Do NOT skip steps.
+
+### Step 1: Spec (`design/specs/YYYY-MM-DD-phaseN-<name>.md`)
+- Define goal, deliverables, file list, design sources
+- Identify risk classification (RED/ORANGE/YELLOW/GREEN)
+- Get user approval before proceeding
+
+### Step 2: Implementation Plan (`design/specs/YYYY-MM-DD-phaseN-implementation-plan.md`)
+- Break into chunks with explicit dependencies
+- Each chunk has numbered tasks with checkboxes
+- Each task specifies: files to create/modify, source design doc, key points, commit message
+- Include dependency graph at the end
+- Plans describe WHAT, not full code — file paths, structure, contracts, edge cases
+- Flag any inconsistencies between design docs (e.g., budget mismatches)
+- Get user approval before proceeding
+
+### Step 3: Implementation
+- Follow the plan chunk by chunk, in dependency order
+- Commit at each chunk boundary (or per-task if chunk is large)
+- Run Tier 1 tests after each chunk
+- Final verification against spec success criteria + constitutional compliance
+
+### Rules
+- **Specs and plans go in `design/specs/`** — never in `docs/superpowers/` or other skill-specific directories
+- **Don't skip the plan.** Even if the spec is detailed, always write an explicit implementation plan with tasks, files, and dependency graph.
+- **Plans describe WHAT, not full code.** Do NOT write full file contents in plans — that's implementation.
+- **Start implementing when ready.** Don't get stuck in planning loops. Once plan is approved, move to code.
+- **Commit scope `foundation`** is valid for Phase 1 infrastructure work.
 
 ## Implementation Roadmap
 
