@@ -78,6 +78,57 @@ User → /moira <task>
 
 ## File Structure
 
+### Global Layer (`~/.claude/`)
+
+```
+~/.claude/
+├── moira/                             # Core system (installed once)
+│   ├── .version
+│   ├── core/
+│   │   └── rules/
+│   │       ├── base.yaml              # Layer 1: inviolable + overridable rules
+│   │       ├── roles/                 # Layer 2: per-agent role rules
+│   │       │   ├── classifier.yaml
+│   │       │   ├── explorer.yaml
+│   │       │   ├── analyst.yaml
+│   │       │   ├── architect.yaml
+│   │       │   ├── planner.yaml
+│   │       │   ├── implementer.yaml
+│   │       │   ├── reviewer.yaml
+│   │       │   ├── tester.yaml
+│   │       │   ├── reflector.yaml
+│   │       │   └── auditor.yaml
+│   │       └── quality/
+│   │           ├── correctness.yaml
+│   │           ├── performance.yaml
+│   │           ├── security.yaml
+│   │           └── standards.yaml     # SOLID, KISS, DRY
+│   ├── skills/
+│   │   └── orchestrator.md            # Main orchestrator skill
+│   ├── hooks/
+│   │   ├── guard.sh                   # PostToolUse violation detection (D-031)
+│   │   └── budget-track.sh            # Context budget logging
+│   └── templates/
+│       ├── project-claude-md.tmpl
+│       ├── project-config.tmpl
+│       └── stack-presets/
+│           ├── nextjs.yaml
+│           ├── generic.yaml
+│           └── ...
+│
+├── commands/moira/                    # User-facing slash commands (D-030)
+│   ├── init.md                        # /moira:init
+│   ├── task.md                        # /moira — main entry point
+│   ├── status.md                      # /moira:status
+│   ├── bypass.md                      # /moira:bypass
+│   ├── resume.md                      # /moira:resume
+│   └── ...
+│
+└── settings.json                      # Hooks registration (merge)
+```
+
+### Project Layer (`.claude/moira/`)
+
 ```
 .claude/moira/
 ├── config.yaml                    # Project configuration

@@ -57,7 +57,7 @@ This means: every agent prompt MUST include instructions to write output to spec
 
 ### The Constitution Is Real
 
-`design/CONSTITUTION.md` defines 23 invariants that MUST hold at all times. These are not aspirational — they are binary checks. Before committing any implementation work, verify that no constitutional invariant is violated.
+`design/CONSTITUTION.md` defines 19 invariants that MUST hold at all times. These are not aspirational — they are binary checks. Before committing any implementation work, verify that no constitutional invariant is violated.
 
 If you find that an invariant makes implementation difficult — that's by design. The invariant exists because violating it leads to system degradation. Find a way to implement within the constraint, or flag it for the user to decide.
 

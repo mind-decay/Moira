@@ -198,68 +198,71 @@ No build step. No compilation. No package manager resolution. Just file copy + v
 
 ## Global Layer File Map
 
-After installation, `~/.claude/moira/` contains:
+After installation, `~/.claude/` contains:
 
 ```
-~/.claude/moira/
-├── .version                          # "1.0.0"
-├── core/
-│   └── rules/
-│       ├── base.yaml                 # Layer 1: inviolable + overridable rules
-│       ├── roles/
-│       │   ├── classifier.yaml       # Layer 2: agent role rules
-│       │   ├── explorer.yaml
-│       │   ├── analyst.yaml
-│       │   ├── architect.yaml
-│       │   ├── planner.yaml
-│       │   ├── implementer.yaml
-│       │   ├── reviewer.yaml
-│       │   ├── tester.yaml
-│       │   ├── reflector.yaml
-│       │   └── auditor.yaml
-│       └── quality/
-│           ├── correctness.yaml
-│           ├── performance.yaml
-│           ├── security.yaml
-│           └── standards.yaml        # SOLID, KISS, DRY
+~/.claude/
+├── moira/                                # Core system (global layer)
+│   ├── .version                          # "1.0.0"
+│   ├── core/
+│   │   └── rules/
+│   │       ├── base.yaml                 # Layer 1: inviolable + overridable rules
+│   │       ├── roles/
+│   │       │   ├── classifier.yaml       # Layer 2: agent role rules
+│   │       │   ├── explorer.yaml
+│   │       │   ├── analyst.yaml
+│   │       │   ├── architect.yaml
+│   │       │   ├── planner.yaml
+│   │       │   ├── implementer.yaml
+│   │       │   ├── reviewer.yaml
+│   │       │   ├── tester.yaml
+│   │       │   ├── reflector.yaml
+│   │       │   └── auditor.yaml
+│   │       └── quality/
+│   │           ├── correctness.yaml
+│   │           ├── performance.yaml
+│   │           ├── security.yaml
+│   │           └── standards.yaml        # SOLID, KISS, DRY
+│   │
+│   ├── skills/
+│   │   └── orchestrator.md               # Main orchestrator skill (referenced by commands)
+│   │
+│   ├── hooks/
+│   │   ├── guard.sh                      # Orchestrator tool restriction
+│   │   └── budget-track.sh              # Context usage logging
+│   │
+│   └── templates/
+│       ├── project-claude-md.tmpl        # CLAUDE.md template for projects
+│       ├── project-agents-md.tmpl        # AGENTS.md template for projects
+│       ├── project-config.tmpl           # config.yaml template
+│       ├── project-model.tmpl            # project-model skeleton
+│       ├── conventions.tmpl              # conventions.yaml skeleton
+│       ├── patterns.tmpl                 # patterns.yaml skeleton
+│       ├── quality-map.tmpl              # quality-map skeleton
+│       └── stack-presets/
+│           ├── nextjs.yaml               # Preset: Next.js project
+│           ├── react-vite.yaml           # Preset: React + Vite
+│           ├── express.yaml              # Preset: Express.js API
+│           ├── nestjs.yaml               # Preset: NestJS
+│           ├── fastapi.yaml              # Preset: Python FastAPI
+│           ├── django.yaml               # Preset: Python Django
+│           ├── go-api.yaml               # Preset: Go API
+│           ├── vue-nuxt.yaml             # Preset: Vue/Nuxt
+│           └── generic.yaml              # Fallback: unknown stack
 │
-├── skills/
-│   └── orchestrator.md               # Main orchestrator skill (referenced by commands)
+├── commands/moira/                       # User-facing slash commands (D-030)
+│   ├── init.md                           # /moira:init
+│   ├── task.md                           # /moira:task — main entry point
+│   ├── status.md                         # /moira:status
+│   ├── metrics.md                        # /moira:metrics
+│   ├── audit.md                          # /moira:audit
+│   ├── knowledge.md                      # /moira:knowledge
+│   ├── bypass.md                         # /moira:bypass
+│   ├── resume.md                         # /moira:resume
+│   ├── refresh.md                        # /moira:refresh
+│   └── help.md                           # /moira:help
 │
-├── commands/moira/                   # User-facing slash commands (D-030)
-│   ├── init.md                      # /moira:init
-│   ├── task.md                      # /moira:task — main entry point
-│   ├── status.md                    # /moira:status
-│   ├── metrics.md                   # /moira:metrics
-│   ├── audit.md                     # /moira:audit
-│   ├── knowledge.md                 # /moira:knowledge
-│   ├── bypass.md                    # /moira:bypass
-│   ├── resume.md                    # /moira:resume
-│   ├── refresh.md                   # /moira:refresh
-│   └── help.md                      # /moira:help
-│
-├── hooks/
-│   ├── guard.sh                      # Orchestrator tool restriction
-│   └── budget-track.sh              # Context usage logging
-│
-└── templates/
-    ├── project-claude-md.tmpl        # CLAUDE.md template for projects
-    ├── project-agents-md.tmpl        # AGENTS.md template for projects
-    ├── project-config.tmpl           # config.yaml template
-    ├── project-model.tmpl            # project-model skeleton
-    ├── conventions.tmpl              # conventions.yaml skeleton
-    ├── patterns.tmpl                 # patterns.yaml skeleton
-    ├── quality-map.tmpl              # quality-map skeleton
-    └── stack-presets/
-        ├── nextjs.yaml               # Preset: Next.js project
-        ├── react-vite.yaml           # Preset: React + Vite
-        ├── express.yaml              # Preset: Express.js API
-        ├── nestjs.yaml               # Preset: NestJS
-        ├── fastapi.yaml              # Preset: Python FastAPI
-        ├── django.yaml               # Preset: Python Django
-        ├── go-api.yaml               # Preset: Go API
-        ├── vue-nuxt.yaml             # Preset: Vue/Nuxt
-        └── generic.yaml              # Fallback: unknown stack
+└── settings.json                         # Hooks registration (merge)
 ```
 
 ---
