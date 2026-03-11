@@ -84,6 +84,12 @@ install_global() {
     cp -f "$SCRIPT_DIR/global/templates/stack-presets/"* "$MOIRA_HOME/templates/stack-presets/" 2>/dev/null || true
   fi
 
+  # Copy knowledge templates (Phase 4)
+  if [[ -d "$SCRIPT_DIR/global/templates/knowledge" ]]; then
+    mkdir -p "$MOIRA_HOME/templates/knowledge"
+    cp -rf "$SCRIPT_DIR/global/templates/knowledge/"* "$MOIRA_HOME/templates/knowledge/"
+  fi
+
   # Write version marker
   echo "$MOIRA_VERSION" > "$MOIRA_HOME/.version"
 
@@ -133,7 +139,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh; do
     ((checks_total++))
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then
@@ -246,6 +252,16 @@ verify() {
     ((checks_passed++))
   else
     errors+="  schemas/telemetry.schema.yaml not found\n"
+  fi
+
+  # Check: knowledge templates exist (Phase 4)
+  ((checks_total++))
+  local template_count
+  template_count=$(find "$MOIRA_HOME/templates/knowledge" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$template_count" -ge 17 ]]; then
+    ((checks_passed++))
+  else
+    errors+="  knowledge templates: expected >=17, found ${template_count}\n"
   fi
 
   if [[ $checks_passed -eq $checks_total ]]; then

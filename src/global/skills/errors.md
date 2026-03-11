@@ -349,20 +349,43 @@ If a violation is detected by any means:
 
 ---
 
-## E8-STALE: Outdated Knowledge (STUB)
-
-Phase 3 stub per D-038. Full detection in Phase 4.
+## E8-STALE: Outdated Knowledge
 
 ### Detection
 
-No automated freshness checking in Phase 3. Explorer may report stale knowledge.
+At pipeline start (after classification, before dispatching exploration agents), check knowledge freshness:
 
-### Recovery
+1. Read the current task number from status files (count of completed tasks)
+2. Call freshness check on all knowledge types used by the current pipeline
+3. If any entries are `stale` (>20 tasks since last confirmation):
 
-If stale knowledge is reported:
-1. Log the report to task status
-2. Escalate to user: "Explorer reports knowledge may be outdated: {details}"
-3. No automated knowledge update — user decides
+### Display
+
+```
+Warning: STALE KNOWLEDGE WARNING
+The following knowledge entries have not been confirmed in 20+ tasks:
+  - {type}: last confirmed at task {task_id} ({distance} tasks ago)
+  ...
+
+Stale knowledge may lead to incorrect agent decisions.
+
+> proceed -- continue (agents may use outdated information)
+> refresh -- run /moira:refresh to update knowledge base first
+```
+
+### Non-blocking
+
+This is a WARNING, not a gate. Pipeline continues after display.
+The user can choose to refresh or proceed.
+
+### State
+
+Log stale entries to `status.yaml` under `warnings:` block.
+
+### NOT YET IMPLEMENTED
+
+- Automatic knowledge refresh during pipeline (Phase 10)
+- Impact assessment of stale knowledge on task quality (Phase 11)
 
 ---
 

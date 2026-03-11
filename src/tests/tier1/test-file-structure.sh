@@ -44,6 +44,37 @@ assert_dir_exists "$MOIRA_HOME/lib" "lib/ exists"
 assert_dir_exists "$MOIRA_HOME/schemas" "schemas/ exists"
 assert_dir_exists "$MOIRA_HOME/core/pipelines" "core/pipelines/ exists"
 
+# ── Phase 4: knowledge + rules libs ────────────────────────────────
+assert_file_exists "$MOIRA_HOME/lib/knowledge.sh" "lib/knowledge.sh exists"
+if [[ -f "$MOIRA_HOME/lib/knowledge.sh" ]]; then
+  if bash -n "$MOIRA_HOME/lib/knowledge.sh" 2>/dev/null; then
+    pass "lib/knowledge.sh syntax valid"
+  else
+    fail "lib/knowledge.sh has syntax errors"
+  fi
+fi
+assert_file_exists "$MOIRA_HOME/lib/rules.sh" "lib/rules.sh exists"
+if [[ -f "$MOIRA_HOME/lib/rules.sh" ]]; then
+  if bash -n "$MOIRA_HOME/lib/rules.sh" 2>/dev/null; then
+    pass "lib/rules.sh syntax valid"
+  else
+    fail "lib/rules.sh has syntax errors"
+  fi
+fi
+
+# ── Phase 4: knowledge templates ───────────────────────────────────
+assert_dir_exists "$MOIRA_HOME/templates/knowledge" "templates/knowledge/ exists"
+for ktype in project-model conventions decisions patterns failures quality-map; do
+  assert_dir_exists "$MOIRA_HOME/templates/knowledge/$ktype" "templates/knowledge/$ktype/ exists"
+done
+
+# Quality-map must NOT have index.md (L0 not applicable per AD-6)
+if [[ ! -f "$MOIRA_HOME/templates/knowledge/quality-map/index.md" ]]; then
+  pass "quality-map has no index.md (AD-6)"
+else
+  fail "quality-map should NOT have index.md"
+fi
+
 # ── Pipeline definitions ────────────────────────────────────────────
 for pipeline in quick standard full decomposition; do
   assert_file_exists "$MOIRA_HOME/core/pipelines/${pipeline}.yaml" "pipeline ${pipeline}.yaml exists"

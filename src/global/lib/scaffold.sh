@@ -25,6 +25,7 @@ moira_scaffold_global() {
   mkdir -p "$target_dir"/skills
   mkdir -p "$target_dir"/hooks
   mkdir -p "$target_dir"/templates/stack-presets
+  mkdir -p "$target_dir"/templates/knowledge
   mkdir -p "$target_dir"/lib
   mkdir -p "$target_dir"/schemas
 }
@@ -62,7 +63,7 @@ moira_scaffold_project() {
   mkdir -p "$base"/knowledge/project-model
   mkdir -p "$base"/knowledge/conventions
   mkdir -p "$base"/knowledge/decisions/archive
-  mkdir -p "$base"/knowledge/patterns
+  mkdir -p "$base"/knowledge/patterns/archive
   mkdir -p "$base"/knowledge/failures
   mkdir -p "$base"/knowledge/quality-map
 
@@ -73,4 +74,33 @@ moira_scaffold_project() {
 
   # Hooks
   mkdir -p "$base"/hooks
+
+  # Copy knowledge templates if available (idempotent — only copy if target doesn't exist)
+  local moira_home="${MOIRA_HOME:-$HOME/.claude/moira}"
+  if [[ -d "$moira_home/templates/knowledge" ]]; then
+    _moira_copy_templates "$moira_home/templates/knowledge" "$base/knowledge"
+  fi
+}
+
+# ── _moira_copy_templates <source_dir> <target_dir> ──────────────────
+# Copy knowledge template files to project, preserving existing files.
+_moira_copy_templates() {
+  local src="$1"
+  local dst="$2"
+
+  for type_dir in "$src"/*/; do
+    [[ -d "$type_dir" ]] || continue
+    local type_name
+    type_name=$(basename "$type_dir")
+    mkdir -p "$dst/$type_name"
+
+    for tmpl_file in "$type_dir"*.md; do
+      [[ -f "$tmpl_file" ]] || continue
+      local target_file="$dst/$type_name/$(basename "$tmpl_file")"
+      # Only copy if target doesn't exist (preserve existing knowledge)
+      if [[ ! -f "$target_file" ]]; then
+        cp "$tmpl_file" "$target_file"
+      fi
+    done
+  done
 }

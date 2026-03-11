@@ -6,9 +6,37 @@ This skill defines how the orchestrator constructs agent prompts, dispatches age
 
 ---
 
-## Prompt Construction (Phase 3 Simplified)
+## Prompt Construction
 
-Phase 3 uses simplified prompt assembly. Full L1-L4 rule assembly is Phase 4.
+### Pre-assembled Instructions (Primary Path)
+
+When dispatching a post-planning agent (any agent after Daedalus has run), check for a pre-assembled instruction file:
+
+1. Check path: `~/.claude/moira/state/tasks/{task_id}/instructions/{agent_name}.md`
+2. If file exists and is non-empty:
+   - Read the file contents
+   - Use directly as the agent prompt (the file IS the complete prompt)
+   - Skip simplified assembly -- the file contains all rules, knowledge, and context
+3. If file does not exist:
+   - Fall back to simplified assembly (below)
+
+Instruction files are written by Daedalus (planner) during the planning step. They contain L1-L4 merged rules, authorized knowledge, quality checklist, task context, and output path.
+
+### Simplified Assembly (Fallback)
+
+Used for:
+- Pre-planning agents: Apollo (classifier), Hermes (explorer), Athena (analyst) -- always
+- Quick pipeline: all agents -- no Planner step exists
+- Any agent when instruction file is missing (safety fallback)
+
+### Which Agents Use Which Path
+
+| Pipeline | Pre-assembled (instruction file) | Simplified (fallback) |
+|----------|----------------------------------|----------------------|
+| Quick | none | all agents |
+| Standard | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena |
+| Full | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena |
+| Decomposition | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena |
 
 ### Steps
 

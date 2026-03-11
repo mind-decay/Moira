@@ -30,6 +30,28 @@ assert_dir_exists "$TEST_HOME/.claude/commands/moira" "clean install: commands d
 assert_file_exists "$TEST_HOME/.claude/commands/moira/help.md" "clean install: help.md exists"
 assert_dir_exists "$MOIRA_HOME/schemas" "clean install: schemas dir exists"
 
+# Phase 4: knowledge.sh and rules.sh
+assert_file_exists "$MOIRA_HOME/lib/knowledge.sh" "clean install: knowledge.sh exists"
+assert_file_exists "$MOIRA_HOME/lib/rules.sh" "clean install: rules.sh exists"
+
+# Phase 4: knowledge.sh and rules.sh syntax valid
+for lib in knowledge.sh rules.sh; do
+  if bash -n "$MOIRA_HOME/lib/$lib" 2>/dev/null; then
+    pass "clean install: $lib syntax valid"
+  else
+    fail "clean install: $lib has syntax errors"
+  fi
+done
+
+# Phase 4: knowledge templates
+assert_dir_exists "$MOIRA_HOME/templates/knowledge" "clean install: knowledge templates dir exists"
+template_count=$(find "$MOIRA_HOME/templates/knowledge" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$template_count" -ge 17 ]]; then
+  pass "clean install: $template_count knowledge templates (>=17)"
+else
+  fail "clean install: expected >=17 knowledge templates, found $template_count"
+fi
+
 # Pipeline definitions
 assert_dir_exists "$MOIRA_HOME/core/pipelines" "clean install: pipelines dir exists"
 for pipeline in quick standard full decomposition; do
@@ -93,6 +115,7 @@ assert_dir_exists "$test_project/.claude/moira/knowledge/project-model" "scaffol
 assert_dir_exists "$test_project/.claude/moira/knowledge/conventions" "scaffold: knowledge/conventions"
 assert_dir_exists "$test_project/.claude/moira/knowledge/decisions/archive" "scaffold: knowledge/decisions/archive"
 assert_dir_exists "$test_project/.claude/moira/knowledge/patterns" "scaffold: knowledge/patterns"
+assert_dir_exists "$test_project/.claude/moira/knowledge/patterns/archive" "scaffold: knowledge/patterns/archive"
 assert_dir_exists "$test_project/.claude/moira/knowledge/failures" "scaffold: knowledge/failures"
 assert_dir_exists "$test_project/.claude/moira/knowledge/quality-map" "scaffold: knowledge/quality-map"
 assert_dir_exists "$test_project/.claude/moira/state/tasks" "scaffold: state/tasks"

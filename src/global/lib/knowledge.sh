@@ -1,0 +1,409 @@
+#!/usr/bin/env bash
+# knowledge.sh — Knowledge read/write/freshness operations for Moira
+# Built on yaml-utils.sh patterns (bash 3.2+ compatible, no jq/python).
+#
+# Responsibilities: knowledge CRUD + freshness tracking ONLY
+# Does NOT handle knowledge generation (that's agents' job)
+
+set -euo pipefail
+
+# Source yaml-utils from the same directory
+_MOIRA_KNOWLEDGE_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=yaml-utils.sh
+source "${_MOIRA_KNOWLEDGE_LIB_DIR}/yaml-utils.sh"
+
+# Valid knowledge types
+_MOIRA_KNOWLEDGE_TYPES="project-model conventions decisions patterns failures quality-map"
+
+# Level-to-file mapping
+_moira_level_file() {
+  local level="$1"
+  case "$level" in
+    L0) echo "index.md" ;;
+    L1) echo "summary.md" ;;
+    L2) echo "full.md" ;;
+    *)
+      echo "Error: invalid level '$level' (must be L0, L1, or L2)" >&2
+      return 1
+      ;;
+  esac
+}
+
+# Validate knowledge type
+_moira_valid_type() {
+  local ktype="$1"
+  for valid in $_MOIRA_KNOWLEDGE_TYPES; do
+    if [[ "$ktype" == "$valid" ]]; then
+      return 0
+    fi
+  done
+  echo "Error: invalid knowledge type '$ktype'" >&2
+  return 1
+}
+
+# ── moira_knowledge_read <knowledge_dir> <knowledge_type> <level> ────
+# Read a knowledge file at a specific level.
+# Returns file contents or empty string if file doesn't exist.
+moira_knowledge_read() {
+  local knowledge_dir="$1"
+  local ktype="$2"
+  local level="$3"
+
+  _moira_valid_type "$ktype" || return 1
+
+  # Quality-map has no L0 (AD-6)
+  if [[ "$ktype" == "quality-map" && "$level" == "L0" ]]; then
+    return 0
+  fi
+
+  local level_file
+  level_file=$(_moira_level_file "$level") || return 1
+
+  local target="${knowledge_dir}/${ktype}/${level_file}"
+
+  if [[ -f "$target" ]]; then
+    cat "$target"
+  fi
+  return 0
+}
+
+# ── moira_knowledge_read_for_agent <knowledge_dir> <agent_name> [matrix_file]
+# Read all knowledge an agent is authorized to access per the access matrix.
+# Returns concatenated content with section headers.
+moira_knowledge_read_for_agent() {
+  local knowledge_dir="$1"
+  local agent_name="$2"
+  local matrix_file="${3:-${MOIRA_HOME:-$HOME/.claude/moira}/core/knowledge-access-matrix.yaml}"
+
+  if [[ ! -f "$matrix_file" ]]; then
+    echo "Error: knowledge access matrix not found: $matrix_file" >&2
+    return 1
+  fi
+
+  # Knowledge dimensions in matrix (underscore) → knowledge type (hyphen)
+  local dimensions="project_model conventions decisions patterns quality_map failures"
+  local output=""
+  local has_content=false
+
+  for dim in $dimensions; do
+    # Convert dimension name to knowledge type (underscore → hyphen)
+    local ktype="${dim//_/-}"
+
+    # Extract level from matrix using grep/sed since yaml-utils can't parse inline maps
+    local level
+    level=$(grep "^[[:space:]]*${agent_name}:" "$matrix_file" 2>/dev/null | \
+      sed -n "s/.*${dim}: *\([^ ,}]*\).*/\1/p" | tr -d ' ')
+
+    # Skip null or empty access
+    if [[ -z "$level" || "$level" == "null" ]]; then
+      continue
+    fi
+
+    # Quality-map L0 doesn't exist (AD-6) — skip silently
+    if [[ "$ktype" == "quality-map" && "$level" == "L0" ]]; then
+      continue
+    fi
+
+    # Read the knowledge content
+    local content
+    content=$(moira_knowledge_read "$knowledge_dir" "$ktype" "$level" 2>/dev/null) || true
+
+    if [[ -n "$content" ]]; then
+      # Convert type name for display (hyphen → space, capitalize)
+      local display_name
+      display_name=$(echo "$ktype" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+
+      if $has_content; then
+        output+=$'\n\n'
+      fi
+      output+="## Knowledge: ${display_name} (${level})"
+      output+=$'\n'
+      output+="$content"
+      has_content=true
+    fi
+  done
+
+  if $has_content; then
+    echo "$output"
+  fi
+  return 0
+}
+
+# ── moira_knowledge_write <knowledge_dir> <knowledge_type> <level> <content_file> <task_id>
+# Write content to a knowledge file with freshness marker.
+moira_knowledge_write() {
+  local knowledge_dir="$1"
+  local ktype="$2"
+  local level="$3"
+  local content_file="$4"
+  local task_id="$5"
+
+  _moira_valid_type "$ktype" || return 1
+
+  local level_file
+  level_file=$(_moira_level_file "$level") || return 1
+
+  local target="${knowledge_dir}/${ktype}/${level_file}"
+  local today
+  today=$(date -u +%Y-%m-%d)
+  local freshness_tag="<!-- moira:freshness ${task_id} ${today} -->"
+
+  # Ensure directory exists
+  mkdir -p "$(dirname "$target")"
+
+  # If target exists, preserve old freshness tag
+  local old_freshness=""
+  if [[ -f "$target" ]]; then
+    old_freshness=$(grep -m1 '^<!-- moira:freshness ' "$target" 2>/dev/null || true)
+  fi
+
+  # Write: freshness tag + blank line + content
+  {
+    echo "$freshness_tag"
+    echo ""
+    cat "$content_file"
+    if [[ -n "$old_freshness" ]]; then
+      echo ""
+      echo "${old_freshness/moira:freshness/moira:freshness:previous}"
+    fi
+  } > "$target"
+
+  return 0
+}
+
+# ── moira_knowledge_freshness <knowledge_dir> <knowledge_type> <current_task_number>
+# Check freshness of a knowledge entry.
+# Returns: fresh, aging, stale, or unknown
+moira_knowledge_freshness() {
+  local knowledge_dir="$1"
+  local ktype="$2"
+  local current_task_number="$3"
+
+  _moira_valid_type "$ktype" || return 1
+
+  # Read L1 (summary) as canonical freshness source
+  local target="${knowledge_dir}/${ktype}/summary.md"
+
+  if [[ ! -f "$target" ]]; then
+    echo "unknown"
+    return 0
+  fi
+
+  # Extract first freshness tag
+  local tag
+  tag=$(grep -m1 '^<!-- moira:freshness ' "$target" 2>/dev/null || true)
+
+  if [[ -z "$tag" ]]; then
+    echo "unknown"
+    return 0
+  fi
+
+  # Parse task ID from tag: <!-- moira:freshness {task_id} {date} -->
+  local entry_task_id
+  entry_task_id=$(echo "$tag" | sed 's/<!-- moira:freshness \([^ ]*\) .*/\1/')
+
+  # Extract numeric portion from task ID (e.g., task-2024-01-15-042 → 42, or just 42 → 42)
+  local entry_task_number
+  entry_task_number=$(echo "$entry_task_id" | grep -o '[0-9]*$')
+
+  if [[ -z "$entry_task_number" ]]; then
+    echo "unknown"
+    return 0
+  fi
+
+  # Remove leading zeros for arithmetic
+  entry_task_number=$((10#$entry_task_number))
+  current_task_number=$((10#$current_task_number))
+
+  local distance=$(( current_task_number - entry_task_number ))
+
+  if [[ $distance -lt 10 ]]; then
+    echo "fresh"
+  elif [[ $distance -le 20 ]]; then
+    echo "aging"
+  else
+    echo "stale"
+  fi
+
+  return 0
+}
+
+# ── moira_knowledge_stale_entries <knowledge_dir> <current_task_number>
+# List all stale knowledge entries.
+# Output: one line per stale entry: {type} last_task={task_id} distance={N}
+moira_knowledge_stale_entries() {
+  local knowledge_dir="$1"
+  local current_task_number="$2"
+
+  for ktype in $_MOIRA_KNOWLEDGE_TYPES; do
+    local target="${knowledge_dir}/${ktype}/summary.md"
+
+    if [[ ! -f "$target" ]]; then
+      continue
+    fi
+
+    local tag
+    tag=$(grep -m1 '^<!-- moira:freshness ' "$target" 2>/dev/null || true)
+
+    if [[ -z "$tag" ]]; then
+      continue
+    fi
+
+    local entry_task_id
+    entry_task_id=$(echo "$tag" | sed 's/<!-- moira:freshness \([^ ]*\) .*/\1/')
+
+    local entry_task_number
+    entry_task_number=$(echo "$entry_task_id" | grep -o '[0-9]*$')
+
+    if [[ -z "$entry_task_number" ]]; then
+      continue
+    fi
+
+    entry_task_number=$((10#$entry_task_number))
+    local distance=$(( 10#$current_task_number - entry_task_number ))
+
+    if [[ $distance -gt 20 ]]; then
+      echo "${ktype} last_task=${entry_task_id} distance=${distance}"
+    fi
+  done
+
+  return 0
+}
+
+# ── moira_knowledge_archive_rotate <knowledge_dir> <knowledge_type> [max_entries]
+# Rotate old entries to archive (for decisions and patterns).
+moira_knowledge_archive_rotate() {
+  local knowledge_dir="$1"
+  local ktype="$2"
+  local max_entries="${3:-20}"
+
+  # Only applies to types with archive dirs
+  if [[ "$ktype" != "decisions" && "$ktype" != "patterns" ]]; then
+    echo "Error: archive rotation only applies to decisions and patterns" >&2
+    return 1
+  fi
+
+  local full_file="${knowledge_dir}/${ktype}/full.md"
+  local archive_dir="${knowledge_dir}/${ktype}/archive"
+
+  if [[ ! -f "$full_file" ]]; then
+    return 0
+  fi
+
+  # Count entries (## headers at start of line, not ### or deeper)
+  local count
+  count=$(grep -c '^## ' "$full_file" 2>/dev/null || echo "0")
+
+  if [[ "$count" -le "$max_entries" ]]; then
+    return 0
+  fi
+
+  local to_move=$(( count - max_entries ))
+
+  mkdir -p "$archive_dir"
+
+  # Find next batch number
+  local last_batch
+  last_batch=$(ls "$archive_dir"/batch-*.md 2>/dev/null | sort | tail -1 | sed 's/.*batch-\([0-9]*\)\.md/\1/' || echo "0")
+  last_batch=${last_batch:-0}
+  local next_batch
+  next_batch=$(printf "%03d" $(( 10#$last_batch + 1 )))
+
+  # Extract oldest entries (from top of file)
+  # Find the line number of the (to_move+1)th ## header — that's where we split
+  local split_line
+  split_line=$(grep -n '^## ' "$full_file" | sed -n "$((to_move + 1))p" | cut -d: -f1)
+
+  if [[ -z "$split_line" ]]; then
+    # All entries need to move (shouldn't happen given count > max)
+    return 0
+  fi
+
+  # Extract lines before split point (oldest entries) to archive
+  local tmpfile
+  tmpfile=$(mktemp)
+
+  # Get any file header (lines before first ## )
+  local first_entry_line
+  first_entry_line=$(grep -n '^## ' "$full_file" | head -1 | cut -d: -f1)
+
+  # Archive: entries from first ## to just before split_line
+  sed -n "${first_entry_line},$((split_line - 1))p" "$full_file" > "$archive_dir/batch-${next_batch}.md"
+
+  # Keep: file header (if any) + entries from split_line onward
+  {
+    if [[ "$first_entry_line" -gt 1 ]]; then
+      sed -n "1,$((first_entry_line - 1))p" "$full_file"
+    fi
+    sed -n "${split_line},\$p" "$full_file"
+  } > "$tmpfile"
+
+  mv "$tmpfile" "$full_file"
+
+  return 0
+}
+
+# ── moira_knowledge_validate_consistency <knowledge_dir> <knowledge_type> <new_content_file>
+# Check new knowledge against existing for contradictions.
+# Returns: confirm, extend, or conflict (to stdout)
+# On conflict: outputs details to stderr
+moira_knowledge_validate_consistency() {
+  local knowledge_dir="$1"
+  local ktype="$2"
+  local new_content_file="$3"
+
+  _moira_valid_type "$ktype" || return 1
+
+  local existing_file="${knowledge_dir}/${ktype}/summary.md"
+
+  # If no existing content, new content is always an extension
+  if [[ ! -f "$existing_file" ]] || [[ ! -s "$existing_file" ]]; then
+    echo "extend"
+    return 0
+  fi
+
+  # Extract key-value pairs from existing and new content
+  # Matches patterns: "key: value", "key = value", "**key**: value"
+  local existing_kvs new_kvs
+  existing_kvs=$(grep -E '^\*?\*?[a-zA-Z_][a-zA-Z0-9_ -]*\*?\*?\s*[:=]\s*.+' "$existing_file" 2>/dev/null | \
+    sed 's/^\*\*//;s/\*\*//;s/^[[:space:]]*//;s/[[:space:]]*[:=][[:space:]]*/=/;s/[[:space:]]*$//' || true)
+  new_kvs=$(grep -E '^\*?\*?[a-zA-Z_][a-zA-Z0-9_ -]*\*?\*?\s*[:=]\s*.+' "$new_content_file" 2>/dev/null | \
+    sed 's/^\*\*//;s/\*\*//;s/^[[:space:]]*//;s/[[:space:]]*[:=][[:space:]]*/=/;s/[[:space:]]*$//' || true)
+
+  # If no structured content in either, can't compare structurally
+  if [[ -z "$existing_kvs" ]] || [[ -z "$new_kvs" ]]; then
+    echo "extend"
+    return 0
+  fi
+
+  local has_conflict=false
+  local has_new_key=false
+
+  # Check each new key-value pair against existing
+  while IFS= read -r new_kv; do
+    [[ -z "$new_kv" ]] && continue
+    local new_key="${new_kv%%=*}"
+    local new_val="${new_kv#*=}"
+
+    # Look for this key in existing
+    local existing_val
+    existing_val=$(echo "$existing_kvs" | grep "^${new_key}=" 2>/dev/null | head -1 | sed 's/^[^=]*=//' || true)
+
+    if [[ -z "$existing_val" ]]; then
+      has_new_key=true
+    elif [[ "$existing_val" != "$new_val" ]]; then
+      has_conflict=true
+      echo "CONFLICT: key='${new_key}' existing='${existing_val}' new='${new_val}'" >&2
+    fi
+  done <<< "$new_kvs"
+
+  if $has_conflict; then
+    echo "conflict"
+  elif $has_new_key; then
+    echo "extend"
+  else
+    echo "confirm"
+  fi
+
+  return 0
+}

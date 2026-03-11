@@ -6,13 +6,13 @@ _meta:
 # null = no access to this knowledge type
 
 matrix:
-  apollo:      { project_model: L1, conventions: null, decisions: null,  patterns: null }
-  hermes:      { project_model: L0, conventions: null, decisions: null,  patterns: null }
-  athena:      { project_model: L1, conventions: null, decisions: L0,    patterns: null }
-  metis:       { project_model: L1, conventions: L0,   decisions: L2,    patterns: L1   }
-  daedalus:    { project_model: L1, conventions: L1,   decisions: L0,    patterns: L0   }
-  hephaestus:  { project_model: L0, conventions: L2,   decisions: null,  patterns: L1   }
-  themis:      { project_model: L1, conventions: L2,   decisions: L1,    patterns: L1   }
-  aletheia:    { project_model: L0, conventions: L1,   decisions: null,  patterns: L0   }
-  mnemosyne:   { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2   }
-  argus:       { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2   }
+  apollo:      { project_model: L1, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null }
+  hermes:      { project_model: L0, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null }
+  athena:      { project_model: L1, conventions: null, decisions: L0,    patterns: null, quality_map: null, failures: null }
+  metis:       { project_model: L1, conventions: L0,   decisions: L2,    patterns: L1,   quality_map: L1,   failures: null }
+  daedalus:    { project_model: L1, conventions: L1,   decisions: L0,    patterns: L0,   quality_map: L0,   failures: null }
+  hephaestus:  { project_model: L0, conventions: L2,   decisions: null,  patterns: L1,   quality_map: null, failures: null }
+  themis:      { project_model: L1, conventions: L2,   decisions: L1,    patterns: L1,   quality_map: L1,   failures: null }
+  aletheia:    { project_model: L0, conventions: L1,   decisions: null,  patterns: L0,   quality_map: null, failures: null }
+  mnemosyne:   { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2,   quality_map: L2,   failures: L2   }
+  argus:       { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2,   quality_map: L2,   failures: L2   }
