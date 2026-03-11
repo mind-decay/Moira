@@ -20,6 +20,7 @@ The orchestrator (main Claude) MUST NOT directly read, write, or modify project 
 ### 1.2 Agent Single Responsibility
 Each agent type has exactly ONE responsibility. An agent MUST NOT perform actions outside its defined role.
 
+- Classifier: determines task size and pipeline — NEVER reads source code, NEVER proposes solutions
 - Explorer: reads code, reports facts — NEVER proposes solutions
 - Analyst: formalizes requirements — NEVER proposes technical implementation
 - Architect: makes technical decisions — NEVER writes code

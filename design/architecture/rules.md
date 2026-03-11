@@ -74,11 +74,11 @@ capabilities:
   - Read files specified in instructions
   - Use authorized MCP tools only
 
-constraints:
-  - Never make decisions about WHAT to build (only HOW within plan)
-  - Never add features not in the plan
-  - Never refactor code outside of plan scope
-  - Never add comments, docstrings, or type annotations to unchanged code
+never:
+  - "Never make decisions about WHAT to build (only HOW within plan)"
+  - "Never add features not in the plan"
+  - "Never refactor code outside of plan scope"
+  - "Never add comments, docstrings, or type annotations to unchanged code"
 ```
 
 ## Layer 3: Project Rules (project/rules/*.yaml)

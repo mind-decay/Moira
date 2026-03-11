@@ -61,18 +61,39 @@ for agent in "${AGENTS[@]}"; do
   fi
 done
 
-# ── Specific constitutional checks ──────────────────────────────────
+# ── Specific constitutional checks (search only never: section) ─────
+# Helper: extract never: section from role file (macOS compatible)
+extract_never_section() {
+  sed -n '/^never:/,/^[^ ]/p' "$1" | sed '$d'
+}
+
 # Explorer (hermes): never propose/solution/recommend
-assert_file_contains "$ROLES_DIR/hermes.yaml" "propose\|solution\|recommend" "hermes: never contains propose/solution/recommend"
+if extract_never_section "$ROLES_DIR/hermes.yaml" | grep -q "propose\|solution\|recommend"; then
+  pass "hermes: never section contains propose/solution/recommend"
+else
+  fail "hermes: never section missing propose/solution/recommend"
+fi
 
 # Implementer (hephaestus): never decision/feature
-assert_file_contains "$ROLES_DIR/hephaestus.yaml" "decision\|feature" "hephaestus: never contains decision/feature"
+if extract_never_section "$ROLES_DIR/hephaestus.yaml" | grep -q "decision\|feature"; then
+  pass "hephaestus: never section contains decision/feature"
+else
+  fail "hephaestus: never section missing decision/feature"
+fi
 
 # Reviewer (themis): never fix/modify
-assert_file_contains "$ROLES_DIR/themis.yaml" "fix\|modify" "themis: never contains fix/modify"
+if extract_never_section "$ROLES_DIR/themis.yaml" | grep -q "fix\|modify"; then
+  pass "themis: never section contains fix/modify"
+else
+  fail "themis: never section missing fix/modify"
+fi
 
 # Reflector (mnemosyne): never change rules directly
-assert_file_contains "$ROLES_DIR/mnemosyne.yaml" "change rules directly" "mnemosyne: never contains 'change rules directly'"
+if extract_never_section "$ROLES_DIR/mnemosyne.yaml" | grep -q "change rules directly"; then
+  pass "mnemosyne: never section contains 'change rules directly'"
+else
+  fail "mnemosyne: never section missing 'change rules directly'"
+fi
 
 # ── Knowledge access matrix ──────────────────────────────────────────
 matrix_file="$MOIRA_HOME/core/knowledge-access-matrix.yaml"
@@ -86,21 +107,25 @@ if [[ -f "$matrix_file" ]]; then
 fi
 
 # ── Knowledge access consistency: role files vs matrix ───────────────
-# Check each role file's knowledge_access matches the matrix row
+# Check each role file's knowledge_access matches the matrix row (all 4 dimensions)
+KNOWLEDGE_DIMS=(project_model conventions decisions patterns)
+
 for agent in "${AGENTS[@]}"; do
   role_file="$ROLES_DIR/${agent}.yaml"
   [[ -f "$role_file" && -f "$matrix_file" ]] || continue
 
-  # Extract project_model from role file
-  role_pm=$(grep -A1 "^knowledge_access:" "$role_file" | grep "project_model:" | sed 's/.*: *//' | tr -d ' ')
-  # Extract project_model from matrix
-  matrix_pm=$(grep "^  ${agent}:" "$matrix_file" | sed 's/.*project_model: *//' | sed 's/,.*//' | tr -d ' ')
+  for dim in "${KNOWLEDGE_DIMS[@]}"; do
+    # Extract value from role file (under knowledge_access: block)
+    role_val=$(sed -n '/^knowledge_access:/,/^[^ ]/{ /'"$dim"':/p; }' "$role_file" | sed 's/.*: *//' | tr -d ' ')
+    # Extract value from matrix (inline YAML format)
+    matrix_val=$(grep "^  ${agent}:" "$matrix_file" | grep -o "${dim}: *[A-Za-z0-9]*" | sed 's/.*: *//' | tr -d ' ')
 
-  if [[ "$role_pm" == "$matrix_pm" ]]; then
-    pass "${agent}: knowledge_access.project_model matches matrix ($role_pm)"
-  else
-    fail "${agent}: knowledge_access.project_model mismatch: role=$role_pm, matrix=$matrix_pm"
-  fi
+    if [[ "$role_val" == "$matrix_val" ]]; then
+      pass "${agent}: knowledge_access.${dim} matches matrix ($role_val)"
+    else
+      fail "${agent}: knowledge_access.${dim} mismatch: role=$role_val, matrix=$matrix_val"
+    fi
+  done
 done
 
 # ── Quality checklists ──────────────────────────────────────────────
@@ -114,7 +139,12 @@ for qfile in "${quality_files[@]}"; do
   [[ -f "$qpath" ]] || continue
 
   assert_file_contains "$qpath" "agent:" "${qfile}: has _meta.agent field"
-  assert_file_contains "$qpath" "items:" "${qfile}: has items section"
+  # Q4 uses sections: with nested items:, others use top-level items:
+  if [[ "$qfile" == "q4-correctness" ]]; then
+    assert_file_contains "$qpath" "^sections:" "${qfile}: has sections structure"
+  else
+    assert_file_contains "$qpath" "^items:" "${qfile}: has items section"
+  fi
 done
 
 # ── Response contract ────────────────────────────────────────────────

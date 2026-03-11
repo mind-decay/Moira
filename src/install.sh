@@ -62,13 +62,11 @@ install_global() {
   cp -f "$SCRIPT_DIR/global/core/knowledge-access-matrix.yaml" "$MOIRA_HOME/core/"
   cp -f "$SCRIPT_DIR/global/core/response-contract.yaml" "$MOIRA_HOME/core/"
 
-  # Copy placeholder directories (don't fail if empty)
-  if ls "$SCRIPT_DIR/global/core/rules/roles/"* &>/dev/null; then
-    cp -f "$SCRIPT_DIR/global/core/rules/roles/"* "$MOIRA_HOME/core/rules/roles/" 2>/dev/null || true
-  fi
-  if ls "$SCRIPT_DIR/global/core/rules/quality/"* &>/dev/null; then
-    cp -f "$SCRIPT_DIR/global/core/rules/quality/"* "$MOIRA_HOME/core/rules/quality/" 2>/dev/null || true
-  fi
+  # Copy role and quality rules (required since Phase 2)
+  cp -f "$SCRIPT_DIR/global/core/rules/roles/"*.yaml "$MOIRA_HOME/core/rules/roles/"
+  cp -f "$SCRIPT_DIR/global/core/rules/quality/"*.yaml "$MOIRA_HOME/core/rules/quality/"
+
+  # Copy optional directories (don't fail if empty — populated in later phases)
   if ls "$SCRIPT_DIR/global/skills/"* &>/dev/null; then
     cp -f "$SCRIPT_DIR/global/skills/"* "$MOIRA_HOME/skills/" 2>/dev/null || true
   fi
