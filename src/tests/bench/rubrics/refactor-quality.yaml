@@ -1,0 +1,45 @@
+_meta:
+  id: refactor-quality
+  name: Refactor Quality
+  version: "1.0"
+
+criteria:
+  - id: conventions_adherence
+    weight: 30
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Worse", description: "Refactor introduces new convention violations"}
+      2: {label: "Mixed", description: "Some improvements but new inconsistencies"}
+      3: {label: "Neutral", description: "Conventions maintained, no improvement"}
+      4: {label: "Improved", description: "Refactor improves convention adherence"}
+      5: {label: "Standardized", description: "Establishes or reinforces clear conventions"}
+
+  - id: architecture_quality
+    weight: 30
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Worse", description: "Refactor increases coupling or complexity"}
+      2: {label: "Lateral", description: "Different structure, same quality"}
+      3: {label: "Slight improvement", description: "Marginally better separation"}
+      4: {label: "Clear improvement", description: "Better separation, reduced coupling"}
+      5: {label: "Exemplary", description: "Textbook separation of concerns"}
+
+  - id: code_correctness
+    weight: 25
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Broken", description: "Refactor breaks existing functionality"}
+      2: {label: "Regression", description: "Most works but edge cases broken"}
+      3: {label: "Preserved", description: "Existing behavior maintained"}
+      4: {label: "Verified", description: "Behavior preserved with updated tests"}
+      5: {label: "Enhanced", description: "Better testability, all tests passing"}
+
+  - id: requirements_coverage
+    weight: 15
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Incomplete", description: "Refactor scope not fully addressed"}
+      2: {label: "Partial", description: "Some of the requested changes made"}
+      3: {label: "Complete", description: "All requested refactoring done"}
+      4: {label: "Thorough", description: "Refactoring plus related cleanup"}
+      5: {label: "Comprehensive", description: "Full scope plus documentation updates"}

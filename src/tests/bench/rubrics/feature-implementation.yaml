@@ -1,0 +1,45 @@
+_meta:
+  id: feature-implementation
+  name: Feature Implementation Quality
+  version: "1.0"
+
+criteria:
+  - id: requirements_coverage
+    weight: 25
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Critical gaps", description: "Happy path not implemented or fundamentally broken"}
+      2: {label: "Partial", description: "Happy path works but major edge cases missing"}
+      3: {label: "Adequate", description: "Main cases covered, minor gaps remain"}
+      4: {label: "Strong", description: "All stated requirements covered correctly"}
+      5: {label: "Comprehensive", description: "Requirements plus reasonable defensive extras"}
+
+  - id: code_correctness
+    weight: 30
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Broken", description: "Does not compile or has runtime errors on basic input"}
+      2: {label: "Fragile", description: "Works on happy path but crashes on edge cases"}
+      3: {label: "Functional", description: "Correct behavior with minor issues"}
+      4: {label: "Solid", description: "Handles edge cases, proper error handling"}
+      5: {label: "Robust", description: "Defensive coding, graceful degradation, no surprises"}
+
+  - id: architecture_quality
+    weight: 25
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Spaghetti", description: "No structure, everything in one place"}
+      2: {label: "Messy", description: "Some structure but responsibilities mixed"}
+      3: {label: "Acceptable", description: "Clear structure, minor coupling issues"}
+      4: {label: "Clean", description: "Good separation of concerns, extensible"}
+      5: {label: "Exemplary", description: "Follows project patterns perfectly, well-layered"}
+
+  - id: conventions_adherence
+    weight: 20
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Ignored", description: "Does not follow any project conventions"}
+      2: {label: "Inconsistent", description: "Follows some conventions, ignores others"}
+      3: {label: "Mostly", description: "Follows conventions with minor deviations"}
+      4: {label: "Consistent", description: "Follows all observed project conventions"}
+      5: {label: "Native", description: "Indistinguishable from existing project code"}

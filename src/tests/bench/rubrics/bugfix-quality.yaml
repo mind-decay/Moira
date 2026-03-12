@@ -1,0 +1,45 @@
+_meta:
+  id: bugfix-quality
+  name: Bugfix Quality
+  version: "1.0"
+
+criteria:
+  - id: code_correctness
+    weight: 40
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Broken", description: "Fix does not resolve the bug or introduces new bugs"}
+      2: {label: "Partial", description: "Bug partially fixed, some cases still fail"}
+      3: {label: "Fixed", description: "Bug resolved for reported case, minor edge cases remain"}
+      4: {label: "Solid", description: "Bug fully resolved with edge case handling"}
+      5: {label: "Root cause", description: "Root cause addressed, prevents similar future bugs"}
+
+  - id: requirements_coverage
+    weight: 25
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Wrong fix", description: "Fix does not address the reported issue"}
+      2: {label: "Narrow", description: "Fixes specific case but misses related scenarios"}
+      3: {label: "Adequate", description: "Reported issue resolved correctly"}
+      4: {label: "Thorough", description: "All related cases identified and handled"}
+      5: {label: "Complete", description: "Fix plus regression test added"}
+
+  - id: conventions_adherence
+    weight: 20
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Ignored", description: "Fix ignores project conventions"}
+      2: {label: "Inconsistent", description: "Mix of styles in the fix"}
+      3: {label: "Mostly", description: "Follows conventions with minor deviations"}
+      4: {label: "Consistent", description: "Fix matches surrounding code style"}
+      5: {label: "Native", description: "Indistinguishable from existing code"}
+
+  - id: architecture_quality
+    weight: 15
+    scale: [1, 2, 3, 4, 5]
+    anchors:
+      1: {label: "Hack", description: "Workaround that makes code worse"}
+      2: {label: "Quick fix", description: "Works but adds tech debt"}
+      3: {label: "Clean", description: "Minimal, focused change"}
+      4: {label: "Proper", description: "Fix improves local code quality"}
+      5: {label: "Exemplary", description: "Fix leaves code better than before"}
