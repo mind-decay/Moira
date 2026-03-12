@@ -1,0 +1,108 @@
+_meta:
+  name: findings
+  file: "{agent}-{gate}.yaml"
+  location: .claude/moira/state/tasks/{task_id}/findings/
+  git: gitignored
+  description: Quality gate findings from agent checklist evaluation
+
+fields:
+  _meta.task_id:
+    type: string
+    required: true
+    description: "Task identifier"
+  _meta.gate:
+    type: enum
+    required: true
+    enum: [Q1, Q2, Q3, Q4, Q5]
+    description: "Quality gate identifier"
+  _meta.agent:
+    type: string
+    required: true
+    description: "Agent name (greek)"
+  _meta.timestamp:
+    type: string
+    required: true
+    description: "ISO 8601 timestamp"
+  _meta.mode:
+    type: enum
+    required: true
+    enum: [conform, evolve]
+    description: "Quality mode active during evaluation"
+
+  checklist.items:
+    type: array
+    required: true
+    description: "Evaluated checklist items"
+    item_fields:
+      id:
+        type: string
+        required: true
+        description: "Checklist item ID (e.g., Q4-C01)"
+      check:
+        type: string
+        required: true
+        description: "The check description"
+      result:
+        type: enum
+        required: true
+        enum: [pass, fail, na, skip]
+        description: "Evaluation result"
+      severity:
+        type: enum
+        required: false
+        enum: [critical, warning, suggestion]
+        description: "Severity level (only when result=fail)"
+      detail:
+        type: string
+        required: false
+        description: "Explanation (only when result=fail)"
+      evidence:
+        type: string
+        required: false
+        description: "File:line or artifact reference (only when result=fail)"
+
+  summary.total:
+    type: number
+    required: true
+    description: "Total checklist items evaluated"
+  summary.passed:
+    type: number
+    required: true
+    description: "Items with result=pass"
+  summary.failed:
+    type: number
+    required: true
+    description: "Items with result=fail"
+  summary.na:
+    type: number
+    required: true
+    description: "Items with result=na"
+  summary.critical_count:
+    type: number
+    required: true
+    description: "Failed items with severity=critical"
+  summary.warning_count:
+    type: number
+    required: true
+    description: "Failed items with severity=warning"
+  summary.suggestion_count:
+    type: number
+    required: true
+    description: "Failed items with severity=suggestion"
+  summary.verdict:
+    type: enum
+    required: true
+    enum: [pass, fail_critical, fail_warning]
+    description: "Derived verdict: critical_count>0 → fail_critical; warning_count>0 → fail_warning; else → pass"
+
+verdict_derivation:
+  rules:
+    - "critical_count > 0 → fail_critical"
+    - "warning_count > 0 AND critical_count == 0 → fail_warning"
+    - "critical_count == 0 AND warning_count == 0 → pass"
+  note: "Suggestions are never blocking — logged for Reflector analysis"
+
+routing:
+  pass: "Proceed to next pipeline step"
+  fail_critical: "Trigger E5-QUALITY retry (max 2 total attempts)"
+  fail_warning: "Present WARNING gate to user — proceed/fix/abort"
