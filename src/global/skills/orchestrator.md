@@ -45,14 +45,27 @@ Before starting the pipeline, check if a deep scan is pending:
 2. If `true`:
    - Display: "Background deep scan triggered — knowledge base will update automatically."
    - Update `config.yaml`: set `bootstrap.deep_scan_pending` to `false`
-   - NOTE: The actual deep scan agent dispatch is not yet implemented (Phase 6+).
-     When implemented, this will dispatch Explorer agents in background for:
-     - Full architecture mapping
-     - Dependency analysis
-     - Test coverage assessment
-     - Security surface scan
-   - Continue with pipeline — do NOT wait
+   - Dispatch 4 deep scan Explorer agents in BACKGROUND (do NOT wait):
+     - Agent tool call 1: description "Hermes (explorer) — deep architecture scan", prompt from `~/.claude/moira/templates/scanners/deep/deep-architecture-scan.md`, run_in_background: true
+     - Agent tool call 2: description "Hermes (explorer) — deep dependency scan", prompt from `~/.claude/moira/templates/scanners/deep/deep-dependency-scan.md`, run_in_background: true
+     - Agent tool call 3: description "Hermes (explorer) — deep test coverage scan", prompt from `~/.claude/moira/templates/scanners/deep/deep-test-coverage-scan.md`, run_in_background: true
+     - Agent tool call 4: description "Hermes (explorer) — deep security scan", prompt from `~/.claude/moira/templates/scanners/deep/deep-security-scan.md`, run_in_background: true
+   - After completion notifications arrive: call `moira_knowledge_update_quality_map` with deep scan results to enhance quality map
+   - Update `config.yaml`: set `bootstrap.deep_scan_completed` to `true`
+   - Continue with pipeline — do NOT wait for deep scans to finish
 3. If `false` or field not present: continue silently
+
+### Pre-Pipeline Setup
+
+Before entering the main loop:
+
+1. **Read quality mode:** Read `config.yaml` → `quality.mode` (default: conform). Store for dispatch.
+   - If mode is `evolve`: also read `quality.evolution.current_target`
+   - Pass mode and target to dispatch for inclusion in agent instructions (per `dispatch.md` Quality Mode Communication)
+2. **Check bench mode:** Read `current.yaml` → `bench_mode`
+   - If `bench_mode: true`: read `bench_test_case` path from `current.yaml`
+   - Load gate responses from the test case file for auto-responding at gates
+   - All gate decisions are still recorded in state files (Art 3.1)
 
 ### Main Loop
 
@@ -63,12 +76,28 @@ Before starting the pipeline, check if a deep scan is pending:
    c. Dispatch agent (foreground, background, or parallel per step `mode`)
    d. On agent return: parse response (per `dispatch.md`)
    e. Check STATUS:
-      - `success` → read SUMMARY, record completion, check if gate follows
+      - `success` → read SUMMARY, record completion, check quality gate then approval gate
       - `failure` → trigger E6 recovery (per `errors.md`)
       - `blocked` → trigger E1 recovery (per `errors.md`)
       - `budget_exceeded` → trigger E4 mid-execution recovery (per `errors.md`)
+   e2. Quality Gate Check (after success, before approval gate):
+      If the agent has a quality gate assignment (Athena→Q1, Metis→Q2, Daedalus→Q3, Themis→Q4, Aletheia→Q5):
+      - Read QUALITY line from agent response: `QUALITY: {gate}={verdict} ({C}C/{W}W/{S}S)`
+      - Route by verdict:
+        - `pass` → proceed to approval gate or next step
+        - `fail_critical` → trigger E5-QUALITY retry:
+          - Attempt 1: re-dispatch implementer with CRITICAL findings as feedback
+          - Attempt 2: re-dispatch architect for plan revision → new implementation → re-review
+          - After 2 failures: escalate to user (E5-QUALITY gate in `gates.md`)
+        - `fail_warning` → present WARNING gate to user (per `gates.md`)
+      - If no quality gate for this agent: skip to approval gate check
    f. If a gate follows this step (check `gates[]` in pipeline definition):
       - Set `gate_pending` in `current.yaml`
+      - **Bench mode check:** if `bench_mode: true` in `current.yaml`:
+        - Read the predefined response for this gate from the test case gate_responses
+        - Use that response as the gate decision (do NOT prompt user)
+        - Record the decision in state files as normal
+        - Skip to step (g) handling
       - Present gate to user (per `gates.md` skill)
       - Wait for user decision
       - On `proceed` → record gate, advance to next step
@@ -212,6 +241,9 @@ When the pipeline reaches the completion step:
 - Display completion summary (files changed, tests passed, etc.)
 - Display full budget report
 - Write telemetry.yaml to task directory
+- Tick evolution cooldown: call `moira_quality_tick_cooldown` on config.yaml
+- If quality mode was `evolve`: call `moira_quality_complete_evolve` on config.yaml
+- Call `moira_knowledge_update_quality_map` with task findings (if Themis Q4 findings exist)
 - Set pipeline status to `completed`
 
 **`tweak`** — Targeted modification:
