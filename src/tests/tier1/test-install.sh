@@ -52,6 +52,28 @@ else
   fail "clean install: expected >=17 knowledge templates, found $template_count"
 fi
 
+# Phase 5: bootstrap.sh
+assert_file_exists "$MOIRA_HOME/lib/bootstrap.sh" "clean install: bootstrap.sh exists"
+if bash -n "$MOIRA_HOME/lib/bootstrap.sh" 2>/dev/null; then
+  pass "clean install: bootstrap.sh syntax valid"
+else
+  fail "clean install: bootstrap.sh has syntax errors"
+fi
+
+# Phase 5: scanner templates
+scanner_count=$(find "$MOIRA_HOME/templates/scanners" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$scanner_count" -ge 4 ]]; then
+  pass "clean install: $scanner_count scanner templates (>=4)"
+else
+  fail "clean install: expected >=4 scanner templates, found $scanner_count"
+fi
+
+# Phase 5: stack presets (generic fallback)
+assert_file_exists "$MOIRA_HOME/templates/stack-presets/generic.yaml" "clean install: generic.yaml preset exists"
+
+# Phase 5: CLAUDE.md template
+assert_file_exists "$MOIRA_HOME/templates/project-claude-md.tmpl" "clean install: CLAUDE.md template exists"
+
 # Pipeline definitions
 assert_dir_exists "$MOIRA_HOME/core/pipelines" "clean install: pipelines dir exists"
 for pipeline in quick standard full decomposition; do
@@ -121,6 +143,7 @@ assert_dir_exists "$test_project/.claude/moira/knowledge/quality-map" "scaffold:
 assert_dir_exists "$test_project/.claude/moira/state/tasks" "scaffold: state/tasks"
 assert_dir_exists "$test_project/.claude/moira/state/metrics" "scaffold: state/metrics"
 assert_dir_exists "$test_project/.claude/moira/state/audits" "scaffold: state/audits"
+assert_dir_exists "$test_project/.claude/moira/state/init" "scaffold: state/init"
 assert_dir_exists "$test_project/.claude/moira/hooks" "scaffold: hooks"
 
 # Idempotency: run scaffold again

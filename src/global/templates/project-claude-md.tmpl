@@ -1,0 +1,23 @@
+<!-- moira:start -->
+## Moira Orchestration System
+
+This project uses Moira for task orchestration. When working on tasks:
+
+### For Task Execution
+Use `/moira:task <description>` for all non-trivial changes. Moira will classify the task,
+assemble the right agents, and guide you through approvals.
+
+### Quick Reference
+- `/moira:task <description>` — execute a task
+- `/moira:status` — current state
+- `/moira:resume` — continue interrupted work
+- `/moira:knowledge` — view project knowledge
+- `/moira:help` — detailed help
+
+### Orchestrator Rules (Inviolable)
+When executing as Moira orchestrator (via /moira:task):
+- NEVER read, write, or modify project source files directly
+- NEVER run bash commands on project files
+- ALL project interaction happens through dispatched agents
+- Read ONLY `.claude/moira/` state and config files
+<!-- moira:end -->

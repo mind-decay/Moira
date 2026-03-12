@@ -1,0 +1,50 @@
+_meta:
+  name: Go API
+  stack_id: go-api
+  match_signals:
+    - {signal: "go.mod", context: "file exists", weight: 10}
+    - {signal: "net/http", context: "import in .go files", weight: 3}
+    - {signal: "gin-gonic", context: "go.mod dependencies", weight: 5}
+    - {signal: "chi", context: "go.mod dependencies", weight: 5}
+
+stack:
+  language: Go
+  framework: stdlib / Gin / Chi
+  runtime: Go
+  styling: none
+  orm: GORM
+  testing: go test
+  ci: GitHub Actions
+
+conventions:
+  naming:
+    files: snake_case
+    components: PascalCase
+    functions: PascalCase (exported) / camelCase (unexported)
+    constants: PascalCase or UPPER_SNAKE_CASE
+    types: PascalCase
+  formatting:
+    indent: tabs
+    quotes: double
+    semicolons: false
+    max_line_length: 120
+  structure:
+    cmd: cmd/
+    internal: internal/
+    pkg: pkg/
+    api: api/
+    config: config/
+
+patterns:
+  api_style: REST
+  error_handling: error return values
+  db_access: Repository pattern with GORM or sqlx
+  validation: struct tags + custom validators
+  data_fetching: none
+
+boundaries:
+  do_not_modify:
+    - vendor/
+  modify_with_caution:
+    - cmd/
+    - internal/config/

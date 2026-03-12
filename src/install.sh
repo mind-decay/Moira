@@ -90,6 +90,17 @@ install_global() {
     cp -rf "$SCRIPT_DIR/global/templates/knowledge/"* "$MOIRA_HOME/templates/knowledge/"
   fi
 
+  # Copy scanner templates (Phase 5)
+  if [[ -d "$SCRIPT_DIR/global/templates/scanners" ]]; then
+    mkdir -p "$MOIRA_HOME/templates/scanners"
+    cp -f "$SCRIPT_DIR/global/templates/scanners/"*.md "$MOIRA_HOME/templates/scanners/"
+  fi
+
+  # Copy CLAUDE.md template (Phase 5)
+  if [[ -f "$SCRIPT_DIR/global/templates/project-claude-md.tmpl" ]]; then
+    cp -f "$SCRIPT_DIR/global/templates/project-claude-md.tmpl" "$MOIRA_HOME/templates/"
+  fi
+
   # Write version marker
   echo "$MOIRA_VERSION" > "$MOIRA_HOME/.version"
 
@@ -139,7 +150,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh; do
     ((checks_total++))
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then
@@ -262,6 +273,32 @@ verify() {
     ((checks_passed++))
   else
     errors+="  knowledge templates: expected >=17, found ${template_count}\n"
+  fi
+
+  # Check: scanner templates exist (Phase 5)
+  ((checks_total++))
+  local scanner_count
+  scanner_count=$(find "$MOIRA_HOME/templates/scanners" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$scanner_count" -ge 4 ]]; then
+    ((checks_passed++))
+  else
+    errors+="  scanner templates: expected >=4, found ${scanner_count}\n"
+  fi
+
+  # Check: stack presets exist with generic fallback (Phase 5)
+  ((checks_total++))
+  if [[ -f "$MOIRA_HOME/templates/stack-presets/generic.yaml" ]]; then
+    ((checks_passed++))
+  else
+    errors+="  generic.yaml stack preset not found\n"
+  fi
+
+  # Check: CLAUDE.md template exists (Phase 5)
+  ((checks_total++))
+  if [[ -f "$MOIRA_HOME/templates/project-claude-md.tmpl" ]]; then
+    ((checks_passed++))
+  else
+    errors+="  project-claude-md.tmpl not found\n"
   fi
 
   if [[ $checks_passed -eq $checks_total ]]; then

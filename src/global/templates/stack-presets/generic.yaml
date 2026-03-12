@@ -1,0 +1,42 @@
+_meta:
+  name: Generic
+  stack_id: generic
+  match_signals: []
+
+stack:
+  language: unknown
+  framework: unknown
+  runtime: unknown
+  styling: none
+  orm: none
+  testing: unknown
+  ci: unknown
+
+conventions:
+  naming:
+    files: kebab-case
+    components: PascalCase
+    functions: camelCase
+    constants: UPPER_SNAKE_CASE
+    types: PascalCase
+  formatting:
+    indent: 2 spaces
+    quotes: double
+    semicolons: true
+    max_line_length: 100
+  structure: {}
+
+patterns:
+  data_fetching: unknown
+  validation: unknown
+  error_handling: unknown
+
+boundaries:
+  do_not_modify:
+    - node_modules/
+    - dist/
+    - build/
+    - vendor/
+    - .git/
+    - __pycache__/
+  modify_with_caution: []

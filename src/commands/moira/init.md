@@ -9,8 +9,255 @@ allowed-tools:
   - Bash
 ---
 
-# Moira — Init
+# Moira — Project Initialization
 
-> This command will be implemented in Phase 5.
+This command sets up Moira for the current project. It scans the project, generates configuration and rules, populates the knowledge base, and integrates with `.claude/CLAUDE.md`.
 
-Current Moira version: see ~/.claude/moira/.version
+**Important:** This is a setup command, NOT the orchestrator. It can use Bash and Write directly because it needs to run scaffold.sh, create config files, etc. It does NOT read project source code — scanners (Explorer agents) do that.
+
+---
+
+## Step 1: Check Global Layer
+
+Read `~/.claude/moira/.version`.
+
+- If file exists: store version, continue.
+- If not found: display error and stop:
+  ```
+  Moira is not installed globally.
+  Run the install script first (see Moira documentation).
+  ```
+
+## Step 2: Check Existing Init
+
+Read `.claude/moira/config.yaml`.
+
+- If exists AND $ARGUMENTS does **not** contain `--force`:
+  Display:
+  ```
+  Moira is already initialized for this project.
+  Use /moira:refresh to update, or /moira:init --force to reinitialize.
+  ```
+  Stop.
+- If exists AND `--force` in arguments: continue (reinit mode)
+- If not exists: continue (fresh init)
+
+## Step 3: Create Project Scaffold
+
+Run via Bash:
+```bash
+source ~/.claude/moira/lib/scaffold.sh
+moira_scaffold_project "{project_root}"
+```
+
+This creates all directories and copies knowledge templates. Idempotent — safe to re-run.
+
+## Step 4: Dispatch Scanner Agents
+
+Read scanner instruction templates and dispatch 4 Explorer agents in PARALLEL.
+
+For each of the 4 scanners, construct the agent prompt by combining:
+1. Explorer role identity from `~/.claude/moira/core/rules/roles/hermes.yaml`
+2. Base inviolable rules from `~/.claude/moira/core/rules/base.yaml`
+3. Scanner-specific instructions from the template
+
+Read these files:
+- `~/.claude/moira/core/rules/roles/hermes.yaml`
+- `~/.claude/moira/core/rules/base.yaml`
+- `~/.claude/moira/templates/scanners/tech-scan.md`
+- `~/.claude/moira/templates/scanners/structure-scan.md`
+- `~/.claude/moira/templates/scanners/convention-scan.md`
+- `~/.claude/moira/templates/scanners/pattern-scan.md`
+
+Dispatch ALL 4 agents simultaneously using 4 Agent tool calls in a **single message**:
+
+**Agent 1 — Tech Scanner:**
+- description: "Hermes — tech scan"
+- subagent_type: general-purpose
+- prompt: Combine Hermes identity + base rules + tech-scan.md instructions
+  Tell the agent: "You are Hermes, the Explorer. [identity from hermes.yaml]. [base rules]. Your task: [tech-scan.md contents]. Write output to `.claude/moira/state/init/tech-scan.md`."
+
+**Agent 2 — Structure Scanner:**
+- description: "Hermes — structure scan"
+- subagent_type: general-purpose
+- prompt: Same pattern with structure-scan.md
+
+**Agent 3 — Convention Scanner:**
+- description: "Hermes — convention scan"
+- subagent_type: general-purpose
+- prompt: Same pattern with convention-scan.md
+
+**Agent 4 — Pattern Scanner:**
+- description: "Hermes — pattern scan"
+- subagent_type: general-purpose
+- prompt: Same pattern with pattern-scan.md
+
+Wait for all 4 to complete. Check results:
+- If any agent fails: report which scanner failed and why. Offer: **retry** / **skip** (use preset defaults only) / **abort**
+- If all succeed: proceed
+
+## Step 5: Match Stack Preset
+
+Run via Bash:
+```bash
+source ~/.claude/moira/lib/bootstrap.sh
+PRESET=$(moira_bootstrap_match_preset ".claude/moira/state/init/tech-scan.md" "$HOME/.claude/moira/templates/stack-presets")
+echo "Matched preset: $PRESET"
+```
+
+Display: "Matched stack preset: {result}"
+
+## Step 6: Generate Config and Rules
+
+Run via Bash:
+```bash
+source ~/.claude/moira/lib/bootstrap.sh
+moira_bootstrap_generate_config "{project_root}" "$HOME/.claude/moira/templates/stack-presets/{preset}" ".claude/moira/state/init/tech-scan.md"
+moira_bootstrap_generate_project_rules "{project_root}" "$HOME/.claude/moira/templates/stack-presets/{preset}" ".claude/moira/state/init"
+```
+
+## Step 7: Populate Knowledge
+
+Run via Bash:
+```bash
+source ~/.claude/moira/lib/bootstrap.sh
+moira_bootstrap_populate_knowledge "{project_root}" ".claude/moira/state/init"
+```
+
+## Step 8: Integrate CLAUDE.md
+
+Run via Bash:
+```bash
+source ~/.claude/moira/lib/bootstrap.sh
+moira_bootstrap_inject_claude_md "{project_root}" "$HOME/.claude/moira"
+```
+
+## Step 9: Setup Gitignore
+
+Run via Bash:
+```bash
+source ~/.claude/moira/lib/bootstrap.sh
+moira_bootstrap_setup_gitignore "{project_root}"
+```
+
+## Step 10: User Review Gate (REQUIRED — Art 4.2)
+
+This is an **APPROVAL GATE**. Do NOT proceed without explicit user action.
+
+Read key fields from generated files to populate the summary, then display:
+
+```
+═══════════════════════════════════════════
+  MOIRA — Project Setup Complete
+═══════════════════════════════════════════
+  Detected:
+  ├─ Stack: {from config.yaml project.stack}
+  ├─ Testing: {from stack.yaml testing field}
+  ├─ Structure: {from structure scan — source layout pattern}
+  └─ CI: {from tech scan — CI platform}
+
+  Generated:
+  ├─ Config: .claude/moira/config.yaml
+  ├─ Rules: .claude/moira/project/rules/ (4 files)
+  ├─ Knowledge: .claude/moira/knowledge/ (3 types populated)
+  └─ CLAUDE.md: updated with Moira section
+
+  ▸ review  — inspect generated files
+  ▸ accept  — start using Moira
+  ▸ adjust  — correct something
+═══════════════════════════════════════════
+```
+
+Wait for user response.
+
+### On "review":
+Read and display:
+- `.claude/moira/config.yaml` (full)
+- `.claude/moira/project/rules/stack.yaml` (full)
+- `.claude/moira/project/rules/conventions.yaml` (summary)
+
+Then re-present the gate (review/accept/adjust).
+
+### On "accept":
+Display: "Moira is ready. Use `/moira:task <description>` to start."
+Proceed to Step 11.
+
+### On "adjust":
+Ask user what needs correction. Apply changes to the relevant files.
+Then re-present the gate.
+
+## Step 11: Micro-Onboarding (conditional)
+
+Check if this appears to be the user's first time with Moira (e.g., no completed tasks in any project, or global install is recent).
+
+If first time:
+```
+═══════════════════════════════════════════
+  MOIRA — First time setup
+═══════════════════════════════════════════
+
+  ▸ start — 3-minute walkthrough of how Moira works
+  ▸ skip  — I'll figure it out (tip: /moira:help)
+═══════════════════════════════════════════
+```
+
+### On "start":
+
+Display Core Concept:
+```
+═══════════════════════════════════════════
+  HOW MOIRA WORKS
+═══════════════════════════════════════════
+
+  You describe a task → Moira orchestrates agents:
+
+  You ──→ Classify ──→ Analyze ──→ Plan ──→ Build ──→ Review
+             │           │          │         │         │
+          "how big?"  "what's    "how?"   "write    "check
+                       needed?"            code"    quality"
+
+  You approve at key checkpoints (▸ prompts).
+  You never need to manage agents directly.
+
+  ▸ next
+═══════════════════════════════════════════
+```
+
+Then display Commands:
+```
+═══════════════════════════════════════════
+  COMMANDS — just 5 to remember
+═══════════════════════════════════════════
+
+  /moira:task <task>     — do a task
+  /moira:resume          — resume interrupted work
+  /moira:status          — where am I?
+  /moira:knowledge       — what does the system know?
+  /moira:metrics         — how well is it working?
+
+  Everything else happens through prompts.
+
+  ▸ done — you're all set!
+═══════════════════════════════════════════
+```
+
+Then: "Try `/moira:task` with a small task when ready."
+
+### On "skip":
+Display: "Quick reference: `/moira:task <task>`, `/moira:status`, `/moira:help`"
+Done.
+
+---
+
+## --force Mode Differences
+
+When `--force` is passed:
+- Step 3: scaffold is re-run (idempotent — no data loss)
+- Step 4: all 4 scanners run again (full rescan)
+- Step 7: knowledge update behavior:
+  - **project-model, conventions, patterns**: overwritten with new scan data
+  - **quality-map**: regenerated as preliminary
+  - **decisions**: PRESERVED (organic growth — not scanner-sourced)
+  - **failures**: PRESERVED (organic growth — not scanner-sourced)
+- Steps 8-9: CLAUDE.md re-injected (replaces between markers), gitignore rechecked
+- Steps 10-11: same review gate

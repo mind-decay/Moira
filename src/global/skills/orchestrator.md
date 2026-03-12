@@ -37,6 +37,23 @@ ANY violation is logged and reported.
 
 ## Section 2 — Pipeline Execution Loop
 
+### Bootstrap Deep Scan Check
+
+Before starting the pipeline, check if a deep scan is pending:
+
+1. Read `.claude/moira/config.yaml` field `bootstrap.deep_scan_pending`
+2. If `true`:
+   - Display: "Background deep scan triggered — knowledge base will update automatically."
+   - Update `config.yaml`: set `bootstrap.deep_scan_pending` to `false`
+   - NOTE: The actual deep scan agent dispatch is not yet implemented (Phase 6+).
+     When implemented, this will dispatch Explorer agents in background for:
+     - Full architecture mapping
+     - Dependency analysis
+     - Test coverage assessment
+     - Security surface scan
+   - Continue with pipeline — do NOT wait
+3. If `false` or field not present: continue silently
+
 ### Main Loop
 
 1. Read the pipeline definition YAML for the current pipeline type from `~/.claude/moira/core/pipelines/{type}.yaml`

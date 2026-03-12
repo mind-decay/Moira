@@ -21,7 +21,7 @@ fields:
   project.stack:
     type: enum
     required: true
-    enum: [nextjs, react, vue, python, go, rust, java, generic]
+    enum: [nextjs, react-vite, express, fastapi, go-api, vue, python, rust, java, generic]
     default: generic
   classification.default_pipeline:
     type: enum
@@ -163,3 +163,19 @@ fields:
     type: boolean
     required: false
     default: true
+  bootstrap.quick_scan_completed:
+    type: boolean
+    required: false
+    default: false
+  bootstrap.quick_scan_at:
+    type: string
+    required: false
+    default: ""
+  bootstrap.deep_scan_completed:
+    type: boolean
+    required: false
+    default: false
+  bootstrap.deep_scan_pending:
+    type: boolean
+    required: false
+    default: false

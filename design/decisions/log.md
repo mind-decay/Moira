@@ -406,3 +406,18 @@ All architectural decisions made during Moira system design.
 - Generate templates dynamically at init — adds runtime complexity, harder to test
 - Inline templates in scaffold.sh — harder to maintain, not inspectable
 **Reasoning:** Templates define structure, not content. File-based approach is testable, versionable, inspectable. Consistent with D-020 (file-copy distribution model).
+
+## D-044: AGENTS.md Generation Deferred
+
+**Context:** `distribution.md` Step 7 defines AGENTS.md generation with project-adapted agent definitions during `/moira:init`. Should Phase 5 implement this?
+**Decision:** Defer AGENTS.md generation to Phase 6+ when quality gates exist to validate adapted agent definitions.
+**Alternatives rejected:**
+- Implement in Phase 5 with basic validation — adapted agents need quality gates to verify the adaptations don't weaken NEVER constraints
+- Generate static AGENTS.md without adaptation — low value, global agent definitions from Phase 2 work correctly
+**Reasoning:** (1) Adapted agents need quality gates (Phase 6) to validate that project-specific customization doesn't violate agent role boundaries (Art 1.2). (2) Global agent definitions work correctly without project adaptation. (3) The value of project-adapted AGENTS.md is marginal until the system has run enough tasks to understand what adaptations matter.
+
+## D-045: Bootstrap Fields in Config Schema
+
+**Context:** Phase 5 `/moira:init` needs to track bootstrap state (quick scan completed, deep scan pending) in config.yaml. These fields were referenced in the Phase 5 spec but not defined in config.schema.yaml.
+**Decision:** Add `bootstrap.*` fields to config.schema.yaml: `quick_scan_completed` (bool), `quick_scan_at` (string/timestamp), `deep_scan_completed` (bool), `deep_scan_pending` (bool). All optional, default to false/"".
+**Reasoning:** Per D-029 (full YAML schemas upfront), schema must be defined before implementation. Bootstrap state is project config (committed to git) because team members need to know whether deep scan has run.

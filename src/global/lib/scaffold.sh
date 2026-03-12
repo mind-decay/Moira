@@ -25,6 +25,7 @@ moira_scaffold_global() {
   mkdir -p "$target_dir"/skills
   mkdir -p "$target_dir"/hooks
   mkdir -p "$target_dir"/templates/stack-presets
+  mkdir -p "$target_dir"/templates/scanners
   mkdir -p "$target_dir"/templates/knowledge
   mkdir -p "$target_dir"/lib
   mkdir -p "$target_dir"/schemas
@@ -71,6 +72,7 @@ moira_scaffold_project() {
   mkdir -p "$base"/state/tasks
   mkdir -p "$base"/state/metrics
   mkdir -p "$base"/state/audits
+  mkdir -p "$base"/state/init
 
   # Hooks
   mkdir -p "$base"/hooks

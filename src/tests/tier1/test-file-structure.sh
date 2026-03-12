@@ -75,6 +75,27 @@ else
   fail "quality-map should NOT have index.md"
 fi
 
+# ── Phase 5: bootstrap artifacts ──────────────────────────────────
+assert_file_exists "$MOIRA_HOME/lib/bootstrap.sh" "lib/bootstrap.sh exists"
+if [[ -f "$MOIRA_HOME/lib/bootstrap.sh" ]]; then
+  if bash -n "$MOIRA_HOME/lib/bootstrap.sh" 2>/dev/null; then
+    pass "lib/bootstrap.sh syntax valid"
+  else
+    fail "lib/bootstrap.sh has syntax errors"
+  fi
+fi
+
+assert_dir_exists "$MOIRA_HOME/templates/scanners" "templates/scanners/ exists"
+scanner_count=$(ls "$MOIRA_HOME/templates/scanners/"*.md 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$scanner_count" -ge 4 ]]; then
+  pass "scanner templates: $scanner_count files (>=4)"
+else
+  fail "scanner templates: expected >=4, found $scanner_count"
+fi
+
+assert_file_exists "$MOIRA_HOME/templates/stack-presets/generic.yaml" "stack-presets/generic.yaml exists"
+assert_file_exists "$MOIRA_HOME/templates/project-claude-md.tmpl" "project-claude-md.tmpl exists"
+
 # ── Pipeline definitions ────────────────────────────────────────────
 for pipeline in quick standard full decomposition; do
   assert_file_exists "$MOIRA_HOME/core/pipelines/${pipeline}.yaml" "pipeline ${pipeline}.yaml exists"
