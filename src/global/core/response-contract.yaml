@@ -14,6 +14,25 @@ rules:
   - "SUMMARY must be factual — no opinions, no recommendations beyond NEXT"
   - "ARTIFACTS must list every file written during this step"
 
+quality_response:
+  description: "Extended format for agents with quality gate assignments"
+  format: |
+    STATUS: success|failure|blocked|budget_exceeded
+    SUMMARY: <1-2 sentences, factual>
+    QUALITY: {gate}={verdict} ({critical}C/{warning}W/{suggestion}S)
+    ARTIFACTS: [<list of file paths written>]
+    NEXT: <recommended next pipeline step>
+  example: |
+    STATUS: success
+    SUMMARY: Code review complete. 2 warnings found, 3 suggestions logged.
+    QUALITY: Q4=fail_warning (0C/2W/3S)
+    ARTIFACTS: [review.md, findings/themis-Q4.yaml]
+    NEXT: present warnings to user
+  rules:
+    - "QUALITY line is REQUIRED for agents with quality gate assignments"
+    - "QUALITY line allows orchestrator to route by verdict without reading full findings"
+    - "Agent-to-gate mapping: Athena=Q1, Metis=Q2, Daedalus=Q3, Themis=Q4, Aletheia=Q5"
+
 statuses:
   success: "Step completed, artifacts written"
   failure: "Step failed after retries, see artifacts for details"
