@@ -219,6 +219,109 @@ ALWAYS refer to agents as `Name (role)` in all orchestrator output (D-034):
 
 ---
 
+## Quality Checklist Injection
+
+For agents with quality gate assignments, append the quality checklist to their prompt. This ensures agents evaluate quality criteria and write structured findings.
+
+### Agent-to-Gate Mapping
+
+| Agent | Gate | Checklist File |
+|-------|------|---------------|
+| Athena (analyst) | Q1 | q1-completeness.yaml |
+| Metis (architect) | Q2 | q2-soundness.yaml |
+| Daedalus (planner) | Q3 | q3-feasibility.yaml |
+| Themis (reviewer) | Q4 | q4-correctness.yaml |
+| Aletheia (tester) | Q5 | q5-coverage.yaml |
+
+### Injection Path
+
+- **Pre-planning agents** (Athena Q1): checklist injected via simplified assembly path — append to prompt template after Task section
+- **Post-planning agents** (Metis Q2, Daedalus Q3, Themis Q4, Aletheia Q5): checklist injected via instruction files written by Daedalus
+
+### Checklist Prompt Appendix
+
+For each agent with a quality gate, append after the Task section:
+
+```
+## Quality Checklist — {Gate Name}
+
+You MUST evaluate every item in this checklist. For each item, report:
+- `pass` — requirement satisfied
+- `fail` — requirement not satisfied (include severity, detail, evidence)
+- `na` — not applicable to this task (justify)
+- `skip` — cannot evaluate (justify)
+
+Write your findings to: `.claude/moira/state/tasks/{task_id}/findings/{your_name}-{gate}.yaml`
+using the findings schema format.
+
+Include a QUALITY line in your response:
+QUALITY: {gate}={verdict} ({critical}C/{warning}W/{suggestion}S)
+
+Items to evaluate:
+{checklist items loaded from ~/.claude/moira/core/rules/quality/q{N}-*.yaml}
+
+CRITICAL: Do not skip items. Do not mark items as `pass` without verifying. If you cannot verify — mark as `skip` with justification, NEVER mark as `pass`.
+```
+
+Load checklist items from `~/.claude/moira/core/rules/quality/q{N}-*.yaml` where N is the gate number. Extract the `items[]` array and format each item as:
+
+```
+- [{id}] {check} (severity: {severity_if_fail})
+```
+
+---
+
+## Quality Map Injection
+
+For agents that receive quality map context, include the quality map summary in their instructions.
+
+### Agents That Receive Quality Map
+
+| Agent | Access Level | Source File |
+|-------|-------------|-------------|
+| Metis (architect) | L1 (summary) | quality-map/summary.md |
+| Themis (reviewer) | L1 (summary) | quality-map/summary.md |
+| Daedalus (planner) | L0 (full) | quality-map/full.md |
+
+### Injection
+
+Read the quality map file from `~/.claude/moira/knowledge/quality-map/` and include it in the agent prompt:
+
+- For L1 agents: include `summary.md` content
+- For L0 agents (Daedalus): include `full.md` content
+
+If the quality map file does not exist or is empty, skip injection silently.
+
+---
+
+## Quality Mode Communication
+
+Include the current CONFORM/EVOLVE mode in assembled instructions for agents that receive quality map context.
+
+### Mode Section Template
+
+Append to agent instructions (after quality map injection):
+
+```
+## Quality Mode: {CONFORM|EVOLVE}
+
+{If CONFORM:}
+Follow existing patterns as documented in the quality map.
+Only avoid 🔴 Problematic patterns for NEW code.
+
+{If EVOLVE:}
+Evolving pattern: {current_target from config.yaml}
+Use improved approach for this pattern only. Follow all other patterns normally.
+
+Quality Map Summary:
+{quality-map/summary.md content}
+```
+
+Read the mode from `config.yaml` → `quality.mode` (default: conform).
+Read the evolution target from `config.yaml` → `quality.evolution.current_target` (if in EVOLVE mode).
+
+---
+
 ## Worktree Isolation
 
 NOT used in Phase 3. Implementers write directly to the project.
