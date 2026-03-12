@@ -1,0 +1,12 @@
+name: mature-webapp
+description: Consistent Express + TypeScript + Prisma app with clear patterns
+stack: [typescript, express, prisma, jest]
+state: mature
+characteristics:
+  - consistent naming and patterns
+  - service layer with repository pattern
+  - error handling middleware
+  - jest tests with consistent patterns
+  - linting and formatting configured
+reset_command: "git checkout clean && git clean -fd"
+moira_init_preset: express

@@ -1,0 +1,10 @@
+name: greenfield-webapp
+description: Minimal Express + TypeScript app with basic structure
+stack: [typescript, express, jest]
+state: greenfield
+characteristics:
+  - minimal file count (5-6 files)
+  - single API endpoint
+  - basic project setup
+reset_command: "git checkout clean && git clean -fd"
+moira_init_preset: express
