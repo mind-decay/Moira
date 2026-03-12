@@ -407,3 +407,156 @@ moira_knowledge_validate_consistency() {
 
   return 0
 }
+
+# ── moira_knowledge_update_quality_map <task_dir> <quality_map_dir> ───
+# Update quality map based on Reviewer (Themis) findings from a completed task.
+# Uses structural keyword matching — NOT semantic analysis.
+# Called after task completion, before reflection.
+moira_knowledge_update_quality_map() {
+  local task_dir="$1"
+  local quality_map_dir="$2"
+
+  local findings_file="${task_dir}/findings/themis-Q4.yaml"
+  local full_map="${quality_map_dir}/full.md"
+  local summary_map="${quality_map_dir}/summary.md"
+
+  # If no Themis findings, nothing to update
+  if [[ ! -f "$findings_file" ]]; then
+    return 0
+  fi
+
+  # Ensure quality map exists
+  if [[ ! -f "$full_map" ]]; then
+    return 0
+  fi
+
+  local today
+  today=$(date -u +%Y-%m-%d)
+
+  # Extract failed finding IDs and their check descriptions
+  local finding_details
+  finding_details=$(awk '
+    /^[[:space:]]*- id:/ {
+      gsub(/^[[:space:]]*- id:[[:space:]]*/, "")
+      gsub(/["\047]/, "")
+      current_id=$0; is_fail=0
+    }
+    /^[[:space:]]*result:[[:space:]]*fail/ { is_fail=1 }
+    /^[[:space:]]*check:/ {
+      if (is_fail) {
+        check=$0
+        gsub(/^[[:space:]]*check:[[:space:]]*/, "", check)
+        gsub(/["\047]/, "", check)
+        print current_id "|" check
+      }
+    }
+  ' "$findings_file")
+
+  # If no failed findings, nothing to update
+  if [[ -z "$finding_details" ]]; then
+    return 0
+  fi
+
+  local tmpfile
+  tmpfile=$(mktemp)
+  cp "$full_map" "$tmpfile"
+
+  local map_updated=false
+
+  while IFS='|' read -r fid fcheck; do
+    [[ -z "$fid" ]] && continue
+
+    # Extract keywords from the check for matching (words >= 4 chars)
+    local keywords
+    keywords=$(echo "$fcheck" | tr '[:upper:]' '[:lower:]' | \
+      sed 's/[^a-z0-9 ]/ /g' | tr -s ' ')
+
+    # Search for matching pattern in quality map
+    local match_found=false
+    local match_pattern=""
+
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^###[[:space:]]+(.*) ]]; then
+        match_pattern="${BASH_REMATCH[1]}"
+      fi
+      if [[ -n "$match_pattern" ]]; then
+        local line_lower
+        line_lower=$(echo "$line" | tr '[:upper:]' '[:lower:]')
+        for kw in $keywords; do
+          [[ ${#kw} -lt 4 ]] && continue
+          if echo "$line_lower" | grep -q "$kw" 2>/dev/null; then
+            match_found=true
+            break
+          fi
+        done
+        if $match_found; then break; fi
+      fi
+    done < "$tmpfile"
+
+    if ! $match_found; then
+      # New finding — append as new entry
+      echo "" >> "$tmpfile"
+      echo "### ${fcheck}" >> "$tmpfile"
+      echo "- **Category**: detected" >> "$tmpfile"
+      echo "- **Evidence**: task finding ${fid}" >> "$tmpfile"
+      echo "- **Confidence**: medium" >> "$tmpfile"
+      echo "- **Observation count**: 1" >> "$tmpfile"
+      printf '- **Lifecycle**: \xF0\x9F\x86\x95 NEW\n' >> "$tmpfile"
+      echo "" >> "$tmpfile"
+      map_updated=true
+    fi
+  done <<< "$finding_details"
+
+  if $map_updated; then
+    # Update freshness marker
+    sed "s/<!-- moira:freshness [^>]* -->/<!-- moira:freshness task ${today} -->/" "$tmpfile" > "$full_map"
+
+    # Regenerate summary
+    _moira_knowledge_regen_quality_summary "$full_map" "$summary_map" "$today"
+  fi
+
+  rm -f "$tmpfile"
+  return 0
+}
+
+# ── Internal: regenerate quality map summary from full map ─────────────
+_moira_knowledge_regen_quality_summary() {
+  local full_map="$1"
+  local summary_map="$2"
+  local today="$3"
+
+  local strong="" adequate="" problematic=""
+  local current_section=""
+
+  while IFS= read -r line; do
+    if echo "$line" | grep -q "Strong Patterns" 2>/dev/null; then
+      current_section="strong"
+      continue
+    elif echo "$line" | grep -q "Adequate Patterns" 2>/dev/null; then
+      current_section="adequate"
+      continue
+    elif echo "$line" | grep -q "Problematic Patterns" 2>/dev/null; then
+      current_section="problematic"
+      continue
+    fi
+
+    if [[ "$line" =~ ^###[[:space:]]+(.*) ]]; then
+      local name="${BASH_REMATCH[1]}"
+      case "$current_section" in
+        strong) [[ -n "$strong" ]] && strong+=", "; strong+="$name" ;;
+        adequate) [[ -n "$adequate" ]] && adequate+=", "; adequate+="$name" ;;
+        problematic) [[ -n "$problematic" ]] && problematic+=", "; problematic+="$name" ;;
+      esac
+    fi
+  done < "$full_map"
+
+  {
+    echo "<!-- moira:freshness task ${today} -->"
+    echo ""
+    echo "# Quality Map Summary"
+    echo ""
+    echo "## Strong (follow): ${strong:-None detected yet}"
+    echo "## Adequate (follow with notes): ${adequate:-None detected yet}"
+    echo "## Problematic (don't extend): ${problematic:-None detected yet}"
+  } > "$summary_map"
+}

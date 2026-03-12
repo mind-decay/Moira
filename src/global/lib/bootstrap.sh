@@ -185,8 +185,9 @@ budgets:
 
 quality:
   mode: conform
-  evolution_threshold: 3
-  review_severity_minimum: medium
+  evolution:
+    current_target: ""
+    cooldown_remaining: 0
 
 knowledge:
   freshness_days: 30
@@ -637,41 +638,8 @@ moira_bootstrap_populate_knowledge() {
 
   # --- quality-map (preliminary, from pattern-scan.md) ---
   if [[ -f "$scan_results_dir/pattern-scan.md" ]]; then
-    local qm_tmp
-    qm_tmp=$(mktemp)
-
-    {
-      echo "<!-- moira:preliminary — deep scan required -->"
-      echo ""
-      echo "# Quality Map (Preliminary)"
-      echo ""
-      echo "Generated from bootstrap pattern scan. A deep scan is required for"
-      echo "comprehensive quality assessment."
-      echo ""
-      # Extract Common Abstractions and Recurring Structures sections
-      _extract_section "$scan_results_dir/pattern-scan.md" "Common Abstractions"
-      echo ""
-      _extract_section "$scan_results_dir/pattern-scan.md" "Recurring Structures"
-    } > "$qm_tmp"
-
-    _write_knowledge_file "$knowledge_dir/quality-map/full.md" "$qm_tmp" "$today"
-
-    # L1: summary
-    local qm_summary_tmp
-    qm_summary_tmp=$(mktemp)
-    {
-      echo "<!-- moira:preliminary — deep scan required -->"
-      echo ""
-      echo "# Quality Map Summary (Preliminary)"
-      echo ""
-      grep -E '^\|[^|]*\|[^|]*\|[^|]*\|' "$scan_results_dir/pattern-scan.md" 2>/dev/null | \
-        grep -v '^|[[:space:]]*---' | grep -v '^|[[:space:]]*Abstraction' | \
-        grep -v '^|[[:space:]]*Pattern[[:space:]]*|[[:space:]]*Frequency' || true
-    } > "$qm_summary_tmp"
-
-    _write_knowledge_file "$knowledge_dir/quality-map/summary.md" "$qm_summary_tmp" "$today"
-
-    rm -f "$qm_tmp" "$qm_summary_tmp"
+    _moira_bootstrap_gen_quality_map "$scan_results_dir/pattern-scan.md" \
+      "$knowledge_dir" "$today"
   fi
 
   # decisions/ and failures/ — leave as templates (no data yet)
@@ -777,6 +745,201 @@ _extract_section() {
       echo "$line"
     fi
   done < "$file"
+}
+
+# ── Internal: generate quality map from pattern scan ───────────────────
+# Categorizes patterns into Strong/Adequate/Problematic based on scan observations.
+# All entries are medium confidence (from scan, not task evidence).
+_moira_bootstrap_gen_quality_map() {
+  local pattern_scan="$1"
+  local knowledge_dir="$2"
+  local today="$3"
+
+  local qm_full_tmp qm_summary_tmp
+  qm_full_tmp=$(mktemp)
+  qm_summary_tmp=$(mktemp)
+
+  # Parse pattern scan for consistency signals
+  # Patterns with "consistent" / "uniform" / "always" → Strong
+  # Patterns with "mixed" / "inconsistent" / "varies" / "some" → Adequate
+  # Patterns with "missing" / "broken" / "TODO" / "FIXME" / "deprecated" → Problematic
+
+  local strong_patterns="" adequate_patterns="" problematic_patterns=""
+  local current_pattern="" current_location="" current_evidence=""
+  local in_pattern=false
+
+  while IFS= read -r line; do
+    # Detect pattern entries (### headers or table rows)
+    if [[ "$line" =~ ^###[[:space:]]+(.*) ]]; then
+      # Flush previous pattern
+      if [[ -n "$current_pattern" ]]; then
+        _classify_pattern "$current_pattern" "$current_location" "$current_evidence" \
+          "$pattern_scan" "$today"
+      fi
+      current_pattern="${BASH_REMATCH[1]}"
+      current_location=""
+      current_evidence="bootstrap scan"
+      in_pattern=true
+      continue
+    fi
+    if $in_pattern; then
+      if [[ "$line" =~ Location:|Directory:|Path: ]]; then
+        current_location=$(echo "$line" | sed 's/.*:\s*//')
+      fi
+    fi
+  done < "$pattern_scan"
+
+  # Flush last pattern
+  if [[ -n "$current_pattern" ]]; then
+    _classify_pattern "$current_pattern" "$current_location" "$current_evidence" \
+      "$pattern_scan" "$today"
+  fi
+
+  # Build quality map using classified patterns (from _classify_pattern output)
+  {
+    echo "<!-- moira:freshness init ${today} -->"
+    echo "<!-- moira:preliminary — deep scan required -->"
+    echo "<!-- moira:mode conform -->"
+    echo ""
+    echo "# Quality Map"
+    echo ""
+    echo "## ✅ Strong Patterns"
+    echo ""
+    _build_pattern_section "$pattern_scan" "consistent|uniform|always|standard"
+    echo ""
+    echo "## ⚠️ Adequate Patterns"
+    echo ""
+    _build_pattern_section "$pattern_scan" "mixed|inconsistent|varies|some|partial"
+    echo ""
+    echo "## 🔴 Problematic Patterns"
+    echo ""
+    _build_pattern_section "$pattern_scan" "missing|broken|TODO|FIXME|deprecated|hack"
+  } > "$qm_full_tmp"
+
+  _write_knowledge_file "$knowledge_dir/quality-map/full.md" "$qm_full_tmp" "$today"
+
+  # L1: summary
+  {
+    echo "<!-- moira:freshness init ${today} -->"
+    echo "<!-- moira:preliminary — deep scan required -->"
+    echo ""
+    echo "# Quality Map Summary"
+    echo ""
+    echo "## Strong (follow):"
+    _list_matching_patterns "$pattern_scan" "consistent|uniform|always|standard"
+    echo ""
+    echo "## Adequate (follow with notes):"
+    _list_matching_patterns "$pattern_scan" "mixed|inconsistent|varies|some|partial"
+    echo ""
+    echo "## Problematic (don't extend):"
+    _list_matching_patterns "$pattern_scan" "missing|broken|TODO|FIXME|deprecated|hack"
+  } > "$qm_summary_tmp"
+
+  _write_knowledge_file "$knowledge_dir/quality-map/summary.md" "$qm_summary_tmp" "$today"
+
+  rm -f "$qm_full_tmp" "$qm_summary_tmp"
+}
+
+# ── Internal: classify a pattern based on scan text ────────────────────
+_classify_pattern() {
+  # Used internally by _moira_bootstrap_gen_quality_map
+  # Classification happens in _build_pattern_section via grep
+  :
+}
+
+# ── Internal: build pattern section by keyword matching ────────────────
+_build_pattern_section() {
+  local scan_file="$1"
+  local keywords="$2"
+
+  # Find ### headers whose following text matches keywords
+  local current_header="" current_block="" found=false
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^###[[:space:]]+(.*) ]]; then
+      # Flush previous
+      if $found && [[ -n "$current_header" ]]; then
+        echo "### $current_header"
+        echo "- **Category**: detected"
+        echo "- **Evidence**: bootstrap scan"
+        echo "- **Confidence**: medium"
+        echo ""
+      fi
+      current_header="${BASH_REMATCH[1]}"
+      current_block=""
+      found=false
+      continue
+    fi
+    if [[ -n "$current_header" ]]; then
+      current_block+="$line "
+      if echo "$line" | grep -qiE "$keywords" 2>/dev/null; then
+        found=true
+      fi
+    fi
+    # Stop at next ## header
+    if [[ "$line" =~ ^##[[:space:]] ]] && [[ -n "$current_header" ]]; then
+      if $found; then
+        echo "### $current_header"
+        echo "- **Category**: detected"
+        echo "- **Evidence**: bootstrap scan"
+        echo "- **Confidence**: medium"
+        echo ""
+      fi
+      current_header=""
+      current_block=""
+      found=false
+    fi
+  done < "$scan_file"
+
+  # Flush last
+  if $found && [[ -n "$current_header" ]]; then
+    echo "### $current_header"
+    echo "- **Category**: detected"
+    echo "- **Evidence**: bootstrap scan"
+    echo "- **Confidence**: medium"
+    echo ""
+  fi
+}
+
+# ── Internal: list pattern names matching keywords ─────────────────────
+_list_matching_patterns() {
+  local scan_file="$1"
+  local keywords="$2"
+
+  local current_header="" current_block="" found=false
+  local names=""
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^###[[:space:]]+(.*) ]]; then
+      if $found && [[ -n "$current_header" ]]; then
+        if [[ -n "$names" ]]; then
+          names+=", "
+        fi
+        names+="$current_header"
+      fi
+      current_header="${BASH_REMATCH[1]}"
+      current_block=""
+      found=false
+      continue
+    fi
+    if [[ -n "$current_header" ]]; then
+      if echo "$line" | grep -qiE "$keywords" 2>/dev/null; then
+        found=true
+      fi
+    fi
+  done < "$scan_file"
+
+  # Flush last
+  if $found && [[ -n "$current_header" ]]; then
+    if [[ -n "$names" ]]; then
+      names+=", "
+    fi
+    names+="$current_header"
+  fi
+
+  if [[ -n "$names" ]]; then
+    echo "$names"
+  else
+    echo "None detected yet"
+  fi
 }
 
 # ── moira_bootstrap_inject_claude_md <project_root> <moira_home> ──────
