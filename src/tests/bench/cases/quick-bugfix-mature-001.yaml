@@ -1,0 +1,28 @@
+meta:
+  id: quick-bugfix-mature-001
+  name: Fix broken health endpoint response
+  type: bugfix
+  pipeline: quick
+  rubric: bugfix-quality
+
+fixture: mature-webapp
+
+task:
+  description: "The GET /api/health endpoint returns { status: 'ok' } but the HealthResponse type requires a timestamp field. Fix the response to include the timestamp."
+  size: small
+  confidence: high
+
+gate_responses:
+  classification: proceed
+  final: done
+
+expected_structural:
+  pipeline_type: quick
+  agents: [apollo, hermes, hephaestus, themis]
+  gate_count: 2
+
+expected_quality:
+  minimum_scores:
+    code_correctness: 4
+    requirements_coverage: 4
+  judge: null

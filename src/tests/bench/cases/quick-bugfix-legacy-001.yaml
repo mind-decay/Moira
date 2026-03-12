@@ -1,0 +1,28 @@
+meta:
+  id: quick-bugfix-legacy-001
+  name: Fix getById returning 200 on missing user
+  type: bugfix
+  pipeline: quick
+  rubric: bugfix-quality
+
+fixture: legacy-webapp
+
+task:
+  description: "Fix UserController.getById — it returns 200 with empty body when user is not found. Should return 404 with { error: 'User not found' }."
+  size: small
+  confidence: high
+
+gate_responses:
+  classification: proceed
+  final: done
+
+expected_structural:
+  pipeline_type: quick
+  agents: [apollo, hermes, hephaestus, themis]
+  gate_count: 2
+
+expected_quality:
+  minimum_scores:
+    code_correctness: 4
+    requirements_coverage: 4
+  judge: null

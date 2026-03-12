@@ -1,0 +1,31 @@
+meta:
+  id: std-feature-mature-001
+  name: Add paginated GET /api/products endpoint
+  type: feature
+  pipeline: standard
+  rubric: feature-implementation
+
+fixture: mature-webapp
+
+task:
+  description: "Add pagination to GET /api/products. Accept ?page=N&limit=N query params. Return { data: Product[], pagination: { page, limit, total, totalPages } }. Default page=1, limit=10."
+  size: medium
+  confidence: medium
+
+gate_responses:
+  classification: proceed
+  architecture: proceed
+  plan: proceed
+  final: done
+
+expected_structural:
+  pipeline_type: standard
+  agents: [apollo, hermes, athena, metis, daedalus, hephaestus, themis, aletheia]
+  gate_count: 4
+
+expected_quality:
+  minimum_scores:
+    requirements_coverage: 3
+    code_correctness: 3
+    architecture_quality: 3
+  judge: null

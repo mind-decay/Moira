@@ -1,0 +1,30 @@
+meta:
+  id: std-refactor-legacy-001
+  name: Extract inline route handler to service pattern
+  type: refactor
+  pipeline: standard
+  rubric: refactor-quality
+
+fixture: legacy-webapp
+
+task:
+  description: "Extract the inline /api/items handler in app.js to a proper service pattern. Create ItemService class and items route file following the existing controller pattern."
+  size: medium
+  confidence: medium
+
+gate_responses:
+  classification: proceed
+  architecture: proceed
+  plan: proceed
+  final: done
+
+expected_structural:
+  pipeline_type: standard
+  agents: [apollo, hermes, athena, metis, daedalus, hephaestus, themis, aletheia]
+  gate_count: 4
+
+expected_quality:
+  minimum_scores:
+    conventions_adherence: 3
+    architecture_quality: 3
+  judge: null

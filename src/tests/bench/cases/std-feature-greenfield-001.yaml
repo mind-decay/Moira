@@ -1,0 +1,30 @@
+meta:
+  id: std-feature-greenfield-001
+  name: Add user registration endpoint
+  type: feature
+  pipeline: standard
+  rubric: feature-implementation
+
+fixture: greenfield-webapp
+
+task:
+  description: "Add POST /api/users endpoint for user registration. Accept { name, email, password }. Validate input. Return created user (without password). Store in-memory for now."
+  size: medium
+  confidence: medium
+
+gate_responses:
+  classification: proceed
+  architecture: proceed
+  plan: proceed
+  final: done
+
+expected_structural:
+  pipeline_type: standard
+  agents: [apollo, hermes, athena, metis, daedalus, hephaestus, themis, aletheia]
+  gate_count: 4
+
+expected_quality:
+  minimum_scores:
+    requirements_coverage: 3
+    code_correctness: 3
+  judge: null
