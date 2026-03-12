@@ -241,6 +241,49 @@ After pipeline completion (after review/testing in Quick/Standard, after integra
 
 ---
 
+## Quality Warning Gate
+
+Presented when a quality-gate agent returns `fail_warning` verdict (zero critical findings, but 1+ warning findings).
+
+This is a CONDITIONAL gate — only presented when warnings exist. It does NOT replace required pipeline gates (Art 2.2).
+
+**Trigger:** Agent returns `QUALITY: {gate}=fail_warning` in response.
+
+**Template:**
+
+```
+═══════════════════════════════════════════
+ GATE: Quality Warning — {Gate Name}
+═══════════════════════════════════════════
+
+ {Agent Name} ({role}) found {N} warnings:
+
+ {formatted warnings from moira_quality_format_warnings()}
+
+ Impact: {summary — one-line description of warning implications}
+
+ ORCHESTRATOR HEALTH:
+ {standard health report}
+
+ ▸ proceed — Accept warnings, continue pipeline
+ ▸ fix     — Send back to Hephaestus (implementer) for fixes
+ ▸ details — Show full findings
+ ▸ abort   — Cancel task
+═══════════════════════════════════════════
+```
+
+**Gate state mapping:**
+- `proceed` → record gate as `proceed`, advance to next step
+- `fix` → record gate as `modify`, re-dispatch Hephaestus (implementer) with warning findings as feedback
+- `details` → display full findings file content, return to gate options (do NOT record as gate decision)
+- `abort` → record gate as `abort`, stop pipeline
+
+**Finding display:** Use `moira_quality_format_warnings()` from `quality.sh` to format warning items.
+
+**Gate state:** `moira_state_gate("quality_warning_{gate}", decision)`
+
+---
+
 ## Error/Blocked Gates
 
 These are presented when an error occurs, distinct from approval gates.
