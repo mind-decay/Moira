@@ -502,3 +502,51 @@ All architectural decisions made during Moira system design.
 - Keep all fields — `evolution_threshold` conflicts structurally with `evolution.current_target` nesting, and configurable severity minimum contradicts the deterministic routing model (Art 2.1)
 - Make evolution threshold configurable — Art 5.2 mandates 3+ observations, not user-configurable
 **Reasoning:** The 3-observation threshold is a constitutional requirement (Art 5.2), not a tunable parameter. Severity routing is deterministic by design (Art 2.1). Configurable fields that contradict invariants create confusion about what the system actually does.
+
+## D-055: Separate Budget Library
+
+**Context:** Should budget functions live in state.sh or a dedicated module?
+**Decision:** Dedicated `budget.sh` library, separate from `state.sh`. State handles transitions, budget handles estimation/tracking/reporting.
+**Alternatives rejected:**
+- Inline in state.sh — adds 9+ functions, violates Art 1.3 (no god components)
+- Distributed across multiple modules — budget logic is cohesive, splitting it loses clarity
+**Reasoning:** Single responsibility. Budget estimation is independently testable. state.sh remains focused on state transitions.
+
+## D-056: Approximate Token Estimation
+
+**Context:** How to estimate token counts without tokenizer access?
+**Decision:** Use `file_size_bytes / 4` as token estimation ratio (industry-standard approximation for English/code).
+**Alternatives rejected:**
+- Exact tokenizer — not available in shell environment
+- Character count only — tokens ≠ characters, ratio provides better approximation
+- No estimation — budget system needs numbers to make split/no-split decisions
+**Reasoning:** Sufficient for threshold decisions (below 50%, near 70%, above 70%). The 30% safety margin absorbs estimation errors. Precision is not needed — only directional correctness.
+
+## D-057: Budget Config as Separate File
+
+**Context:** Should budget allocations live in config.yaml or a dedicated file?
+**Decision:** Separate `config/budgets.yaml` for per-project tuning. `config.schema.yaml` fields serve as fallback defaults.
+**Alternatives rejected:**
+- Inline in config.yaml — mixes general config with specialized tuning
+- No project-level overrides — teams can't tune budgets for their codebase complexity
+**Reasoning:** Budget allocations are the most likely config to need per-project tuning. Separation allows updating budgets without touching main config. Three-level lookup: budgets.yaml → config.yaml → schema defaults.
+
+## D-058: Proxy-Based Orchestrator Context Estimation
+
+**Context:** How to measure orchestrator token usage at runtime?
+**Decision:** Proxy approach: base overhead (15k) + per-step processing (500/step) + gate interactions (2k/gate) + agent return summaries.
+**Alternatives rejected:**
+- Direct measurement — not feasible in Claude Code runtime
+- No measurement — loses orchestrator health visibility
+- Token counting hooks — hooks execute in separate processes, can't measure orchestrator context
+**Reasoning:** Rough but sufficient for threshold-based decisions. The 25%/40%/60% thresholds have wide gaps specifically because estimation is approximate. Proxy is cheap to compute.
+
+## D-059: Config-Driven MCP Token Estimates
+
+**Context:** How to estimate MCP call token impact for budget calculations?
+**Decision:** Static estimates from `budgets.yaml` (`mcp_estimates` section). Planner uses these estimates before calls happen.
+**Alternatives rejected:**
+- Runtime measurement — MCP call sizes only known after the call
+- No MCP budgeting — MCP calls can be large (14k+ for context7), ignoring them risks budget overflow
+- Hardcoded estimates — not tunable per project
+**Reasoning:** MCP call sizes vary by query but have predictable ranges. Config-driven allows projects to tune based on actual usage patterns. Default values are conservative (14k for context7, 5k for unknown).
