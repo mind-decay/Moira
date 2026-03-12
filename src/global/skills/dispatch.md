@@ -219,6 +219,35 @@ ALWAYS refer to agents as `Name (role)` in all orchestrator output (D-034):
 
 ---
 
+## Context Budget
+
+For ALL agent dispatches, include budget context in the prompt. This reinforces the `budget_exceeded` response contract.
+
+### Budget Section Template
+
+Append after the Output section in the prompt template:
+
+```
+## Context Budget
+
+Your budget allocation: {agent_budget}k tokens.
+Maximum safe load: 70% ({max_safe}k tokens).
+
+If you detect your context is getting large:
+1. STOP immediately
+2. Write partial results to your output file with clear boundary marker
+3. Return: STATUS: budget_exceeded, COMPLETED: "{done items}", REMAINING: "{remaining items}"
+```
+
+### Budget Values
+
+- Read agent budget from `~/.claude/moira/config/budgets.yaml` → `agent_budgets.{role}`, fallback to `config.yaml` → `budgets.per_agent.{role}`, fallback to schema defaults
+- Calculate `max_safe = agent_budget * 70 / 100`
+- Pre-planning agents: budget included via simplified assembly
+- Post-planning agents: budget included via Daedalus instruction files
+
+---
+
 ## Quality Checklist Injection
 
 For agents with quality gate assignments, append the quality checklist to their prompt. This ensures agents evaluate quality criteria and write structured findings.

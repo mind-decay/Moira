@@ -129,6 +129,17 @@ assert_dir_exists "$MOIRA_HOME/tests/bench/fixtures" "tests/bench/fixtures/ exis
 assert_dir_exists "$MOIRA_HOME/tests/bench/cases" "tests/bench/cases/ exists"
 assert_dir_exists "$MOIRA_HOME/tests/bench/rubrics" "tests/bench/rubrics/ exists"
 
+# ── Phase 7: budget system artifacts ─────────────────────────────────
+assert_file_exists "$MOIRA_HOME/lib/budget.sh" "lib/budget.sh exists"
+if [[ -f "$MOIRA_HOME/lib/budget.sh" ]]; then
+  if bash -n "$MOIRA_HOME/lib/budget.sh" 2>/dev/null; then
+    pass "lib/budget.sh syntax valid"
+  else
+    fail "lib/budget.sh has syntax errors"
+  fi
+fi
+assert_file_exists "$MOIRA_HOME/templates/budgets.yaml.tmpl" "templates/budgets.yaml.tmpl exists"
+
 # ── Pipeline definitions ────────────────────────────────────────────
 for pipeline in quick standard full decomposition; do
   assert_file_exists "$MOIRA_HOME/core/pipelines/${pipeline}.yaml" "pipeline ${pipeline}.yaml exists"

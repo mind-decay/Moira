@@ -222,9 +222,21 @@ Recommendation: checkpoint and continue in fresh session.
 ▸ proceed    — continue (not recommended)
 ```
 
+### Budget Monitoring After Each Agent
+
+After each agent returns:
+1. Read `context_budget.warning_level` from `current.yaml` (updated by `moira_budget_orchestrator_check` via `moira_state_agent_done`)
+2. If level is `warning` or `critical`: display the warning template above
+3. Include orchestrator health data in every gate display (per `gates.md` Health Report Section)
+
 ### Budget Report at Completion
 
-After the final gate, display the full budget report (per `gates.md` budget report template). Include per-agent context usage from the history block and orchestrator context estimate.
+After the final gate, display the full budget report. Generate from state data:
+1. Read `status.yaml` → `budget.by_agent` block for per-agent data
+2. Read `current.yaml` → `context_budget.*` for orchestrator data
+3. Format using the budget report table template in `gates.md` (Budget Report Section)
+4. Per-agent status emoji: ✅ (<50%), ⚠ (50-70%), 🔴 (>70%)
+5. Token values formatted as `{N}k` (divide by 1000, round)
 
 ---
 
@@ -239,8 +251,8 @@ When the pipeline reaches the completion step:
 
 **`done`** — Accept all changes:
 - Display completion summary (files changed, tests passed, etc.)
-- Display full budget report
-- Write telemetry.yaml to task directory
+- Display full budget report: read `status.yaml` budget data + `current.yaml` orchestrator data, format per `gates.md` budget report template
+- Write budget data to telemetry: update `telemetry.yaml` with `execution.budget_total_tokens` from `status.yaml` `budget.actual_tokens`
 - Tick evolution cooldown: call `moira_quality_tick_cooldown` on config.yaml
 - If quality mode was `evolve`: call `moira_quality_complete_evolve` on config.yaml
 - Call `moira_knowledge_update_quality_map` with task findings (if Themis Q4 findings exist)

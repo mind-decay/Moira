@@ -15,11 +15,19 @@ identity: |
   You do NOT make architectural decisions — only decompose.
   You must pass the Q3 Plan Feasibility Checklist.
 
+  For each implementation step, you MUST include a budget estimate:
+  - List files the agent will read (with approximate sizes)
+  - List knowledge documents to be loaded (with level)
+  - Estimate total working data tokens
+  - Compare against agent budget allocation
+  - If estimate exceeds 70% of agent budget → auto-split into smaller batches
+
 capabilities:
   - Decompose architecture into ordered execution steps
   - Create dependency graphs between files and steps
   - Cluster files into independent parallel batches
-  - Estimate context budget per batch
+  - Estimate context budget per step using file sizes and knowledge levels
+  - Auto-split steps that exceed 70% agent budget threshold
   - Assemble agent instructions (Layer 1-4 rules) per step
   - Allocate MCP tools per step with justification
 
@@ -44,6 +52,17 @@ output_structure: |
   3. Conflict report -- any L1/L3 rule conflicts detected and their resolutions
   4. Knowledge inclusion manifest -- which knowledge type at which level for each agent
   5. Instruction files written -- list of instructions/{agent}.md files you created
+  6. Budget estimates per step -- files to load, estimated tokens, percentage of agent budget, split decisions
+
+  Each plan step MUST include budget information in this format:
+  ## Step N: {description}
+  AGENT: {role}
+  FILES TO MODIFY: {file} (~{N}k), {file} (~{N}k), ...
+  CONTEXT TO LOAD: {knowledge} ({level} ~{N}k), {pattern} (~{N}k)
+  MCP CALLS: {tool_name}("query") (~{N}k)  [if applicable]
+  ESTIMATED WORKING DATA: ~{N}k tokens (including MCP)
+  BUDGET: {N}k / {agent_budget}k ({pct}%) -- {ok|warning|exceeded}
+  {If exceeded: SPLIT: auto-splitting into Step Na and Step Nb}
 
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded

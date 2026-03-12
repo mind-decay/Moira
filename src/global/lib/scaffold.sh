@@ -82,6 +82,11 @@ moira_scaffold_project() {
   if [[ -d "$moira_home/templates/knowledge" ]]; then
     _moira_copy_templates "$moira_home/templates/knowledge" "$base/knowledge"
   fi
+
+  # Copy budget configuration template (Phase 7)
+  if [[ -f "$moira_home/templates/budgets.yaml.tmpl" ]]; then
+    [[ -f "$base/config/budgets.yaml" ]] || cp "$moira_home/templates/budgets.yaml.tmpl" "$base/config/budgets.yaml"
+  fi
 }
 
 # ── _moira_copy_templates <source_dir> <target_dir> ──────────────────

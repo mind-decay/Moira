@@ -107,6 +107,11 @@ install_global() {
     cp -f "$SCRIPT_DIR/global/templates/scanners/deep/"*.md "$MOIRA_HOME/templates/scanners/deep/"
   fi
 
+  # Copy budget template (Phase 7)
+  if [[ -f "$SCRIPT_DIR/global/templates/budgets.yaml.tmpl" ]]; then
+    cp -f "$SCRIPT_DIR/global/templates/budgets.yaml.tmpl" "$MOIRA_HOME/templates/"
+  fi
+
   # Copy bench infrastructure (Phase 6)
   if [[ -d "$SCRIPT_DIR/tests/bench" ]]; then
     mkdir -p "$MOIRA_HOME/tests/bench/fixtures" "$MOIRA_HOME/tests/bench/cases" "$MOIRA_HOME/tests/bench/rubrics"
@@ -164,7 +169,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh; do
     ((checks_total++))
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then
@@ -351,6 +356,14 @@ verify() {
     ((checks_passed++))
   else
     errors+="  schemas/findings.schema.yaml not found\n"
+  fi
+
+  # Check: budget template exists (Phase 7)
+  ((checks_total++))
+  if [[ -f "$MOIRA_HOME/templates/budgets.yaml.tmpl" ]]; then
+    ((checks_passed++))
+  else
+    errors+="  templates/budgets.yaml.tmpl not found\n"
   fi
 
   if [[ $checks_passed -eq $checks_total ]]; then

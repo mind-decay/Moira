@@ -162,17 +162,23 @@ None — user always resolves E3.
 
 ### Recovery — Pre-execution
 
-1. Planner auto-splits the step into smaller batches
-2. No gate needed (technical optimization)
-3. Log split in plan artifact
+Handled by Daedalus (planner) during plan creation:
+1. Planner estimates context usage per step (file sizes + knowledge + MCP)
+2. If estimate exceeds 70% of agent budget → Planner auto-splits into sub-steps with independent file sets
+3. Split is logged in plan artifact with reasoning
+4. No gate needed (technical optimization, transparent in plan)
 
 ### Recovery — Mid-execution
 
+When agent returns `STATUS: budget_exceeded` with `COMPLETED` and `REMAINING` fields:
 1. Read agent's partial result file (it wrote output before stopping)
-2. Note completed and remaining items
-3. Spawn NEW agent for remaining work
-4. New agent receives: partial results as context + remaining items as task
-5. Continue pipeline normally after new agent completes
+2. Parse `COMPLETED` and `REMAINING` from agent response
+3. Increment `retries.budget_splits` in `status.yaml`
+4. Record partial result in budget tracking
+5. Spawn NEW continuation agent with:
+   - Task-specific instruction: "Continue work. Previously completed: {completed}. Your task: {remaining}."
+   - Reference to partial result file in `state/tasks/{task_id}/`
+   - Same budget allocation as original agent
 
 ### Display — Mid-execution
 
@@ -191,9 +197,26 @@ Spawning continuation agent for remaining work...
 - `status.yaml`: increment `retries.budget_splits` counter
 - `current.yaml`: update `context_budget.total_agent_tokens`
 
-### Escalation
+### Escalation — Double Overflow
 
-If continuation agent also overflows → escalate to user with recommendation to split task.
+If continuation agent ALSO returns `budget_exceeded` (budget_splits >= 2):
+
+```
+🔴 REPEATED BUDGET OVERFLOW
+Agent: {Name} ({role})
+
+This step has overflowed twice.
+Original estimate may be significantly wrong.
+
+Completed so far: {all completed items}
+Still remaining: {remaining items}
+
+▸ split   — manually split remaining work
+▸ retry   — try again with larger budget (not recommended)
+▸ abort   — stop task, keep partial results
+```
+
+State: record gate as `moira_state_gate("budget_overflow_e4", decision)`
 
 ---
 

@@ -66,7 +66,7 @@ Display at pipeline completion (final gate and post-pipeline):
 ╠══════════════════════════════════════════════╣
 ║ Agent         │ Budget │ Est.  │ % │ Status  ║
 ║───────────────┼────────┼───────┼───┼─────────║
-{per-agent rows from status.yaml history}
+{per-agent rows from status.yaml budget.by_agent block}
 ║ Orchestrator  │ 200k   │ {est} │{%}│ {emoji} ║
 ╠══════════════════════════════════════════════╣
 ║ Orchestrator context: {used}k/200k ({pct}%)  ║
@@ -148,9 +148,16 @@ After Daedalus (planner) completes.
 
 **Display specifics:**
 - Show: number of implementation steps/batches
-- Show: estimated total budget usage
+- Show: estimated total budget usage (from plan artifact budget estimates section)
+- Show: budget risk — number of steps near 70% limit (from plan artifact)
 - Show: files to be created/modified
 - Show: dependency graph summary (if batched)
+
+**Budget preview** (from Daedalus plan artifact):
+```
+ Estimated total budget: ~{N}k tokens
+ Budget risk: {none | N steps near limit}
+```
 
 **Options:**
 ```
