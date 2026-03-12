@@ -92,9 +92,9 @@ If `security/full.md` does not exist, create it with this content as the initial
 ## Constraints
 
 - Report ONLY observed facts with file path evidence
-- Never propose solutions
-- Never express opinions
-- Never make recommendations
+- NEVER propose solutions
+- NEVER express opinions
+- NEVER make recommendations
 - NO opinions, NO recommendations, NO proposals
 - NEVER read `.env` files — they may contain real secrets
 - If information is not found, write "Not detected" — do NOT guess

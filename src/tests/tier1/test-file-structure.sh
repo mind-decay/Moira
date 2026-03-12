@@ -96,6 +96,39 @@ fi
 assert_file_exists "$MOIRA_HOME/templates/stack-presets/generic.yaml" "stack-presets/generic.yaml exists"
 assert_file_exists "$MOIRA_HOME/templates/project-claude-md.tmpl" "project-claude-md.tmpl exists"
 
+# ── Phase 6: quality system artifacts ─────────────────────────────
+assert_file_exists "$MOIRA_HOME/lib/quality.sh" "lib/quality.sh exists"
+if [[ -f "$MOIRA_HOME/lib/quality.sh" ]]; then
+  if bash -n "$MOIRA_HOME/lib/quality.sh" 2>/dev/null; then
+    pass "lib/quality.sh syntax valid"
+  else
+    fail "lib/quality.sh has syntax errors"
+  fi
+fi
+
+assert_file_exists "$MOIRA_HOME/lib/bench.sh" "lib/bench.sh exists"
+if [[ -f "$MOIRA_HOME/lib/bench.sh" ]]; then
+  if bash -n "$MOIRA_HOME/lib/bench.sh" 2>/dev/null; then
+    pass "lib/bench.sh syntax valid"
+  else
+    fail "lib/bench.sh has syntax errors"
+  fi
+fi
+
+assert_file_exists "$MOIRA_HOME/schemas/findings.schema.yaml" "schemas/findings.schema.yaml exists"
+
+assert_dir_exists "$MOIRA_HOME/templates/scanners/deep" "templates/scanners/deep/ exists"
+deep_count=$(ls "$MOIRA_HOME/templates/scanners/deep/"*.md 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$deep_count" -ge 4 ]]; then
+  pass "deep scan templates: $deep_count files (>=4)"
+else
+  fail "deep scan templates: expected >=4, found $deep_count"
+fi
+
+assert_dir_exists "$MOIRA_HOME/tests/bench/fixtures" "tests/bench/fixtures/ exists"
+assert_dir_exists "$MOIRA_HOME/tests/bench/cases" "tests/bench/cases/ exists"
+assert_dir_exists "$MOIRA_HOME/tests/bench/rubrics" "tests/bench/rubrics/ exists"
+
 # ── Pipeline definitions ────────────────────────────────────────────
 for pipeline in quick standard full decomposition; do
   assert_file_exists "$MOIRA_HOME/core/pipelines/${pipeline}.yaml" "pipeline ${pipeline}.yaml exists"
@@ -107,7 +140,7 @@ for skill in orchestrator gates dispatch errors; do
 done
 
 # ── Command stubs ────────────────────────────────────────────────────
-commands=(task init status resume knowledge metrics audit bypass refresh help)
+commands=(task init status resume knowledge metrics audit bypass refresh help bench)
 for cmd in "${commands[@]}"; do
   assert_file_exists "$COMMANDS_DIR/${cmd}.md" "command ${cmd}.md exists"
 done

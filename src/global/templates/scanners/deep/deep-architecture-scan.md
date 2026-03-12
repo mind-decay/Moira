@@ -63,9 +63,9 @@ Prepend your findings as a new section. Do NOT replace existing content — add 
 ## Constraints
 
 - Report ONLY observed facts with file path evidence
-- Never propose solutions
-- Never express opinions
-- Never make recommendations
+- NEVER propose solutions
+- NEVER express opinions
+- NEVER make recommendations
 - NO opinions, NO recommendations, NO proposals
 - If information is not found, write "Not detected" — do NOT guess
 - Budget: stay within 140k tokens

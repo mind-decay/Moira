@@ -411,8 +411,8 @@ gate_responses:
 
 expected_structural:
   pipeline_type: standard
-  agents_called: [explorer, analyst, architect, planner,
-                  implementer, reviewer, tester]
+  agents_called: [apollo, hermes, athena, metis, daedalus,
+                  hephaestus, themis, aletheia]
   gates_triggered: [classification, architecture, plan, final]
   constitution_pass: true
 

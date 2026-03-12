@@ -421,3 +421,84 @@ All architectural decisions made during Moira system design.
 **Context:** Phase 5 `/moira:init` needs to track bootstrap state (quick scan completed, deep scan pending) in config.yaml. These fields were referenced in the Phase 5 spec but not defined in config.schema.yaml.
 **Decision:** Add `bootstrap.*` fields to config.schema.yaml: `quick_scan_completed` (bool), `quick_scan_at` (string/timestamp), `deep_scan_completed` (bool), `deep_scan_pending` (bool). All optional, default to false/"".
 **Reasoning:** Per D-029 (full YAML schemas upfront), schema must be defined before implementation. Bootstrap state is project config (committed to git) because team members need to know whether deep scan has run.
+
+## D-046: LLM-Judge Deferred to Phase 10
+
+**Context:** Roadmap Phase 6 testing section mentions "LLM-judge with anchored rubrics (D-024)". However, `testing.md` roadmap integration explicitly assigns LLM-Judge implementation to Phase 10 alongside the Reflector. Which timing is correct?
+**Decision:** Phase 6 creates rubric DEFINITION files (YAML with anchored examples) and bench infrastructure with automated checks only (compile, lint, test pass/fail). The actual LLM-Judge invocation (Claude call for qualitative evaluation) is deferred to Phase 10.
+**Alternatives rejected:**
+- Full LLM-Judge in Phase 6 — the judge evaluates the same dimensions as the Reflector (requirements coverage, code correctness, architecture quality, conventions adherence). Implementing them together ensures consistency.
+- No bench infrastructure in Phase 6 — the fixtures and test case format are needed regardless of the judge. Automated checks provide immediate value.
+**Reasoning:** testing.md's Phase 10 assignment is correct. The LLM-Judge and Reflector share evaluation patterns — implementing them in the same phase prevents divergence. Phase 6 bench results include structural/automated scores only; quality scores are `null` until the judge is operational.
+
+## D-047: Quality Findings as Separate YAML Files
+
+**Context:** Should quality findings (checklist results, severity classifications) be embedded in the main agent output files (review.md, requirements.md) or written to dedicated files?
+**Decision:** Dedicated files: `state/tasks/{id}/findings/{agent}-{gate}.yaml`. Structured YAML format with machine-parseable verdict field.
+**Alternatives rejected:**
+- Inline in agent markdown output — requires parsing markdown for routing decisions, fragile
+- Findings in status.yaml — bloats the per-task status file, mixes state with data
+**Reasoning:** (1) Machine-parseable: YAML enables deterministic routing without markdown parsing. (2) Separation of concerns: detailed analysis in .md, routing data in .yaml. (3) Aggregation: quality.sh can scan the directory without understanding markdown structure. (4) Historical: findings persist for Reflector analysis in Phase 10.
+
+## D-048: Bench Mode Gate Auto-Response
+
+**Context:** Behavioral bench tests need to run Moira pipelines with predefined gate responses (from test case YAML). How should gates be handled during bench runs?
+**Decision:** A `bench_mode` flag in `current.yaml`. When true, the orchestrator reads gate responses from the test case file instead of prompting the user. All gate decisions are still recorded in state files.
+**Alternatives rejected:**
+- Separate bench pipeline that skips gates — tests different behavior than production, defeats purpose
+- External harness that intercepts and responds — duplicates orchestration logic, maintenance burden
+**Reasoning:** Bench tests must exercise the ACTUAL pipeline to be meaningful. Auto-response reuses production code with a single flag check at each gate. Does not violate Art 4.2 because the user explicitly chose to run the bench test. Full traceability maintained (Art 3.1).
+
+## D-049: QUALITY Line in Agent Response Contract
+
+**Context:** How should the orchestrator determine quality gate verdict without reading the full findings file?
+**Decision:** Add a `QUALITY` summary line to the agent response contract: `QUALITY: {gate}={verdict} ({critical}C/{warning}W/{suggestion}S)`. The orchestrator reads the full findings file ONLY when presenting WARNING details to the user.
+**Alternatives rejected:**
+- Always read full findings file — wastes orchestrator context on every quality gate
+- Parse findings inline from agent return text — fragile markdown parsing
+**Reasoning:** Per D-001 (minimal orchestrator context), the QUALITY line provides routing signal in a single line. Full findings are file-based (D-002). The orchestrator reads findings only for WARNING gate presentation, not for pass/fail_critical routing.
+
+## D-050: Deep Scan as Phase 6 Deliverable
+
+**Context:** Phase 5 placed the deep scan trigger in the orchestrator but deferred agent instructions. When should deep scan templates be implemented?
+**Decision:** Phase 6 implements deep scan agent instructions. Deep scan output is validated through the quality map system — scan results feed into the quality map with `medium` confidence, requiring 3+ task observations to reach `high` confidence (Art 5.2).
+**Alternatives rejected:**
+- Phase 5 — quality gates needed to validate deep scan output quality
+- Phase 10 — too late, deep scan data feeds quality map which is needed earlier
+**Reasoning:** Phase 6 provides quality gates. Deep scan results are structural knowledge (file lists, dependency graphs) validated by the quality map confidence system, not by LLM judgment. Phase 5 left the stub; Phase 6 completes it.
+
+## D-051: Quality Map Evolution is Structural, Not Semantic
+
+**Context:** How should quality map entries be updated based on Reviewer findings?
+**Decision:** `moira_knowledge_update_quality_map` uses keyword matching and observation counting (shell-based), not LLM reasoning. Consistent with D-042 (structural consistency validation).
+**Alternatives rejected:**
+- LLM-based semantic analysis at write time — too expensive for every task completion
+- No automated updates — quality map stagnates
+**Reasoning:** Shell can catch keyword-level matches (same pattern name + location). Counting observations is trivial. Full semantic analysis of pattern quality is the Reflector's job (Phase 10). This keeps the write path cheap and deterministic.
+
+## D-052: Fixture Projects are Minimal
+
+**Context:** How large should bench fixture projects be?
+**Decision:** Fixtures are intentionally small (3-25 files). They test Moira's pipeline behavior, not its ability to handle large codebases.
+**Alternatives rejected:**
+- Large realistic fixtures (100+ files) — slow to scan, expensive to reset, test the wrong thing
+- Single fixture with flags — loses the greenfield/mature/legacy behavioral distinctions
+**Reasoning:** Pipeline behavior (gate routing, quality checks, agent sequencing) doesn't depend on codebase size. Large codebase handling is tested via live telemetry on real projects (Phase 3). Minimal fixtures keep bench runs fast and token-efficient.
+
+## D-053: WARNING Gate is a Conditional Gate Type
+
+**Context:** Should quality warnings use an existing gate type or a new one?
+**Decision:** WARNING gate is a new conditional gate type, distinct from required approval gates. It has different options (proceed/fix/details/abort) and is ONLY presented when warning findings exist.
+**Alternatives rejected:**
+- Reuse existing approval gate — different semantics (approval vs quality triage)
+- Auto-proceed on warnings — violates Art 4.2 (user authority over quality decisions)
+**Reasoning:** Required gates (classification, architecture, plan, final) are defined in pipeline YAML per Art 2.2. The WARNING gate is a conditional error-handling path, similar to E5-QUALITY retry. It doesn't violate Art 2.2 because it's not a pipeline-defined gate — it's a quality routing mechanism that only activates when warnings are present.
+
+## D-054: Config Quality Fields Reconciled for Phase 6
+
+**Context:** Phase 1 (D-029) created `quality.evolution_threshold` and `quality.review_severity_minimum` in config.schema.yaml based on early quality.md design. Phase 6 spec requires `quality.evolution.current_target` and `quality.evolution.cooldown_remaining` for EVOLVE mode lifecycle tracking.
+**Decision:** Remove `quality.evolution_threshold` (superseded by hardcoded 3-observation rule per Art 5.2) and `quality.review_severity_minimum` (superseded by fixed severity routing: critical→retry, warning→gate, suggestion→log). Replace with `quality.evolution.current_target` (string) and `quality.evolution.cooldown_remaining` (number).
+**Alternatives rejected:**
+- Keep all fields — `evolution_threshold` conflicts structurally with `evolution.current_target` nesting, and configurable severity minimum contradicts the deterministic routing model (Art 2.1)
+- Make evolution threshold configurable — Art 5.2 mandates 3+ observations, not user-configurable
+**Reasoning:** The 3-observation threshold is a constitutional requirement (Art 5.2), not a tunable parameter. Severity routing is deterministic by design (Art 2.1). Configurable fields that contradict invariants create confusion about what the system actually does.

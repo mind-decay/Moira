@@ -101,6 +101,20 @@ install_global() {
     cp -f "$SCRIPT_DIR/global/templates/project-claude-md.tmpl" "$MOIRA_HOME/templates/"
   fi
 
+  # Copy deep scan templates (Phase 6)
+  if [[ -d "$SCRIPT_DIR/global/templates/scanners/deep" ]]; then
+    mkdir -p "$MOIRA_HOME/templates/scanners/deep"
+    cp -f "$SCRIPT_DIR/global/templates/scanners/deep/"*.md "$MOIRA_HOME/templates/scanners/deep/"
+  fi
+
+  # Copy bench infrastructure (Phase 6)
+  if [[ -d "$SCRIPT_DIR/tests/bench" ]]; then
+    mkdir -p "$MOIRA_HOME/tests/bench/fixtures" "$MOIRA_HOME/tests/bench/cases" "$MOIRA_HOME/tests/bench/rubrics"
+    cp -rf "$SCRIPT_DIR/tests/bench/fixtures/"* "$MOIRA_HOME/tests/bench/fixtures/"
+    cp -f "$SCRIPT_DIR/tests/bench/cases/"*.yaml "$MOIRA_HOME/tests/bench/cases/"
+    cp -f "$SCRIPT_DIR/tests/bench/rubrics/"*.yaml "$MOIRA_HOME/tests/bench/rubrics/"
+  fi
+
   # Write version marker
   echo "$MOIRA_VERSION" > "$MOIRA_HOME/.version"
 
@@ -150,7 +164,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh; do
     ((checks_total++))
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then
@@ -299,6 +313,44 @@ verify() {
     ((checks_passed++))
   else
     errors+="  project-claude-md.tmpl not found\n"
+  fi
+
+  # Check: deep scan templates exist (Phase 6)
+  ((checks_total++))
+  local deep_count
+  deep_count=$(find "$MOIRA_HOME/templates/scanners/deep" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$deep_count" -ge 4 ]]; then
+    ((checks_passed++))
+  else
+    errors+="  deep scan templates: expected >=4, found ${deep_count}\n"
+  fi
+
+  # Check: bench fixtures exist (Phase 6)
+  ((checks_total++))
+  local fixture_count
+  fixture_count=$(find "$MOIRA_HOME/tests/bench/fixtures" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$fixture_count" -ge 3 ]]; then
+    ((checks_passed++))
+  else
+    errors+="  bench fixtures: expected >=3, found ${fixture_count}\n"
+  fi
+
+  # Check: bench test cases exist (Phase 6)
+  ((checks_total++))
+  local case_count
+  case_count=$(find "$MOIRA_HOME/tests/bench/cases" -name "*.yaml" 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$case_count" -ge 5 ]]; then
+    ((checks_passed++))
+  else
+    errors+="  bench test cases: expected >=5, found ${case_count}\n"
+  fi
+
+  # Check: findings schema exists (Phase 6)
+  ((checks_total++))
+  if [[ -f "$MOIRA_HOME/schemas/findings.schema.yaml" ]]; then
+    ((checks_passed++))
+  else
+    errors+="  schemas/findings.schema.yaml not found\n"
   fi
 
   if [[ $checks_passed -eq $checks_total ]]; then

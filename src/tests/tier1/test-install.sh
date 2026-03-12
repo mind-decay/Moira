@@ -74,6 +74,51 @@ assert_file_exists "$MOIRA_HOME/templates/stack-presets/generic.yaml" "clean ins
 # Phase 5: CLAUDE.md template
 assert_file_exists "$MOIRA_HOME/templates/project-claude-md.tmpl" "clean install: CLAUDE.md template exists"
 
+# Phase 6: quality.sh and bench.sh
+assert_file_exists "$MOIRA_HOME/lib/quality.sh" "clean install: quality.sh exists"
+if bash -n "$MOIRA_HOME/lib/quality.sh" 2>/dev/null; then
+  pass "clean install: quality.sh syntax valid"
+else
+  fail "clean install: quality.sh has syntax errors"
+fi
+
+assert_file_exists "$MOIRA_HOME/lib/bench.sh" "clean install: bench.sh exists"
+if bash -n "$MOIRA_HOME/lib/bench.sh" 2>/dev/null; then
+  pass "clean install: bench.sh syntax valid"
+else
+  fail "clean install: bench.sh has syntax errors"
+fi
+
+# Phase 6: findings schema
+assert_file_exists "$MOIRA_HOME/schemas/findings.schema.yaml" "clean install: findings schema exists"
+
+# Phase 6: deep scan templates
+deep_count=$(find "$MOIRA_HOME/templates/scanners/deep" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$deep_count" -ge 4 ]]; then
+  pass "clean install: $deep_count deep scan templates (>=4)"
+else
+  fail "clean install: expected >=4 deep scan templates, found $deep_count"
+fi
+
+# Phase 6: bench fixtures
+fixture_count=$(find "$MOIRA_HOME/tests/bench/fixtures" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$fixture_count" -ge 3 ]]; then
+  pass "clean install: $fixture_count bench fixtures (>=3)"
+else
+  fail "clean install: expected >=3 bench fixtures, found $fixture_count"
+fi
+
+# Phase 6: bench test cases
+case_count=$(find "$MOIRA_HOME/tests/bench/cases" -name "*.yaml" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$case_count" -ge 5 ]]; then
+  pass "clean install: $case_count bench test cases (>=5)"
+else
+  fail "clean install: expected >=5 bench test cases, found $case_count"
+fi
+
+# Phase 6: bench command
+assert_file_exists "$TEST_HOME/.claude/commands/moira/bench.md" "clean install: bench.md command exists"
+
 # Pipeline definitions
 assert_dir_exists "$MOIRA_HOME/core/pipelines" "clean install: pipelines dir exists"
 for pipeline in quick standard full decomposition; do
@@ -102,7 +147,7 @@ assert_file_exists "$MOIRA_HOME/schemas/telemetry.schema.yaml" "clean install: t
 
 # Count command stubs
 cmd_count=$(ls "$TEST_HOME/.claude/commands/moira/"*.md 2>/dev/null | wc -l | tr -d ' ')
-assert_equals "$cmd_count" "10" "clean install: 10 command stubs installed"
+assert_equals "$cmd_count" "11" "clean install: 11 command stubs installed"
 
 # ── Test: idempotency (re-run) ────────────────────────────────────────
 output2=$(bash "$SRC_DIR/install.sh" 2>&1) || true
