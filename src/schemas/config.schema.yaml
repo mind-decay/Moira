@@ -117,15 +117,16 @@ fields:
     required: false
     enum: [conform, evolve]
     default: conform
-  quality.evolution_threshold:
+  quality.evolution.current_target:
+    type: string
+    required: false
+    default: ""
+    description: "Pattern currently being evolved (empty = none)"
+  quality.evolution.cooldown_remaining:
     type: number
     required: false
-    default: 3
-  quality.review_severity_minimum:
-    type: enum
-    required: false
-    enum: [low, medium, high, critical]
-    default: medium
+    default: 0
+    description: "Tasks remaining in post-evolution cooldown (0 = not in cooldown)"
   knowledge.freshness_days:
     type: number
     required: false
