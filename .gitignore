@@ -22,6 +22,9 @@ node_modules/
 .claude/moira/state/queue.yaml
 .claude/moira/state/budget-log.txt
 
+# Worktrees
+.worktrees/
+
 # Local testing artifacts
 tmp/
 *.tmp
