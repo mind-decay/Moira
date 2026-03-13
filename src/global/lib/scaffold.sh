@@ -24,7 +24,6 @@ moira_scaffold_global() {
   mkdir -p "$target_dir"/core/pipelines
   mkdir -p "$target_dir"/skills
   mkdir -p "$target_dir"/hooks
-  mkdir -p "$target_dir"/templates/stack-presets
   mkdir -p "$target_dir"/templates/scanners
   mkdir -p "$target_dir"/templates/knowledge
   mkdir -p "$target_dir"/lib

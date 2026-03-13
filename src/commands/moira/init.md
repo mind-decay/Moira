@@ -93,30 +93,19 @@ Dispatch ALL 4 agents simultaneously using 4 Agent tool calls in a **single mess
 - prompt: Same pattern with pattern-scan.md
 
 Wait for all 4 to complete. Check results:
-- If any agent fails: report which scanner failed and why. Offer: **retry** / **skip** (use preset defaults only) / **abort**
+- If any agent fails: report which scanner failed and why. Offer: **retry** / **skip** (fields will be empty) / **abort**
 - If all succeed: proceed
 
-## Step 5: Match Stack Preset
+## Step 5: Generate Config and Rules
 
 Run via Bash:
 ```bash
 source ~/.claude/moira/lib/bootstrap.sh
-PRESET=$(moira_bootstrap_match_preset ".claude/moira/state/init/tech-scan.md" "$HOME/.claude/moira/templates/stack-presets")
-echo "Matched preset: $PRESET"
+moira_bootstrap_generate_config "{project_root}" ".claude/moira/state/init/tech-scan.md"
+moira_bootstrap_generate_project_rules "{project_root}" ".claude/moira/state/init"
 ```
 
-Display: "Matched stack preset: {result}"
-
-## Step 6: Generate Config and Rules
-
-Run via Bash:
-```bash
-source ~/.claude/moira/lib/bootstrap.sh
-moira_bootstrap_generate_config "{project_root}" "$HOME/.claude/moira/templates/stack-presets/{preset}" ".claude/moira/state/init/tech-scan.md"
-moira_bootstrap_generate_project_rules "{project_root}" "$HOME/.claude/moira/templates/stack-presets/{preset}" ".claude/moira/state/init"
-```
-
-## Step 7: Populate Knowledge
+## Step 6: Populate Knowledge
 
 Run via Bash:
 ```bash
@@ -124,7 +113,7 @@ source ~/.claude/moira/lib/bootstrap.sh
 moira_bootstrap_populate_knowledge "{project_root}" ".claude/moira/state/init"
 ```
 
-## Step 8: Integrate CLAUDE.md
+## Step 7: Integrate CLAUDE.md
 
 Run via Bash:
 ```bash
@@ -132,7 +121,7 @@ source ~/.claude/moira/lib/bootstrap.sh
 moira_bootstrap_inject_claude_md "{project_root}" "$HOME/.claude/moira"
 ```
 
-## Step 9: Setup Gitignore
+## Step 8: Setup Gitignore
 
 Run via Bash:
 ```bash
@@ -140,7 +129,7 @@ source ~/.claude/moira/lib/bootstrap.sh
 moira_bootstrap_setup_gitignore "{project_root}"
 ```
 
-## Step 10: User Review Gate (REQUIRED — Art 4.2)
+## Step 9: User Review Gate (REQUIRED — Art 4.2)
 
 This is an **APPROVAL GATE**. Do NOT proceed without explicit user action.
 
@@ -180,13 +169,13 @@ Then re-present the gate (review/accept/adjust).
 
 ### On "accept":
 Display: "Moira is ready. Use `/moira:task <description>` to start."
-Proceed to Step 11.
+Proceed to Step 10.
 
 ### On "adjust":
 Ask user what needs correction. Apply changes to the relevant files.
 Then re-present the gate.
 
-## Step 11: Micro-Onboarding (conditional)
+## Step 10: Micro-Onboarding (conditional)
 
 Check if this appears to be the user's first time with Moira (e.g., no completed tasks in any project, or global install is recent).
 
@@ -254,10 +243,10 @@ Done.
 When `--force` is passed:
 - Step 3: scaffold is re-run (idempotent — no data loss)
 - Step 4: all 4 scanners run again (full rescan)
-- Step 7: knowledge update behavior:
+- Step 6: knowledge update behavior:
   - **project-model, conventions, patterns**: overwritten with new scan data
   - **quality-map**: regenerated as preliminary
   - **decisions**: PRESERVED (organic growth — not scanner-sourced)
   - **failures**: PRESERVED (organic growth — not scanner-sourced)
-- Steps 8-9: CLAUDE.md re-injected (replaces between markers), gitignore rechecked
-- Steps 10-11: same review gate
+- Steps 7-8: CLAUDE.md re-injected (replaces between markers), gitignore rechecked
+- Steps 9-10: same review gate

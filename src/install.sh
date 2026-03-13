@@ -80,10 +80,6 @@ install_global() {
   if ls "$SCRIPT_DIR/global/hooks/"* &>/dev/null; then
     cp -f "$SCRIPT_DIR/global/hooks/"* "$MOIRA_HOME/hooks/" 2>/dev/null || true
   fi
-  if ls "$SCRIPT_DIR/global/templates/stack-presets/"* &>/dev/null; then
-    cp -f "$SCRIPT_DIR/global/templates/stack-presets/"* "$MOIRA_HOME/templates/stack-presets/" 2>/dev/null || true
-  fi
-
   # Copy knowledge templates (Phase 4)
   if [[ -d "$SCRIPT_DIR/global/templates/knowledge" ]]; then
     mkdir -p "$MOIRA_HOME/templates/knowledge"
@@ -302,14 +298,6 @@ verify() {
     ((checks_passed++))
   else
     errors+="  scanner templates: expected >=4, found ${scanner_count}\n"
-  fi
-
-  # Check: stack presets exist with generic fallback (Phase 5)
-  ((checks_total++))
-  if [[ -f "$MOIRA_HOME/templates/stack-presets/generic.yaml" ]]; then
-    ((checks_passed++))
-  else
-    errors+="  generic.yaml stack preset not found\n"
   fi
 
   # Check: CLAUDE.md template exists (Phase 5)
