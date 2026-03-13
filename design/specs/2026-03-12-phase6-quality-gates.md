@@ -31,7 +31,7 @@ After Phase 6: every agent that produces quality-relevant output is REQUIRED to 
 - **Phase 2:** All 10 agent role definitions (especially `themis.yaml` — Reviewer), quality checklist YAML files (q1-q5), base.yaml, response-contract.yaml, knowledge-access-matrix.yaml
 - **Phase 3:** Orchestrator skill (orchestrator.md, gates.md, dispatch.md, errors.md), pipeline definitions, E5-QUALITY error handling stubs
 - **Phase 4:** Rules assembly (rules.sh), knowledge system (knowledge.sh), knowledge templates, dispatch instruction file support
-- **Phase 5:** Bootstrap engine (bootstrap.sh, scanners, presets), config.yaml with bootstrap fields, CLAUDE.md integration
+- **Phase 5:** Bootstrap engine (bootstrap.sh, scanners, frontmatter-based config generation), config.yaml with bootstrap fields, CLAUDE.md integration
 
 ## Design Inconsistency: LLM-Judge Timing
 
@@ -423,7 +423,7 @@ Three minimal but functional projects for testing Moira pipeline execution.
 - Clean git repo with `clean` branch
 
 **`mature-webapp/`** — Consistent patterns, ~20-25 files:
-- Express + TypeScript + Prisma (matching existing preset)
+- Express + TypeScript + Prisma (detected by scanners)
 - Clear directory structure: `src/routes/`, `src/services/`, `src/types/`, `src/middleware/`
 - Consistent naming, error handling, testing patterns
 - 3-4 API endpoints, service layer, repository layer
@@ -449,7 +449,7 @@ characteristics:
   - {characteristic 1}
   - {characteristic 2}
 reset_command: "git checkout clean && git clean -fd"
-moira_init_preset: "{preset stack_id}"
+expected_stack: "{free-form stack string}"  # presets removed per D-060
 ```
 
 **Fixture sizing principle:** Fixtures should be small enough to scan quickly but representative enough to trigger meaningful pipeline behavior. Err on the side of minimal — the value is in testing Moira's pipeline, not in simulating a real large codebase.

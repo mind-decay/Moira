@@ -105,7 +105,7 @@ Based on dependency analysis. Each phase builds on previous.
   - Convention scan (naming, imports, patterns)
   - Pattern scan (component structure, API patterns)
 - All 4 scanners dispatched in parallel via Agent tool
-- Config generator (`config.yaml` from scan results + stack preset)
+- Config generator (`config.yaml` from scan frontmatter)
 - `.claude/CLAUDE.md` integration (moira:start/moira:end markers, idempotent)
 - Existing `.claude/` compatibility (no conflicts with GSD/other tools)
 - Deep scan (background) trigger on first task

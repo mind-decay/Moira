@@ -145,7 +145,7 @@ This is important because it means the Planner is a critical component that dete
 
 ### Bootstrap (/moira init — Phase 5)
 
-Bootstrap must work on ANY project type. The stack presets (nextjs.yaml, express.yaml, etc.) are starting points, not rigid templates.
+Bootstrap must work on ANY project type. Scanners detect everything directly — each scanner writes YAML frontmatter (machine-readable fields) plus a markdown body (human-readable detail). There is no preset layer; config and rules are generated from scanner frontmatter. See D-060 and `design/specs/2026-03-13-bootstrap-scanner-reform.md`.
 
 **Bootstrap scanning strategy:**
 

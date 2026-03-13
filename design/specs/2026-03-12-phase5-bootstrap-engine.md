@@ -59,6 +59,7 @@ Each template follows this structure:
 {what files to read, in what order, with explicit limits}
 
 ## Output Format
+> **Note:** Output format now includes YAML frontmatter block (machine-readable) + markdown body (human-readable), per `design/specs/2026-03-13-bootstrap-scanner-reform.md`.
 {exact structure of the artifact file}
 
 ## Output Path
@@ -277,7 +278,7 @@ Output format:
 | ... | ... | ... |
 ```
 
-### D2: Stack Presets (`src/global/templates/stack-presets/`)
+### D2: Stack Presets (`src/global/templates/stack-presets/`) — **SUPERSEDED** by `design/specs/2026-03-13-bootstrap-scanner-reform.md` — presets removed
 
 Preset YAML files that provide default Layer 3 project rules for common stacks. The tech scanner identifies the stack, the init command finds the closest preset, then augments it with scanner findings.
 
@@ -342,6 +343,8 @@ Additional presets (nestjs, django, vue-nuxt, rust) are listed in the design but
 Shell library for bootstrap operations: preset matching, config generation, knowledge population, and CLAUDE.md integration.
 
 **Functions:**
+
+> **Note:** Preset functions (`moira_bootstrap_match_preset`, `moira_bootstrap_generate_config` with preset arg, `moira_bootstrap_generate_project_rules` with preset arg) are **SUPERSEDED** by `design/specs/2026-03-13-bootstrap-scanner-reform.md` — preset functions deleted, replaced by frontmatter parser. Config and rules are now generated directly from scanner YAML frontmatter.
 
 #### `moira_bootstrap_match_preset <tech_scan_path> <presets_dir>`
 Match tech scan results to the closest stack preset.

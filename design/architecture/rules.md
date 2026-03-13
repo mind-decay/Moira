@@ -112,6 +112,9 @@ formatting:
   max_line_length: 100
 
 structure:
+  # Note: `structure:` section is populated from the structure scanner's `dir_*`
+  # frontmatter fields (e.g., dir_source, dir_tests, dir_config), not from presets.
+  # See D-060 and design/specs/2026-03-13-bootstrap-scanner-reform.md.
   components: src/components/{feature}/{ComponentName}.tsx
   pages: src/app/{route}/page.tsx
   api: src/app/api/{resource}/route.ts

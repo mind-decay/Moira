@@ -239,16 +239,6 @@ After installation, `~/.claude/` contains:
 │   │   ├── conventions.tmpl              # conventions.yaml skeleton
 │   │   ├── patterns.tmpl                 # patterns.yaml skeleton
 │   │   ├── quality-map.tmpl              # quality-map skeleton
-│   │   └── stack-presets/
-│   │       ├── nextjs.yaml               # Preset: Next.js project
-│   │       ├── react-vite.yaml           # Preset: React + Vite
-│   │       ├── express.yaml              # Preset: Express.js API
-│   │       ├── nestjs.yaml               # Preset: NestJS
-│   │       ├── fastapi.yaml              # Preset: Python FastAPI
-│   │       ├── django.yaml               # Preset: Python Django
-│   │       ├── go-api.yaml               # Preset: Go API
-│   │       ├── vue-nuxt.yaml             # Preset: Vue/Nuxt
-│   │       └── generic.yaml              # Fallback: unknown stack
 │   └── lib/
 │       ├── state.sh                      # State management utilities
 │       ├── scaffold.sh                   # Directory scaffold generator
@@ -301,12 +291,7 @@ claude                    # start Claude Code
   │    ├─ Convention scanner → reads linter configs + sample files
   │    └─ Pattern scanner → reads representative files per layer
   │
-  ├─ 4. MATCH: Find closest stack preset
-  │    Tech scanner found: Next.js 14, TypeScript, Tailwind, Prisma
-  │    Closest preset: nextjs.yaml
-  │    Augmented with: Prisma-specific patterns, Tailwind conventions
-  │
-  ├─ 5. GENERATE: Create project layer
+  ├─ 4. GENERATE: Create project layer
   │    .claude/moira/
   │    ├─ config.yaml              (from preset + scan results)
   │    ├─ project/rules/

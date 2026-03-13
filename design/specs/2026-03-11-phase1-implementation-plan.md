@@ -64,7 +64,7 @@ Add these entries to the global layer tree:
 
 **Files:**
 - Create: `src/.version` — contains `0.1.0`
-- Ensure dirs exist: `src/global/lib/`, `src/global/core/rules/roles/`, `src/global/core/rules/quality/`, `src/global/skills/`, `src/global/hooks/`, `src/global/templates/stack-presets/`, `src/schemas/`, `src/tests/tier1/`, `src/commands/moira/`
+- Ensure dirs exist: `src/global/lib/`, `src/global/core/rules/roles/`, `src/global/core/rules/quality/`, `src/global/skills/`, `src/global/hooks/`, `src/global/templates/scanners/`, `src/schemas/`, `src/tests/tier1/`, `src/commands/moira/` *(Note: `stack-presets/` removed per D-060, replaced with `scanners/`)*
 
 - [ ] Create .version with "0.1.0"
 - [ ] Create all directories (empty placeholder dirs get .gitkeep)
@@ -230,7 +230,7 @@ This is the foundation — all other libraries depend on it.
   ├── core/rules/{roles/,quality/}
   ├── skills/
   ├── hooks/
-  ├── templates/stack-presets/
+  ├── templates/scanners/                # stack-presets/ removed per D-060
   └── lib/
   ```
 - Uses `mkdir -p` — idempotent by nature
@@ -463,7 +463,7 @@ Tests (run against installed Moira at $MOIRA_HOME):
 - core/rules/quality/ directory exists
 - skills/ directory exists
 - hooks/ directory exists
-- templates/stack-presets/ directory exists
+- templates/scanners/ directory exists  # stack-presets/ removed per D-060
 - All 10 command stubs exist in ~/.claude/commands/moira/
 - Each command stub contains `name: moira:` in frontmatter
 - Each command stub contains `allowed-tools:` in frontmatter

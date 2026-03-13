@@ -119,10 +119,7 @@ User → /moira <task>
 │   ├── templates/
 │   │   ├── project-claude-md.tmpl
 │   │   ├── project-config.tmpl
-│   │   └── stack-presets/
-│   │       ├── nextjs.yaml
-│   │       ├── generic.yaml
-│   │       └── ...
+│   │   └── scanners/                  # Scanner instruction templates
 │   └── lib/
 │       ├── state.sh
 │       ├── scaffold.sh

@@ -48,7 +48,7 @@ version: "1.0"
 project:
   name: string                    # project name
   root: string                    # absolute path to project root
-  stack: string                   # preset ID (nextjs|react|vue|python|go|rust|java|generic)
+  stack: string                   # free-form stack string (presets removed per D-060)
 
 classification:
   default_pipeline: standard      # fallback if Classifier is uncertain
@@ -378,7 +378,7 @@ progress:
 │   │       └── constitutional-checks.yaml
 │   ├── templates/
 │   │   ├── project-claude-md.tmpl
-│   │   └── stack-presets/
+│   │   └── scanners/                    # stack-presets/ removed per D-060
 │   │       ├── nextjs.yaml
 │   │       ├── react.yaml
 │   │       ├── vue.yaml

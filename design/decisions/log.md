@@ -550,3 +550,13 @@ All architectural decisions made during Moira system design.
 - No MCP budgeting — MCP calls can be large (14k+ for context7), ignoring them risks budget overflow
 - Hardcoded estimates — not tunable per project
 **Reasoning:** MCP call sizes vary by query but have predictable ranges. Config-driven allows projects to tune based on actual usage patterns. Default values are conservative (14k for context7, 5k for unknown).
+
+## D-060: Remove Stack Presets, Frontmatter Scanner Output, Directory Conventions in Structure Scanner
+
+**Context:** Stack presets actively harm unknown stacks (SvelteKit matched react-vite preset, injecting React defaults). Bash grep/sed parsing of free-form markdown is fragile (backtick-wrapped values, "Not detected" strings, missing headers). See `design/reports/2026-03-13-init-bootstrap-bugs.md`.
+**Decision:** Remove all stack presets. Scanners write YAML frontmatter (machine-readable) + markdown body (human-readable). Structure scanner detects `dir_*` file placement patterns for `conventions.yaml` `structure:` section. `project.stack` becomes free-form string.
+**Alternatives rejected:**
+- Add more presets — doesn't scale to every possible stack
+- Keep presets + fix parsing — two-system complexity remains
+- Dedicated architecture scanner for `dir_*` — future enhancement, not needed now (structure scanner already maps directory roles)
+**Reasoning:** Frontmatter is trivially parseable in bash (read between `---` delimiters). No preset layer means no wrong defaults. Structure scanner already maps directories — `dir_*` detection is natural extension. Architecture scanner may take over `dir_*` responsibility in future.

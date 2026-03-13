@@ -25,7 +25,7 @@ src/
 │   ├── skills/                          # orchestrator.md (Phase 3)
 │   ├── hooks/                           # guard.sh, budget-track.sh (Phase 8)
 │   ├── templates/
-│   │   └── stack-presets/               # presets (Phase 5)
+│   │   └── scanners/                    # scanner templates (Phase 5) — stack-presets/ removed per D-060
 │   └── lib/
 │       ├── state.sh                     # state management utilities
 │       ├── scaffold.sh                  # directory scaffold generator
