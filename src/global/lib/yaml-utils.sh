@@ -17,7 +17,7 @@ _moira_schema_dir() {
     echo "${MOIRA_HOME}/schemas"
   else
     local script_dir
-    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
     echo "${script_dir}/../../schemas"
   fi
 }
