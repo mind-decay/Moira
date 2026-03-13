@@ -39,7 +39,6 @@ assert_dir_exists "$MOIRA_HOME/core/rules/roles" "core/rules/roles/ exists"
 assert_dir_exists "$MOIRA_HOME/core/rules/quality" "core/rules/quality/ exists"
 assert_dir_exists "$MOIRA_HOME/skills" "skills/ exists"
 assert_dir_exists "$MOIRA_HOME/hooks" "hooks/ exists"
-assert_dir_exists "$MOIRA_HOME/templates/stack-presets" "templates/stack-presets/ exists"
 assert_dir_exists "$MOIRA_HOME/lib" "lib/ exists"
 assert_dir_exists "$MOIRA_HOME/schemas" "schemas/ exists"
 assert_dir_exists "$MOIRA_HOME/core/pipelines" "core/pipelines/ exists"
@@ -93,7 +92,6 @@ else
   fail "scanner templates: expected >=4, found $scanner_count"
 fi
 
-assert_file_exists "$MOIRA_HOME/templates/stack-presets/generic.yaml" "stack-presets/generic.yaml exists"
 assert_file_exists "$MOIRA_HOME/templates/project-claude-md.tmpl" "project-claude-md.tmpl exists"
 
 # ── Phase 6: quality system artifacts ─────────────────────────────

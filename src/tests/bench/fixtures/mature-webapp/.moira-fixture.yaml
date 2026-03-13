@@ -9,4 +9,3 @@ characteristics:
   - jest tests with consistent patterns
   - linting and formatting configured
 reset_command: "git checkout clean && git clean -fd"
-moira_init_preset: express

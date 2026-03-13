@@ -23,18 +23,18 @@ check_prerequisites() {
   if ! command -v claude &> /dev/null; then
     echo "[ERROR] Claude Code CLI not found."
     echo "  Install: https://docs.anthropic.com/claude-code"
-    ((errors++))
+    ((errors++)) || true
   fi
 
   if ! command -v git &> /dev/null; then
     echo "[ERROR] git not found."
-    ((errors++))
+    ((errors++)) || true
   fi
 
   # Check bash version >= 3
   if [[ "${BASH_VERSINFO[0]}" -lt 3 ]]; then
     echo "[ERROR] bash 3+ required (found: ${BASH_VERSION})"
-    ((errors++))
+    ((errors++)) || true
   fi
 
   if [[ $errors -gt 0 ]]; then
@@ -151,12 +151,12 @@ verify() {
   local errors=""
 
   # Check 1: .version exists and contains valid semver
-  ((checks_total++))
+  ((checks_total++)) || true
   if [[ -f "$MOIRA_HOME/.version" ]]; then
     local ver
     ver=$(cat "$MOIRA_HOME/.version")
     if [[ "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-      ((checks_passed++))
+      ((checks_passed++)) || true
     else
       errors+="  .version contains invalid semver: $ver\n"
     fi
@@ -166,11 +166,11 @@ verify() {
 
   # Check 2-5: lib files exist and are sourceable
   for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh; do
-    ((checks_total++))
+    ((checks_total++)) || true
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then
       if bash -n "$lib_path" 2>/dev/null; then
-        ((checks_passed++))
+        ((checks_passed++)) || true
       else
         errors+="  $lib_file has syntax errors\n"
       fi
@@ -182,10 +182,10 @@ verify() {
   # Check 6: all 10 command stubs exist
   local commands=(task init status resume knowledge metrics audit bypass refresh help)
   for cmd in "${commands[@]}"; do
-    ((checks_total++))
+    ((checks_total++)) || true
     local cmd_path="$HOME/.claude/commands/moira/${cmd}.md"
     if [[ -f "$cmd_path" ]]; then
-      ((checks_passed++))
+      ((checks_passed++)) || true
     else
       errors+="  command stub ${cmd}.md not found\n"
     fi
@@ -193,11 +193,11 @@ verify() {
 
   # Check 7: each stub has valid frontmatter (name + allowed-tools)
   for cmd in "${commands[@]}"; do
-    ((checks_total++))
+    ((checks_total++)) || true
     local cmd_path="$HOME/.claude/commands/moira/${cmd}.md"
     if [[ -f "$cmd_path" ]]; then
       if grep -q "^name: moira:" "$cmd_path" && grep -q "allowed-tools:" "$cmd_path"; then
-        ((checks_passed++))
+        ((checks_passed++)) || true
       else
         errors+="  ${cmd}.md missing required frontmatter (name/allowed-tools)\n"
       fi
@@ -205,9 +205,9 @@ verify() {
   done
 
   # Check: base.yaml exists
-  ((checks_total++))
+  ((checks_total++)) || true
   if [[ -f "$MOIRA_HOME/core/rules/base.yaml" ]]; then
-    ((checks_passed++))
+    ((checks_passed++)) || true
   else
     errors+="  core/rules/base.yaml not found\n"
   fi
@@ -215,9 +215,9 @@ verify() {
   # Check: 10 role files exist
   local role_agents=(apollo hermes athena metis daedalus hephaestus themis aletheia mnemosyne argus)
   for agent in "${role_agents[@]}"; do
-    ((checks_total++))
+    ((checks_total++)) || true
     if [[ -f "$MOIRA_HOME/core/rules/roles/${agent}.yaml" ]]; then
-      ((checks_passed++))
+      ((checks_passed++)) || true
     else
       errors+="  core/rules/roles/${agent}.yaml not found\n"
     fi
@@ -226,9 +226,9 @@ verify() {
   # Check: 5 quality files exist
   local quality_files=(q1-completeness q2-soundness q3-feasibility q4-correctness q5-coverage)
   for qfile in "${quality_files[@]}"; do
-    ((checks_total++))
+    ((checks_total++)) || true
     if [[ -f "$MOIRA_HOME/core/rules/quality/${qfile}.yaml" ]]; then
-      ((checks_passed++))
+      ((checks_passed++)) || true
     else
       errors+="  core/rules/quality/${qfile}.yaml not found\n"
     fi
@@ -236,27 +236,27 @@ verify() {
 
   # Check: knowledge-access-matrix.yaml and response-contract.yaml
   for core_file in knowledge-access-matrix.yaml response-contract.yaml; do
-    ((checks_total++))
+    ((checks_total++)) || true
     if [[ -f "$MOIRA_HOME/core/${core_file}" ]]; then
-      ((checks_passed++))
+      ((checks_passed++)) || true
     else
       errors+="  core/${core_file} not found\n"
     fi
   done
 
   # Check: orchestrator skill exists and is non-empty (Phase 3)
-  ((checks_total++))
+  ((checks_total++)) || true
   if [[ -s "$MOIRA_HOME/skills/orchestrator.md" ]]; then
-    ((checks_passed++))
+    ((checks_passed++)) || true
   else
     errors+="  skills/orchestrator.md not found or empty\n"
   fi
 
   # Check: 4 pipeline definition files exist (Phase 3)
   for pipeline in quick standard full decomposition; do
-    ((checks_total++))
+    ((checks_total++)) || true
     if [[ -f "$MOIRA_HOME/core/pipelines/${pipeline}.yaml" ]]; then
-      ((checks_passed++))
+      ((checks_passed++)) || true
     else
       errors+="  core/pipelines/${pipeline}.yaml not found\n"
     fi
@@ -264,92 +264,92 @@ verify() {
 
   # Check: pipeline definitions contain gates section (Phase 3)
   for pipeline in quick standard full decomposition; do
-    ((checks_total++))
+    ((checks_total++)) || true
     if grep -q "gates:" "$MOIRA_HOME/core/pipelines/${pipeline}.yaml" 2>/dev/null; then
-      ((checks_passed++))
+      ((checks_passed++)) || true
     else
       errors+="  core/pipelines/${pipeline}.yaml missing gates: section\n"
     fi
   done
 
   # Check: telemetry schema exists (Phase 3)
-  ((checks_total++))
+  ((checks_total++)) || true
   if [[ -f "$MOIRA_HOME/schemas/telemetry.schema.yaml" ]]; then
-    ((checks_passed++))
+    ((checks_passed++)) || true
   else
     errors+="  schemas/telemetry.schema.yaml not found\n"
   fi
 
   # Check: knowledge templates exist (Phase 4)
-  ((checks_total++))
+  ((checks_total++)) || true
   local template_count
   template_count=$(find "$MOIRA_HOME/templates/knowledge" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
   if [[ "$template_count" -ge 17 ]]; then
-    ((checks_passed++))
+    ((checks_passed++)) || true
   else
     errors+="  knowledge templates: expected >=17, found ${template_count}\n"
   fi
 
   # Check: scanner templates exist (Phase 5)
-  ((checks_total++))
+  ((checks_total++)) || true
   local scanner_count
   scanner_count=$(find "$MOIRA_HOME/templates/scanners" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
   if [[ "$scanner_count" -ge 4 ]]; then
-    ((checks_passed++))
+    ((checks_passed++)) || true
   else
     errors+="  scanner templates: expected >=4, found ${scanner_count}\n"
   fi
 
   # Check: CLAUDE.md template exists (Phase 5)
-  ((checks_total++))
+  ((checks_total++)) || true
   if [[ -f "$MOIRA_HOME/templates/project-claude-md.tmpl" ]]; then
-    ((checks_passed++))
+    ((checks_passed++)) || true
   else
     errors+="  project-claude-md.tmpl not found\n"
   fi
 
   # Check: deep scan templates exist (Phase 6)
-  ((checks_total++))
+  ((checks_total++)) || true
   local deep_count
   deep_count=$(find "$MOIRA_HOME/templates/scanners/deep" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
   if [[ "$deep_count" -ge 4 ]]; then
-    ((checks_passed++))
+    ((checks_passed++)) || true
   else
     errors+="  deep scan templates: expected >=4, found ${deep_count}\n"
   fi
 
   # Check: bench fixtures exist (Phase 6)
-  ((checks_total++))
+  ((checks_total++)) || true
   local fixture_count
   fixture_count=$(find "$MOIRA_HOME/tests/bench/fixtures" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
   if [[ "$fixture_count" -ge 3 ]]; then
-    ((checks_passed++))
+    ((checks_passed++)) || true
   else
     errors+="  bench fixtures: expected >=3, found ${fixture_count}\n"
   fi
 
   # Check: bench test cases exist (Phase 6)
-  ((checks_total++))
+  ((checks_total++)) || true
   local case_count
   case_count=$(find "$MOIRA_HOME/tests/bench/cases" -name "*.yaml" 2>/dev/null | wc -l | tr -d ' ')
   if [[ "$case_count" -ge 5 ]]; then
-    ((checks_passed++))
+    ((checks_passed++)) || true
   else
     errors+="  bench test cases: expected >=5, found ${case_count}\n"
   fi
 
   # Check: findings schema exists (Phase 6)
-  ((checks_total++))
+  ((checks_total++)) || true
   if [[ -f "$MOIRA_HOME/schemas/findings.schema.yaml" ]]; then
-    ((checks_passed++))
+    ((checks_passed++)) || true
   else
     errors+="  schemas/findings.schema.yaml not found\n"
   fi
 
   # Check: budget template exists (Phase 7)
-  ((checks_total++))
+  ((checks_total++)) || true
   if [[ -f "$MOIRA_HOME/templates/budgets.yaml.tmpl" ]]; then
-    ((checks_passed++))
+    ((checks_passed++)) || true
   else
     errors+="  templates/budgets.yaml.tmpl not found\n"
   fi

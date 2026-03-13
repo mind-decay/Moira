@@ -7,4 +7,3 @@ characteristics:
   - single API endpoint
   - basic project setup
 reset_command: "git checkout clean && git clean -fd"
-moira_init_preset: express

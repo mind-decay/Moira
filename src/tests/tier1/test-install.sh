@@ -68,9 +68,6 @@ else
   fail "clean install: expected >=4 scanner templates, found $scanner_count"
 fi
 
-# Phase 5: stack presets (generic fallback)
-assert_file_exists "$MOIRA_HOME/templates/stack-presets/generic.yaml" "clean install: generic.yaml preset exists"
-
 # Phase 5: CLAUDE.md template
 assert_file_exists "$MOIRA_HOME/templates/project-claude-md.tmpl" "clean install: CLAUDE.md template exists"
 

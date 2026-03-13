@@ -9,4 +9,3 @@ characteristics:
   - no linting config
   - tech debt markers (TODO/FIXME)
 reset_command: "git checkout clean && git clean -fd"
-moira_init_preset: express

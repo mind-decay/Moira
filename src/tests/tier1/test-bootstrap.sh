@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # test-bootstrap.sh — Verify Phase 5 bootstrap engine artifacts
-# Tests scanner templates, stack presets, bootstrap.sh, CLAUDE.md template, init command.
+# Tests scanner templates, bootstrap.sh, CLAUDE.md template, init command.
 
 set -euo pipefail
 
@@ -32,42 +32,6 @@ for scanner in tech-scan structure-scan convention-scan pattern-scan; do
 done
 
 # ═══════════════════════════════════════════════════════════════════════
-# Stack preset tests
-# ═══════════════════════════════════════════════════════════════════════
-
-assert_file_exists "$MOIRA_HOME/templates/stack-presets/generic.yaml" "preset: generic.yaml exists"
-
-# Count non-generic presets
-preset_count=$(ls "$MOIRA_HOME/templates/stack-presets/"*.yaml 2>/dev/null | wc -l | tr -d ' ')
-if [[ "$preset_count" -ge 6 ]]; then
-  pass "preset: $preset_count presets (>=6 including generic)"
-else
-  fail "preset: expected >=6, found $preset_count"
-fi
-
-for preset_file in "$MOIRA_HOME/templates/stack-presets/"*.yaml; do
-  [[ -f "$preset_file" ]] || continue
-  name=$(basename "$preset_file")
-  assert_file_contains "$preset_file" "_meta:" "${name}: has _meta section"
-  assert_file_contains "$preset_file" "stack:" "${name}: has stack section"
-  assert_file_contains "$preset_file" "conventions:" "${name}: has conventions section"
-  assert_file_contains "$preset_file" "patterns:" "${name}: has patterns section"
-  assert_file_contains "$preset_file" "boundaries:" "${name}: has boundaries section"
-done
-
-# generic.yaml has stack_id: generic
-assert_file_contains "$MOIRA_HOME/templates/stack-presets/generic.yaml" "stack_id: generic" "generic.yaml: has stack_id: generic"
-
-# Check all stack_ids are unique
-all_ids=$(grep 'stack_id:' "$MOIRA_HOME/templates/stack-presets/"*.yaml 2>/dev/null | sed 's/.*stack_id:[[:space:]]*//' | sort)
-unique_ids=$(echo "$all_ids" | sort -u)
-if [[ "$all_ids" == "$unique_ids" ]]; then
-  pass "preset: all stack_id values are unique"
-else
-  fail "preset: duplicate stack_id values found"
-fi
-
-# ═══════════════════════════════════════════════════════════════════════
 # Bootstrap library tests
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -80,11 +44,24 @@ if [[ -f "$MOIRA_HOME/lib/bootstrap.sh" ]]; then
     fail "bootstrap.sh has syntax errors"
   fi
 
-  for func in moira_bootstrap_match_preset moira_bootstrap_generate_config moira_bootstrap_generate_project_rules moira_bootstrap_populate_knowledge moira_bootstrap_inject_claude_md moira_bootstrap_setup_gitignore; do
+  for func in moira_bootstrap_generate_config moira_bootstrap_generate_project_rules \
+              moira_bootstrap_populate_knowledge moira_bootstrap_inject_claude_md \
+              moira_bootstrap_setup_gitignore _moira_parse_frontmatter \
+              _moira_parse_frontmatter_list; do
     if grep -q "$func" "$MOIRA_HOME/lib/bootstrap.sh" 2>/dev/null; then
       pass "bootstrap.sh: function $func declared"
     else
       fail "bootstrap.sh: function $func not found"
+    fi
+  done
+
+  # Verify deleted functions are gone
+  for func in moira_bootstrap_match_preset _extract_scan_value \
+              _extract_table_value _extract_preset_field; do
+    if grep -q "^${func}()" "$MOIRA_HOME/lib/bootstrap.sh" 2>/dev/null; then
+      fail "bootstrap.sh: deleted function $func still exists"
+    else
+      pass "bootstrap.sh: function $func correctly removed"
     fi
   done
 fi
@@ -125,7 +102,7 @@ if [[ -f "$init_file" ]]; then
     fail "init.md: appears to be a stub ($line_count lines)"
   fi
 
-  # Check all steps present
+  # Check all steps present (10 steps after preset removal, was 11)
   for step_num in 1 2 3 4 5 6 7 8 9 10; do
     assert_file_contains "$init_file" "Step ${step_num}" "init.md: Step $step_num present"
   done
@@ -229,36 +206,87 @@ EOF
     fail "gitignore: duplicate entries found ($dup_count)"
   fi
 
-  # ── Preset matching: nextjs ──
-  TEST_SUB6="$TEST_DIR/sub6"
-  mkdir -p "$TEST_SUB6"
-  cat > "$TEST_SUB6/tech-scan.md" << 'EOF'
-## Framework
-- Name: Next.js 14.1
-- Type: web
+  # ═══════════════════════════════════════════════════════════════════════
+  # Frontmatter parser tests
+  # ═══════════════════════════════════════════════════════════════════════
 
-## Build & Tooling
-- Package manager: npm
+  FM_TEST="$TEST_DIR/fm-test.md"
+  cat > "$FM_TEST" << 'EOF'
+---
+language: TypeScript
+framework: SvelteKit
+runtime: Node.js
+max_line_length: 100
+entry_points:
+  - src/app.html
+  - src/hooks.server.ts
+do_not_modify:
+  - node_modules/
+  - .svelte-kit/
+---
+
+## Body Content
+framework: This should not be parsed
 EOF
 
-  result=$(moira_bootstrap_match_preset "$TEST_SUB6/tech-scan.md" "$MOIRA_HOME/templates/stack-presets")
-  if [[ "$result" == "nextjs.yaml" ]]; then
-    pass "preset match: nextjs scan → nextjs.yaml"
+  # Scalar: existing field
+  result=$(_moira_parse_frontmatter "$FM_TEST" "language")
+  if [[ "$result" == "TypeScript" ]]; then
+    pass "frontmatter: scalar field extraction"
   else
-    fail "preset match: expected nextjs.yaml, got $result"
+    fail "frontmatter: expected 'TypeScript', got '$result'"
   fi
 
-  # ── Preset matching: unknown stack ──
-  cat > "$TEST_SUB6/unknown-scan.md" << 'EOF'
-## Framework
-- Name: SomeObscureFramework 1.0
-EOF
-
-  result=$(moira_bootstrap_match_preset "$TEST_SUB6/unknown-scan.md" "$MOIRA_HOME/templates/stack-presets")
-  if [[ "$result" == "generic.yaml" ]]; then
-    pass "preset match: unknown stack → generic.yaml"
+  # Scalar: numeric value
+  result=$(_moira_parse_frontmatter "$FM_TEST" "max_line_length")
+  if [[ "$result" == "100" ]]; then
+    pass "frontmatter: numeric value as string"
   else
-    fail "preset match: expected generic.yaml, got $result"
+    fail "frontmatter: expected '100', got '$result'"
+  fi
+
+  # Scalar: missing field
+  result=$(_moira_parse_frontmatter "$FM_TEST" "nonexistent")
+  if [[ -z "$result" ]]; then
+    pass "frontmatter: missing field returns empty"
+  else
+    fail "frontmatter: expected empty, got '$result'"
+  fi
+
+  # Scalar: ignores body content
+  result=$(_moira_parse_frontmatter "$FM_TEST" "framework")
+  if [[ "$result" == "SvelteKit" ]]; then
+    pass "frontmatter: returns frontmatter value, ignores body"
+  else
+    fail "frontmatter: expected 'SvelteKit', got '$result'"
+  fi
+
+  # List: extraction
+  result=$(_moira_parse_frontmatter_list "$FM_TEST" "entry_points")
+  expected="src/app.html
+src/hooks.server.ts"
+  if [[ "$result" == "$expected" ]]; then
+    pass "frontmatter: list extraction"
+  else
+    fail "frontmatter: list mismatch, got '$result'"
+  fi
+
+  # List: missing field
+  result=$(_moira_parse_frontmatter_list "$FM_TEST" "nonexistent")
+  if [[ -z "$result" ]]; then
+    pass "frontmatter: missing list returns empty"
+  else
+    fail "frontmatter: expected empty list, got '$result'"
+  fi
+
+  # List: do_not_modify extraction
+  result=$(_moira_parse_frontmatter_list "$FM_TEST" "do_not_modify")
+  expected="node_modules/
+.svelte-kit/"
+  if [[ "$result" == "$expected" ]]; then
+    pass "frontmatter: do_not_modify list extraction"
+  else
+    fail "frontmatter: do_not_modify mismatch, got '$result'"
   fi
 fi
 
