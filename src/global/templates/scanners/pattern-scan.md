@@ -28,7 +28,35 @@ Identify recurring code patterns, component structures, and architectural abstra
 
 ## Output Format
 
-Write your findings as structured markdown using EXACTLY this format:
+Start output with a YAML frontmatter block between `---` delimiters. Fields you cannot determine — omit entirely.
+
+After the second `---`, write the detailed markdown report.
+
+### Frontmatter Contract
+
+```yaml
+---
+component_structure: functional
+component_state: runes
+component_styling: Tailwind CSS
+api_style: REST
+api_handler_structure: SvelteKit form actions + load functions
+api_validation: Zod
+api_response_format: SvelteKit ActionResult
+data_fetching: SvelteKit load functions
+error_handling: SvelteKit fail() + throw redirect()
+client_state: Svelte stores
+server_state: SvelteKit load functions
+---
+```
+
+Fields: `component_structure`, `component_state`, `component_styling`, `api_style`, `api_handler_structure`, `api_validation`, `api_response_format`, `data_fetching`, `error_handling`, `client_state`, `server_state`.
+
+All values are plain strings. Omit any field you cannot determine.
+
+### Markdown Body
+
+After the frontmatter, write the detailed report using this format:
 
 ```markdown
 ## Component Pattern (if frontend)
@@ -79,5 +107,6 @@ Write the complete output to: `.claude/moira/state/init/pattern-scan.md`
 - Never make recommendations
 - NO opinions, NO recommendations, NO proposals
 - Focus on RECURRING patterns — ignore one-off implementations
-- If a category has no data, write "Not detected" — do NOT guess
+- Do NOT write `Not detected` or `unknown` in frontmatter — omit the field
+- In the markdown body, write "Not detected" for empty categories — do NOT guess
 - Budget: stay within 140k tokens — sample, don't exhaustively scan

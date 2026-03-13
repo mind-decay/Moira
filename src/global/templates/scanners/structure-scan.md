@@ -23,10 +23,54 @@ Map the project's directory layout and organization:
 5. Identify vendored directories: `vendor/`, `third_party/`
 6. Identify test roots
 7. Count files per top-level directory (rough sizing)
+8. After mapping directory roles, identify recurring file placement patterns. If 3+ files of the same type exist in a directory, record as `dir_{role}: {path}/` in frontmatter
 
 ## Output Format
 
-Write your findings as structured markdown using EXACTLY this format:
+Start output with a YAML frontmatter block between `---` delimiters. Fields you cannot determine — omit entirely.
+
+After the second `---`, write the detailed markdown report.
+
+### Frontmatter Contract
+
+```yaml
+---
+layout_pattern: single-app
+source_root: src
+entry_points:
+  - src/app.html
+  - src/hooks.server.ts
+test_pattern: co-located
+test_roots:
+  - src
+test_naming: "*.test.ts"
+do_not_modify:
+  - node_modules/
+  - .svelte-kit/
+  - src/generated/prisma/
+modify_with_caution:
+  - svelte.config.js
+  - prisma/schema.prisma
+dir_components: src/lib/components/
+dir_pages: src/routes/
+dir_api: src/routes/api/
+dir_services: src/lib/server/
+dir_types: src/types/
+dir_utils: src/lib/utils/
+---
+```
+
+**Scalar fields:** `layout_pattern`, `source_root`, `test_pattern`, `test_naming`.
+
+**List fields** (use `  - ` items): `entry_points`, `test_roots`, `do_not_modify`, `modify_with_caution`.
+
+**Directory convention fields** (`dir_*`): file placement patterns detected from recurring directory structures. If 3+ files of the same type exist in a directory, record as `dir_{role}: {path}/`. Standard keys: `dir_components`, `dir_pages`, `dir_api`, `dir_services`, `dir_types`, `dir_utils`. Additional keys are allowed (e.g., `dir_hooks`, `dir_stores`, `dir_middleware`). Omit any `dir_*` field you cannot determine.
+
+All values are plain strings. Omit any field you cannot determine.
+
+### Markdown Body
+
+After the frontmatter, write the detailed report using this format:
 
 ```markdown
 ## Project Root
@@ -70,6 +114,7 @@ Write the complete output to: `.claude/moira/state/init/structure-scan.md`
 - Never express opinions
 - Never make recommendations
 - NO opinions, NO recommendations, NO proposals
-- If a category has no data, write "Not detected" — do NOT guess
+- Do NOT write `Not detected` or `unknown` in frontmatter — omit the field
+- In the markdown body, write "Not detected" for empty categories — do NOT guess
 - Budget: stay within 140k tokens — sample, don't exhaustively scan
 - Use approximate file counts — do NOT count every file individually

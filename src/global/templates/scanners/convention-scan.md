@@ -29,7 +29,35 @@ Detect coding conventions actually used in this project by examining real code s
 
 ## Output Format
 
-Write your findings as structured markdown using EXACTLY this format:
+Start output with a YAML frontmatter block between `---` delimiters. Fields you cannot determine — omit entirely.
+
+After the second `---`, write the detailed markdown report.
+
+### Frontmatter Contract
+
+```yaml
+---
+naming_files: kebab-case
+naming_functions: camelCase
+naming_components: PascalCase
+naming_constants: UPPER_SNAKE_CASE
+naming_types: PascalCase
+indent: 2 spaces
+quotes: single
+semicolons: false
+max_line_length: 100
+import_style: named
+export_style: default
+---
+```
+
+Fields: `naming_files`, `naming_functions`, `naming_components`, `naming_constants`, `naming_types`, `indent`, `quotes`, `semicolons`, `max_line_length`, `import_style`, `export_style`.
+
+All values are plain strings. Omit any field you cannot determine.
+
+### Markdown Body
+
+After the frontmatter, write the detailed report using this format:
 
 ```markdown
 ## Naming Conventions
@@ -82,5 +110,6 @@ Write the complete output to: `.claude/moira/state/init/convention-scan.md`
 - Never make recommendations
 - NO opinions, NO recommendations, NO proposals
 - Every claim MUST include `file:line` evidence
-- If a category has no data, write "Not detected" — do NOT guess
+- Do NOT write `Not detected` or `unknown` in frontmatter — omit the field
+- In the markdown body, write "Not detected" for empty categories — do NOT guess
 - Budget: stay within 140k tokens — sample, don't exhaustively scan

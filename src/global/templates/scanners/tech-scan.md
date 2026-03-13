@@ -37,7 +37,37 @@ Read files in this order. Stop after collecting sufficient data — do NOT exhau
 
 ## Output Format
 
-Write your findings as structured markdown using EXACTLY this format:
+Start output with a YAML frontmatter block between `---` delimiters. Fields you cannot determine — omit entirely.
+
+After the second `---`, write the detailed markdown report.
+
+### Frontmatter Contract
+
+```yaml
+---
+language: TypeScript
+language_version: "5.3"
+framework: SvelteKit
+framework_version: "2.0"
+framework_type: web
+runtime: Node.js
+package_manager: pnpm
+build_tool: vite
+styling: Tailwind CSS
+orm: Prisma
+testing: Vitest
+ci: GitHub Actions
+deployment: Vercel
+---
+```
+
+Fields: `language`, `language_version`, `framework`, `framework_version`, `framework_type`, `runtime`, `package_manager`, `build_tool`, `styling`, `orm`, `testing`, `ci`, `deployment`.
+
+All values are plain strings. Omit any field you cannot determine.
+
+### Markdown Body
+
+After the frontmatter, write the detailed report using this format:
 
 ```markdown
 ## Language & Runtime
@@ -88,6 +118,7 @@ Write the complete output to: `.claude/moira/state/init/tech-scan.md`
 - Never express opinions
 - Never make recommendations
 - NO opinions, NO recommendations, NO proposals
-- If a category has no data, write "Not detected" — do NOT guess
+- Do NOT write `Not detected` or `unknown` in frontmatter — omit the field
+- In the markdown body, write "Not detected" for empty categories — do NOT guess
 - Budget: stay within 140k tokens — sample, don't exhaustively scan
 - For each fact, note which file it was found in (e.g., "from package.json")

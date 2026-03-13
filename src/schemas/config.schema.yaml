@@ -19,9 +19,8 @@ fields:
     required: true
     default: ""
   project.stack:
-    type: enum
+    type: string
     required: true
-    enum: [nextjs, react-vite, express, fastapi, go-api, vue, python, rust, java, generic]
     default: generic
   classification.default_pipeline:
     type: enum
