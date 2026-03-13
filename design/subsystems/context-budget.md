@@ -8,7 +8,7 @@ Context is the only non-renewable resource. An agent with a full context halluci
 
 ```
 ┌─────────────────────────────────────────┐
-│            Agent Context (~200k)         │
+│            Agent Context (~1M)           │
 ├─────────────────────────────────────────┤
 │ System prompt + agent rules    ~5-10k   │ ← fixed
 │ Task instructions              ~2-5k    │ ← fixed
@@ -16,11 +16,13 @@ Context is the only non-renewable resource. An agent with a full context halluci
 │ Working data (code, files)     ~20-80k  │ ← MANAGED
 │ Agent reasoning                ~30-50k  │ ← uncontrolled
 │ ─────────────────────────────────────── │
-│ SAFETY MARGIN                  ~40-60k  │ ← UNTOUCHABLE
+│ SAFETY MARGIN                  ~30%     │ ← UNTOUCHABLE
 └─────────────────────────────────────────┘
 ```
 
 **Hard rule: Never load an agent beyond 70% capacity. 30% safety margin always reserved.**
+
+Note: With 1M context (D-064), agent budgets remain at pre-1M allocations — they define maximum useful work, not context limits. Orchestrator has significant headroom.
 
 ## Budget Allocations Per Agent
 
@@ -28,6 +30,12 @@ Context is the only non-renewable resource. An agent with a full context halluci
 # .claude/moira/config/budgets.yaml
 
 agent_budgets:
+  classifier:
+    system_prompt: 6k
+    project_context: 5k       # minimal — just task + history
+    working_data: 5k
+    max_total: 20k
+
   explorer:
     system_prompt: 8k
     project_context: 10k     # project-model summary only
@@ -127,7 +135,7 @@ Displayed after every pipeline completion:
 ╠══════════════════════════════════════════════╣
 ║ Agent         │ Budget │ Est.  │ % │ Status  ║
 ║───────────────┼────────┼───────┼───┼─────────║
-║ Classifier    │  60k   │  12k  │20%│ ✅      ║
+║ Classifier    │  20k   │  12k  │60%│ ⚠️      ║
 ║ Explorer      │ 140k   │  67k  │48%│ ✅      ║
 ║ Analyst       │  80k   │  34k  │43%│ ✅      ║
 ║ Architect     │ 100k   │  58k  │58%│ ⚠️      ║
@@ -135,9 +143,9 @@ Displayed after every pipeline completion:
 ║ Impl-1        │ 120k   │  45k  │38%│ ✅      ║
 ║ Impl-2        │ 120k   │  52k  │43%│ ✅      ║
 ║ Reviewer      │ 100k   │  71k  │71%│ 🔴      ║
-║ Orchestrator  │ 200k   │  18k  │ 9%│ ✅      ║
+║ Orchestrator  │ 1000k  │  80k  │ 8%│ ✅      ║
 ╠══════════════════════════════════════════════╣
-║ Orchestrator context: 18k/200k (9%) — CLEAN ║
+║ Orchestrator context: 80k/1000k (8%) — CLEAN║
 ╚══════════════════════════════════════════════╝
 ```
 
@@ -160,14 +168,14 @@ Reflector tracks repeated MCP calls → recommends caching.
 
 ## Orchestrator Context Management
 
-Orchestrator has its own budget constraint:
+Orchestrator context capacity is 1M tokens (D-064). Thresholds are percentage-based:
 
-| Threshold | Action |
-|-----------|--------|
-| < 25% | Healthy — normal operation |
-| 25-40% | Monitor — report in status |
-| 40-60% | Warning — display alert to user |
-| > 60% | Critical — recommend checkpoint + new session |
+| Threshold | ~Tokens (1M) | Action |
+|-----------|-------------|--------|
+| < 25% | < 250k | Healthy — normal operation |
+| 25-40% | 250-400k | Monitor — report in status |
+| 40-60% | 400-600k | Warning — display alert to user |
+| > 60% | > 600k | Critical — recommend checkpoint + new session |
 
 Orchestrator context is kept minimal by:
 1. Agents return only status summaries (not full results)

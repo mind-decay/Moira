@@ -16,6 +16,21 @@ The system NEVER guesses. If data is missing — stop and ask. If there's doubt 
 | E6-AGENT | Agent failure | Timeout, crash, or nonsensical output |
 | E7-DRIFT | Rule violation | Orchestrator broke its own rules |
 | E8-STALE | Stale knowledge | Knowledge base contains outdated information |
+| E9-SEMANTIC | Semantic failure | Structurally valid but factually wrong output |
+| E10-DIVERGE | Data disagreement | Multiple agents report contradictory facts |
+| E11-TRUNCATION | Context truncation | Silent context loss causes incomplete/wrong output |
+
+## Enforcement Model
+
+The system uses three tiers of enforcement. Understanding which tier a constraint belongs to determines the appropriate defense strategy.
+
+| Tier | Examples | Enforcement | Defense Layer |
+|------|----------|-------------|---------------|
+| **Structural** (platform-guaranteed) | `allowed-tools` restriction, pipeline selection logic (deterministic code), gate presence in pipeline YAML definitions | Platform blocks violations | No recovery needed — structurally impossible to violate |
+| **Validated** (behavioral + verification) | Response contract format (orchestrator parser validates), quality findings (YAML schema validation), knowledge writes (consistency check against existing) | Agent produces output → orchestrator/system validates → fallback on failure | Parse failure → E6-AGENT. Schema failure → reject + retry. |
+| **Behavioral** (prompt-only, no automated verification) | NEVER constraints (Art 1.2), fabrication prohibition (Art 4.1), agent role boundaries, knowledge consistency execution (Art 5.3) | Enforced by prompt instructions only | Reviewer = primary per-task defense. Reflector = primary systemic defense. Auditor = periodic cross-validation. |
+
+This model acknowledges that behavioral rules enforced by prompting are not equivalent to structural platform guarantees. Behavioral constraints WILL be violated occasionally — the defense strategy is layered detection and correction, not prevention.
 
 ## Recovery Strategies
 
@@ -93,6 +108,8 @@ Need from you:
 
 **MAX RETRY: 2 attempts total**
 
+Note: Pipeline-specific retry limits may override this default. Quick Pipeline uses max 1 attempt total (D-071).
+
 **Attempt 1:** Implementer gets review feedback, fixes issues → re-review
 
 **Attempt 2 (if still failing):** Different approach:
@@ -152,6 +169,14 @@ Recommendation: Split Batch B into 2 smaller batches
 ▸ rollback    — undo all, re-plan
 ```
 
+**Subtype: Malformed Output**
+
+Agent returns text but response does not match the STATUS/SUMMARY/ARTIFACTS/NEXT contract format. This is distinct from nonsensical content (E9-SEMANTIC) — the response is structurally unparseable.
+
+Detection: Orchestrator response parser fails to extract required STATUS field.
+Recovery: Same as E6 — retry 1x with same input, then diagnostic + escalate.
+Note: Validated tier constraint. The orchestrator parser is the verification layer.
+
 ### E7-DRIFT: Orchestrator Rule Violation
 
 **Detection:** Guard hook blocks prohibited tool calls. Reflector audits post-task.
@@ -179,6 +204,78 @@ Recommendation: Split Batch B into 2 smaller batches
 2. Explorer verifies current state
 3. Knowledge updated with new freshness marker
 4. If stale knowledge caused a pipeline issue → logged in failures
+
+### E9-SEMANTIC: Semantic Correctness Failure
+
+**Trigger:** Agent returns structurally valid output (correct format, parses successfully) but the content is factually wrong — hallucinated API endpoints, incorrect architecture assumptions, subtly wrong implementation logic.
+
+**Detection:**
+- Reviewer checklist: "Verify factual claims against Explorer data" (primary automated defense)
+- Architecture gate: user reviews proposed architecture and alternatives (primary human defense)
+- Reflector: post-task analysis compares outcomes against predictions
+
+**Primary defense:** Reviewer (per-task) + architecture gate (human in the loop)
+
+**Recovery:**
+- If caught at Reviewer → E5-QUALITY retry path (implementer fixes with specific feedback)
+- If caught at architecture gate → user provides "modify" feedback, Architect revises
+- If caught post-deployment → log in failures knowledge for future prevention
+
+**User presentation:** Same as E5-QUALITY if caught at review. If caught at gate, the gate's "modify" option already handles this.
+
+**Note:** This is the hardest failure mode to detect automatically. The architecture gate presenting alternatives is the primary user-facing defense. Quality gates check structure, not semantic correctness.
+
+### E10-DIVERGE: Multi-Agent Factual Disagreement
+
+**Trigger:** Multiple agents report contradictory facts about the same codebase. Example: Explorer reports 14 API endpoints, Analyst scopes requirements for 6 endpoints. Both outputs are individually valid but collectively inconsistent.
+
+**Detection:**
+- Architect mandate: explicitly compare Explorer and Analyst data before making technical decisions (primary defense)
+- Reviewer: cross-reference implementation against exploration data
+
+**Primary defense:** Architect (explicit contradiction detection mandate)
+
+**Recovery:**
+- Architect flags contradiction → presents both versions to user at architecture gate with analysis of which is likely correct
+- User decides which data to trust
+- If not caught until review → E5-QUALITY retry with note to verify factual basis against Explorer data
+
+**User presentation:**
+```
+⚠ DATA CONFLICT DETECTED
+Metis (architect) found inconsistency:
+
+  Hermes (explorer): 14 API endpoints in src/api/
+  Athena (analyst): 6 endpoints scoped in requirements
+
+Analysis: Explorer counted all route files including deprecated.
+          Analyst scoped only active endpoints per task description.
+
+▸ use-explorer — trust exploration data (14 endpoints)
+▸ use-analyst  — trust analyst scoping (6 endpoints)
+▸ clarify      — provide additional context
+▸ abort        — cancel task
+```
+
+### E11-TRUNCATION: Silent Context Truncation
+
+**Trigger:** Agent's context window fills silently, causing early instructions (NEVER constraints, role boundaries, critical context) to be lost. Agent returns STATUS: success but output is incomplete or violates constraints it no longer "remembers."
+
+**Detection:**
+- Budget system: pre-execution estimation flags agents near budget limit (primary prevention)
+- Agent "context loaded" summary: agent lists received instructions at start of execution — orchestrator can detect if critical instructions are missing
+- Reviewer: catches output that violates known constraints (post-hoc detection)
+
+**Primary defense:** Budget system (prevent overflow before it happens) + Reviewer (catch violations after the fact)
+
+**Recovery:**
+- If detected by budget system pre-execution → E4-BUDGET path (split work into smaller batches)
+- If detected by Reviewer post-execution → E5-QUALITY retry with reduced scope
+- If undetected during pipeline → Reflector post-task analysis, logged in failures knowledge
+
+**User presentation:** Same as E4-BUDGET if caught pre-execution. Same as E5-QUALITY if caught post-execution.
+
+**Note:** This failure mode is insidious because the agent itself cannot know it has lost context. The budget system's pre-execution estimation is the most reliable prevention mechanism. The 30% safety margin in budget allocation exists partly to mitigate this risk.
 
 ## Tweak & Redo System
 

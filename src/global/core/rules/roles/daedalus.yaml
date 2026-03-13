@@ -30,6 +30,10 @@ capabilities:
   - Auto-split steps that exceed 70% agent budget threshold
   - Assemble agent instructions (Layer 1-4 rules) per step
   - Allocate MCP tools per step with justification
+  - "Sub-phase 1 — Decomposition: Break architecture into implementation steps. Success: each step has clear input/output/files. Failure: circular dependencies or unreachable steps."
+  - "Sub-phase 2 — Dependency Graph: Map file dependencies between steps. Success: valid DAG. Failure: unresolvable cycles."
+  - "Sub-phase 3 — Budget Estimation: Estimate tokens per batch. Success: all batches within agent budget limits. Failure: batch exceeds limit after maximum splitting."
+  - "Sub-phase 4 — Instruction Assembly: Assemble Layer 1-4 rules per agent invocation. Success: each instruction set includes all required rule layers + knowledge. Failure: missing rule layer or inaccessible knowledge level."
 
 never:
   - "Never make architectural decisions"

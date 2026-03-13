@@ -15,13 +15,18 @@ STATUS: success|failure|blocked|budget_exceeded
 SUMMARY: <1-2 sentences>
 ARTIFACTS: <list of file paths>
 NEXT: <recommended next step>
+QUALITY: {gate}={verdict} ({critical}C/{warning}W/{suggestion}S)
 ```
+
+**Enforcement:** This is a behavioral contract enforced by prompting. The orchestrator MUST validate response format and treat malformed responses as E6-AGENT (see Enforcement Model in fault-tolerance.md).
 
 Orchestrator NEVER reads full artifact files. It reads only summaries and decides next pipeline step. If orchestrator needs a detail — it spawns an agent to extract specific information.
 
+**Knowledge access authoritative source:** `src/global/core/knowledge-access-matrix.yaml`. Per-agent access levels below are summaries; the YAML file is the source of truth (D-039).
+
 ---
 
-## Classifier
+## Apollo (classifier)
 
 **Purpose:** Determines task size and selects pipeline type. First step of every pipeline (D-028).
 
@@ -31,10 +36,12 @@ Orchestrator NEVER reads full artifact files. It reads only summaries and decide
 **Response format:**
 ```
 STATUS: success
-SUMMARY: size=medium, confidence=high, pipeline=standard
+SUMMARY: size=medium, confidence=high
 ARTIFACTS: [classification.md]
 NEXT: explore+analyze
 ```
+
+Note: Classifier does NOT return `pipeline=` — pipeline selection is the orchestrator's responsibility (Art 2.1, D-062).
 
 **Rules:**
 - Classification is a pure function of task analysis (Art 2.1)
@@ -51,13 +58,15 @@ NEXT: explore+analyze
 - large → Full Pipeline
 - epic → Decomposition Pipeline
 
+**Monorepo scoping:** For monorepo projects (detected at bootstrap), Classifier uses the package map from project-model knowledge to determine which packages are relevant to the task. Output includes `packages: [list]` in classification result. Explorer and subsequent agents receive scoped instructions targeting only those packages (D-066).
+
 **Knowledge access:** L1 (project-model summary)
 
 **Budget:** 20k (minimal — fast classification)
 
 ---
 
-## Explorer
+## Hermes (explorer)
 
 **Purpose:** The only agent that reads project source code.
 
@@ -71,13 +80,15 @@ NEXT: explore+analyze
 - Always checks: shared/, utils/, types/, config/ (commonly missed)
 - Documents what it found AND what it looked for but didn't find
 
+**Monorepo mode:** When dispatched with package-scoped instructions, Explorer limits exploration to the specified packages and their direct dependencies. If Explorer discovers that additional packages are relevant (e.g., shared utilities not in scope), it reports E2-SCOPE (monorepo subtype, D-070) for scope expansion rather than silently expanding.
+
 **Knowledge access:** L0 (project-model index only — must be unbiased)
 
 **Budget:** 140k (needs room for large codebases)
 
 ---
 
-## Analyst
+## Athena (analyst)
 
 **Purpose:** Formalizes requirements, identifies edge cases, acceptance criteria.
 
@@ -97,13 +108,13 @@ NEXT: explore+analyze
   - [ ] Backwards compatibility impact assessed
 - Missing items → STATUS: blocked with specific questions
 
-**Knowledge access:** L1 (project-model summary), L0 (decisions index)
+**Knowledge access:** L1 (project-model summary), L0 (decisions index), L0 (failures index)
 
 **Budget:** 80k
 
 ---
 
-## Architect
+## Metis (architect)
 
 **Purpose:** Makes technical decisions. Chooses approaches, defines structure.
 
@@ -125,14 +136,15 @@ NEXT: explore+analyze
 - Checks quality-map for existing patterns (Strong → follow, Problematic → avoid)
 - Checks UI component constraints when task involves frontend
 - Defines contract interfaces for parallel implementation batches
+- MUST compare Explorer and Analyst data for factual contradictions before making technical decisions. If disagreement found → report as E10-DIVERGE with both versions and analysis.
 
-**Knowledge access:** L1 (project-model), L0 (conventions), L2 (decisions — FULL), L1 (patterns)
+**Knowledge access:** L1 (project-model), L0 (conventions), L2 (decisions — FULL), L1 (patterns), L1 (quality-map), L0 (failures index)
 
 **Budget:** 100k
 
 ---
 
-## Planner
+## Daedalus (planner)
 
 **Purpose:** Creates execution plan. Decomposes architect's decision into steps.
 
@@ -155,13 +167,19 @@ NEXT: explore+analyze
 - Assembles agent instructions (Layer 1-4 rules) for each step
 - Allocates MCP tools per step with justification
 
-**Knowledge access:** L1 (project-model), L1 (conventions), L0 (decisions), L0 (patterns)
+**Sub-phases (each with distinct success/failure conditions):**
+1. **Decomposition** — Break architecture into implementation steps. Success: each step has clear input/output/files. Failure: circular dependencies or unreachable steps.
+2. **Dependency Graph** — Map file dependencies between steps. Success: valid DAG. Failure: unresolvable cycles.
+3. **Budget Estimation** — Estimate tokens per batch. Success: all batches within agent budget limits. Failure: batch exceeds limit after maximum splitting.
+4. **Instruction Assembly** — Assemble Layer 1-4 rules per agent invocation. Success: each instruction set includes all required rule layers + knowledge. Failure: missing rule layer or inaccessible knowledge level.
+
+**Knowledge access:** L1 (project-model), L1 (conventions), L0 (decisions), L0 (patterns), L2 (quality-map)
 
 **Budget:** 70k
 
 ---
 
-## Implementer
+## Hephaestus (implementer)
 
 **Purpose:** Writes code. Follows the plan exactly.
 
@@ -176,6 +194,7 @@ NEXT: explore+analyze
 - Never guesses types or return formats
 - Follows project conventions exactly (loaded in instructions)
 - Uses only authorized MCP tools
+- After code changes: runs post-implementation validation commands from `.claude/moira/config.yaml` → `tooling.post_implementation[]` (D-063). If commands fail, fixes errors before returning STATUS: success. If no commands configured, skips validation.
 
 **Knowledge access:** L0 (project-model), L2 (conventions — FULL), L1 (patterns)
 
@@ -183,16 +202,21 @@ NEXT: explore+analyze
 
 ---
 
-## Reviewer
+## Themis (reviewer)
 
 **Purpose:** Checks code quality against standards and requirements.
+
+**Behavioral defense role:** Primary per-task defense against upstream agent behavioral violations (E9/E10). Catches role boundary violations, factual errors, and semantic correctness failures.
 
 **Input:** Written code + plan + requirements + conventions
 **Output:** Issue list with severity (critical/warning/suggestion)
 
 **Rules:**
 - Does NOT fix code — only identifies issues
-- Must complete Code Review Checklist (see quality.md for full checklist)
+- Must complete Code Correctness Checklist (q4-correctness, see quality.md for full checklist):
+  - [ ] Upstream agents stayed within role boundaries (Explorer didn't propose solutions, Architect didn't fabricate APIs)
+  - [ ] Factual claims in architecture verified against Explorer data (E10-DIVERGE defense)
+  - [ ] Implementation matches approved architecture (E9-SEMANTIC defense)
 - Severity classification:
   - CRITICAL: blocks pipeline, must fix (correctness, security, broken contracts)
   - WARNING: should fix, can proceed with user approval
@@ -201,13 +225,13 @@ NEXT: explore+analyze
 - Verifies MCP calls were used correctly
 - False positive awareness: if unsure, mark as WARNING not CRITICAL
 
-**Knowledge access:** L1 (project-model), L2 (conventions — FULL), L1 (decisions), L1 (patterns)
+**Knowledge access:** L1 (project-model), L2 (conventions — FULL), L1 (decisions), L1 (patterns), L1 (quality-map)
 
 **Budget:** 100k
 
 ---
 
-## Tester
+## Aletheia (tester)
 
 **Purpose:** Writes and runs tests.
 
@@ -232,9 +256,11 @@ NEXT: explore+analyze
 
 ---
 
-## Reflector
+## Mnemosyne (reflector)
 
 **Purpose:** Analyzes completed tasks for learning.
+
+**Behavioral defense role:** Primary defense against systemic behavioral drift. Detects patterns of agent boundary violations, recurring factual errors, and constraint degradation over time.
 
 **Input:** Full task history (all state files)
 **Output:** Lessons learned, pattern observations, rule change proposals
@@ -253,13 +279,30 @@ NEXT: explore+analyze
 - Proposes rule changes only after 3+ confirming observations
 - Rule change proposals require user approval
 
+**Exit criteria (minimum required output):**
+1. Accuracy assessment (result vs requirements)
+2. Efficiency assessment (retry count, budget usage)
+3. At least one concrete observation for knowledge update
+4. Agent boundary compliance note (did any agent violate NEVER constraints?)
+5. If rule change proposed: 3+ confirming observations cited
+
+**Minimum output structure:**
+```
+ACCURACY: {match|partial|mismatch} — {detail}
+EFFICIENCY: {retries}R, {budget_pct}% budget — {assessment}
+OBSERVATIONS: [{observation with evidence reference}]
+KNOWLEDGE_UPDATES: [{type}: {update}]
+BOUNDARY_COMPLIANCE: {all_clear|violations_found} — {detail}
+RULE_PROPOSALS: [{proposal with 3+ evidence citations}] (if any)
+```
+
 **Knowledge access:** Full access to all knowledge + task state files
 
 **Budget:** 80k
 
 ---
 
-## Auditor
+## Argus (auditor)
 
 **Purpose:** Independent system health verification.
 

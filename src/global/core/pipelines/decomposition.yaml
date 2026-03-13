@@ -17,6 +17,10 @@ steps:
     writes_to: "tasks/{task_id}/classification.md"
     reads_from: "tasks/{task_id}/input.md"
 
+  # Note: No Explorer step at epic level — intentional.
+  # Decomposition operates at high-level architecture scope.
+  # Each sub-task's pipeline (standard/full) includes its own Explorer step
+  # for code-level exploration relevant to that specific sub-task.
   - id: analysis
     agent: athena
     role: analyst
@@ -164,6 +168,20 @@ error_handlers:
   E8-STALE:
     action: log_and_escalate
     note: "Stub — full detection in Phase 4"
+  E9-SEMANTIC:
+    action: retry_with_feedback
+    max_attempts: 2
+    note: "Reviewer-detected: E5-QUALITY retry path. Gate-detected: gate modify flow"
+  E10-DIVERGE:
+    action: escalate_to_user
+    display: diverge_gate
+    note: "Present contradiction at architecture gate"
+  E11-TRUNCATION:
+    pre_exec:
+      action: split_and_retry
+    post_exec:
+      action: retry_reduced_scope
+      max_attempts: 2
 
 post:
   reflection: epic

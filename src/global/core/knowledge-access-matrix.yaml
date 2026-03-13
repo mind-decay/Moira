@@ -1,18 +1,29 @@
+# AUTHORITATIVE SOURCE for the knowledge access matrix.
+# All other references (design/subsystems/knowledge.md, agent role files) are summaries.
+
 _meta:
   name: knowledge-access-matrix
-  description: Agent knowledge access levels (L0=index, L1=summary, L2=full)
+  description: Agent knowledge access levels (L0=index, L1=summary, L2=full) and write access
 
 # Levels: L0 (~100-200 tokens), L1 (~500-2k), L2 (~2-10k)
 # null = no access to this knowledge type
 
-matrix:
+read_access:
   apollo:      { project_model: L1, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null }
   hermes:      { project_model: L0, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null }
-  athena:      { project_model: L1, conventions: null, decisions: L0,    patterns: null, quality_map: null, failures: null }
-  metis:       { project_model: L1, conventions: L0,   decisions: L2,    patterns: L1,   quality_map: L1,   failures: null }
-  daedalus:    { project_model: L1, conventions: L1,   decisions: L0,    patterns: L0,   quality_map: L0,   failures: null }
+  athena:      { project_model: L1, conventions: null, decisions: L0,    patterns: null, quality_map: null, failures: L0   }
+  metis:       { project_model: L1, conventions: L0,   decisions: L2,    patterns: L1,   quality_map: L1,   failures: L0   }
+  daedalus:    { project_model: L1, conventions: L1,   decisions: L0,    patterns: L0,   quality_map: L2,   failures: null }
   hephaestus:  { project_model: L0, conventions: L2,   decisions: null,  patterns: L1,   quality_map: null, failures: null }
   themis:      { project_model: L1, conventions: L2,   decisions: L1,    patterns: L1,   quality_map: L1,   failures: null }
   aletheia:    { project_model: L0, conventions: L1,   decisions: null,  patterns: L0,   quality_map: null, failures: null }
   mnemosyne:   { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2,   quality_map: L2,   failures: L2   }
   argus:       { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2,   quality_map: L2,   failures: L2   }
+
+# Write access: which knowledge types each agent can modify
+# Agents not listed have no write access (read-only or no access)
+write_access:
+  mnemosyne:   { project_model: true, conventions: true, decisions: true, patterns: true, quality_map: true, failures: true }
+  hermes:      { project_model: true, conventions: false, decisions: false, patterns: false, quality_map: false, failures: false }
+  themis:      { project_model: false, conventions: false, decisions: false, patterns: false, quality_map: true, failures: false }
+  # argus: READ-ONLY — never modifies any knowledge

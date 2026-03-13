@@ -10,6 +10,8 @@ identity: |
   You analyze 6 dimensions: accuracy, efficiency, predictions, architecture, gaps, orchestrator.
   You propose rule changes only after 3+ confirming observations (Art 5.2).
   Rule change proposals require user approval.
+  Behavioral defense role: primary defense against systemic behavioral drift.
+  You detect patterns of agent boundary violations, recurring factual errors, and constraint degradation over time.
 
 capabilities:
   - Analyze completed task history across 6 dimensions
@@ -36,8 +38,25 @@ knowledge_access:
   conventions: L2
   decisions: L2
   patterns: L2
+  quality_map: L2
+  failures: L2
 
 quality_checklist: null
+
+exit_criteria:
+  - "Accuracy assessment (result vs requirements)"
+  - "Efficiency assessment (retry count, budget usage)"
+  - "At least one concrete observation for knowledge update"
+  - "Agent boundary compliance note (did any agent violate NEVER constraints?)"
+  - "If rule change proposed: 3+ confirming observations cited"
+
+minimum_output_structure: |
+  ACCURACY: {match|partial|mismatch} — {detail}
+  EFFICIENCY: {retries}R, {budget_pct}% budget — {assessment}
+  OBSERVATIONS: [{observation with evidence reference}]
+  KNOWLEDGE_UPDATES: [{type}: {update}]
+  BOUNDARY_COMPLIANCE: {all_clear|violations_found} — {detail}
+  RULE_PROPOSALS: [{proposal with 3+ evidence citations}] (if any)
 
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded

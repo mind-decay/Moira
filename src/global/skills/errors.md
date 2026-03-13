@@ -35,10 +35,10 @@ Problem: {agent REASON}
 Need from you:
 → {agent NEED}
 
-▸ answer — provide the information
-▸ point  — point to a file/doc with the answer
-▸ skip   — mark as TODO in code
-▸ abort  — stop task
+1) answer — provide the information
+2) point  — point to a file/doc with the answer
+3) skip   — mark as TODO in code
+4) abort  — stop task
 ```
 
 ### State Updates
@@ -86,10 +86,10 @@ Reason: {agent's scope change reasoning}
 Existing work preserved:
 {list of valid artifacts from completed steps}
 
-▸ upgrade  — re-plan at {detected_size} size (recommended)
-▸ split    — break into separate tasks
-▸ reduce   — simplify scope (you decide what to cut)
-▸ continue — proceed as-is (⚠ quality risk)
+1) upgrade  — re-plan at {detected_size} size (recommended)
+2) split    — break into separate tasks
+3) reduce   — simplify scope (you decide what to cut)
+4) continue — proceed as-is (⚠ quality risk)
 ```
 
 ### State Updates
@@ -138,8 +138,8 @@ Option B: {option_b_description}
 
 Agent recommendation: {agent's recommendation} (informational)
 
-▸ a — choose Option A
-▸ b — choose Option B
+1) a — choose Option A
+2) b — choose Option B
 ```
 
 ### State Updates
@@ -177,7 +177,7 @@ When agent returns `STATUS: budget_exceeded` with `COMPLETED` and `REMAINING` fi
 4. Record partial result in budget tracking
 5. Spawn NEW continuation agent with:
    - Task-specific instruction: "Continue work. Previously completed: {completed}. Your task: {remaining}."
-   - Reference to partial result file in `state/tasks/{task_id}/`
+   - Reference to partial result file in `.claude/moira/state/tasks/{task_id}/`
    - Same budget allocation as original agent
 
 ### Display — Mid-execution
@@ -211,9 +211,9 @@ Original estimate may be significantly wrong.
 Completed so far: {all completed items}
 Still remaining: {remaining items}
 
-▸ split   — manually split remaining work
-▸ retry   — try again with larger budget (not recommended)
-▸ abort   — stop task, keep partial results
+1) split   — manually split remaining work
+2) retry   — try again with larger budget (not recommended)
+3) abort   — stop task, keep partial results
 ```
 
 State: record gate as `moira_state_gate("budget_overflow_e4", decision)`
@@ -272,9 +272,9 @@ Attempt 2: {attempt_2_issue}
 Root cause analysis:
 {analysis of why both attempts failed}
 
-▸ redesign — send back to Metis (architect)
-▸ manual   — you'll handle this part
-▸ simplify — remove feature, find simpler approach
+1) redesign — send back to Metis (architect)
+2) manual   — you'll handle this part
+3) simplify — remove feature, find simpler approach
 ```
 
 ### State Updates
@@ -338,10 +338,10 @@ Other agents: {status of other agents in pipeline}
 
 Recommendation: {recommendation}
 
-▸ retry-split — split work and retry (recommended if budget issue)
-▸ retry-as-is — retry same task
-▸ manual      — handle manually
-▸ rollback    — undo all, re-plan
+1) retry-split — split work and retry (recommended if budget issue)
+2) retry-as-is — retry same task
+3) manual      — handle manually
+4) rollback    — undo all, re-plan
 ```
 
 ### State Updates
@@ -366,7 +366,7 @@ No automated detection in Phase 3. Guard hook (Phase 8) will detect violations.
 ### Recovery
 
 If a violation is detected by any means:
-1. Log violation to `state/violations.log`
+1. Log violation to `.claude/moira/state/violations.log`
 2. Include violation count in health report
 3. No automated recovery — user informed via health report
 
@@ -392,8 +392,8 @@ The following knowledge entries have not been confirmed in 20+ tasks:
 
 Stale knowledge may lead to incorrect agent decisions.
 
-> proceed -- continue (agents may use outdated information)
-> refresh -- run /moira:refresh to update knowledge base first
+1) proceed — continue (agents may use outdated information)
+2) refresh — run /moira:refresh to update knowledge base first
 ```
 
 ### Non-blocking
@@ -409,6 +409,161 @@ Log stale entries to `status.yaml` under `warnings:` block.
 
 - Automatic knowledge refresh during pipeline (Phase 10)
 - Impact assessment of stale knowledge on task quality (Phase 11)
+
+---
+
+## E9-SEMANTIC: Factually Wrong Content
+
+### Detection
+
+Reviewer verifies factual claims against Explorer data during quality review. Architecture gate provides human verification. Reflector catches post-hoc in systemic analysis.
+
+Look for:
+- Implementation references APIs, types, or patterns that don't exist in the codebase
+- Architecture decisions based on incorrect assumptions about project structure
+- Code that contradicts Explorer's findings about conventions or dependencies
+
+### Recovery
+
+**Reviewer-detected (during review step):**
+
+Follow E5-QUALITY retry path:
+1. Extract factual errors from review findings
+2. Re-dispatch Hephaestus (implementer) with: original instructions + reviewer's factual corrections
+3. Re-dispatch Themis (reviewer) on updated code
+4. If still failing after max attempts → escalate per E5-QUALITY
+
+**Gate-detected (user spots error at gate):**
+
+1. User selects `modify` at the gate
+2. Re-dispatch the responsible agent with user's correction
+3. Continue pipeline from that point
+
+### Display — Reviewer-detected
+
+```
+🔄 QUALITY RETRY — FACTUAL ERROR (attempt {n}/{max})
+Themis (reviewer) found factual errors:
+{list of factual findings}
+
+Re-dispatching Hephaestus (implementer) with corrections...
+```
+
+### State Updates
+
+- Routed through E5-QUALITY state tracking (same retry counters)
+- `status.yaml`: increment `retries.quality` counter per attempt
+
+### Escalation
+
+Same as E5-QUALITY — after max retry attempts, present quality failure gate to user.
+
+---
+
+## E10-DIVERGE: Agent Data Conflict
+
+### Detection
+
+Architect compares Explorer and Analyst data and finds contradictory facts about the same codebase. Examples:
+- Explorer reports 14 API endpoints, Analyst scopes 6
+- Explorer finds module A depends on B, Analyst reports no dependency
+- Different agent outputs disagree on project structure or conventions
+
+Look for:
+- Metis (architect) signals "data conflict" or "contradiction" in SUMMARY
+- Architect returns `STATUS: blocked` with contradiction details
+
+### Recovery
+
+1. Parse Metis (architect) contradiction report: both data sources, specific discrepancies
+2. Present divergence display to user at architecture gate
+3. User chooses which data source is correct (or requests clarification)
+4. Re-dispatch Metis (architect) with user's resolution as additional context
+
+### Display
+
+```
+⚡ AGENT DATA CONFLICT
+Metis (architect) found contradictory data from upstream agents:
+
+Source A — Hermes (explorer):
+{explorer's claim}
+
+Source B — Athena (analyst):
+{analyst's claim}
+
+Discrepancy: {description of contradiction}
+
+1) use-explorer — trust Hermes (explorer) data
+2) use-analyst  — trust Athena (analyst) data
+3) clarify      — provide additional context to resolve
+4) abort        — cancel task
+```
+
+### State Updates
+
+- `current.yaml`: `step_status: awaiting_gate`, `gate_pending: diverge_e10`
+- `status.yaml`: append to `gates` block with gate=`diverge_e10`, decision=user choice
+
+### Escalation
+
+None — user always resolves E10.
+
+---
+
+## E11-TRUNCATION: Context Truncation
+
+### Detection
+
+**Pre-execution:** Budget system estimates agent context usage near or exceeding limit during plan creation. Daedalus (planner) flags steps where estimated tokens exceed 70% of agent budget.
+
+**Post-execution:** Themis (reviewer) catches output that is incomplete or violates known constraints, suggesting context window filled and early instructions were lost.
+
+### Recovery — Pre-execution
+
+Follow E4-BUDGET split path:
+1. Planner auto-splits the step into sub-steps with independent file sets
+2. Split is logged in plan artifact with reasoning
+3. No gate needed (technical optimization, transparent in plan)
+
+### Recovery — Post-execution
+
+Follow E5-QUALITY retry with reduced scope:
+1. Extract truncation indicators from review findings
+2. Re-dispatch Hephaestus (implementer) with reduced scope (fewer files, smaller context)
+3. Re-dispatch Themis (reviewer) on updated code
+4. If still failing → escalate per E5-QUALITY
+
+### Display — Pre-execution
+
+```
+⚠ BUDGET PRE-CHECK: TRUNCATION RISK
+Daedalus (planner) estimates step {step} may exceed context limits.
+
+Estimated usage: ~{est}k/{limit}k ({pct}%)
+
+Auto-splitting into sub-steps with independent file sets...
+```
+
+### Display — Post-execution
+
+```
+🔄 QUALITY RETRY — TRUNCATION DETECTED (attempt {n}/{max})
+Themis (reviewer) found signs of context truncation:
+{list of truncation indicators}
+
+Re-dispatching Hephaestus (implementer) with reduced scope...
+```
+
+### State Updates
+
+- Pre-execution: routed through E4-BUDGET state tracking (`retries.budget_splits`)
+- Post-execution: routed through E5-QUALITY state tracking (`retries.quality`)
+
+### Escalation
+
+- Pre-execution: follows E4-BUDGET escalation (double overflow → user gate)
+- Post-execution: follows E5-QUALITY escalation (max retries → user gate)
 
 ---
 

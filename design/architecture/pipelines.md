@@ -9,13 +9,17 @@ First step of ANY task. Classifier agent determines size and pipeline.
 | **Small** | 1-2 files, no architecture decisions, local context | Quick | 2 (classify + final) |
 | **Medium** | 3-10 files, needs project context, no new entities | Standard | 4 (classify, arch, plan, final) |
 | **Large** | New entities, architecture changes, >10 files | Full | 5+ (classify, arch, plan, per-phase, final) |
-| **Epic** | Multiple related tasks, requires decomposition | Decomposition | Many (classify, decomp, per-task) |
+| **Epic** | Multiple related tasks, requires decomposition | Decomposition | Many (classify, decomp, per-task, final) |
 
 Classifier also reports **confidence**: high or low.
 - High confidence + Small → Quick Pipeline
 - Low confidence + Small → upgrade to Standard Pipeline
 
+**Monorepo support:** For monorepo projects, Classifier includes package scoping in its output — which packages are relevant to the task. Explorer receives package-scoped instructions limiting exploration to those packages and their direct dependencies. If scope proves insufficient during exploration, E2-SCOPE (monorepo subtype, D-070) triggers re-scoping with user input.
+
 **Gate #1: User confirms classification.** Wrong classification = wrong pipeline = wrong result.
+
+**Minimum viable task size:** The Quick Pipeline adds ~1-3 minutes of overhead (classification + exploration + implementation + review). Tasks that can be done correctly in under 30 seconds are better served by the escape hatch (`/moira bypass:`). The pipeline's value is in tasks where getting it right the first time matters more than speed.
 
 ---
 
@@ -41,7 +45,17 @@ USER → task description
       ├─ redo   — rollback
       └─ diff   — show changes
 
-  Post: lightweight reflection (file note, no agent)
+  Post: Orchestrator writes structured reflection note to
+        `.claude/moira/state/tasks/{id}/reflection-note.yaml`:
+        ```yaml
+        task_id: {id}
+        classification_correct: true|false
+        implementation_accepted: true|false|tweaked
+        issues_found: []  # list of review findings if any
+        knowledge_updates: []  # typically empty for quick tasks
+        ```
+        No Reflector agent dispatched — this is a lightweight
+        substitute for Quick Pipeline knowledge accumulation.
   Budget report displayed.
 ```
 
@@ -252,5 +266,8 @@ Summary of pipeline-level error handling:
 | Quality gate failed (attempt 1) | Retry with feedback |
 | Quality gate failed (attempt 2) | Escalate to user |
 | Agent crash | Retry 1x, then diagnose + escalate |
+| Semantic error (wrong content) | Reviewer catches → retry with feedback, or gate modify |
+| Agent data conflict | Architect flags → present both versions at gate |
+| Context truncation | Budget pre-check → split; Reviewer post-check → retry reduced |
 | Orchestrator context >40% | Warning |
 | Orchestrator context >60% | Recommend checkpoint |

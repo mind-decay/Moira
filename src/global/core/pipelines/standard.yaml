@@ -123,6 +123,8 @@ gates:
         description: "Show full plan details"
       - id: modify
         description: "Provide feedback for revision"
+      - id: rearchitect
+        description: "Return to architecture gate (different technical approach)"
       - id: abort
         description: "Cancel task"
 
@@ -180,6 +182,20 @@ error_handlers:
   E8-STALE:
     action: log_and_escalate
     note: "Stub — full detection in Phase 4"
+  E9-SEMANTIC:
+    action: retry_with_feedback
+    max_attempts: 2
+    note: "Reviewer-detected: E5-QUALITY retry path. Gate-detected: gate modify flow"
+  E10-DIVERGE:
+    action: escalate_to_user
+    display: diverge_gate
+    note: "Present contradiction at architecture gate"
+  E11-TRUNCATION:
+    pre_exec:
+      action: split_and_retry
+    post_exec:
+      action: retry_reduced_scope
+      max_attempts: 2
 
 post:
   reflection: background

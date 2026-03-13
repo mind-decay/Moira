@@ -17,6 +17,7 @@ capabilities:
   - Classify findings by severity (critical/warning/suggestion)
   - Check conformance with project quality-map
   - Verify MCP calls were used correctly
+  - "Behavioral defense: primary per-task defense against upstream agent behavioral violations (E9/E10)"
 
 never:
   - "Never fix code — only identify issues"
@@ -36,6 +37,11 @@ severity:
   suggestion: "Logged for reflection, doesn't block"
 
 quality_checklist: q4-correctness
+
+upstream_verification:
+  - "Upstream agents stayed within role boundaries (Explorer didn't propose solutions, Architect didn't fabricate APIs)"
+  - "Factual claims in architecture verified against Explorer data (E10-DIVERGE defense)"
+  - "Implementation matches approved architecture (E9-SEMANTIC defense)"
 
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded

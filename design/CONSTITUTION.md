@@ -99,7 +99,7 @@ Agents MUST NOT fabricate API endpoints, URLs, schemas, data structures, types, 
 ### 4.2 User Authority
 The user (engineer) has final authority over all decisions. The system proposes, the user disposes. No automated action can override user rejection.
 
-**Test:** All gates require user action to proceed. No auto-proceed logic exists.
+**Test:** All gates require user action to proceed. No auto-proceed logic exists in production pipelines. Bench mode (/moira bench, explicitly activated by user) may use predefined gate responses for automated testing.
 
 ### 4.3 Rollback Capability
 Every task MUST be fully reversible. Code changes can be reverted. State can be rolled back. No permanent side effects without user approval.
@@ -173,7 +173,7 @@ ARTICLE 3: Transparency
 
 ARTICLE 4: Safety
 [ ] 4.1 Fabrication prohibition present and inviolable in base rules
-[ ] 4.2 All gates require user action (no auto-proceed)
+[ ] 4.2 All gates require user action in production (bench mode excepted)
 [ ] 4.3 Git-backed reversibility for all code changes
 [ ] 4.4 Bypass requires exact "/moira bypass:" + confirmation "2"
 

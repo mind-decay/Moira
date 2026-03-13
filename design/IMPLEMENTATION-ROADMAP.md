@@ -133,7 +133,7 @@ Based on dependency analysis. Each phase builds on previous.
 **Testing (Tier 2 — Behavioral Bench bootstrap):**
 - Bench fixture projects created (greenfield-webapp, mature-webapp, legacy-webapp)
 - First behavioral test cases for agent output quality
-- LLM-judge with anchored rubrics (D-024)
+- Rubric definitions for behavioral tests (D-024; LLM-judge invocation deferred to Phase 10 per D-046)
 
 **Why sixth:** Quality gates refine what agents already produce. Agents must work first.
 
@@ -231,7 +231,7 @@ Based on dependency analysis. Each phase builds on previous.
 **Deliverables:**
 - Checkpoint system (`manifest.yaml`, `resume_context`)
 - Resume validation (Explorer check on changed files)
-- Lock system for multi-developer (`config/locks.yaml` — committed, with TTL, D-033)
+- Lock system for multi-developer (`config/locks.yaml` — committed, with TTL, D-033) (deferred to post-v1, branch isolation is interim — D-068)
 - Epic decomposition pipeline (`queue.yaml`)
 - Tweak flow
 - Redo flow with re-entry points (git revert delegated to Implementer agent, not orchestrator)

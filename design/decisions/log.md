@@ -193,6 +193,11 @@ All architectural decisions made during Moira system design.
 
 **Context:** How to automate the three-layer verification?
 **Decision:** Two dedicated agents: moira-verifier (post-change) and moira-impact-analyzer (pre-change). Defined in AGENTS.md for the Moira project itself.
+**Alternatives rejected:**
+- Manual verification only — humans miss things, especially after long sessions
+- CI/CD pipeline — not available in Claude Code context
+- Single agent for everything — too much responsibility, unclear output
+**Reasoning:** Pre-change analysis prevents bad changes from being made. Post-change verification catches what slipped through. Two agents with clear roles match Moira's own design philosophy.
 
 ## D-022: Project Config via Git, State via Gitignore
 
@@ -203,11 +208,6 @@ All architectural decisions made during Moira system design.
 - Nothing committed — each developer re-bootstraps from scratch, no shared knowledge
 - Separate config repo — adds complexity for no benefit
 **Reasoning:** Rules and knowledge benefit the whole team. Task state is per-session and per-developer. Git is the natural sharing mechanism for team config. Second developer joining project gets all accumulated knowledge instantly.
-**Alternatives rejected:**
-- Manual verification only — humans miss things, especially after long sessions
-- CI/CD pipeline — not available in Claude Code context
-- Single agent for everything — too much responsibility, unclear output
-**Reasoning:** Pre-change analysis prevents bad changes from being made. Post-change verification catches what slipped through. Two agents with clear roles match Moira's own design philosophy.
 
 ## D-023: Layered Testing Architecture
 
@@ -306,16 +306,6 @@ All architectural decisions made during Moira system design.
 - Single Scanner agent with mode parameter — unnecessary abstraction for 4 invocations
 **Reasoning:** Explorer's role is "reads code, reports facts — NEVER proposes solutions." Scanning is exactly this. Layer 4 instructions customize what facts to report. Consistent with D-005 (modular rules, Layer 4 = task-specific). No new NEVER constraints needed — Explorer's existing constraints apply.
 
-## D-034: Greek Mythology Naming System
-
-**Context:** System needs a memorable, unique, viral-friendly identity. Original name "Forge" is overloaded (SourceForge, Electron Forge, Minecraft Forge, etc.), has poor SEO, and doesn't convey orchestration.
-**Decision:** Rename system to **Moira** (the three Fates). All agents, components, and pipeline phases named after Greek mythological figures. Every name displayed as `Name (role)` format — always, everywhere, no exceptions.
-**Alternatives rejected:**
-- Keep "Forge" — poor googlability, crowded namespace, no mythological depth for subsystem naming
-- Latin/Norse mythology — Greek has strongest cultural recognition and largest namespace
-- Abstract tech names — forgettable, no narrative cohesion
-**Reasoning:** Greek mythology provides: (1) meaningful metaphors (three Fates = three pipeline phases), (2) vast extensible namespace, (3) cultural resonance that aids memorability and word-of-mouth, (4) unique identity in dev tooling space. The `Name (role)` convention ensures mythology never becomes a barrier to understanding. Full mapping in `architecture/naming.md`.
-
 ## D-033: Locks in Committed Zone with TTL
 
 **Context:** locks.yaml was in gitignored state/ directory, but locks must be visible across developers.
@@ -325,6 +315,16 @@ All architectural decisions made during Moira system design.
 - External lock service — violates D-013 (self-contained)
 - Shared network file — requires infrastructure beyond git
 **Reasoning:** Locks exist for cross-developer coordination. Must be in git to be shared. TTL prevents permanent locks from crashed sessions. Stale lock detection runs during audit (D-012). Standard git merge handles conflicts.
+
+## D-034: Greek Mythology Naming System
+
+**Context:** System needs a memorable, unique, viral-friendly identity. Original name "Forge" is overloaded (SourceForge, Electron Forge, Minecraft Forge, etc.), has poor SEO, and doesn't convey orchestration.
+**Decision:** Rename system to **Moira** (the three Fates). All agents, components, and pipeline phases named after Greek mythological figures. Every name displayed as `Name (role)` format — always, everywhere, no exceptions.
+**Alternatives rejected:**
+- Keep "Forge" — poor googlability, crowded namespace, no mythological depth for subsystem naming
+- Latin/Norse mythology — Greek has strongest cultural recognition and largest namespace
+- Abstract tech names — forgettable, no narrative cohesion
+**Reasoning:** Greek mythology provides: (1) meaningful metaphors (three Fates = three pipeline phases), (2) vast extensible namespace, (3) cultural resonance that aids memorability and word-of-mouth, (4) unique identity in dev tooling space. The `Name (role)` convention ensures mythology never becomes a barrier to understanding. Full mapping in `architecture/naming.md`.
 
 ## D-035: Pipeline Definitions as Separate YAML Files
 
@@ -560,3 +560,106 @@ All architectural decisions made during Moira system design.
 - Keep presets + fix parsing — two-system complexity remains
 - Dedicated architecture scanner for `dir_*` — future enhancement, not needed now (structure scanner already maps directory roles)
 **Reasoning:** Frontmatter is trivially parseable in bash (read between `---` delimiters). No preset layer means no wrong defaults. Structure scanner already maps directories — `dir_*` detection is natural extension. Architecture scanner may take over `dir_*` responsibility in future.
+
+## D-061: Two-Level Path Resolution (Global vs Project)
+
+**Context:** First task execution on sveltkit-todos revealed that all pipeline skills (`task.md`, `orchestrator.md`, `dispatch.md`, `errors.md`, `bypass.md`) hardcoded `~/.claude/moira/state/` for state writes. This caused state to be written to the global directory instead of the project-local `.claude/moira/state/`, making init scans invisible to the orchestrator and breaking deep scan triggers. See `design/reports/2026-03-13-first-task-execution-sveltkit-todos.md`.
+**Decision:** Two base paths, no resolution logic needed:
+- **Global (read-only):** `~/.claude/moira/` — core rules, pipelines, templates, skills, lib
+- **Project (read-write):** `.claude/moira/` — state, config, knowledge
+All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/` for core definitions. Path Resolution section added to `orchestrator.md` Section 1.
+**Alternatives rejected:**
+- Runtime resolution (check project first, fallback to global) — unnecessary complexity, project dir always exists after init
+- Single unified path — defeats purpose of global install (core shared across projects)
+- Environment variable (`MOIRA_BASE`) — no mechanism to set env vars in skill context
+**Reasoning:** `init.md` already used this pattern correctly (global for templates/core, project-local for output). The bug was inconsistency — other skills hadn't adopted the same convention. Simple path replacement in skills, no runtime logic needed.
+
+## D-062: Classifier Does Not Return Pipeline Type
+
+**Context:** First full task execution revealed Apollo returned `pipeline=single-agent` — a value not in the system. Orchestrator correctly used the mapping table as fallback, but the response contract allowed the invalid value.
+**Decision:** Remove `pipeline=` from Classifier's response format. Classifier returns only `size=` and `confidence=`. Pipeline selection is exclusively the orchestrator's responsibility (Art 2.1 pure function).
+**Alternatives rejected:**
+- Add enum validation for pipeline value — pipeline selection is not the classifier's job; validating a field that shouldn't exist is wrong fix
+- Keep pipeline as informational hint — creates ambiguity about who owns pipeline selection; no additional information vs the deterministic table
+**Reasoning:** Art 2.1 defines pipeline selection as a pure function of size+confidence. Having the classifier also propose a pipeline violates single responsibility and creates a potential for contradictions. The mapping table in orchestrator.md Section 3 is the single source of truth.
+
+## D-063: Implementer Post-Implementation Validation
+
+**Context:** First task execution required orchestrator to run `svelte-kit sync` directly — violating Art 1.1 (orchestrator never runs bash). Root cause: SvelteKit needs type generation after code changes, and no pipeline step handled this.
+**Decision:** Implementer runs post-implementation validation commands from `config.yaml` → `tooling.post_implementation[]` before returning STATUS: success. If commands fail, implementer fixes errors. If none configured, step is skipped.
+**Alternatives rejected:**
+- Separate pipeline step for validation — adds overhead (new agent dispatch) for every task, even when no validation needed
+- Reviewer runs validation — wastes review dispatch if typecheck fails; better to catch earlier
+- Orchestrator runs tooling commands — violates Art 1.1 (orchestrator never runs bash commands)
+**Reasoning:** "Code compiles" is part of "code is written correctly." Running typecheck/lint is a natural extension of the implementer's responsibility, not a new responsibility. Config-driven approach makes it project-specific (SvelteKit projects add `svelte-kit sync`, Go projects add `go vet`, etc.). No NEVER constraints are weakened — implementer still never makes decisions about WHAT to build.
+
+## D-064: Orchestrator Context Capacity 1M Tokens
+
+**Context:** Models with 1M+ context window increased default context from 200k to 1M tokens. Orchestrator context budget thresholds were calibrated for 200k.
+**Decision:** Update orchestrator context capacity to 1M. Keep percentage-based thresholds unchanged (<25% healthy, 25-40% monitor, 40-60% warning, >60% critical). Agent budgets remain at pre-1M allocations — they define maximum useful work per agent, not context limits.
+**Alternatives rejected:**
+- Increase agent budgets proportionally — agents don't need more context, their budgets reflect useful work scope
+- Reduce orchestrator skill size for optimization — premature, 1M provides ample headroom; reducing skill size risks losing quality through less self-contained instructions
+**Reasoning:** Percentage thresholds scale automatically. Agent budgets are task-scoped, not context-scoped — an explorer doesn't need 700k tokens for a small codebase just because it's available. The 1M headroom means orchestrator can handle Full pipeline with multiple retries without hitting warning thresholds.
+
+## D-065: Enforcement Model — Three-Tier Trust Classification
+
+**Context:** Architecture review (2026-03-13) identified that the design treats structural guarantees (allowed-tools) and behavioral rules (agent NEVER constraints) as equivalently reliable. They are not.
+**Decision:** Add an Enforcement Model section to fault-tolerance.md classifying every constraint into three tiers: structural (platform-guaranteed), validated (behavioral + verification), behavioral (prompt-only). Reviewer and Reflector are reframed as primary behavioral defense, not secondary checks.
+**Alternatives rejected:**
+- Full subsystem document (enforcement-model.md) — over-engineering for pre-v1, medium variant provides 80% value
+- Localized fix only (E6 parsing fallback) — doesn't address the systemic blind spot
+**Reasoning:** The design must be honest about what is structurally enforced vs what depends on prompting. This informs where to invest in detection and defense layers.
+
+## D-066: Monorepo Support — Bootstrap Detection + Package Map + Classifier Scoping
+
+**Context:** Explorer has 140k budget. Monorepo with many packages won't fit breadth-first scan. Need a scoping strategy.
+**Decision:** Bootstrap (init) detects monorepo (workspaces, lerna.json, packages/). Creates package map in knowledge (extension of project-model). Classifier uses package map to scope relevant packages per task. Explorer receives scoped instructions.
+**Alternatives rejected:**
+- Two-pass Explorer (scan structure first, then deep scan) — double dispatch overhead, Explorer making relevance judgments violates "reports facts only"
+- No scoping, just increase budget — doesn't scale
+**Reasoning:** Uses existing mechanisms (knowledge system, Classifier scope, E2-SCOPE recovery). No new agents or pipeline changes needed.
+
+## D-067: Art 4.2 Amendment — Bench Mode Exception
+
+**Context:** bench_mode (D-048) auto-responds to gates during testing. Art 4.2 says "no auto-proceed logic exists." This is a constitutional contradiction.
+**Decision:** Amend Art 4.2 test clause to explicitly exempt bench mode (explicitly user-activated via /moira bench). Production pipeline gates remain fully user-controlled.
+**Alternatives rejected:**
+- Remove bench_mode from production schema — bench_mode was implemented intentionally and works correctly
+- Leave as-is with D-048 reasoning — constitutional interpretation is not sufficient, explicit amendment needed
+**Reasoning:** The constitution should be honest about what the system actually does. Bench mode is a deliberate, user-activated testing mechanism, not an erosion of user authority.
+
+## D-068: Multi-Developer Locks Deferred to Post-v1
+
+**Context:** Architecture review flagged the lock system (locks.yaml with TTL and stale detection) as over-engineering for pre-v1. Git branch isolation is sufficient for initial multi-developer use.
+**Decision:** Defer lock system implementation. Phase 12 retains the design but marks it as post-v1. Branch-based isolation is the interim solution.
+**Alternatives rejected:**
+- Remove lock system from design entirely — the design is sound for future use
+- Implement as planned — no evidence of need until multiple users exist
+**Reasoning:** Implementation cost is high, value is advisory only (cannot prevent actual git conflicts). Branch isolation is free and sufficient for initial use.
+
+## D-069: Tweak/Redo Stays in Phase 12
+
+**Context:** Architecture review recommended moving basic Tweak to Phase 6-7 for usability. However, users won't interact with Moira until after Phase 12 — only the developer uses it for testing.
+**Decision:** Keep Tweak/Redo in Phase 12 as originally planned.
+**Alternatives rejected:**
+- Move basic Tweak to Phase 6-7 — premature, no user demand yet
+**Reasoning:** The recommendation assumed users are already working with the system. They aren't. Implementing Tweak early would be building for a scenario that doesn't exist yet.
+
+## D-070: E2-SCOPE Extended with Monorepo Subtype
+
+**Context:** E2-SCOPE is defined as "task is bigger/more complex than classified." Monorepo support needs a mechanism for when Explorer discovers that the scoped packages are insufficient. This is conceptually different from task size reclassification.
+**Decision:** Add monorepo subtype to E2-SCOPE: "insufficient package scope." Same recovery flow (stop, present options, user decides) but options are scope-focused (add packages) rather than size-focused (upgrade pipeline).
+**Alternatives rejected:**
+- Reuse E2-SCOPE without subtype — semantic stretch, confusing
+- New error code E12 — insufficient justification for a separate code when the recovery flow is identical
+**Reasoning:** Same error family (scope), same recovery pattern, different trigger. Subtype preserves taxonomy coherence.
+
+## D-071: Quick Pipeline Retry Limit Is 1
+
+**Context:** Quick Pipeline (pipelines.md) says "max 1" retry. Fault-tolerance.md E5-QUALITY says "MAX RETRY: 2 attempts total." This is a contradiction.
+**Decision:** Quick Pipeline keeps max 1. Fault-tolerance.md adds note that pipeline-specific limits may override the general default. The general default of 2 applies to Standard and Full pipelines.
+**Alternatives rejected:**
+- Change Quick to max 2 — Quick Pipeline is designed for speed, extra retry defeats the purpose
+- Change general default to 1 — Standard/Full benefit from the second attempt
+**Reasoning:** Quick Pipeline optimizes for speed. If the first retry fails, escalating to user is more efficient than a second retry for what should be a small task.

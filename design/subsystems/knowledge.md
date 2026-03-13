@@ -16,16 +16,20 @@ Every knowledge document exists in three forms:
 
 ### Agent Knowledge Access Matrix
 
-| Agent | project-model | conventions | decisions | patterns | quality-map |
-|-------|--------------|-------------|-----------|----------|-------------|
-| Classifier | L1 | — | — | — | — |
-| Explorer | L0 | — | — | — | — |
-| Analyst | L1 | — | L0 | — | — |
-| Architect | L1 | L0 | L2 (full!) | L1 | L1 |
-| Planner | L1 | L1 | L0 | L0 | L0 |
-| Implementer | L0 | L2 (full!) | — | L1 | — |
-| Reviewer | L1 | L2 (full!) | L1 | L1 | L1 |
-| Tester | L0 | L1 | — | L0 | — |
+| Agent | project-model | conventions | decisions | patterns | quality-map | failures |
+|-------|--------------|-------------|-----------|----------|-------------|----------|
+| Classifier | L1 | — | — | — | — | — |
+| Explorer | L0 | — | — | — | — | — |
+| Analyst | L1 | — | L0 | — | — | L0 |
+| Architect | L1 | L0 | L2 (full!) | L1 | L1 | L0 |
+| Planner | L1 | L1 | L0 | L0 | L2 | — |
+| Implementer | L0 | L2 (full!) | — | L1 | — | — |
+| Reviewer | L1 | L2 (full!) | L1 | L1 | L1 | — |
+| Tester | L0 | L1 | — | L0 | — | — |
+| Reflector | L2 | L2 | L2 | L2 | L2 | L2 |
+| Auditor | L2 | L2 | L2 | L2 | L2 | L2 |
+
+**Authoritative source:** `src/global/core/knowledge-access-matrix.yaml`. This table is a summary. Write access is defined in the authoritative source.
 
 Architect reads full decisions — needs ALL precedents.
 Implementer reads full conventions — needs exact HOW.
@@ -56,6 +60,24 @@ Where our code ends and external systems begin
 ## Pain Points
 Known issues, technical debt, fragile areas
 ```
+
+### Package Map (monorepo projects only)
+
+When the project is a monorepo (detected at bootstrap via package.json `workspaces`, lerna.json, pnpm-workspace.yaml, or `packages/` directory pattern), bootstrap creates a package map as an extension of the project model.
+
+```markdown
+## Packages
+| Package | Path | Role | Internal Dependencies |
+|---------|------|------|----------------------|
+| @ui/button | packages/ui/button | library | @ui/core |
+| @ui/core | packages/ui/core | library | — |
+| web-app | apps/web | application | @ui/button, @ui/core |
+```
+
+Stored at: `knowledge/project-model/package-map.md`
+Access levels: Classifier uses L0 (package list only). Explorer uses L1 (packages + dependencies). Architect uses L1 for cross-package impact analysis.
+
+Package map is refreshed by Explorer during `/moira refresh` and updated organically when Explorer encounters new package relationships during tasks.
 
 ### Decisions Log (knowledge/decisions/)
 

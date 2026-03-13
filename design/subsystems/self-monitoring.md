@@ -57,6 +57,8 @@ The orchestrator physically cannot invoke Edit, Grep, Glob, or Bash because thes
 
 ### Layer 2: PostToolUse `guard.sh` hook (DETECTION + AUDIT)
 
+**Scope:** guard.sh runs as a PostToolUse hook in the orchestrator session. Claude Code hooks fire for ALL tool uses in the session, including those made by dispatched subagents. Since agents are expected to read/write project files (that's their job), guard.sh must distinguish orchestrator tool calls from agent tool calls. Platform constraint: Claude Code does not currently expose whether a tool call originates from the main session or a subagent. Guard.sh should log all tool calls but only flag violations from orchestrator-context operations (non-agent file operations targeting project paths).
+
 ```bash
 #!/bin/bash
 # PostToolUse hook — fires AFTER every tool call
@@ -104,7 +106,7 @@ Moira section in project CLAUDE.md contains inviolable rules about orchestrator 
 
 ```
 ⚠ ORCHESTRATOR CONTEXT WARNING
-Context usage: 58% (116k/200k)
+Context usage: 58% (580k/1000k)
 
 Quality of orchestration may degrade.
 
@@ -120,7 +122,7 @@ Included in every gate display:
 
 ```
 ORCHESTRATOR HEALTH:
-├─ Context: ~22k/200k (11%) ✅
+├─ Context: ~22k/1000k (2%) ✅
 ├─ Violations: 0 ✅
 ├─ Agents dispatched: 7
 ├─ Gates passed: 3/5

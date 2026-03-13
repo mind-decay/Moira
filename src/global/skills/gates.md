@@ -67,9 +67,9 @@ Display at pipeline completion (final gate and post-pipeline):
 ║ Agent         │ Budget │ Est.  │ % │ Status  ║
 ║───────────────┼────────┼───────┼───┼─────────║
 {per-agent rows from status.yaml budget.by_agent block}
-║ Orchestrator  │ 200k   │ {est} │{%}│ {emoji} ║
+║ Orchestrator  │ 1000k  │ {est} │{%}│ {emoji} ║
 ╠══════════════════════════════════════════════╣
-║ Orchestrator context: {used}k/200k ({pct}%)  ║
+║ Orchestrator context: {used}k/1000k ({pct}%) ║
 ╚══════════════════════════════════════════════╝
 ```
 
@@ -97,9 +97,9 @@ After Apollo (classifier) completes.
 
 **Options:**
 ```
-▸ proceed — Classification correct, continue with {pipeline_type} Pipeline
-▸ modify  — Provide different classification (size: small/medium/large/epic)
-▸ abort   — Cancel task
+1) proceed — Classification correct, continue with {pipeline_type} Pipeline
+2) modify  — Provide different classification (size: small/medium/large/epic)
+3) abort   — Cancel task
 ```
 
 **Gate state:** `moira_state_gate("classification_gate", decision)`
@@ -120,20 +120,20 @@ After Metis (architect) completes.
 
 **Options (Standard Pipeline):**
 ```
-▸ proceed — Architecture approved, continue
-▸ details — Show full architecture reasoning
-▸ modify  — Provide feedback for revision
-▸ abort   — Cancel task
+1) proceed — Architecture approved, continue
+2) details — Show full architecture reasoning
+3) modify  — Provide feedback for revision
+4) abort   — Cancel task
 ```
 
 **Options (Full Pipeline — user chooses architecture):**
 ```
-▸ 1 — {Alternative 1 name}: {brief description}
-▸ 2 — {Alternative 2 name}: {brief description}
-▸ 3 — {Alternative 3 name}: {brief description}
-▸ details — Show full reasoning for all alternatives
-▸ modify  — Provide feedback, request different approaches
-▸ abort   — Cancel task
+1) {Alternative 1 name}: {brief description}
+2) {Alternative 2 name}: {brief description}
+3) {Alternative 3 name}: {brief description}
+4) details — Show full reasoning for all alternatives
+5) modify  — Provide feedback, request different approaches
+6) abort   — Cancel task
 ```
 
 **Gate state:** `moira_state_gate("architecture_gate", decision)`
@@ -161,11 +161,15 @@ After Daedalus (planner) completes.
 
 **Options:**
 ```
-▸ proceed — Plan approved, continue to implementation
-▸ details — Show full plan details
-▸ modify  — Provide feedback for revision
-▸ abort   — Cancel task
+1) proceed      — Plan approved, continue to implementation
+2) details      — Show full plan details
+3) modify       — Provide feedback for revision
+4) rearchitect  — Return to architecture gate (when feedback implies different technical approach)
+5) abort        — Cancel task
 ```
+
+**Option handling:**
+- `rearchitect` — Re-enter pipeline at architecture step. Preserves Explorer and Analyst data. Metis (architect) receives original exploration/analysis data plus user's architectural feedback.
 
 **Gate state:** `moira_state_gate("plan_gate", decision)`
 
@@ -186,14 +190,20 @@ After each phase iteration in Full Pipeline (after Aletheia (tester) completes p
 
 **Options:**
 ```
-▸ proceed    — Phase complete, continue to next
-▸ checkpoint — Save progress and pause (resumable via /moira:resume)
-▸ abort      — Stop implementation
+1) proceed    — Phase complete, continue to next
+2) checkpoint — Save progress and pause (resumable via /moira:resume)
+3) abort      — Stop implementation
 ```
 
 **Gate state:** `moira_state_gate("phase_gate_{n}", decision)`
 
 On `checkpoint`: write manifest.yaml with current progress, set status to `checkpointed`.
+
+**Checkpoint reason selection** (for `manifest.yaml` `checkpoint.reason` field):
+- `context_limit` — orchestrator context budget exceeded warning threshold
+- `user_pause` — user chose `checkpoint` at a gate
+- `error` — pipeline error that cannot be recovered in current session
+- `session_end` — session ending (terminal close, timeout)
 
 ---
 
@@ -211,12 +221,37 @@ After Daedalus (planner) decomposes an epic.
 
 **Options:**
 ```
-▸ proceed — Task breakdown approved, begin execution
-▸ modify  — Adjust decomposition
-▸ abort   — Cancel task
+1) proceed — Task breakdown approved, begin execution
+2) modify  — Adjust decomposition
+3) abort   — Cancel task
 ```
 
 **Gate state:** `moira_state_gate("decomposition_gate", decision)`
+
+---
+
+### Subtask Gate
+
+After each sub-task iteration in Decomposition Pipeline (after sub-pipeline completes).
+
+**Summary source:** sub-task execution results.
+
+**Display specifics:**
+- Show: what was completed in this sub-task
+- Show: test/review results summary
+- Show: what's next (remaining sub-tasks)
+- Show: progress: sub-task {n}/{total}
+
+**Options:**
+```
+1) proceed    — Sub-task complete, continue to next
+2) checkpoint — Save progress and pause (resumable via /moira:resume)
+3) abort      — Stop execution
+```
+
+**Gate state:** `moira_state_gate("subtask_gate_{n}", decision)`
+
+On `checkpoint`: write manifest.yaml with current progress, set status to `checkpointed`.
 
 ---
 
@@ -237,18 +272,18 @@ After pipeline completion (after review/testing in Quick/Standard, after integra
 
 **Options:**
 ```
-▸ done  — Accept all changes
-▸ tweak — Targeted modification (describe what to change)
-▸ redo  — Full rollback (choose re-entry point: architecture/plan/implement)
-▸ diff  — Show full git diff
-▸ test  — Run full test suite
+1) done  — Accept all changes
+2) tweak — Targeted modification (describe what to change)
+3) redo  — Full rollback (choose re-entry point: architecture/plan/implement)
+4) diff  — Show full git diff
+5) test  — Run full test suite
 ```
 
 **Gate state:** Always `moira_state_gate("final_gate", "proceed")`. Then handle completion action separately.
 
 ---
 
-## Quality Warning Gate
+## Quality Checkpoint
 
 Presented when a quality-gate agent returns `fail_warning` verdict (zero critical findings, but 1+ warning findings).
 
@@ -260,7 +295,7 @@ This is a CONDITIONAL gate — only presented when warnings exist. It does NOT r
 
 ```
 ═══════════════════════════════════════════
- GATE: Quality Warning — {Gate Name}
+ GATE: Quality Checkpoint — {Gate Name}
 ═══════════════════════════════════════════
 
  {Agent Name} ({role}) found {N} warnings:
@@ -272,10 +307,10 @@ This is a CONDITIONAL gate — only presented when warnings exist. It does NOT r
  ORCHESTRATOR HEALTH:
  {standard health report}
 
- ▸ proceed — Accept warnings, continue pipeline
- ▸ fix     — Send back to Hephaestus (implementer) for fixes
- ▸ details — Show full findings
- ▸ abort   — Cancel task
+ 1) proceed — Accept warnings, continue pipeline
+ 2) fix     — Send back to Hephaestus (implementer) for fixes
+ 3) details — Show full findings
+ 4) abort   — Cancel task
 ═══════════════════════════════════════════
 ```
 
@@ -287,7 +322,7 @@ This is a CONDITIONAL gate — only presented when warnings exist. It does NOT r
 
 **Finding display:** Use `moira_quality_format_warnings()` from `quality.sh` to format warning items.
 
-**Gate state:** `moira_state_gate("quality_warning_{gate}", decision)`
+**Gate state:** `moira_state_gate("quality_checkpoint_{gate}", decision)`
 
 ---
 
@@ -301,10 +336,10 @@ See `errors.md` → E1-INPUT → Display for template.
 
 **Options:**
 ```
-▸ answer — provide the information
-▸ point  — point to a file/doc with the answer
-▸ skip   — mark as TODO in code
-▸ abort  — stop task
+1) answer — provide the information
+2) point  — point to a file/doc with the answer
+3) skip   — mark as TODO in code
+4) abort  — stop task
 ```
 
 ---
@@ -315,10 +350,10 @@ See `errors.md` → E2-SCOPE → Display for template.
 
 **Options:**
 ```
-▸ upgrade  — re-plan at larger size
-▸ split    — break into separate tasks
-▸ reduce   — simplify scope
-▸ continue — proceed as-is (⚠ quality risk)
+1) upgrade  — re-plan at larger size
+2) split    — break into separate tasks
+3) reduce   — simplify scope
+4) continue — proceed as-is (⚠ quality risk)
 ```
 
 ---
@@ -337,9 +372,9 @@ See `errors.md` → E5-QUALITY → Display (After Max Retries) for template.
 
 **Options:**
 ```
-▸ redesign — send back to Metis (architect)
-▸ manual   — you'll handle this part
-▸ simplify — remove feature, find simpler approach
+1) redesign — send back to Metis (architect)
+2) manual   — you'll handle this part
+3) simplify — remove feature, find simpler approach
 ```
 
 ---
@@ -350,10 +385,10 @@ See `errors.md` → E6-AGENT → Display (After Failure) for template.
 
 **Options:**
 ```
-▸ retry-split — split work and retry
-▸ retry-as-is — retry same task
-▸ manual      — handle manually
-▸ rollback    — undo all, re-plan
+1) retry-split — split work and retry
+2) retry-as-is — retry same task
+3) manual      — handle manually
+4) rollback    — undo all, re-plan
 ```
 
 ---

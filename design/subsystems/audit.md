@@ -7,7 +7,7 @@ The Audit system is an independent observer verifying health of ALL Moira compon
 ## Audit Triggers
 
 ### Automatic
-- After every 20 tasks: full audit
+- After every 20 tasks: standard audit
 - On `/moira upgrade`: compatibility audit
 - On `/moira refresh`: knowledge audit subset
 
@@ -61,6 +61,7 @@ Checks:
 - Freshness (% fresh vs aging vs stale)
 - Internal contradictions
 - Missing areas (new directories not documented)
+- Knowledge vs Source Code Cross-Validation: Sample 3-5 knowledge claims per standard audit. Dispatch Explorer to verify each sampled claim against current source code. Flag discrepancies as E8-STALE for knowledge refresh.
 
 Findings example:
 ```
@@ -78,6 +79,8 @@ Analyzes per-agent effectiveness over recent tasks:
 - Implementer first-pass review score
 - Reviewer catch rate and false positive rate
 - Common failure patterns per agent
+
+**Classifier accuracy:** Gate override rate — percentage of tasks where user changes classification at Gate #1. Proxy metric for misclassification frequency. Data source: status.yaml `classification.overridden` field.
 
 Produces specific rule update recommendations:
 ```

@@ -12,7 +12,7 @@ This skill defines how the orchestrator constructs agent prompts, dispatches age
 
 When dispatching a post-planning agent (any agent after Daedalus has run), check for a pre-assembled instruction file:
 
-1. Check path: `~/.claude/moira/state/tasks/{task_id}/instructions/{agent_name}.md`
+1. Check path: `.claude/moira/state/tasks/{task_id}/instructions/{agent_name}.md`
 2. If file exists and is non-empty:
    - Read the file contents
    - Use directly as the agent prompt (the file IS the complete prompt)
@@ -34,9 +34,9 @@ Used for:
 | Pipeline | Pre-assembled (instruction file) | Simplified (fallback) |
 |----------|----------------------------------|----------------------|
 | Quick | none | all agents |
-| Standard | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena |
-| Full | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena |
-| Decomposition | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena |
+| Standard | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Daedalus |
+| Full | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Daedalus |
+| Decomposition | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Daedalus |
 
 ### Steps
 
@@ -45,9 +45,12 @@ Used for:
 2. **Read base rules:** `~/.claude/moira/core/rules/base.yaml`
    - Extract: `inviolable` rules (always included)
 3. **Read response contract:** `~/.claude/moira/core/response-contract.yaml`
-4. **Read task context:** from state files in `~/.claude/moira/state/tasks/{task_id}/`
+4. **Read task context:** from state files in `.claude/moira/state/tasks/{task_id}/`
    - Input description, previous step artifacts (as specified by pipeline `reads_from`)
-5. **Assemble prompt** using the template below
+5. **Quality checklist injection:** Check if this agent has a quality gate assignment (per Agent-to-Gate Mapping table in this document). If yes:
+   - Read quality checklist from `~/.claude/moira/core/rules/quality/q{N}-*.yaml`
+   - Append Quality Checklist section to prompt (using Checklist Prompt Appendix template from this document)
+6. **Assemble prompt** using the template below
 
 ### Prompt Template
 
@@ -80,10 +83,15 @@ Write all detailed output to the artifact files. Return ONLY the status summary 
 
 {task description and context from input.md and previous artifacts}
 
+{If agent has quality gate assignment (step 5):}
+## Quality Checklist — {Gate Name}
+
+{Quality checklist content from step 5, using Checklist Prompt Appendix template}
+
 ## Output
 
 Write your detailed results to: {artifact_path}
-The artifact path is relative to: ~/.claude/moira/state/
+The artifact path is relative to: .claude/moira/state/
 ```
 
 ---
@@ -148,6 +156,7 @@ STATUS: success|failure|blocked|budget_exceeded
 SUMMARY: <text>
 ARTIFACTS: <comma-separated file paths>
 NEXT: <text>
+QUALITY: <gate>=<verdict> (<critical>C/<warning>W/<suggestion>S)  [optional, present when agent has quality gate]
 ```
 
 ### Parsing Rules
@@ -157,6 +166,7 @@ NEXT: <text>
 3. Look for `SUMMARY:` line, extract text
 4. Look for `ARTIFACTS:` line, extract comma-separated paths
 5. Look for `NEXT:` line, extract text
+6. Look for `QUALITY:` line (optional). If present, extract gate name, verdict, and severity counts. Record in state for gate evaluation.
 
 ### Handling Parse Failures
 
@@ -241,7 +251,7 @@ If you detect your context is getting large:
 
 ### Budget Values
 
-- Read agent budget from `~/.claude/moira/config/budgets.yaml` → `agent_budgets.{role}`, fallback to `config.yaml` → `budgets.per_agent.{role}`, fallback to schema defaults
+- Read agent budget from `.claude/moira/config/budgets.yaml` → `agent_budgets.{role}`, fallback to `.claude/moira/config.yaml` → `budgets.per_agent.{role}`, fallback to schema defaults
 - Calculate `max_safe = agent_budget * 70 / 100`
 - Pre-planning agents: budget included via simplified assembly
 - Post-planning agents: budget included via Daedalus instruction files
@@ -310,11 +320,11 @@ For agents that receive quality map context, include the quality map summary in 
 |-------|-------------|-------------|
 | Metis (architect) | L1 (summary) | quality-map/summary.md |
 | Themis (reviewer) | L1 (summary) | quality-map/summary.md |
-| Daedalus (planner) | L0 (full) | quality-map/full.md |
+| Daedalus (planner) | L2 (full) | quality-map/full.md |
 
 ### Injection
 
-Read the quality map file from `~/.claude/moira/knowledge/quality-map/` and include it in the agent prompt:
+Read the quality map file from `.claude/moira/knowledge/quality-map/` and include it in the agent prompt:
 
 - For L1 agents: include `summary.md` content
 - For L0 agents (Daedalus): include `full.md` content
@@ -346,8 +356,8 @@ Quality Map Summary:
 {quality-map/summary.md content}
 ```
 
-Read the mode from `config.yaml` → `quality.mode` (default: conform).
-Read the evolution target from `config.yaml` → `quality.evolution.current_target` (if in EVOLVE mode).
+Read the mode from `.claude/moira/config.yaml` → `quality.mode` (default: conform).
+Read the evolution target from `.claude/moira/config.yaml` → `quality.evolution.current_target` (if in EVOLVE mode).
 
 ---
 

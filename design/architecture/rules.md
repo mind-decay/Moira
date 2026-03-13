@@ -187,6 +187,19 @@ Resolution: Layer 3 wins (project-specific override).
 Applied rule: "Functions ≤50 lines, except reducers ≤100 lines"
 ```
 
+### Simplified Assembly (Pre-Planning Agents)
+
+For agents dispatched before the Planner runs (Classifier, Explorer, Analyst) and for Quick Pipeline agents, the orchestrator assembles rules directly:
+
+1. **Layer 1 (Base):** `core/rules/base.yaml` — universal rules
+2. **Layer 2 (Role):** `core/rules/roles/{agent}.yaml` — agent-specific rules
+3. **Layer 3 (Project):** Project rules from `config.yaml` → `rules` section
+4. **Layer 4 (Task):** Task-specific instructions from orchestrator context (task description, classification result, scoping)
+
+This is a lightweight version of the full assembly. No conflict detection (Layers 1-2 are pre-validated, Layer 3 is user-configured). Knowledge is loaded per the access matrix at the appropriate level.
+
+See `src/global/skills/dispatch.md` Simplified Assembly section for implementation. Per D-041.
+
 ## Rule Updates
 
 Rules are updated through two paths:

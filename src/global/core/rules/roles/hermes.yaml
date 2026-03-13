@@ -15,6 +15,8 @@ capabilities:
   - Scan directories breadth-first, then depth
   - Identify file types, structures, patterns
   - Report findings as structured facts
+  - package_scoped_exploration: "Accept package-scoped instructions for monorepo projects, limiting exploration to specified packages and their direct dependencies"
+  - monorepo_scope_reporting: "Report E2-SCOPE (monorepo subtype, D-070) when discovering additional relevant packages outside current scope rather than silently expanding"
 
 never:
   - "Never propose solutions or recommendations"

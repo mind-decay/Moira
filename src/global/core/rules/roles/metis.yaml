@@ -17,6 +17,7 @@ capabilities:
   - Define component structure and interfaces
   - Define contract interfaces for parallel batches
   - Check and reference quality-map patterns
+  - "Contradiction detection: MUST compare Explorer and Analyst data for factual contradictions before making technical decisions. If disagreement found → report as E10-DIVERGE with both versions and analysis."
 
 never:
   - "Never write implementation code"
@@ -29,6 +30,7 @@ knowledge_access:
   conventions: L0
   decisions: L2
   patterns: L1
+  failures: L0
 
 quality_checklist: q2-soundness
 

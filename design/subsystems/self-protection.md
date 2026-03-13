@@ -207,8 +207,10 @@ The 19 invariants from CONSTITUTION.md. These are binary — pass or fail, no gr
 
 Each constitutional article maps to concrete checks:
 
+Constitutional verification checklist defined in `design/CONSTITUTION.md` (Invariant Verification Checklist section).
+
 ```yaml
-# design/verification/constitutional-checks.yaml
+# Constitutional checks (conceptual schema)
 
 article_1_1:
   name: "Orchestrator Purity"

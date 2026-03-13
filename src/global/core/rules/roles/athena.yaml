@@ -27,6 +27,7 @@ knowledge_access:
   conventions: null
   decisions: L0
   patterns: null
+  failures: L0
 
 quality_checklist: q1-completeness
 
