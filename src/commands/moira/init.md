@@ -151,9 +151,9 @@ Read key fields from generated files to populate the summary, then display:
   ├─ Knowledge: .claude/moira/knowledge/ (3 types populated)
   └─ CLAUDE.md: updated with Moira section
 
-  ▸ review  — inspect generated files
-  ▸ accept  — start using Moira
-  ▸ adjust  — correct something
+  1) review  — inspect generated files
+  2) accept  — start using Moira
+  3) adjust  — correct something
 ═══════════════════════════════════════════
 ```
 
@@ -185,8 +185,8 @@ If first time:
   MOIRA — First time setup
 ═══════════════════════════════════════════
 
-  ▸ start — 3-minute walkthrough of how Moira works
-  ▸ skip  — I'll figure it out (tip: /moira:help)
+  1) start — 3-minute walkthrough of how Moira works
+  2) skip  — I'll figure it out (tip: /moira:help)
 ═══════════════════════════════════════════
 ```
 
@@ -205,10 +205,10 @@ Display Core Concept:
           "how big?"  "what's    "how?"   "write    "check
                        needed?"            code"    quality"
 
-  You approve at key checkpoints (▸ prompts).
+  You approve at key checkpoints (numbered prompts).
   You never need to manage agents directly.
 
-  ▸ next
+  1) next
 ═══════════════════════════════════════════
 ```
 
@@ -226,7 +226,7 @@ Then display Commands:
 
   Everything else happens through prompts.
 
-  ▸ done — you're all set!
+  1) done — you're all set!
 ═══════════════════════════════════════════
 ```
 

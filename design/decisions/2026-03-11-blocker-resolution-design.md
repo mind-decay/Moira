@@ -14,7 +14,7 @@
 
 - **Role:** Determines task size and pipeline type
 - **Input:** User's task description + optional size hint
-- **Output:** `{ size: small|medium|large|epic, confidence: high|low, pipeline: quick|standard|full|decomposition, reasoning: string }`
+- **Output:** `{ size: small|medium|large|epic, confidence: high|low, reasoning: string }` (Note: `pipeline` field removed per D-062 — pipeline selection is orchestrator's responsibility)
 - **Knowledge access:** L1 (summary) — needs project context for scope assessment
 - **Budget:** ~20k tokens (minimal — fast classification)
 - **NEVER constraints:**
@@ -127,7 +127,7 @@ history:                           # completed steps for current task
     status: completed
     duration_sec: 12
     agent_tokens_used: 3200
-    result: "size=medium, pipeline=standard"
+    result: "size=medium, confidence=high"
   - step: exploration
     status: completed
     duration_sec: 45

@@ -30,16 +30,16 @@ Extract the task description (everything after the prefix, or the full argument 
 
 Generate a task ID using this pattern:
 - Read the current date (YYYY-MM-DD format)
-- Check existing task directories in `~/.claude/moira/state/tasks/` for today's date
+- Check existing task directories in `.claude/moira/state/tasks/` for today's date
 - Next ID = `task-{date}-{NNN}` where NNN is zero-padded next number (001, 002, etc.)
 
 ## Step 3: Create Task Directory
 
-Create directory: `~/.claude/moira/state/tasks/{task_id}/`
+Create directory: `.claude/moira/state/tasks/{task_id}/`
 
 ## Step 4: Write Input File
 
-Write `~/.claude/moira/state/tasks/{task_id}/input.md`:
+Write `.claude/moira/state/tasks/{task_id}/input.md`:
 
 ```
 # Task: {task_id}
@@ -56,7 +56,7 @@ Write `~/.claude/moira/state/tasks/{task_id}/input.md`:
 
 ## Step 5: Initialize Status File
 
-Write `~/.claude/moira/state/tasks/{task_id}/status.yaml`:
+Write `.claude/moira/state/tasks/{task_id}/status.yaml`:
 
 ```yaml
 task_id: "{task_id}"
@@ -73,7 +73,7 @@ retries:
 
 ## Step 6: Initialize Current State
 
-Write `~/.claude/moira/state/current.yaml`:
+Write `.claude/moira/state/current.yaml`:
 
 ```yaml
 task_id: "{task_id}"
@@ -89,7 +89,7 @@ history: []
 
 ## Step 7: Create Stub Manifest
 
-Write `~/.claude/moira/state/tasks/{task_id}/manifest.yaml` (foundation for Phase 12 resume):
+Write `.claude/moira/state/tasks/{task_id}/manifest.yaml` (foundation for Phase 12 resume):
 
 ```yaml
 task_id: "{task_id}"

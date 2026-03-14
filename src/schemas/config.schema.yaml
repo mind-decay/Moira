@@ -67,6 +67,7 @@ fields:
     type: number
     required: false
     default: 25
+    description: "Reserved for future use. Orchestrator thresholds are currently hardcoded in orchestrator.md Section 6 (Healthy <25%, Monitor 25-40%, Warning 40-60%, Critical >60%)."
   budgets.agent_max_load_percent:
     type: number
     required: false
@@ -163,6 +164,11 @@ fields:
     type: boolean
     required: false
     default: true
+  tooling.post_implementation:
+    type: array
+    required: false
+    default: []
+    description: "Shell commands to run after implementation (e.g., typecheck, lint, type generation). Implementer runs these and fixes errors before returning. Empty = no validation."
   bootstrap.quick_scan_completed:
     type: boolean
     required: false

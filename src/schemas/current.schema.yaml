@@ -65,6 +65,14 @@ fields:
     required: false
     enum: [normal, warning, critical]
     default: normal
+  bench_mode:
+    type: boolean
+    required: false
+    default: false
+  bench_test_case:
+    type: string
+    required: false
+    default: ""
   bypass.active:
     type: boolean
     required: false

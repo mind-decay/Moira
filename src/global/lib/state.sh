@@ -179,7 +179,7 @@ moira_state_agent_done() {
     local task_id
     task_id=$(moira_yaml_get "$current_file" "task_id" 2>/dev/null) || true
     if [[ -n "$task_id" ]] && type moira_budget_record_agent &>/dev/null; then
-      moira_budget_record_agent "$task_id" "$step_name" "$tokens_used" "$tokens_used" "$state_dir" || true
+      moira_budget_record_agent "$task_id" "$step_name" "0" "$tokens_used" "$state_dir" || true
       moira_budget_orchestrator_check "$state_dir" > /dev/null 2>&1 || true
     fi
   fi

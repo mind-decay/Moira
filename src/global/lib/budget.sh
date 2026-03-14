@@ -27,7 +27,7 @@ _MOIRA_BUDGET_DEFAULTS_reflector=80000
 _MOIRA_BUDGET_DEFAULTS_auditor=140000
 
 _MOIRA_BUDGET_DEFAULT_MAX_LOAD=70
-_MOIRA_BUDGET_ORCHESTRATOR_CAPACITY=200000
+_MOIRA_BUDGET_ORCHESTRATOR_CAPACITY=1000000
 
 # Orchestrator estimation constants (D-058)
 _MOIRA_BUDGET_ORCH_BASE_OVERHEAD=15000
@@ -284,13 +284,12 @@ moira_budget_orchestrator_check() {
   local percentage=$(( estimated_tokens * 100 / _MOIRA_BUDGET_ORCHESTRATOR_CAPACITY ))
 
   # Determine level (from context-budget.md / self-monitoring.md)
-  local level="healthy"
+  # Values must match current.schema.yaml warning_level enum: [normal, warning, critical]
+  local level="normal"
   if [[ "$percentage" -gt 60 ]]; then
     level="critical"
   elif [[ "$percentage" -gt 40 ]]; then
     level="warning"
-  elif [[ "$percentage" -gt 25 ]]; then
-    level="monitor"
   fi
 
   # Update current.yaml
@@ -385,13 +384,13 @@ moira_budget_generate_report() {
   fi
 
   # Orchestrator line
-  printf -v orch_line "║ Orchestrator  │ 200k   │ %3sk  │%2s%%│ %s       ║" \
+  printf -v orch_line "║ Orchestrator  │ 1000k  │ %3sk  │%2s%%│ %s       ║" \
     "$orch_k" "$orch_pct" "$orch_emoji"
   report+="${orch_line}"$'\n'
 
   report+="╠══════════════════════════════════════════════╣"$'\n'
-  printf -v summary_line "║ Orchestrator context: %sk/200k (%s%%)%*s║" \
-    "$orch_k" "$orch_pct" "$(( 22 - ${#orch_k} - ${#orch_pct} ))" ""
+  printf -v summary_line "║ Orchestrator context: %sk/1000k (%s%%)%*s║" \
+    "$orch_k" "$orch_pct" "$(( 21 - ${#orch_k} - ${#orch_pct} ))" ""
   report+="${summary_line}"$'\n'
   report+="╚══════════════════════════════════════════════╝"
 

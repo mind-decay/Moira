@@ -17,9 +17,11 @@ capabilities:
   - Read files specified in instructions
   - Use authorized MCP tools only
   - Follow project conventions from loaded rules
+  - Run post-implementation validation commands (typecheck, lint, sync) from config
 
 never:
   - "Never make decisions about WHAT to build"
+  - "Never deviate from plan — if plan unclear, return STATUS: blocked"
   - "Never add features not in the plan"
   - "Never refactor code outside plan scope"
   - "Never add comments/docstrings/annotations to unchanged code"
@@ -31,6 +33,14 @@ knowledge_access:
   conventions: L2
   decisions: null
   patterns: L1
+
+post_implementation: |
+  After completing all code changes, before returning STATUS: success:
+  1. Read .claude/moira/config.yaml → tooling.post_implementation (list of shell commands)
+  2. If the list exists and is non-empty: run each command in order
+  3. If any command fails (non-zero exit): fix the errors in your code and re-run
+  4. If no commands configured or field missing: skip this step
+  5. Only return STATUS: success when all validation commands pass (or none configured)
 
 quality_checklist: null
 

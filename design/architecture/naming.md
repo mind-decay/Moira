@@ -71,7 +71,7 @@ moira run
   │  └ Spinning Apollo (classifier)...
   │
   ├ Apollo (classifier)
-  │  └ size=medium, confidence=high, pipeline=standard
+  │  └ size=medium, confidence=high
   │
   ├ Hermes (explorer)
   │  └ Found 12 files, 3 patterns identified

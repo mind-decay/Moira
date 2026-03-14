@@ -559,6 +559,7 @@ _moira_bootstrap_gen_quality_map() {
   local strong_patterns="" adequate_patterns="" problematic_patterns=""
   local current_pattern="" current_location="" current_evidence=""
   local in_pattern=false
+  local loc_pat='Location:|Directory:|Path:'
 
   while IFS= read -r line; do
     # Detect pattern entries (### headers or table rows)
@@ -575,7 +576,7 @@ _moira_bootstrap_gen_quality_map() {
       continue
     fi
     if $in_pattern; then
-      if [[ "$line" =~ Location:|Directory:|Path: ]]; then
+      if [[ "$line" =~ $loc_pat ]]; then
         current_location=$(echo "$line" | sed 's/.*:\s*//')
       fi
     fi

@@ -1,5 +1,7 @@
 # Phase 7: Context Budget Tracking
 
+> **Note:** This spec was written pre-D-064. Display templates referencing "200k" orchestrator capacity are historical — actual capacity is now 1M tokens per D-064. Living design docs and implementation reflect the updated value.
+
 ## Goal
 
 Full context budget lifecycle: estimation before execution, tracking during execution, reporting after completion, and overflow handling with automatic recovery. This phase makes budget management a STRUCTURAL property of the pipeline — not advisory guidance, but enforced limits with deterministic overflow handling.

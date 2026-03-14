@@ -30,6 +30,10 @@ Moira is a meta-orchestration framework for Claude Code that transforms Claude f
 ### Implementation
 - [Implementation Guide](IMPLEMENTATION-GUIDE.md) — full context for implementing agents (read BEFORE any work)
 - [Implementation Roadmap](IMPLEMENTATION-ROADMAP.md) — 12-phase build order with dependencies
+- [Testing Implementation Plan](TESTING-IMPLEMENTATION-PLAN.md) — testing infrastructure plan
+
+### Reports
+- [Reports directory](reports/) — audit and analysis reports (historical, never modified after creation)
 
 ### Self-Protection
 - [Constitution](CONSTITUTION.md) — inviolable system invariants

@@ -85,6 +85,11 @@ fields:
     type: block
     required: false
     default: null
+  warnings:
+    type: block
+    required: false
+    default: null
+    description: "Stale knowledge entries and other non-blocking warnings (E8-STALE)"
   completion.action:
     type: enum
     required: false

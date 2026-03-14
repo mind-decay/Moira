@@ -99,10 +99,13 @@ User → /moira <task>
 │   │   │   │   ├── mnemosyne.yaml     # Reflector
 │   │   │   │   └── argus.yaml         # Auditor
 │   │   │   └── quality/
-│   │   │       ├── correctness.yaml
-│   │   │       ├── performance.yaml
-│   │   │       ├── security.yaml
-│   │   │       └── standards.yaml     # SOLID, KISS, DRY
+│   │   │       ├── q1-completeness.yaml
+│   │   │       ├── q2-soundness.yaml
+│   │   │       ├── q3-feasibility.yaml
+│   │   │       ├── q4-correctness.yaml
+│   │   │       └── q5-coverage.yaml
+│   │   ├── response-contract.yaml
+│   │   ├── knowledge-access-matrix.yaml
 │   │   └── pipelines/                 # Pipeline definitions (D-035)
 │   │       ├── quick.yaml
 │   │       ├── standard.yaml
@@ -119,10 +122,28 @@ User → /moira <task>
 │   ├── templates/
 │   │   ├── project-claude-md.tmpl
 │   │   ├── project-config.tmpl
+│   │   ├── budgets.yaml.tmpl
 │   │   └── scanners/                  # Scanner instruction templates
+│   │       └── deep/                  # Deep scan templates
+│   ├── schemas/                       # YAML schema definitions
+│   │   ├── budgets.schema.yaml
+│   │   ├── config.schema.yaml
+│   │   ├── current.schema.yaml
+│   │   ├── findings.schema.yaml
+│   │   ├── locks.schema.yaml
+│   │   ├── manifest.schema.yaml
+│   │   ├── queue.schema.yaml
+│   │   ├── status.schema.yaml
+│   │   └── telemetry.schema.yaml
 │   └── lib/
-│       ├── state.sh
+│       ├── bootstrap.sh
+│       ├── bench.sh
+│       ├── budget.sh
+│       ├── knowledge.sh
+│       ├── quality.sh
+│       ├── rules.sh
 │       ├── scaffold.sh
+│       ├── state.sh
 │       ├── task-id.sh
 │       └── yaml-utils.sh
 │
@@ -145,29 +166,35 @@ User → /moira <task>
 ├── core/
 │   └── rules/
 │       ├── base.yaml              # Layer 1: universal rules (inviolable + overridable)
-│       ├── roles/
-│       │   ├── classifier.yaml    # Layer 2: per-agent role rules
-│       │   ├── explorer.yaml
-│       │   ├── analyst.yaml
-│       │   ├── architect.yaml
-│       │   ├── planner.yaml
-│       │   ├── implementer.yaml
-│       │   ├── reviewer.yaml
-│       │   ├── tester.yaml
-│       │   ├── reflector.yaml
-│       │   └── auditor.yaml
+│       ├── roles/                 # Layer 2: per-agent role rules (D-034 Greek names)
+│       │   ├── apollo.yaml        # Classifier
+│       │   ├── hermes.yaml        # Explorer
+│       │   ├── athena.yaml        # Analyst
+│       │   ├── metis.yaml         # Architect
+│       │   ├── daedalus.yaml      # Planner
+│       │   ├── hephaestus.yaml    # Implementer
+│       │   ├── themis.yaml        # Reviewer
+│       │   ├── aletheia.yaml      # Tester
+│       │   ├── mnemosyne.yaml     # Reflector
+│       │   └── argus.yaml         # Auditor
 │       └── quality/
-│           ├── correctness.yaml   # Quality criteria
-│           ├── performance.yaml
-│           ├── security.yaml
-│           └── standards.yaml     # SOLID, KISS, DRY
+│           ├── q1-completeness.yaml
+│           ├── q2-soundness.yaml
+│           ├── q3-feasibility.yaml
+│           ├── q4-correctness.yaml
+│           └── q5-coverage.yaml
 │
 ├── project/
 │   └── rules/
-│       ├── stack.yaml             # Layer 3: detected stack
+│       ├── stack.yaml             # Layer 3: detected stack (from bootstrap)
 │       ├── conventions.yaml       # Layer 3: coding conventions
 │       ├── patterns.yaml          # Layer 3: project patterns
 │       └── boundaries.yaml        # Layer 3: off-limits areas
+
+├── config/
+│   ├── mcp-registry.yaml         # MCP tools registry
+│   ├── budgets.yaml              # Context budget allocations
+│   └── locks.yaml                # File reservation locks (D-033)
 │
 ├── config/
 │   ├── mcp-registry.yaml         # MCP tools registry
@@ -217,6 +244,8 @@ User → /moira <task>
 │   │       ├── tests.md
 │   │       ├── reflection.md
 │   │       ├── status.yaml
+│   │       ├── telemetry.yaml
+│   │       ├── findings/         # Quality gate findings
 │   │       └── instructions/     # Assembled agent instructions
 │   │           ├── explorer.md
 │   │           ├── implementer-A.md

@@ -1,0 +1,53 @@
+_meta:
+  name: budgets
+  file: budgets.yaml
+  location: .claude/moira/config/
+  git: committed
+  description: Context budget allocations per agent role
+
+fields:
+  agent_budgets.classifier:
+    type: number
+    required: false
+    default: 20000
+  agent_budgets.explorer:
+    type: number
+    required: false
+    default: 140000
+  agent_budgets.analyst:
+    type: number
+    required: false
+    default: 80000
+  agent_budgets.architect:
+    type: number
+    required: false
+    default: 100000
+  agent_budgets.planner:
+    type: number
+    required: false
+    default: 70000
+  agent_budgets.implementer:
+    type: number
+    required: false
+    default: 120000
+  agent_budgets.reviewer:
+    type: number
+    required: false
+    default: 100000
+  agent_budgets.tester:
+    type: number
+    required: false
+    default: 90000
+  agent_budgets.reflector:
+    type: number
+    required: false
+    default: 80000
+  agent_budgets.auditor:
+    type: number
+    required: false
+    default: 140000
+  max_load_percent:
+    type: number
+    required: false
+    default: 70
+    description: "Maximum safe load percentage per agent (budget.sh uses this for overflow detection)"

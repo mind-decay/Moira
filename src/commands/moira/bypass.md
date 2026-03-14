@@ -34,8 +34,8 @@ Display EXACTLY this:
   Even for small changes, Quick Pipeline takes
   ~30 seconds and catches issues.
 
-  ▸ 1 — Use Quick Pipeline instead (recommended)
-  ▸ 2 — Confirm bypass, I understand trade-offs
+  1) Use Quick Pipeline instead (recommended)
+  2) Confirm bypass, I understand trade-offs
 ═══════════════════════════════════════════
 ```
 
@@ -89,7 +89,7 @@ Display: "Bypass confirmed. Dispatching Hephaestus (implementer) directly (Art 1
 
 ## Step 4: Log Bypass
 
-Write to `~/.claude/moira/state/bypass-log.yaml`.
+Write to `.claude/moira/state/bypass-log.yaml`.
 
 If the file exists, append to the `bypasses:` array. If it doesn't exist, create it.
 

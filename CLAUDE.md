@@ -123,6 +123,36 @@ Every phase follows a strict 3-step process. Do NOT skip steps.
 
 Follow the phase order in `design/IMPLEMENTATION-ROADMAP.md`. Each phase builds on previous phases. Do not skip phases or implement out of order unless explicitly approved.
 
+## System Audit Commands
+
+Commands for maintaining system consistency and design quality:
+
+### `/system-audit` — Full System Audit
+Performs comprehensive cross-reference audit of the entire Moira system. Dispatches 4 parallel agents covering: agent architecture, pipelines/gates, schemas/state/shell libs, and design document cross-references. Produces a detailed report with fix plan at `design/reports/{date}-system-audit.md`.
+
+**When to run:** After completing a phase, after making cross-cutting changes (like updating thresholds across the system), or when the user asks for a system review.
+
+### `/review-spec [path]` — Review Phase Spec
+Dispatches 3 parallel agents to verify a phase spec against design docs, decision log, constitutional invariants, completeness requirements, and cross-system impact. Catches wrong numbers, implicit decisions, scope violations, and uncovered ripple effects BEFORE the plan is written.
+
+### `/review-plan [path]` — Review Implementation Plan
+Dispatches 4 parallel agents to verify a plan against its spec (coverage), file system (paths exist, values correct), design rules (no implicit decisions, WHAT not HOW), and cross-references (all ripple effects covered). Catches the three biggest sources of implementation bugs: wrong values, implicit decisions, and uncovered cross-references.
+
+### `/review-architecture [focus]` — Architecture Review
+Dispatches 4 parallel agents to critically evaluate the system DESIGN (not implementation conformance). Agents cover: structural integrity (layering, boundaries, abstractions), design coherence (decision quality, cross-doc consistency, assumptions), complexity analysis (over/under-engineering, trade-offs, YAGNI), and robustness (failure modes, gaps, edge cases, trust boundaries). Produces a review at `design/reports/{date}-architecture-review.md`.
+
+**When to run:** When questioning design decisions, before major architectural changes, periodically as the system grows, or when something feels "off" about the design.
+
+**Difference from `/system-audit`:** System audit checks if implementation matches design. Architecture review checks if the design itself makes sense.
+
+### `/fix-audit` — Execute Audit Fixes
+Reads the latest audit report, parses findings, and executes fixes in parallel groups respecting dependency order. Does NOT commit — leaves changes for user review.
+
+**When to run:** After reviewing a `/system-audit` report and approving the fix plan.
+
+### Audit reports
+All audit reports go to `design/reports/`. Reports are historical — never modify a past report, only create new ones.
+
 ## Commit Messages
 
 Format: `moira(<scope>): <description>`
