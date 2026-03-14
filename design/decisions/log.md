@@ -365,7 +365,7 @@ All architectural decisions made during Moira system design.
 ## D-039: Full Knowledge Dimensions in Access Matrix
 
 **Context:** Phase 4 review revealed knowledge-access-matrix.yaml had only 4 dimensions (project_model, conventions, decisions, patterns) while knowledge.md defines 6 knowledge types (+ quality_map, failures). The plan hardcoded quality-map access for only 2 of 3 agents that need it, missing daedalus.
-**Decision:** Expand knowledge-access-matrix.yaml to include all 6 dimensions. quality_map: metis=L1, daedalus=L0, themis=L1, mnemosyne/argus=L2, rest=null. failures: mnemosyne/argus=L2, rest=null (populated by Reflector in Phase 10). Remove hardcoded special-casing from plan — all access is matrix-driven.
+**Decision:** Expand knowledge-access-matrix.yaml to include all 6 dimensions. quality_map: metis=L1, daedalus=L2, themis=L1, mnemosyne/argus=L2, rest=null. Note: Daedalus quality_map access updated to L2 in agents.md design revision — planner needs full quality criteria to produce review-aware plans. failures: mnemosyne/argus=L2, rest=null (populated by Reflector in Phase 10). Remove hardcoded special-casing from plan — all access is matrix-driven.
 **Alternatives rejected:**
 - Keep 4 dimensions + hardcode quality-map — fragile, easy to miss agents, violates single source of truth
 - Add failures access for more agents now — no content exists until Phase 10, premature
@@ -663,3 +663,59 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 - Change Quick to max 2 — Quick Pipeline is designed for speed, extra retry defeats the purpose
 - Change general default to 1 — Standard/Full benefit from the second attempt
 **Reasoning:** Quick Pipeline optimizes for speed. If the first retry fails, escalating to user is more efficient than a second retry for what should be a small task.
+
+## D-072: Hooks as Lightweight Scripts (No Library Dependencies)
+
+**Context:** Phase 8 hook scripts (guard.sh, budget-track.sh) fire on every PostToolUse event. Should they source Moira libraries for shared functionality?
+**Decision:** Hook scripts do NOT source any Moira library files. They use only basic bash, grep, sed, and optionally jq. Guard.sh checks only Read/Write/Edit (not Grep/Glob as in self-monitoring.md example) because allowed-tools physically prevents the orchestrator from using Grep/Glob.
+**Alternatives rejected:**
+- Source yaml-utils.sh + state.sh for consistent state access — adds ~100ms+ startup time per tool call
+- Source only a lightweight "hooks-common.sh" — still adds fork overhead, not justified for simple log appends
+**Reasoning:** PostToolUse hooks fire after EVERY tool call — performance is critical (< 50ms). Hooks are separate processes that cannot share state with the orchestrator. Simple log file appends are sufficient. Complex analysis happens post-task.
+
+## D-073: JSON Settings Merge with jq Fallback
+
+**Context:** Phase 8 needs to inject hook configuration into .claude/settings.json. This requires JSON editing in bash.
+**Decision:** Use jq when available, with a grep-based fallback for simple cases. For complex settings.json without jq: warn user and provide manual instructions.
+**Alternatives rejected:**
+- Require jq as dependency — violates D-020 (minimal dependencies)
+- Python/Node fallback — introduces heavy dependencies for a one-time operation
+- Always manual — poor UX for the common case
+**Reasoning:** jq is widely available but not universal. The fallback handles ~90% of cases. This matches D-020 philosophy: works on any OS with Claude Code.
+
+## D-074: Violation Log in State Directory (Gitignored)
+
+**Context:** Where should guard.sh violation and tool-usage logs be stored?
+**Decision:** Logs go in state/ (gitignored), not config/ (committed). violations.log, tool-usage.log, and budget-tool-usage.log are all per-developer ephemeral data.
+**Alternatives rejected:**
+- Store in config/ (committed) — creates noise in PRs, exposes per-developer tool usage
+- Store in knowledge/ — violates knowledge integrity (Art 5.1, knowledge must be evidence-based)
+**Reasoning:** Violations are per-developer, per-session. Raw logs are ephemeral; aggregated insights (from Reflector Phase 10, Audit Phase 11) are permanent and committed.
+
+## D-075: Guard Hook Cannot Block (PostToolUse Limitation)
+
+**Context:** Guard.sh fires after the tool call (PostToolUse), not before. Can it prevent violations?
+**Decision:** Guard.sh can only detect and report, not prevent. Prevention is handled by allowed-tools (Layer 1). Guard.sh provides audit trail (Art 6.3) and injects warnings via hookSpecificOutput.
+**Alternatives rejected:**
+- Use PreToolUse hooks — Claude Code does not support them (confirmed in D-031)
+- Reject tool output via hook — not supported by Claude Code hook API
+**Reasoning:** Defense-in-depth: allowed-tools prevents, guard.sh detects, CLAUDE.md reinforces. The warning injected via hookSpecificOutput influences subsequent orchestrator behavior.
+
+## D-076: Empty Log File Initialization in Bootstrap
+
+**Context:** Guard.sh appends to log files. Should files be created lazily on first write or pre-created?
+**Decision:** Log files are created empty during bootstrap (via moira_bootstrap_inject_hooks), not lazily. Scaffold creates directories only; bootstrap creates initial files — maintaining existing responsibility split.
+**Alternatives rejected:**
+- Lazy creation in guard.sh via >> — works but race condition risk if multiple hooks fire simultaneously
+- Create in scaffold.sh — violates scaffold's documented contract (directories ONLY)
+**Reasoning:** Pre-creating avoids race conditions. wc -l on empty file returns 0 (correct baseline). If log dir doesn't exist, guard.sh can use that as "not a Moira project" signal.
+
+## D-077: Cross-Reference Manifest for Consistency Enforcement
+
+**Context:** System audit (2026-03-14) found 58 inconsistencies, ~60% caused by the same value being defined in multiple files (budgets, knowledge access levels, enum values, file paths) without a mechanism to propagate changes. When an agent updates one file, dependent files silently drift.
+**Decision:** Introduce a machine-readable cross-reference manifest (`src/global/core/xref-manifest.yaml`) that maps data dependencies between files. Agents consult the manifest before committing to identify all files affected by their changes. Tier 1 tests validate manifest entries against actual file content.
+**Alternatives rejected:**
+- Expand Tier 1 tests only (option A) — catches drift after the fact, doesn't prevent it
+- Reduce duplication to single source of truth (option C) — ideal long-term but requires major design doc refactoring; can be done incrementally alongside the manifest
+- No action — 58-finding audits will recur after every phase
+**Reasoning:** The manifest is a pragmatic middle ground: it doesn't require restructuring existing documents but gives agents an explicit dependency map to follow. Combined with Tier 1 validation, it catches both forgotten updates (test) and prevents them (manifest lookup at commit time). Option C (deduplication) remains a complementary long-term goal.

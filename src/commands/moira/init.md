@@ -129,7 +129,17 @@ source ~/.claude/moira/lib/bootstrap.sh
 moira_bootstrap_setup_gitignore "{project_root}"
 ```
 
-## Step 9: User Review Gate (REQUIRED — Art 4.2)
+## Step 9: Configure Hooks
+
+Run via Bash:
+```bash
+source ~/.claude/moira/lib/bootstrap.sh
+moira_bootstrap_inject_hooks "{project_root}" "$HOME/.claude/moira"
+```
+
+This registers guard and budget-track hooks in `.claude/settings.json` and creates empty log files. If hook injection fails: display warning but continue initialization.
+
+## Step 10: User Review Gate (REQUIRED — Art 4.2)
 
 This is an **APPROVAL GATE**. Do NOT proceed without explicit user action.
 
@@ -145,11 +155,12 @@ Read key fields from generated files to populate the summary, then display:
   ├─ Structure: {from structure scan — source layout pattern}
   └─ CI: {from tech scan — CI platform}
 
-  Generated:
+  Configured:
   ├─ Config: .claude/moira/config.yaml
   ├─ Rules: .claude/moira/project/rules/ (4 files)
   ├─ Knowledge: .claude/moira/knowledge/ (3 types populated)
-  └─ CLAUDE.md: updated with Moira section
+  ├─ CLAUDE.md: updated with Moira section
+  └─ Hooks: guard.sh + budget-track.sh registered
 
   1) review  — inspect generated files
   2) accept  — start using Moira
@@ -169,13 +180,13 @@ Then re-present the gate (review/accept/adjust).
 
 ### On "accept":
 Display: "Moira is ready. Use `/moira:task <description>` to start."
-Proceed to Step 10.
+Proceed to Step 11.
 
 ### On "adjust":
 Ask user what needs correction. Apply changes to the relevant files.
 Then re-present the gate.
 
-## Step 10: Micro-Onboarding (conditional)
+## Step 11: Micro-Onboarding (conditional)
 
 Check if this appears to be the user's first time with Moira (e.g., no completed tasks in any project, or global install is recent).
 
@@ -248,5 +259,5 @@ When `--force` is passed:
   - **quality-map**: regenerated as preliminary
   - **decisions**: PRESERVED (organic growth — not scanner-sourced)
   - **failures**: PRESERVED (organic growth — not scanner-sourced)
-- Steps 7-8: CLAUDE.md re-injected (replaces between markers), gitignore rechecked
+- Steps 7-9: CLAUDE.md re-injected (replaces between markers), gitignore rechecked, hooks re-injected
 - Steps 9-10: same review gate

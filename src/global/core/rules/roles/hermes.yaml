@@ -23,12 +23,18 @@ never:
   - "Never express opinions"
   - "Never make architectural suggestions"
   - "Never modify any files"
+  - "Never silently expand exploration scope — report E2-SCOPE if additional packages are needed"
 
 knowledge_access:
   project_model: L0
   conventions: null
   decisions: null
   patterns: null
+  quality_map: null
+  failures: null
+
+write_access:
+  project_model: true
 
 always_check:
   - "shared/"

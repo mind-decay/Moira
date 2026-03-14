@@ -27,6 +27,8 @@ knowledge_access:
   conventions: L1
   decisions: null
   patterns: L0
+  quality_map: null
+  failures: null
 
 quality_checklist: q5-coverage
 

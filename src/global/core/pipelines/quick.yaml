@@ -73,8 +73,6 @@ gates:
         description: "Rollback and redo"
       - id: diff
         description: "Show changes"
-      - id: test
-        description: "Run full test suite"
 
 error_handlers:
   E1-INPUT:
@@ -107,7 +105,7 @@ error_handlers:
   E6-AGENT:
     action: retry
     max_attempts: 1
-    on_max: escalate
+    on_max: diagnose_and_escalate
     display: agent_failure_gate
   E7-DRIFT:
     action: log

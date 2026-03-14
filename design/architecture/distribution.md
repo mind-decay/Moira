@@ -208,21 +208,22 @@ After installation, `~/.claude/` contains:
 │   │   └── rules/
 │   │       ├── base.yaml                 # Layer 1: inviolable + overridable rules
 │   │       ├── roles/
-│   │       │   ├── classifier.yaml       # Layer 2: agent role rules
-│   │       │   ├── explorer.yaml
-│   │       │   ├── analyst.yaml
-│   │       │   ├── architect.yaml
-│   │       │   ├── planner.yaml
-│   │       │   ├── implementer.yaml
-│   │       │   ├── reviewer.yaml
-│   │       │   ├── tester.yaml
-│   │       │   ├── reflector.yaml
-│   │       │   └── auditor.yaml
+│   │       │   ├── apollo.yaml           # Layer 2: Classifier
+│   │       │   ├── hermes.yaml           # Explorer
+│   │       │   ├── athena.yaml           # Analyst
+│   │       │   ├── metis.yaml            # Architect
+│   │       │   ├── daedalus.yaml         # Planner
+│   │       │   ├── hephaestus.yaml       # Implementer
+│   │       │   ├── themis.yaml           # Reviewer
+│   │       │   ├── aletheia.yaml         # Tester
+│   │       │   ├── mnemosyne.yaml        # Reflector
+│   │       │   └── argus.yaml            # Auditor
 │   │       └── quality/
-│   │           ├── correctness.yaml
-│   │           ├── performance.yaml
-│   │           ├── security.yaml
-│   │           └── standards.yaml        # SOLID, KISS, DRY
+│   │           ├── q1-completeness.yaml
+│   │           ├── q2-soundness.yaml
+│   │           ├── q3-feasibility.yaml
+│   │           ├── q4-correctness.yaml
+│   │           └── q5-coverage.yaml
 │   │
 │   ├── skills/
 │   │   └── orchestrator.md               # Main orchestrator skill (referenced by commands)
@@ -240,8 +241,15 @@ After installation, `~/.claude/` contains:
 │   │   ├── patterns.tmpl                 # patterns.yaml skeleton
 │   │   ├── quality-map.tmpl              # quality-map skeleton
 │   └── lib/
-│       ├── state.sh                      # State management utilities
+│       ├── bootstrap.sh                  # Project bootstrap logic
+│       ├── bench.sh                      # Behavioral test runner
+│       ├── budget.sh                     # Budget tracking utilities
+│       ├── knowledge.sh                  # Knowledge read/write utilities
+│       ├── quality.sh                    # Quality criteria utilities
+│       ├── rules.sh                      # Rule assembly utilities
 │       ├── scaffold.sh                   # Directory scaffold generator
+│       ├── settings-merge.sh             # Settings.json merge utility
+│       ├── state.sh                      # State management utilities
 │       ├── task-id.sh                    # Task ID generation
 │       └── yaml-utils.sh                # YAML read/write/validate (pure bash)
 │
@@ -293,7 +301,7 @@ claude                    # start Claude Code
   │
   ├─ 4. GENERATE: Create project layer
   │    .claude/moira/
-  │    ├─ config.yaml              (from preset + scan results)
+  │    ├─ config.yaml              (from scan results)
   │    ├─ project/rules/
   │    │   ├─ stack.yaml           (detected stack)
   │    │   ├─ conventions.yaml     (detected conventions)
@@ -312,20 +320,20 @@ claude                    # start Claude Code
   │    ├─ state/                   (empty, ready for tasks)
   │    └─ hooks/                   (linked from global)
   │
-  ├─ 6. INJECT: Project CLAUDE.md integration
+  ├─ 5. INJECT: Project CLAUDE.md integration
   │    ├─ If .claude/CLAUDE.md exists → append Moira section
   │    └─ If not → create with Moira configuration
   │    (Never overwrites existing CLAUDE.md content)
   │
-  ├─ 7. INJECT: Project AGENTS.md
+  ├─ 6. INJECT: Project AGENTS.md
   │    ├─ Generate project-adapted agent definitions
   │    └─ Stack-specific implementer, reviewer, tester prompts
   │
-  ├─ 8. INJECT: Hooks configuration
+  ├─ 7. INJECT: Hooks configuration
   │    ├─ Add guard.sh and budget-track.sh to .claude/settings.json
   │    └─ Preserve existing hooks (append, don't overwrite)
   │
-  ├─ 9. GATE: User reviews generated config
+  ├─ 8. GATE: User reviews generated config
   │    ═══════════════════════════════════════════
   │     MOIRA — Project Setup Complete
   │    ═══════════════════════════════════════════
@@ -342,7 +350,7 @@ claude                    # start Claude Code
   │     ▸ adjust  — correct something
   │    ═══════════════════════════════════════════
   │
-  └─ 10. ONBOARDING: If first time → offer walkthrough
+  └─ 9. ONBOARDING: If first time → offer walkthrough
          (see onboarding.md)
 ```
 

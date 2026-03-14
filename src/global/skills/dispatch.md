@@ -38,13 +38,15 @@ Used for:
 | Full | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Daedalus |
 | Decomposition | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Daedalus |
 
+**Note:** Mnemosyne (reflector) uses simplified assembly (background, post-task). Argus (auditor) uses simplified assembly (user-invoked via `/moira audit`).
+
 ### Steps
 
 1. **Read role definition:** `~/.claude/moira/core/rules/roles/{agent_name}.yaml`
    - Extract: `identity`, `capabilities`, `never` constraints
 2. **Read base rules:** `~/.claude/moira/core/rules/base.yaml`
    - Extract: `inviolable` rules (always included)
-3. **Read response contract:** `~/.claude/moira/core/response-contract.yaml`
+3. **Read response contract:** `~/.claude/moira/core/response-contract.yaml` (Note: `rules.sh` `moira_rules_assemble_instruction` embeds the response contract inline rather than reading this file. The file serves as the canonical reference.)
 4. **Read task context:** from state files in `.claude/moira/state/tasks/{task_id}/`
    - Input description, previous step artifacts (as specified by pipeline `reads_from`)
 5. **Quality checklist injection:** Check if this agent has a quality gate assignment (per Agent-to-Gate Mapping table in this document). If yes:
@@ -76,6 +78,7 @@ STATUS: success|failure|blocked|budget_exceeded
 SUMMARY: <1-2 sentences>
 ARTIFACTS: <comma-separated list of artifact file paths you wrote>
 NEXT: <recommended next step>
+QUALITY: <gate>=<verdict> (<critical>C/<warning>W/<suggestion>S)  [only if quality gate assigned]
 
 Write all detailed output to the artifact files. Return ONLY the status summary above.
 
@@ -251,7 +254,7 @@ If you detect your context is getting large:
 
 ### Budget Values
 
-- Read agent budget from `.claude/moira/config/budgets.yaml` → `agent_budgets.{role}`, fallback to `.claude/moira/config.yaml` → `budgets.per_agent.{role}`, fallback to schema defaults
+- Read agent budget from `.claude/moira/config/budgets.yaml` → `agent_budgets.{role}`, fallback to `.claude/moira/config.yaml` → `budgets.per_agent.{role}`, fallback to role definition (`~/.claude/moira/core/rules/roles/{role}.yaml` → `budget`), fallback to schema defaults
 - Calculate `max_safe = agent_budget * 70 / 100`
 - Pre-planning agents: budget included via simplified assembly
 - Post-planning agents: budget included via Daedalus instruction files
@@ -327,7 +330,7 @@ For agents that receive quality map context, include the quality map summary in 
 Read the quality map file from `.claude/moira/knowledge/quality-map/` and include it in the agent prompt:
 
 - For L1 agents: include `summary.md` content
-- For L0 agents (Daedalus): include `full.md` content
+- For L2 agents (Daedalus): include `full.md` content
 
 If the quality map file does not exist or is empty, skip injection silently.
 

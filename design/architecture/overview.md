@@ -121,7 +121,6 @@ User → /moira <task>
 │   │   └── budget-track.sh            # Context budget logging
 │   ├── templates/
 │   │   ├── project-claude-md.tmpl
-│   │   ├── project-config.tmpl
 │   │   ├── budgets.yaml.tmpl
 │   │   └── scanners/                  # Scanner instruction templates
 │   │       └── deep/                  # Deep scan templates
@@ -143,6 +142,7 @@ User → /moira <task>
 │       ├── quality.sh
 │       ├── rules.sh
 │       ├── scaffold.sh
+│       ├── settings-merge.sh
 │       ├── state.sh
 │       ├── task-id.sh
 │       └── yaml-utils.sh
@@ -194,11 +194,6 @@ User → /moira <task>
 ├── config/
 │   ├── mcp-registry.yaml         # MCP tools registry
 │   ├── budgets.yaml              # Context budget allocations
-│   └── locks.yaml                # File reservation locks (D-033)
-│
-├── config/
-│   ├── mcp-registry.yaml         # MCP tools registry
-│   ├── budgets.yaml              # Context budget allocations
 │   └── locks.yaml                # File reservation locks (committed for cross-developer visibility, D-033)
 │
 ├── knowledge/
@@ -223,9 +218,10 @@ User → /moira <task>
 │   │   ├── index.md
 │   │   ├── summary.md
 │   │   └── full.md
-│   └── quality-map/
-│       ├── summary.md
-│       └── full.md
+│   ├── quality-map/
+│   │   ├── summary.md
+│   │   └── full.md
+│   └── libraries/                # Cached MCP documentation for project dependencies
 │
 ├── state/
 │   ├── current.yaml              # Current task state machine
@@ -255,7 +251,9 @@ User → /moira <task>
 │   └── audits/
 │       └── {date}-audit.md
 │
-└── hooks/
+└── hooks/                        # Placeholder entries — actual hook executables live at
+                                  # the global layer (~/.claude/moira/hooks/) and are
+                                  # registered in settings.json from there
     ├── guard.sh                  # Orchestrator tool restriction
     └── budget-track.sh           # Context budget logging
 ```

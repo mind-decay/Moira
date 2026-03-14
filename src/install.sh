@@ -79,6 +79,7 @@ install_global() {
   # Copy optional directories (don't fail if empty — populated in later phases)
   if ls "$SCRIPT_DIR/global/hooks/"* &>/dev/null; then
     cp -f "$SCRIPT_DIR/global/hooks/"* "$MOIRA_HOME/hooks/" 2>/dev/null || true
+    chmod +x "$MOIRA_HOME/hooks/"*.sh 2>/dev/null || true
   fi
   # Copy knowledge templates (Phase 4)
   if [[ -d "$SCRIPT_DIR/global/templates/knowledge" ]]; then
@@ -165,7 +166,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh; do
     ((checks_total++)) || true
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then
@@ -353,6 +354,21 @@ verify() {
   else
     errors+="  templates/budgets.yaml.tmpl not found\n"
   fi
+
+  # Check: hook files exist and are executable (Phase 8)
+  for hook_file in guard.sh budget-track.sh; do
+    ((checks_total++)) || true
+    local hook_path="$MOIRA_HOME/hooks/$hook_file"
+    if [[ -f "$hook_path" && -x "$hook_path" ]]; then
+      if bash -n "$hook_path" 2>/dev/null; then
+        ((checks_passed++)) || true
+      else
+        errors+="  hooks/$hook_file has syntax errors\n"
+      fi
+    else
+      errors+="  hooks/$hook_file not found or not executable\n"
+    fi
+  done
 
   if [[ $checks_passed -eq $checks_total ]]; then
     echo "[OK] Verification passed ($checks_passed/$checks_total)"

@@ -77,6 +77,8 @@ When the project is a monorepo (detected at bootstrap via package.json `workspac
 Stored at: `knowledge/project-model/package-map.md`
 Access levels: Classifier uses L0 (package list only). Explorer uses L1 (packages + dependencies). Architect uses L1 for cross-package impact analysis.
 
+Package map access is a sub-dimension of the `project-model` knowledge type. The access levels above apply specifically to `knowledge/project-model/package-map.md` within the agent's project-model access.
+
 Package map is refreshed by Explorer during `/moira refresh` and updated organically when Explorer encounters new package relationships during tasks.
 
 ### Decisions Log (knowledge/decisions/)

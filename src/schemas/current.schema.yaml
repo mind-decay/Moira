@@ -26,6 +26,7 @@ fields:
   step:
     type: string
     required: false
+    enum: [classification, exploration, analysis, architecture, plan, implementation, review, testing, reflection, decomposition, integration, completion]
     default: null
   step_status:
     type: enum

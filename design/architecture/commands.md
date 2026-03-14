@@ -81,6 +81,14 @@ Subcommands:
 /moira audit consistency       — cross-component verification
 ```
 
+### `/moira bench`
+Run behavioral test suite. Subcommands: `report`, `compare`, `calibrate`.
+See `subsystems/testing.md` for full specification.
+
+### `/moira health`
+System health reporting. Subcommands: `report`, `export`.
+See `subsystems/testing.md` for full specification.
+
 ### `/moira refresh`
 Update project model and knowledge base without full re-init.
 

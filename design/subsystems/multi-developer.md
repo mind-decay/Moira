@@ -14,11 +14,9 @@ Multiple engineers on same project, each with their own Claude sessions:
 .claude/moira/
 ├── knowledge/     ← SHARED (git-tracked, merges with PRs)
 ├── config/        ← SHARED (git-tracked)
+│   └── locks.yaml ← file reservation system (committed for cross-developer visibility, D-033)
 ├── core/          ← SHARED (git-tracked)
 ├── project/       ← SHARED (git-tracked)
-│
-├── config/        ← SHARED (git-tracked)
-│   └── locks.yaml ← file reservation system (committed for cross-developer visibility, D-033)
 │
 ├── state/         ← BRANCH-SCOPED
 │   ├── .gitignore

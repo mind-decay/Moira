@@ -79,7 +79,7 @@ echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $tool_name $file_path" >> "$state_dir/tool-
 
 # Check for violations — orchestrator touching project files
 moira_path=".claude/moira"
-if [[ "$tool_name" =~ ^(Read|Write|Edit|Grep|Glob)$ ]]; then
+if [[ "$tool_name" =~ ^(Read|Write|Edit)$ ]]; then
   if [[ -n "$file_path" && "$file_path" != *"$moira_path"* ]]; then
     echo "{\"hookSpecificOutput\":{\"additionalContext\":\"CONSTITUTIONAL VIOLATION: Orchestrator used $tool_name on $file_path. Art 1.1 prohibits direct project file operations.\"}}"
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) VIOLATION $tool_name $file_path" >> "$state_dir/violations.log"
@@ -106,7 +106,7 @@ Moira section in project CLAUDE.md contains inviolable rules about orchestrator 
 
 ```
 ⚠ ORCHESTRATOR CONTEXT WARNING
-Context usage: 58% (580k/1000k)
+Context usage: 62% (620k/1000k)
 
 Quality of orchestration may degrade.
 

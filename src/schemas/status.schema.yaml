@@ -1,7 +1,7 @@
 _meta:
   name: status
   file: status.yaml
-  location: .claude/moira/state/tasks/{id}/
+  location: .claude/moira/state/tasks/{task_id}/
   git: gitignored
   description: Per-task status
 
@@ -66,13 +66,37 @@ fields:
     required: false
     default: null
   gates:
+    description: "Gate decisions recorded during pipeline execution"
     type: block
     required: false
     default: null
+    item_schema:
+      gate: "Gate name (e.g., classification_gate, architecture_gate)"
+      decision: "enum: [proceed, modify, abort]"
+      at: "ISO 8601 timestamp"
+      note: "Optional user feedback or annotation"
   retries:
+    description: "Retry counters for error recovery tracking"
     type: block
     required: false
     default: null
+    fields:
+      quality:
+        type: number
+        default: 0
+        description: "Quality gate retry count (E5-QUALITY)"
+      agent_failures:
+        type: number
+        default: 0
+        description: "Agent failure retry count (E6-AGENT)"
+      budget_splits:
+        type: number
+        default: 0
+        description: "Budget split retry count (E4-BUDGET)"
+      total:
+        type: number
+        default: 0
+        description: "Sum of all retry counters"
   budget.estimated_tokens:
     type: number
     required: false
@@ -86,14 +110,19 @@ fields:
     required: false
     default: null
   warnings:
+    description: "Stale knowledge entries and other non-blocking warnings (E8-STALE)"
     type: block
     required: false
     default: null
-    description: "Stale knowledge entries and other non-blocking warnings (E8-STALE)"
+    item_schema:
+      type: "Warning type (e.g., stale_knowledge)"
+      entry: "Affected knowledge entry path"
+      last_task: "Task ID when entry was last updated"
+      distance: "Number of tasks since last update"
   completion.action:
     type: enum
     required: false
-    enum: [done, tweak, redo]
+    enum: [done, tweak, redo, diff, test]
     default: null
   completion.tweak_count:
     type: number

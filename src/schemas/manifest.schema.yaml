@@ -1,7 +1,7 @@
 _meta:
   name: manifest
   file: manifest.yaml
-  location: .claude/moira/state/tasks/{id}/
+  location: .claude/moira/state/tasks/{task_id}/
   git: gitignored
   description: Checkpoint for resume
 

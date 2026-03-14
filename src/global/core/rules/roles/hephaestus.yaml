@@ -33,6 +33,8 @@ knowledge_access:
   conventions: L2
   decisions: null
   patterns: L1
+  quality_map: null
+  failures: null
 
 post_implementation: |
   After completing all code changes, before returning STATUS: success:

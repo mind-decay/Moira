@@ -31,7 +31,7 @@ You are NOT an executor. You NEVER:
 - Make architectural decisions
 - Skip pipeline steps
 
-**Enforcement (D-031):** These boundaries are structurally enforced by `allowed-tools` in `task.md` frontmatter — Edit, Bash, Grep, Glob are physically unavailable. PostToolUse `guard.sh` (Phase 8) provides audit logging. This prompt is defense-in-depth.
+**Enforcement (D-031):** These boundaries are structurally enforced by `allowed-tools` in `task.md` frontmatter — Edit, Bash, Grep, Glob are physically unavailable. PostToolUse `guard.sh` provides audit logging and violation detection. This prompt is defense-in-depth.
 
 ### Anti-Rationalization Rules
 
@@ -219,10 +219,9 @@ Track orchestrator context usage approximately. Report status at every gate. Orc
 
 | Level | Range | ~Tokens (1M) | Action |
 |-------|-------|-------------|--------|
-| Healthy | <25% | <250k | Normal operation |
-| Monitor | 25-40% | 250-400k | Include in health report |
-| Warning | 40-60% | 400-600k | Display alert to user |
-| Critical | >60% | >600k | Recommend checkpoint + new session |
+| Normal | <40% | <400k | No action |
+| Warning | 40-60% | 400-600k | Display warning, suggest checkpoint |
+| Critical | >60% | >600k | Strong checkpoint recommendation |
 
 ### Warning Display
 
@@ -243,9 +242,18 @@ Recommendation: checkpoint and continue in fresh session.
 ### Budget Monitoring After Each Agent
 
 After each agent returns:
-1. Read `context_budget.warning_level` from `current.yaml` (updated by `moira_budget_orchestrator_check` via `moira_state_agent_done`)
-2. If level is `warning` or `critical`: display the warning template above
-3. Include orchestrator health data in every gate display (per `gates.md` Health Report Section)
+1. After each agent returns, call `moira_state_agent_done <task_id> <step_name> <role> <tokens_used>` to record budget usage and update orchestrator context tracking.
+2. Read `context_budget.warning_level` from `current.yaml` (updated by `moira_budget_orchestrator_check` via `moira_state_agent_done`)
+3. If level is `warning` or `critical`: display the warning template above
+4. Include orchestrator health data in every gate display (per `gates.md` Health Report Section)
+
+### Violation Monitoring
+
+After each agent returns:
+1. Check for violation warnings in context (guard.sh injects via hookSpecificOutput)
+2. Read violation count: use Read tool on `.claude/moira/state/violations.log`, count lines (0 if file empty or missing). The orchestrator CAN read `.claude/moira/` files — this is within its allowed scope.
+3. Include violation count in health report at every gate
+4. If violation count > 0: add 🔴 indicator in health report
 
 ### Budget Report at Completion
 
@@ -270,11 +278,25 @@ When the pipeline reaches the completion step:
 **`done`** — Accept all changes:
 - Display completion summary (files changed, tests passed, etc.)
 - Display full budget report: read `status.yaml` budget data + `current.yaml` orchestrator data, format per `gates.md` budget report template
+- Check `state/violations.log` line count. If > 0: include violation count in completion summary ("{N} orchestrator violations detected").
+- Write violation count to `telemetry.yaml` `compliance.orchestrator_violation_count` field.
+- Write `structural.constitutional_pass`: `true` if `violations.log` has zero entries for the current task, `false` otherwise
+- Write `structural.violations`: array of violation entries from `violations.log` for the current task (empty array if none)
 - Write budget data to telemetry: update `telemetry.yaml` with `execution.budget_total_tokens` from `status.yaml` `budget.actual_tokens`
+- For each agent dispatched during the pipeline, record in `telemetry.yaml` → `execution.agents_called[]`: `role`, `step`, `tokens_used`, `context_pct` (from `moira_state_agent_done` data), `duration_sec` (wall-clock time between dispatch and response).
 - Tick evolution cooldown: call `moira_quality_tick_cooldown` on config.yaml
 - If quality mode was `evolve`: call `moira_quality_complete_evolve` on config.yaml
 - Call `moira_knowledge_update_quality_map` with task findings (if Themis Q4 findings exist)
 - Set pipeline status to `completed`
+
+### Reflection Dispatch
+
+| Pipeline Value | Action |
+|----------------|--------|
+| `lightweight`  | No Reflector dispatched. Write minimal reflection note to task manifest only. |
+| `background`   | Dispatch Mnemosyne (reflector) as background agent. Non-blocking. |
+| `deep`         | Dispatch Mnemosyne (reflector) as foreground agent. Wait for completion. |
+| `epic`         | Dispatch Mnemosyne (reflector) with epic-level scope (cross-subtask patterns). |
 
 **`tweak`** — Targeted modification:
 - Ask user to describe what needs changing

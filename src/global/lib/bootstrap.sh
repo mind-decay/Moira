@@ -735,6 +735,38 @@ _list_matching_patterns() {
   fi
 }
 
+# ── moira_bootstrap_inject_hooks <project_root> <moira_home> ───────────
+# Inject hook configuration into .claude/settings.json and create log files.
+# Failure does NOT block init.
+moira_bootstrap_inject_hooks() {
+  local project_root="$1"
+  local moira_home="$2"
+
+  local lib_dir
+  lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
+
+  if [[ -f "$lib_dir/settings-merge.sh" ]]; then
+    source "$lib_dir/settings-merge.sh"
+    # Guard: verify function exists after source (catches syntax errors)
+    if declare -f moira_settings_merge_hooks &>/dev/null; then
+      if moira_settings_merge_hooks "$project_root" "$moira_home"; then
+        echo "Hooks configured in .claude/settings.json"
+      else
+        echo "Warning: Hook injection failed — configure manually" >&2
+        echo "See: ~/.claude/moira/hooks/ for hook scripts" >&2
+      fi
+    else
+      echo "Warning: settings-merge.sh loaded but function not found" >&2
+    fi
+  fi
+
+  # Create empty log files (D-076: pre-create during bootstrap, not scaffold)
+  local state_dir="$project_root/.claude/moira/state"
+  if [[ -d "$state_dir" ]]; then
+    touch "$state_dir/violations.log" "$state_dir/tool-usage.log" "$state_dir/budget-tool-usage.log"
+  fi
+}
+
 # ── moira_bootstrap_inject_claude_md <project_root> <moira_home> ──────
 # Integrate Moira section into project's .claude/CLAUDE.md.
 moira_bootstrap_inject_claude_md() {
@@ -806,6 +838,9 @@ moira_bootstrap_setup_gitignore() {
     ".claude/moira/state/bypass-log.yaml"
     ".claude/moira/state/current.yaml"
     ".claude/moira/state/init/"
+    ".claude/moira/state/violations.log"
+    ".claude/moira/state/tool-usage.log"
+    ".claude/moira/state/budget-tool-usage.log"
   )
 
   # If .gitignore doesn't exist, create it

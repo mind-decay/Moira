@@ -143,6 +143,9 @@ gates:
         description: "Phase complete, continue to next"
       - id: checkpoint
         description: "Save progress and pause (resumable)"
+      - id: modify
+        description: "Rework this phase"
+        action: "Re-dispatch phase agents with user feedback"
       - id: abort
         description: "Stop implementation"
 

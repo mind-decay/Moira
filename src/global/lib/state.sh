@@ -139,16 +139,18 @@ moira_state_gate() {
   moira_yaml_set "$current_file" "gate_pending" "null"
 }
 
-# ── moira_state_agent_done <step> <status> <duration> <tokens> <summary> [state_dir]
+# ── moira_state_agent_done <step> <role> <status> <duration> <tokens> <summary> [state_dir]
 # Record agent execution in current.yaml history block.
 # Updates total_agent_tokens in context_budget.
+# <role> is the agent role (e.g. "explorer") passed to budget recording.
 moira_state_agent_done() {
   local step_name="$1"
-  local status="$2"
-  local duration_sec="$3"
-  local tokens_used="$4"
-  local result_summary="$5"
-  local state_dir="${6:-.claude/moira/state}"
+  local role="$2"
+  local status="$3"
+  local duration_sec="$4"
+  local tokens_used="$5"
+  local result_summary="$6"
+  local state_dir="${7:-.claude/moira/state}"
   local current_file="${state_dir}/current.yaml"
 
   if [[ ! -f "$current_file" ]]; then
@@ -179,8 +181,28 @@ moira_state_agent_done() {
     local task_id
     task_id=$(moira_yaml_get "$current_file" "task_id" 2>/dev/null) || true
     if [[ -n "$task_id" ]] && type moira_budget_record_agent &>/dev/null; then
-      moira_budget_record_agent "$task_id" "$step_name" "0" "$tokens_used" "$state_dir" || true
+      moira_budget_record_agent "$task_id" "$role" "0" "$tokens_used" "$state_dir" || true
       moira_budget_orchestrator_check "$state_dir" > /dev/null 2>&1 || true
     fi
   fi
+}
+
+# ── moira_state_increment_retry <task_id> [state_dir] ─────────────────
+# Increment retries.total in status.yaml for the given task.
+# Creates the field with value 1 if it doesn't exist yet.
+moira_state_increment_retry() {
+  local task_id="$1"
+  local state_dir="${2:-.claude/moira/state}"
+  local status_file="${state_dir}/tasks/${task_id}/status.yaml"
+
+  if [[ ! -f "$status_file" ]]; then
+    echo "Warning: status file not found: $status_file" >&2
+    return 0
+  fi
+
+  local current_total
+  current_total=$(moira_yaml_get "$status_file" "retries.total" 2>/dev/null) || true
+  current_total=${current_total:-0}
+
+  moira_yaml_set "$status_file" "retries.total" "$(( current_total + 1 ))"
 }

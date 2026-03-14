@@ -22,12 +22,15 @@ never:
   - "Never propose solutions or architecture"
   - "Never change the task description"
   - "Never skip classification — always return a result"
+  - "Never select or specify the pipeline type — that is the orchestrator's responsibility"
 
 knowledge_access:
   project_model: L1
   conventions: null
   decisions: null
   patterns: null
+  quality_map: null
+  failures: null
 
 quality_checklist: null
 

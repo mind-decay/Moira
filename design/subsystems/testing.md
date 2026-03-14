@@ -27,7 +27,7 @@ Layer 1: Structural Verifier
   Cost: 0 Claude tokens
   Speed: seconds
   Checks:
-    - Constitutional invariants (23 checks)
+    - Constitutional invariants (19 checks)
     - Pipeline definition integrity
     - Agent contract compliance
     - Rules consistency

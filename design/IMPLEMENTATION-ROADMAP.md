@@ -219,6 +219,9 @@ Based on dependency analysis. Each phase builds on previous.
 - 5-domain audit system
 - Batch recommendation approval
 - Tiered audit depth (light/standard/deep)
+- Cross-reference manifest (`src/global/core/xref-manifest.yaml`) — dependency map between files for consistency enforcement (D-077)
+- Tier 1 xref validation tests — verify manifest entries match actual file content
+- Agent pre-commit xref check — agents consult manifest before committing to find affected files
 
 **Why eleventh:** Metrics and audit analyze system performance. Needs history of tasks.
 
@@ -278,7 +281,7 @@ Three-layer architecture woven across phases (D-023):
 ## Success Criteria
 
 System is complete when:
-- [ ] `/moira init` bootstraps correctly on ЛК ЮЛ project
+- [ ] `/moira init` bootstraps correctly on a real-world project
 - [ ] Small/medium/large tasks execute through correct pipelines
 - [ ] Orchestrator context stays < 25% on average
 - [ ] First-pass acceptance rate > 80%

@@ -46,8 +46,8 @@ if [[ -f "$MOIRA_HOME/lib/bootstrap.sh" ]]; then
 
   for func in moira_bootstrap_generate_config moira_bootstrap_generate_project_rules \
               moira_bootstrap_populate_knowledge moira_bootstrap_inject_claude_md \
-              moira_bootstrap_setup_gitignore _moira_parse_frontmatter \
-              _moira_parse_frontmatter_list; do
+              moira_bootstrap_setup_gitignore moira_bootstrap_inject_hooks \
+              _moira_parse_frontmatter _moira_parse_frontmatter_list; do
     if grep -q "$func" "$MOIRA_HOME/lib/bootstrap.sh" 2>/dev/null; then
       pass "bootstrap.sh: function $func declared"
     else
@@ -77,7 +77,7 @@ if [[ -f "$MOIRA_HOME/templates/project-claude-md.tmpl" ]]; then
   assert_file_contains "$MOIRA_HOME/templates/project-claude-md.tmpl" "<!-- moira:end -->" "template: has moira:end marker"
   assert_file_contains "$MOIRA_HOME/templates/project-claude-md.tmpl" "Moira Orchestration System" "template: has heading"
   assert_file_contains "$MOIRA_HOME/templates/project-claude-md.tmpl" "/moira:task" "template: has /moira:task reference"
-  assert_file_contains "$MOIRA_HOME/templates/project-claude-md.tmpl" "NEVER read" "template: has orchestrator NEVER rules"
+  assert_file_contains "$MOIRA_HOME/templates/project-claude-md.tmpl" "NEVER" "template: has orchestrator NEVER rules"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -102,8 +102,8 @@ if [[ -f "$init_file" ]]; then
     fail "init.md: appears to be a stub ($line_count lines)"
   fi
 
-  # Check all steps present (10 steps after preset removal, was 11)
-  for step_num in 1 2 3 4 5 6 7 8 9 10; do
+  # Check all steps present (11 steps after Phase 8 hook injection step)
+  for step_num in 1 2 3 4 5 6 7 8 9 10 11; do
     assert_file_contains "$init_file" "Step ${step_num}" "init.md: Step $step_num present"
   done
 

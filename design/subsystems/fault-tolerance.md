@@ -179,7 +179,7 @@ Note: Validated tier constraint. The orchestrator parser is the verification lay
 
 ### E7-DRIFT: Orchestrator Rule Violation
 
-**Detection:** Guard hook blocks prohibited tool calls. Reflector audits post-task.
+**Detection:** Guard hook detects prohibited tool calls. Reflector audits post-task.
 
 **Prevention:**
 - Hook-based enforcement (see self-monitoring.md)

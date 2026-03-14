@@ -53,7 +53,7 @@ Each agent is named after a deity whose mythological role mirrors the agent's fu
 | Orchestrator | **Moira** | The system itself | Weaves all threads together |
 | Thread of execution | **Klosthos** (κλωστή) | Thread, yarn | The unit of work being spun through the pipeline |
 | Gate | **Atropos** | "The unturnable" | Irreversible decision point — once cut, the thread cannot be uncut |
-| Knowledge base | **Aletheia** (Ἀλήθεια) | Truth, un-forgetting | Repository of verified truth about the project |
+| Knowledge base | **Aletheia** (Ἀλήθεια) | Truth, un-forgetting | Repository of verified truth about the project [^1] |
 | Budget system | **Chronos** (Χρόνος) | Primordial time | Finite resource that must be allocated wisely |
 | Self-protection | **Aegis** (Αἰγίς) | Shield of Zeus and Athena | The divine shield — protects the system's invariants |
 | Metrics | **Moiragetes** (Μοιραγέτης) | "Leader of the Fates" (epithet of Zeus) | Observes and tracks what the Fates produce |
@@ -139,6 +139,8 @@ moira help system
   Klosthos      thread            Unit of work in pipeline
   Moiragetes    metrics           Observes system performance
 ```
+
+[^1]: "Aletheia" is intentionally shared between the Tester agent and the Knowledge Base concept — both embody "truth/verification".
 
 ## Extensibility
 

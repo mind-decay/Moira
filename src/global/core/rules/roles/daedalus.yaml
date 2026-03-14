@@ -46,6 +46,8 @@ knowledge_access:
   conventions: L1
   decisions: L0
   patterns: L0
+  quality_map: L2
+  failures: null
 
 quality_checklist: q3-feasibility
 

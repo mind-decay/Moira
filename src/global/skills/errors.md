@@ -355,20 +355,64 @@ After retry failure → present agent failure gate. User decides next action.
 
 ---
 
-## E7-DRIFT: Orchestrator Rule Violation (STUB)
-
-Phase 3 stub per D-038. Full detection in Phase 8.
+## E7-DRIFT: Orchestrator Rule Violation
 
 ### Detection
 
-No automated detection in Phase 3. Guard hook (Phase 8) will detect violations.
+Guard hook (`guard.sh`) detects violations in real-time via PostToolUse:
+- Orchestrator uses Read/Write/Edit on files outside `.claude/moira/`
+- Violation logged to `state/violations.log`
+- Warning injected into orchestrator context via hookSpecificOutput
+
+### During Pipeline
+
+On violation detection (guard hook fires):
+1. Violation is ALREADY logged (guard.sh handles this)
+2. Warning message appears in orchestrator context
+3. Orchestrator MUST acknowledge the violation in its next output
+4. Include violation count in next health report
+
+### Post-Task Audit
+
+After pipeline completion, check violations:
+1. Count violations: `wc -l < state/violations.log`
+2. If violations > 0:
+   - Include in completion summary: "{N} orchestrator violations detected"
+   - Log in telemetry: `compliance.orchestrator_violation_count` (integer)
+   - Flag for Reflector analysis (Phase 10)
+   - If violations > 3: recommend rule strengthening
+
+### Display
+
+When violations exist, add to health report:
+
+```
+ORCHESTRATOR HEALTH:
+├─ Context: ~22k/1M (2%) ✅
+├─ Violations: {count} 🔴  ← highlighted when > 0
+...
+```
+
+### State Updates
+
+- `state/violations.log`: appended by guard.sh on each violation (ISO8601, tool_name, file_path)
+- `state/tool-usage.log`: appended by guard.sh on every tool call (audit trail)
+- `telemetry.yaml`: `compliance.orchestrator_violation_count` written at task completion
 
 ### Recovery
 
-If a violation is detected by any means:
-1. Log violation to `.claude/moira/state/violations.log`
-2. Include violation count in health report
-3. No automated recovery — user informed via health report
+No automated recovery — violations are informational.
+- `allowed-tools` prevents most violations structurally
+- Guard hook catches edge cases
+- Reflector tracks patterns for trend analysis (Phase 10)
+- Audit recommends rule changes if violations are recurring (Phase 11)
+
+### Escalation
+
+No automated escalation. Violations are informational only.
+- If violations > 3 in a single task: recommend rule strengthening in completion summary
+- Reflector (Phase 10) analyzes patterns across tasks
+- Audit (Phase 11) tracks frequency trends
 
 ---
 

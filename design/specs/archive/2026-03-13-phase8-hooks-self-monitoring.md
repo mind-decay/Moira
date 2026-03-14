@@ -1,7 +1,5 @@
 # Phase 8: Hooks & Self-Monitoring
 
-> **Note:** This spec was written pre-D-064. Display templates referencing "200k" orchestrator capacity are historical — actual capacity is now 1M tokens per D-064.
-
 ## Goal
 
 Complete the three-layer guard mechanism (D-031). Layer 1 (`allowed-tools` prevention) is in place since Phase 3. This phase implements Layer 2 (PostToolUse hooks for detection/audit) and Layer 3 (CLAUDE.md prompt enforcement). After Phase 8: every tool call during a Moira session is logged, orchestrator violations are detected and reported in real-time, budget-related tool activity is tracked, and the CLAUDE.md prompt enforcement rules complete the defense-in-depth model.
@@ -10,7 +8,22 @@ Complete the three-layer guard mechanism (D-031). Layer 1 (`allowed-tools` preve
 
 ## Risk Classification
 
-**YELLOW** — New hook scripts, settings.json merge logic, prompt enforcement additions, E7-DRIFT stub completion. No pipeline gate changes. No agent role boundary changes. Needs regression check + impact analysis.
+**YELLOW (overall)** — New hook scripts, settings.json merge logic, prompt enforcement additions, E7-DRIFT stub completion. No pipeline gate changes. No agent role boundary changes. Needs regression check + impact analysis.
+
+**Per-deliverable:**
+
+| Deliverable | Risk | Rationale |
+|-------------|------|-----------|
+| D1: Guard Hook | YELLOW | New script, constitutional violation detection logic |
+| D2: Budget Hook | GREEN | New script, simple logging only |
+| D3: Settings Merge | YELLOW | JSON manipulation in bash, user's settings.json at risk |
+| D4: Bootstrap Integration | YELLOW | Modifies bootstrap flow, new init step |
+| D5: E7-DRIFT Handler | GREEN | Replaces stub, documentation-level change in skills |
+| D6: CLAUDE.md Template | GREEN | Additive prompt text, no logic changes |
+| D7: Health Report Integration | GREEN | Adds data source instructions to orchestrator/gates |
+| D8: Tier 1 Tests | GREEN | New test file, additive |
+| D9: Install.sh Update | YELLOW | Modifies install verification, chmod for hooks |
+| D11: Log File Init | GREEN | Touch empty files in bootstrap |
 
 ## Design Sources
 
@@ -22,7 +35,7 @@ Complete the three-layer guard mechanism (D-031). Layer 1 (`allowed-tools` preve
 | `design/architecture/overview.md` | File structure showing `hooks/guard.sh` and `hooks/budget-track.sh` locations, `settings.json` merge reference |
 | `design/architecture/distribution.md` | Step 8 of `/moira:init`: inject hooks configuration into `.claude/settings.json`, preserve existing hooks |
 | `design/subsystems/fault-tolerance.md` | E7-DRIFT error type: guard hook detection, violation logging, reflector audit, frequency tracking |
-| `design/decisions/log.md` | D-031 (three-layer guard mechanism), D-020 (file-copy distribution), D-038 (E7/E8 stubs in Phase 3) |
+| `design/decisions/log.md` | D-031 (three-layer guard mechanism), D-020 (file-copy distribution), D-038 (E7/E8 stubs in Phase 3), D-072–D-076 (Phase 8 architectural decisions) |
 
 ## Prerequisites (from Phase 1-7)
 
@@ -41,7 +54,7 @@ Complete the three-layer guard mechanism (D-031). Layer 1 (`allowed-tools` preve
 2. **Hooks directory structure**: `src/global/hooks/.gitkeep` exists, `install.sh` copies `global/hooks/*` if present
 3. **Config schema**: `hooks.guard_enabled` (default: true), `hooks.budget_tracking_enabled` (default: true) — already defined
 4. **E7-DRIFT stub**: `errors.md` has E7-DRIFT section with "Phase 3 stub per D-038. Full detection in Phase 8" marker
-5. **Bootstrap gitignore**: `state/` entries already gitignored (violations.log will be in state/)
+5. **Bootstrap gitignore**: `state/` has specific file entries gitignored (tasks/, bypass-log.yaml, current.yaml, init/). New log files (violations.log, tool-usage.log, budget-tool-usage.log) need to be added to the gitignore setup.
 6. **Orchestrator health report template**: `gates.md` has the health report section with violations count placeholder
 7. **Budget library functions**: `moira_budget_orchestrator_check`, `moira_budget_record_agent` — provide budget data hooks can reference
 8. **Anti-rationalization rules**: Already in `orchestrator.md` Section 1 — Identity and Boundaries
@@ -84,7 +97,7 @@ PostToolUse hook that fires after every tool call during a Moira session. Provid
 - Only active during Moira sessions (check: `current.yaml` exists in state directory)
 - Check `hooks.guard_enabled` in config (if available, default: true)
 - Violation condition: tool_name is Read/Write/Edit AND file_path does NOT contain `.claude/moira`
-  - **Design deviation (intentional):** `self-monitoring.md` guard.sh example includes Grep/Glob in the check. We omit them because `allowed-tools` in `task.md` physically prevents the orchestrator from using Grep/Glob — guard.sh cannot detect what `allowed-tools` already blocks. Guard only checks Read/Write/Edit because these are the tools the orchestrator legitimately has access to (for reading `.claude/moira/` state). See AD-1 rationale.
+  - **Design deviation (intentional):** `self-monitoring.md` guard.sh example includes Grep/Glob in the check. We omit them because `allowed-tools` in `task.md` physically prevents the orchestrator from using Grep/Glob — guard.sh cannot detect what `allowed-tools` already blocks. Guard only checks Read/Write/Edit because these are the tools the orchestrator legitimately has access to (for reading `.claude/moira/` state). See D-072 rationale.
   - Agent tool calls are NOT violations — agents SHOULD use all tools
   - The guard cannot distinguish orchestrator vs. agent calls (both fire PostToolUse) — but `allowed-tools` prevents the orchestrator from even having these tools. Guard catches edge cases only.
 
@@ -227,10 +240,17 @@ Add new function `moira_bootstrap_inject_hooks` that:
 
 #### D4b: Update `init.md` command
 
-Step 8 is defined in `distribution.md` but not yet implemented in `init.md`. Add it:
-- After CLAUDE.md injection (Step 6): call hook injection
-- Note: Step 7 (AGENTS.md injection) remains deferred per D-044. Hook injection is placed as the next step after Step 6 in the current init.md implementation.
-- Display result in init gate summary
+Hook injection step from `distribution.md` Step 8 is not yet implemented in `init.md`. Add it:
+- Current init.md steps: 1-8 (Check → Scaffold → Scanners → Config → Knowledge → CLAUDE.md → Gitignore → Review Gate → Onboarding)
+- Insert hook injection as **new Step 9** (after Step 8 Gitignore, before current Step 9 Review Gate)
+- Renumber: Review Gate becomes Step 10, Onboarding becomes Step 11
+- Update `--force` mode section: "Steps 7-8" becomes "Steps 7-9" (CLAUDE.md, gitignore, hooks re-injected)
+- Display hook status in init gate summary (Step 10):
+  ```
+  Configured:
+  ├─ ...existing items...
+  └─ Hooks: guard.sh + budget-track.sh registered
+  ```
 
 ### D5: E7-DRIFT Full Handler
 
@@ -266,7 +286,7 @@ After pipeline completion, check violations:
 1. Count violations: `wc -l < state/violations.log`
 2. If violations > 0:
    - Include in completion summary: "{N} orchestrator violations detected"
-   - Log in telemetry: `compliance.violations` array
+   - Log in telemetry: `compliance.orchestrator_violation_count` (integer)
    - Flag for Reflector analysis (Phase 10)
    - If violations > 3: recommend rule strengthening
 
@@ -276,7 +296,7 @@ When violations exist, add to health report:
 
 ```
 ORCHESTRATOR HEALTH:
-├─ Context: ~22k/200k (11%) ✅
+├─ Context: ~22k/1M (2%) ✅
 ├─ Violations: {count} 🔴  ← highlighted when > 0
 ...
 ```
@@ -285,7 +305,7 @@ ORCHESTRATOR HEALTH:
 
 - `state/violations.log`: appended by guard.sh on each violation (ISO8601, tool_name, file_path)
 - `state/tool-usage.log`: appended by guard.sh on every tool call (audit trail)
-- `telemetry.yaml`: `compliance.violations` count written at task completion
+- `telemetry.yaml`: `compliance.orchestrator_violation_count` written at task completion
 
 ### Recovery
 
@@ -324,6 +344,8 @@ When executing through the Moira pipeline (`/moira:task`):
 
 You are an ORCHESTRATOR. You are NOT an executor.
 
+ALL project interaction happens through dispatched agents.
+
 NEVER:
 - Use Read on files outside .claude/moira/
 - Use Edit or Write on files outside .claude/moira/
@@ -348,12 +370,22 @@ This mirrors the anti-rationalization rules already in `orchestrator.md` Section
 
 Wire violation count into the orchestrator's health report display.
 
-#### D7a: Update `orchestrator.md` Section 6
+#### D7a: Update `orchestrator.md` Sections 1, 6, and 7
 
-Add concrete instructions for reading violation data:
-- After each agent returns: read violation count from `state/violations.log` (line count)
+**Section 1 (Identity and Boundaries):**
+- Update Layer 2 enforcement note: remove "Phase 8" reference (now implemented), clarify guard.sh provides detection + audit logging
+
+**Section 6 (Budget Monitoring) — add violation monitoring subsection:**
+- After each agent returns, orchestrator reads violation count
+- **Mechanism:** Use Read tool on `.claude/moira/state/violations.log`, count lines (the orchestrator CAN read `.claude/moira/` files — this is within its allowed scope)
 - Include in health report: `Violations: {count} {emoji}`
 - Emoji: ✅ if 0, 🔴 if > 0
+- If guard.sh injected a warning via hookSpecificOutput: acknowledge it in next output
+
+**Section 7 (Completion Flow) — add violation telemetry:**
+- After budget report display: check `state/violations.log` line count
+- If violations > 0: include count in completion summary ("{N} orchestrator violations detected")
+- Write violation count to `telemetry.yaml` field `compliance.orchestrator_violation_count`
 
 #### D7b: Update `gates.md` Health Report Section
 
@@ -433,6 +465,16 @@ This ensures the log files exist before the first hook fires (hooks check file e
 
 Note: `scaffold.sh` creates `state/` directories. Bootstrap creates initial files within them. This maintains the existing responsibility split.
 
+### D12: Gitignore Entries for Log Files
+
+Update `moira_bootstrap_setup_gitignore` in `bootstrap.sh` to add entries for the new log files. Current gitignore entries cover specific `state/` files but NOT a `state/` wildcard — the new log files need explicit entries:
+
+- `.claude/moira/state/violations.log`
+- `.claude/moira/state/tool-usage.log`
+- `.claude/moira/state/budget-tool-usage.log`
+
+These are per-developer ephemeral data (D-074) and must not be committed.
+
 ## Design Doc Corrections (incidental fixes during Phase 8)
 
 1. **`design/subsystems/fault-tolerance.md`** E7-DRIFT section says "Guard hook **blocks** prohibited tool calls" — factually wrong per D-031 (PostToolUse = detection only, not blocking). Fix to: "Guard hook **detects** prohibited tool calls."
@@ -450,7 +492,7 @@ Note: `scaffold.sh` creates `state/` directories. Bootstrap creates initial file
 
 ## Architectural Decisions
 
-### AD-1: Hooks as Lightweight Scripts (No Library Dependencies)
+### AD-1 (D-072): Hooks as Lightweight Scripts (No Library Dependencies)
 
 Guard.sh and budget-track.sh do NOT source any Moira library files. They use only basic bash, `grep`, `sed`, and optionally `jq`.
 
@@ -464,7 +506,7 @@ Guard.sh checks only Read/Write/Edit (not Grep/Glob as in `self-monitoring.md` e
 5. Complex analysis happens post-task (by Reflector) or post-pipeline (by budget report), not per-call
 6. Grep/Glob omitted from guard.sh: `allowed-tools` makes them unobservable — guard checks only what it can actually see
 
-### AD-2: JSON Settings Merge with jq Fallback
+### AD-2 (D-073): JSON Settings Merge with jq Fallback
 
 Settings.json manipulation requires JSON editing. We use `jq` when available, with a grep-based fallback for simple cases.
 
@@ -474,7 +516,7 @@ Settings.json manipulation requires JSON editing. We use `jq` when available, wi
 3. For complex settings.json (multiple tools, nested hooks): we warn and provide manual instructions
 4. This matches D-020 philosophy: minimal dependencies, works on any OS with Claude Code
 
-### AD-3: Violation Log in State Directory (Gitignored)
+### AD-3 (D-074): Violation Log in State Directory (Gitignored)
 
 Violation and tool-usage logs go in `state/` (gitignored), not `config/` (committed).
 
@@ -484,7 +526,7 @@ Violation and tool-usage logs go in `state/` (gitignored), not `config/` (commit
 3. Reflector (Phase 10) and Audit (Phase 11) analyze violations and produce COMMITTED reports
 4. Raw logs are ephemeral; aggregated insights are permanent
 
-### AD-4: Guard Hook Cannot Block (PostToolUse Limitation)
+### AD-4 (D-075): Guard Hook Cannot Block (PostToolUse Limitation)
 
 Guard.sh fires AFTER the tool call, not before. It cannot prevent the action — only detect and report.
 
@@ -495,7 +537,7 @@ Guard.sh fires AFTER the tool call, not before. It cannot prevent the action —
 4. The warning injected via `hookSpecificOutput` influences the orchestrator's subsequent behavior
 5. This is explicitly documented as defense-in-depth, not primary enforcement
 
-### AD-5: Empty Log File Initialization
+### AD-5 (D-076): Empty Log File Initialization
 
 Log files are created empty during bootstrap (via `moira_bootstrap_inject_hooks`), not lazily on first write. Scaffold creates directories only; bootstrap creates initial files — maintaining existing responsibility split.
 

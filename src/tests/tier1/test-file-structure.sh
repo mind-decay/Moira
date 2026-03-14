@@ -127,6 +127,11 @@ assert_dir_exists "$MOIRA_HOME/tests/bench/fixtures" "tests/bench/fixtures/ exis
 assert_dir_exists "$MOIRA_HOME/tests/bench/cases" "tests/bench/cases/ exists"
 assert_dir_exists "$MOIRA_HOME/tests/bench/rubrics" "tests/bench/rubrics/ exists"
 
+# ── Phase 8: hooks system artifacts ──────────────────────────────────
+assert_file_exists "$MOIRA_HOME/hooks/guard.sh" "hooks/guard.sh exists"
+assert_file_exists "$MOIRA_HOME/hooks/budget-track.sh" "hooks/budget-track.sh exists"
+assert_file_exists "$MOIRA_HOME/lib/settings-merge.sh" "lib/settings-merge.sh exists"
+
 # ── Phase 7: budget system artifacts ─────────────────────────────────
 assert_file_exists "$MOIRA_HOME/lib/budget.sh" "lib/budget.sh exists"
 if [[ -f "$MOIRA_HOME/lib/budget.sh" ]]; then

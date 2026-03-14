@@ -37,25 +37,19 @@
 
 **Dependencies:** None
 
-### Task 0.1: Record Phase 8 architectural decisions in decision log
+### Task 0.1: ~~Record Phase 8 architectural decisions~~ ALREADY DONE
 
-- [ ] **Modify** `design/decisions/log.md`
-- **Key points:**
-  - AD-1: Hooks as lightweight scripts — no library dependencies, performance < 50ms, basic bash only. Includes intentional narrowing from `self-monitoring.md`: guard.sh checks Read/Write/Edit only (not Grep/Glob) because `allowed-tools` makes them unobservable.
-  - AD-2: JSON settings merge with jq fallback — jq when available, grep-based fallback for simple cases
-  - AD-3: Violation log in state directory — gitignored, per-developer, raw logs ephemeral
-  - AD-4: Guard hook cannot block — PostToolUse limitation, allowed-tools provides prevention, guard is audit. Note: this is an implementation-level detail of D-031, not a new architectural direction.
-  - AD-5: Empty log file initialization — pre-create during bootstrap (not scaffold), avoids race conditions
-  - Number these as D-060 through D-064
-- **Commit:** `moira(design): record Phase 8 architectural decisions D-060 through D-064`
+Decisions D-072 through D-076 (corresponding to spec AD-1 through AD-5) were recorded in `design/decisions/log.md` during spec review fixes. No action needed.
+
+Note: D-060 through D-071 in commit `876fde2` are architecture review decisions, NOT Phase 8 decisions.
 
 ### Task 0.2: Fix design doc inaccuracies discovered during Phase 8 review
 
-- [ ] **Modify** `design/subsystems/fault-tolerance.md`
+- [x] **Modify** `design/subsystems/fault-tolerance.md`
 - **Key points:**
   - E7-DRIFT section says "Guard hook **blocks** prohibited tool calls" — change to "Guard hook **detects** prohibited tool calls"
   - PostToolUse hooks fire after the tool call, not before. They cannot block — only detect and report (per D-031).
-- [ ] **Modify** `design/architecture/overview.md`
+- [x] **Modify** `design/architecture/overview.md`
 - **Key points:**
   - Add `settings-merge.sh` to the `lib/` file list in the global layer structure
   - Optionally: add other missing libs from Phases 4-7 (knowledge.sh, rules.sh, bootstrap.sh, quality.sh, bench.sh, budget.sh)
@@ -69,7 +63,7 @@
 
 ### Task 1.1: Create guard hook script
 
-- [ ] **Create** `src/global/hooks/guard.sh`
+- [x] **Create** `src/global/hooks/guard.sh`
 - **Source:** Spec D1
 - **Key points:**
   - Shebang: `#!/usr/bin/env bash` — NO `set -euo pipefail` (hooks must not fail)
@@ -81,7 +75,7 @@
   - Config check: if config.yaml exists, check `hooks.guard_enabled` — if `false`, `exit 0`
   - Log ALL tool usage: append `{ISO8601} {tool_name} {file_path}` to `state/tool-usage.log`
   - Violation check: if `tool_name` is Read/Write/Edit AND `file_path` is non-empty AND does NOT contain `.claude/moira`:
-    - Note: `self-monitoring.md` example includes Grep/Glob but we omit them — `allowed-tools` blocks them so guard.sh can't observe them (see AD-1/D-060)
+    - Note: `self-monitoring.md` example includes Grep/Glob but we omit them — `allowed-tools` blocks them so guard.sh can't observe them (see D-072)
     - Append `{ISO8601} VIOLATION {tool_name} {file_path}` to `state/violations.log`
     - Output JSON: `{"hookSpecificOutput":{"additionalContext":"CONSTITUTIONAL VIOLATION (Art 1.1): Orchestrator used {tool_name} on {file_path}. Direct project file operations are prohibited."}}`
   - On ANY error: `exit 0` (wrapped in trap or individual error guards)
@@ -97,7 +91,7 @@
 
 ### Task 1.2: Create budget tracking hook script
 
-- [ ] **Create** `src/global/hooks/budget-track.sh`
+- [x] **Create** `src/global/hooks/budget-track.sh`
 - **Source:** Spec D2
 - **Key points:**
   - Same structure as guard.sh: read stdin, parse JSON, session check, config check
@@ -113,7 +107,7 @@
 
 ### Task 1.3: Remove `.gitkeep` from hooks directory
 
-- [ ] **Delete** `src/global/hooks/.gitkeep`
+- [x] **Delete** `src/global/hooks/.gitkeep`
 - **Key points:**
   - With actual hook files now in the directory, `.gitkeep` is no longer needed
   - `git rm src/global/hooks/.gitkeep`
@@ -127,7 +121,7 @@
 
 ### Task 2.1: Create settings merge library
 
-- [ ] **Create** `src/global/lib/settings-merge.sh`
+- [x] **Create** `src/global/lib/settings-merge.sh`
 - **Source:** Spec D3
 - **Key points:**
   - Preamble: `#!/usr/bin/env bash`, `set -euo pipefail`
@@ -170,7 +164,7 @@
 
 ### Task 2.2: Update bootstrap.sh for hook injection
 
-- [ ] **Modify** `src/global/lib/bootstrap.sh`
+- [x] **Modify** `src/global/lib/bootstrap.sh`
 - **Source:** Spec D4a
 - **Key points:**
   - Add new function `moira_bootstrap_inject_hooks`:
@@ -197,7 +191,7 @@
         fi
       fi
 
-      # Create empty log files (AD-5: pre-create during bootstrap, not scaffold)
+      # Create empty log files (D-076: pre-create during bootstrap, not scaffold)
       local state_dir="$project_root/.claude/moira/state"
       if [[ -d "$state_dir" ]]; then
         touch "$state_dir/violations.log" "$state_dir/tool-usage.log" "$state_dir/budget-tool-usage.log"
@@ -208,19 +202,29 @@
   - The function is additive — does not break existing bootstrap flow
   - Error handling: failure to inject hooks does NOT fail init
   - Log file creation here (not in scaffold.sh) — scaffold is responsible for directories ONLY per its documented contract
+  - **Also update `moira_bootstrap_setup_gitignore`** — add entries for the 3 new log files:
+    ```bash
+    # Add to the entries array in moira_bootstrap_setup_gitignore:
+    ".claude/moira/state/violations.log"
+    ".claude/moira/state/tool-usage.log"
+    ".claude/moira/state/budget-tool-usage.log"
+    ```
+    These are per-developer ephemeral data (D-074) and must not be committed.
 - **Commit:** `moira(hooks): integrate hook injection into bootstrap flow`
 
 ### Task 2.3: Update init.md command for hook injection step
 
-- [ ] **Modify** `src/commands/moira/init.md`
+- [x] **Modify** `src/commands/moira/init.md`
 - **Source:** Spec D4b
 - **Key points:**
   - The init command currently follows steps from distribution.md
-  - Step 7 (AGENTS.md injection) remains deferred per D-044. Add Step 8 directly after Step 6 (CLAUDE.md injection), before the review gate (Step 9):
-    - "Step 8: Configure hooks in `.claude/settings.json`"
+  - Current init.md steps: 1-7 (Check → Check Existing → Scaffold → Scanners → Config → Knowledge → CLAUDE.md), Step 8 (Gitignore), Step 9 (Review Gate), Step 10 (Onboarding)
+  - Insert hook injection as **new Step 9**, renumber Review Gate to **Step 10** and Onboarding to **Step 11**:
+    - "Step 9: Configure hooks in `.claude/settings.json`"
     - "Call `moira_bootstrap_inject_hooks` to register guard and budget-track hooks"
     - "If hook injection fails: display warning but continue initialization"
-  - Add hook status to the init gate summary display:
+  - Update `--force` mode section at the end: "Steps 7-8" reference becomes "Steps 7-9" (CLAUDE.md, gitignore, hooks re-injected)
+  - Add hook status to the init gate summary display (now in Step 10):
     ```
     Configured:
     ├─ ...existing items...
@@ -237,7 +241,7 @@
 
 ### Task 3.1: Replace E7-DRIFT stub in errors.md
 
-- [ ] **Modify** `src/global/skills/errors.md`
+- [x] **Modify** `src/global/skills/errors.md`
 - **Source:** Spec D5
 - **Key points:**
   - Replace the current E7-DRIFT section (lines 358-373) entirely
@@ -247,14 +251,14 @@
     - **During Pipeline:** violation logged, warning injected, orchestrator must acknowledge, include in health report
     - **Post-Task Audit:** count violations from `violations.log`, include in completion summary, log in telemetry
     - **Display:** updated health report with violations highlighted when > 0
-    - **State Updates:** `violations.log` appended by guard.sh; `tool-usage.log` appended per call; `telemetry.yaml compliance.violations` at completion
+    - **State Updates:** `violations.log` appended by guard.sh; `tool-usage.log` appended per call; `telemetry.yaml compliance.orchestrator_violation_count` at completion
     - **Recovery:** No automated recovery — informational. `allowed-tools` provides prevention. References Phase 10 (Reflector) and Phase 11 (Audit) for pattern analysis.
     - **Escalation:** No automated escalation — informational. If violations > 3: recommend rule strengthening. Reflector (Phase 10) analyzes patterns.
 - **Commit:** `moira(hooks): implement full E7-DRIFT handler with guard hook integration`
 
 ### Task 3.2: Update orchestrator.md for violation data integration
 
-- [ ] **Modify** `src/global/skills/orchestrator.md`
+- [x] **Modify** `src/global/skills/orchestrator.md`
 - **Source:** Spec D7a
 - **Key points:**
   - **Section 1 (Identity and Boundaries):** Update the enforcement note:
@@ -266,18 +270,18 @@
     - "### Violation Monitoring"
     - "After each agent returns:"
     - "1. Check for violation warnings in context (guard.sh injects via hookSpecificOutput)"
-    - "2. Read violation count: count lines in `.claude/moira/state/violations.log` (0 if file empty or missing)"
+    - "2. Read violation count: use Read tool on `.claude/moira/state/violations.log`, count lines (0 if file empty or missing). The orchestrator CAN read `.claude/moira/` files — this is within its allowed scope."
     - "3. Include violation count in health report at every gate"
     - "4. If violation count > 0: add 🔴 indicator in health report"
   - **Section 7 (Completion Flow):** In the `done` action:
     - After budget report display, add:
-    - "Check `state/violations.log` line count. If > 0: include violation count in completion summary."
-    - "Write violation count to telemetry.yaml `compliance.violations` field."
+    - "Check `state/violations.log` line count. If > 0: include violation count in completion summary ('{N} orchestrator violations detected')."
+    - "Write violation count to telemetry.yaml `compliance.orchestrator_violation_count` field."
 - **Commit:** `moira(hooks): wire violation monitoring into orchestrator flow`
 
 ### Task 3.3: Update gates.md health report data source documentation
 
-- [ ] **Modify** `src/global/skills/gates.md`
+- [x] **Modify** `src/global/skills/gates.md`
 - **Source:** Spec D7b
 - **Key points:**
   - In the Health Report Section, add data source clarification after the template:
@@ -301,7 +305,7 @@
 
 ### Task 4.1: Update project CLAUDE.md template with enforcement rules
 
-- [ ] **Modify** `src/global/templates/project-claude-md.tmpl`
+- [x] **Modify** `src/global/templates/project-claude-md.tmpl`
 - **Source:** Spec D6a
 - **Key points:**
   - Read current template content first
@@ -317,6 +321,8 @@
     ### ABSOLUTE PROHIBITIONS
 
     You are an ORCHESTRATOR. You are NOT an executor.
+
+    ALL project interaction happens through dispatched agents.
 
     NEVER:
     - Use Read on files outside .claude/moira/
@@ -351,7 +357,7 @@ Log file creation moved to `moira_bootstrap_inject_hooks` in `bootstrap.sh` (Tas
 
 ### Task 5.1: Create Tier 1 hooks system tests
 
-- [ ] **Create** `src/tests/tier1/test-hooks-system.sh`
+- [x] **Create** `src/tests/tier1/test-hooks-system.sh`
 - **Source:** Spec D8
 - **Key points:**
   - Follow existing test file pattern (source test-helpers.sh, use pass/fail functions)
@@ -404,7 +410,7 @@ Log file creation moved to `moira_bootstrap_inject_hooks` in `bootstrap.sh` (Tas
 
 ### Task 5.3: Update install.sh for Phase 8 artifacts
 
-- [ ] **Modify** `src/install.sh`
+- [x] **Modify** `src/install.sh`
 - **Source:** Spec D9
 - **Key points:**
   - **Hook copy:** The existing line `cp -f "$SCRIPT_DIR/global/hooks/"* "$MOIRA_HOME/hooks/" 2>/dev/null || true` already copies hooks — but with `.gitkeep` removed and actual scripts present, verify it works:
@@ -420,6 +426,8 @@ Log file creation moved to `moira_bootstrap_inject_hooks` in `bootstrap.sh` (Tas
     - Add `settings-merge.sh` to the lib_file verification loop (check if it's already there — likely not since it's new)
     - Actually: the loop already uses a static list. Add `settings-merge.sh` to the list:
       ```bash
+      # Current list (Phase 7): state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh
+      # Phase 8 adds: settings-merge.sh
       for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh; do
       ```
     - Add hook file verification:
@@ -443,14 +451,17 @@ Log file creation moved to `moira_bootstrap_inject_hooks` in `bootstrap.sh` (Tas
 
 ### Task 5.4: Update existing test files for Phase 8
 
-- [ ] **Modify** `src/tests/tier1/test-file-structure.sh`
+- [x] **Modify** `src/tests/tier1/test-file-structure.sh`
 - **Source:** Spec D8 (extended existing tests)
 - **Key points:**
   - Add check: `guard.sh` exists in hooks/
   - Add check: `budget-track.sh` exists in hooks/
   - Add check: `settings-merge.sh` exists in lib/
-- [ ] **Verify** `src/tests/tier1/test-install.sh` — confirm Phase 8 artifacts are covered
-- **Commit:** `moira(hooks): extend file structure tests for Phase 8 artifacts`
+- [x] **Modify** `src/tests/tier1/test-bootstrap.sh`
+- **Key points:**
+  - Add `moira_bootstrap_inject_hooks` to the function existence check loop (lines 47-49) alongside existing `moira_bootstrap_*` functions
+- [x] **Verify** `src/tests/tier1/test-install.sh` — confirm Phase 8 artifacts are covered
+- **Commit:** `moira(hooks): extend file structure and bootstrap tests for Phase 8 artifacts`
 
 ---
 
@@ -458,14 +469,14 @@ Log file creation moved to `moira_bootstrap_inject_hooks` in `bootstrap.sh` (Tas
 
 | Chunk | Tasks | Creates | Modifies | Depends On |
 |-------|-------|---------|----------|------------|
-| 0 | 2 | — | decisions/log.md, fault-tolerance.md, overview.md | None |
+| 0 | 1 (0.1 done) | — | fault-tolerance.md, overview.md | None |
 | 1 | 3 | guard.sh, budget-track.sh | — (deletes .gitkeep) | 0 |
-| 2 | 3 | settings-merge.sh | bootstrap.sh (+ log file creation), init.md | 1 |
+| 2 | 3 | settings-merge.sh | bootstrap.sh (+ log file creation + gitignore entries), init.md | 1 |
 | 3 | 3 | — | errors.md, orchestrator.md, gates.md | 1 |
 | 4 | 1 | — | project-claude-md.tmpl | 1 |
-| 5 | 3 | test-hooks-system.sh | install.sh, test-file-structure.sh | 1-4 |
+| 5 | 3 | test-hooks-system.sh | install.sh, test-file-structure.sh, test-bootstrap.sh | 1-4 |
 
-**Total:** 6 chunks, 15 tasks (Task 4.2 moved to 2.2, Task 5.2 removed)
+**Total:** 6 chunks, 14 active tasks (Task 0.1 done, Task 4.2 moved to 2.2, Task 5.2 removed)
 
 **Parallelism:** Chunks 2, 3, and 4 can run in parallel after Chunk 1 completes. They have no cross-dependencies.
 

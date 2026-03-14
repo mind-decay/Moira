@@ -41,6 +41,14 @@ knowledge_access:
   quality_map: L2
   failures: L2
 
+write_access:
+  project_model: true
+  conventions: true
+  decisions: true
+  patterns: true
+  quality_map: true
+  failures: true
+
 quality_checklist: null
 
 exit_criteria:

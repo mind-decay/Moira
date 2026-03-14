@@ -1,3 +1,7 @@
+# NOTE: This schema uses nested object/fields format that moira_yaml_validate
+# does not currently support. Telemetry validation requires validator enhancement.
+# See audit finding M-14 (2026-03-14).
+#
 # Telemetry Schema — Per-Task Metrics
 # Source: design/subsystems/testing.md → Per-Task Telemetry Format
 # Privacy: numbers and enums only, never content strings (D-027)
@@ -127,6 +131,16 @@ fields:
         values: [done, tweak, redo, abort]
         required: true
         description: "Final completion action chosen by user"
+
+  compliance:
+    type: object
+    required: true
+    fields:
+      orchestrator_violation_count:
+        type: integer
+        required: true
+        default: 0
+        description: "Count of orchestrator tool-use violations detected by guard.sh"
 
   structural:
     type: object

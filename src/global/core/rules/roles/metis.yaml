@@ -30,6 +30,7 @@ knowledge_access:
   conventions: L0
   decisions: L2
   patterns: L1
+  quality_map: L1
   failures: L0
 
 quality_checklist: q2-soundness

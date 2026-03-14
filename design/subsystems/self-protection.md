@@ -215,7 +215,7 @@ Constitutional verification checklist defined in `design/CONSTITUTION.md` (Invar
 article_1_1:
   name: "Orchestrator Purity"
   check_type: "pattern_absence"
-  target: "src/skills/orchestrator.md"
+  target: "src/global/skills/orchestrator.md"
   forbidden_patterns:
     - "Read tool" targeting non-.claude/moira/ paths
     - "Write tool" targeting non-.claude/moira/ paths
@@ -228,7 +228,7 @@ article_1_1:
 article_1_2:
   name: "Agent Single Responsibility"
   check_type: "constraint_presence"
-  targets: "src/agents/*.md"
+  targets: "src/global/core/rules/roles/*.yaml"
   required_patterns:
     - Each file contains "NEVER" constraints matching its role boundaries
     - Explorer contains "NEVER proposes solutions"
@@ -245,7 +245,7 @@ article_1_2:
 article_2_2:
   name: "Gate Determinism"
   check_type: "structure_verification"
-  target: "src/skills/orchestrator.md"
+  target: "src/global/skills/orchestrator.md"
   required:
     quick_pipeline_gates: ["classification", "final"]
     standard_pipeline_gates: ["classification", "architecture", "plan", "final"]
@@ -256,7 +256,7 @@ article_2_2:
 article_4_1:
   name: "No Fabrication"
   check_type: "rule_presence"
-  target: "src/core/rules/base.yaml"
+  target: "src/global/core/rules/base.yaml"
   required_in_inviolable:
     - Pattern matching "Never fabricate" or "Never guess" for APIs/URLs/schemas
   severity: "CONSTITUTIONAL_VIOLATION"
@@ -264,7 +264,7 @@ article_4_1:
 article_4_4:
   name: "Escape Hatch Integrity"
   check_type: "logic_verification"
-  target: "src/skills/orchestrator.md"
+  target: "src/global/skills/orchestrator.md"
   required:
     - Bypass activates ONLY on "/moira bypass:" prefix
     - Confirmation accepts ONLY "2"

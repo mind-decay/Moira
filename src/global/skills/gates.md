@@ -51,8 +51,16 @@ ORCHESTRATOR HEALTH:
 ```
 
 Status emoji rules:
-- Context: ✅ <25%, ⚠ 25-60%, 🔴 >60%
+- Context: ✅ <40%, ⚠ 40-60%, 🔴 >60%
 - Violations: ✅ if 0, 🔴 if >0
+
+Data sources:
+- Context: from `current.yaml` → `context_budget.orchestrator_percent` (updated by moira_budget_orchestrator_check)
+- Violations: line count of `.claude/moira/state/violations.log` (0 if file doesn't exist or is empty)
+- Agents dispatched: count of entries in `current.yaml` → `history[]`
+- Gates passed: count of entries in task's `status.yaml` → `gates[]`
+- Retries: sum of `status.yaml` → `retries.total`
+- Progress: current step index / total steps from pipeline definition
 
 ---
 
@@ -78,7 +86,7 @@ Per-agent budget status thresholds (individual agent usage vs. allocated budget)
 - ⚠ 50-70%: acceptable but monitor
 - 🔴 >70%: over safety margin, quality risk
 
-Note: These are per-agent thresholds, distinct from the orchestrator context thresholds in orchestrator.md Section 6 (Healthy <25%, Monitor 25-40%, Warning 40-60%, Critical >60%).
+Note: These are per-agent thresholds, distinct from the orchestrator context thresholds in orchestrator.md Section 6 (Normal <40%, Warning 40-60%, Critical >60%).
 
 ---
 
@@ -135,6 +143,8 @@ After Metis (architect) completes.
 5) modify  — Provide feedback, request different approaches
 6) abort   — Cancel task
 ```
+
+When a user selects an alternative by number, record gate decision as `proceed` with the selected alternative number noted in the `note` field (e.g., `note: 'Selected alternative 2'`).
 
 **Gate state:** `moira_state_gate("architecture_gate", decision)`
 
@@ -400,6 +410,7 @@ For ALL gates:
 1. **Before presenting gate:** set `gate_pending` in `current.yaml` via `moira_yaml_set`
 2. **After user decision:** record via `moira_state_gate(gate_name, decision)`
    - `decision` must be one of: `proceed`, `modify`, `abort`
+   - `rearchitect` (plan gate only) records as `modify` with note indicating re-architecture requested.
    - For error gates: map user choice to nearest gate decision
      - answer/point/skip/upgrade/split/reduce/continue/a/b → `proceed` (continuing with modification)
      - abort/rollback → `abort`

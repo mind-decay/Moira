@@ -30,6 +30,11 @@ knowledge_access:
   conventions: L2
   decisions: L1
   patterns: L1
+  quality_map: L1
+  failures: null
+
+write_access:
+  quality_map: true
 
 severity:
   critical: "Blocks pipeline, must fix (correctness, security, broken contracts)"

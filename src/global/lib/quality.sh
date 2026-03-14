@@ -106,7 +106,7 @@ moira_quality_validate_findings() {
 
 # ── moira_quality_aggregate_task <task_dir> ──────────────────────────
 # Aggregate all findings for a task into a summary.
-# Scans findings/ directory for *-Q*.yaml files.
+# Scans findings/ directory for *-Q[1-5].yaml files.
 # Writes findings/summary.yaml with per-gate verdicts and totals.
 # Returns 0 on success, 1 if no findings found.
 moira_quality_aggregate_task() {
@@ -120,7 +120,7 @@ moira_quality_aggregate_task() {
 
   # Find all findings files
   local findings_files
-  findings_files=$(find "$findings_dir" -name '*-Q*.yaml' -not -name 'summary.yaml' 2>/dev/null | sort)
+  findings_files=$(find "$findings_dir" -name '*-Q[1-5].yaml' -not -name 'summary.yaml' 2>/dev/null | sort)
 
   if [[ -z "$findings_files" ]]; then
     echo "Error: no findings files found in $findings_dir" >&2

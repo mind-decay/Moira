@@ -221,13 +221,18 @@ moira_budget_record_agent() {
   fi
 
   # Append to budget.by_agent block
+  # TODO: H-06 — append target should be budget.by_agent but yaml_block_append
+  # only supports top-level keys. Using "by_agent" requires status.yaml to have
+  # a top-level "by_agent:" key under "budget:", which moira_yaml_init generates
+  # from the schema. When yaml-utils gains nested-key support, change to
+  # moira_yaml_block_append "$status_file" "budget.by_agent" "$budget_entry".
   local budget_entry="  - role: ${agent_role}
     estimated: ${estimated_tokens}
     actual: ${actual_tokens}
     budget: ${agent_budget}
     percentage: ${percentage}"
 
-  moira_yaml_block_append "$status_file" "budget" "$budget_entry"
+  moira_yaml_block_append "$status_file" "by_agent" "$budget_entry"
 
   # Update cumulative fields
   local current_estimated
@@ -252,7 +257,7 @@ moira_budget_orchestrator_check() {
   if [[ ! -f "$current_file" ]]; then
     echo "estimated_tokens: 0"
     echo "percentage: 0"
-    echo "level: healthy"
+    echo "level: normal"
     return 0
   fi
 
