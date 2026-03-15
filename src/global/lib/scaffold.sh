@@ -66,6 +66,7 @@ moira_scaffold_project() {
   mkdir -p "$base"/knowledge/patterns/archive
   mkdir -p "$base"/knowledge/failures
   mkdir -p "$base"/knowledge/quality-map
+  mkdir -p "$base"/knowledge/libraries
 
   # State
   mkdir -p "$base"/state/tasks

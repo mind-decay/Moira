@@ -22,6 +22,8 @@ _MOIRA_BOOTSTRAP_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && p
 source "${_MOIRA_BOOTSTRAP_LIB_DIR}/yaml-utils.sh"
 # shellcheck source=knowledge.sh
 source "${_MOIRA_BOOTSTRAP_LIB_DIR}/knowledge.sh"
+# shellcheck source=mcp.sh
+source "${_MOIRA_BOOTSTRAP_LIB_DIR}/mcp.sh"
 
 # ── _moira_parse_frontmatter <file> <field> ────────────────────────────
 # Read a scalar value from YAML frontmatter (between --- delimiters).
@@ -905,5 +907,31 @@ moira_bootstrap_setup_gitignore() {
         echo "$entry" >> "$gitignore"
       fi
     done
+  fi
+}
+
+# ── moira_bootstrap_scan_mcp <project_root> <scan_results_dir> ──────
+# Process MCP scan results and generate registry.
+# If scan results exist: generates mcp-registry.yaml and enables MCP.
+# If no scan results: sets mcp.enabled: false.
+moira_bootstrap_scan_mcp() {
+  local project_root="$1"
+  local scan_results_dir="$2"
+  local moira_dir="${project_root}/.claude/moira"
+  local scan_file="${scan_results_dir}/mcp-scan.md"
+
+  if [[ -f "$scan_file" ]]; then
+    local result
+    result=$(moira_mcp_generate_registry "$project_root" "$scan_results_dir" 2>&1) || true
+    if [[ -n "$result" ]]; then
+      echo "$result"
+    fi
+  else
+    # No MCP scan results — disable MCP
+    local config="${moira_dir}/config.yaml"
+    if [[ -f "$config" ]]; then
+      moira_yaml_set "$config" "mcp.enabled" "false"
+    fi
+    echo "No MCP servers detected"
   fi
 }

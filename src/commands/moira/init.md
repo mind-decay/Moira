@@ -102,28 +102,50 @@ Run via Bash (always use `bash -c` — bootstrap.sh uses BASH_REMATCH which requ
 bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_generate_config "{project_root}" ".claude/moira/state/init/tech-scan.md" && moira_bootstrap_generate_project_rules "{project_root}" ".claude/moira/state/init"'
 ```
 
-## Step 6: Populate Knowledge
+## Step 6: MCP Discovery
+
+Discover available MCP servers and generate the MCP registry.
+
+This step runs AFTER config generation (Step 5) because MCP classification benefits from knowing the project stack.
+
+Read the MCP scanner template and dispatch a single Explorer agent:
+- `~/.claude/moira/templates/scanners/mcp-scan.md`
+
+**Agent — MCP Scanner:**
+- description: "Hermes — MCP scan"
+- subagent_type: general-purpose
+- prompt: Combine Hermes identity + base rules + mcp-scan.md instructions
+  Tell the agent: "You are Hermes, the Explorer. [identity from hermes.yaml]. [base rules]. Your task: [mcp-scan.md contents]. Write output to `.claude/moira/state/init/mcp-scan.md`."
+
+Wait for completion, then process results:
+```bash
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_scan_mcp "{project_root}" ".claude/moira/state/init"'
+```
+
+If no MCP servers are available in the environment (agent reports none): the bootstrap function sets `mcp.enabled: false` — this is normal and expected.
+
+## Step 7: Populate Knowledge
 
 Run via Bash:
 ```bash
 bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_populate_knowledge "{project_root}" ".claude/moira/state/init"'
 ```
 
-## Step 7: Integrate CLAUDE.md
+## Step 8: Integrate CLAUDE.md
 
 Run via Bash:
 ```bash
 bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_inject_claude_md "{project_root}" "$HOME/.claude/moira"'
 ```
 
-## Step 8: Setup Gitignore
+## Step 9: Setup Gitignore
 
 Run via Bash:
 ```bash
 bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_setup_gitignore "{project_root}"'
 ```
 
-## Step 9: Configure Hooks
+## Step 10: Configure Hooks
 
 Run via Bash:
 ```bash
@@ -132,7 +154,7 @@ bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_inject_hooks
 
 This registers guard and budget-track hooks in `.claude/settings.json` and creates empty log files. If hook injection fails: display warning but continue initialization.
 
-## Step 10: User Review Gate (REQUIRED — Art 4.2)
+## Step 11: User Review Gate (REQUIRED — Art 4.2)
 
 This is an **APPROVAL GATE**. Do NOT proceed without explicit user action.
 
@@ -153,7 +175,8 @@ Read key fields from generated files to populate the summary, then display:
   ├─ Rules: .claude/moira/project/rules/ (4 files)
   ├─ Knowledge: .claude/moira/knowledge/ (3 types populated)
   ├─ CLAUDE.md: updated with Moira section
-  └─ Hooks: guard.sh + budget-track.sh registered
+  ├─ Hooks: guard.sh + budget-track.sh registered
+  └─ MCP: {N} servers registered ({server1}, {server2}, ...) OR "no servers detected"
 
   1) review  — inspect generated files
   2) accept  — start using Moira
@@ -173,13 +196,13 @@ Then re-present the gate (review/accept/adjust).
 
 ### On "accept":
 Display: "Moira is ready. Use `/moira:task <description>` to start."
-Proceed to Step 11.
+Proceed to Step 12.
 
 ### On "adjust":
 Ask user what needs correction. Apply changes to the relevant files.
 Then re-present the gate.
 
-## Step 11: Micro-Onboarding (conditional)
+## Step 12: Micro-Onboarding (conditional)
 
 Check if this appears to be the user's first time with Moira (e.g., no completed tasks in any project, or global install is recent).
 
@@ -247,10 +270,11 @@ Done.
 When `--force` is passed:
 - Step 3: scaffold is re-run (idempotent — no data loss)
 - Step 4: all 4 scanners run again (full rescan)
-- Step 6: knowledge update behavior:
+- Step 6: MCP scanner re-runs (full MCP re-scan)
+- Step 7: knowledge update behavior:
   - **project-model, conventions, patterns**: overwritten with new scan data
   - **quality-map**: regenerated as preliminary
   - **decisions**: PRESERVED (organic growth — not scanner-sourced)
   - **failures**: PRESERVED (organic growth — not scanner-sourced)
-- Steps 7-9: CLAUDE.md re-injected (replaces between markers), gitignore rechecked, hooks re-injected
-- Steps 9-10: same review gate
+- Steps 8-10: CLAUDE.md re-injected (replaces between markers), gitignore rechecked, hooks re-injected
+- Steps 11-12: same review gate
