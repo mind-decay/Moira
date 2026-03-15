@@ -158,3 +158,26 @@ fields:
         description: "List of constitutional violation codes (if any)"
         item_type: string
         item_pattern: "Art-[0-9]+\\.[0-9]+"
+
+  mcp_calls:
+    type: list
+    required: false
+    description: "MCP tool calls made during this task"
+    item_schema:
+      server:
+        type: string
+        required: true
+      tool:
+        type: string
+        required: true
+      query_summary:
+        type: string
+        required: true
+        description: "Sanitized query pattern (privacy per D-027)"
+      tokens_used:
+        type: number
+        required: true
+      agent:
+        type: string
+        required: true
+        description: "Which agent made the call"

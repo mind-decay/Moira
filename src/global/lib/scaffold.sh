@@ -73,6 +73,7 @@ moira_scaffold_project() {
   mkdir -p "$base"/state/tasks
   mkdir -p "$base"/state/metrics
   mkdir -p "$base"/state/audits
+  mkdir -p "$base"/state/reflection
   mkdir -p "$base"/state/init
 
   # Hooks

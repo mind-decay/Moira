@@ -12,9 +12,8 @@ _MOIRA_KNOWLEDGE_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && p
 # shellcheck source=yaml-utils.sh
 source "${_MOIRA_KNOWLEDGE_LIB_DIR}/yaml-utils.sh"
 
-# Valid knowledge types
-# Note: "libraries" type excluded — follows different lifecycle (MCP cache, not agent-generated knowledge)
-_MOIRA_KNOWLEDGE_TYPES="project-model conventions decisions patterns failures quality-map"
+# Valid knowledge types (includes libraries for MCP documentation caching)
+_MOIRA_KNOWLEDGE_TYPES="project-model conventions decisions patterns failures quality-map libraries"
 
 # Level-to-file mapping
 _moira_level_file() {
@@ -57,6 +56,11 @@ moira_knowledge_read() {
     return 0
   fi
 
+  # Libraries L2 = individual per-library files, not a single full.md
+  if [[ "$ktype" == "libraries" && "$level" == "L2" ]]; then
+    return 0
+  fi
+
   local level_file
   level_file=$(_moira_level_file "$level") || return 1
 
@@ -82,7 +86,7 @@ moira_knowledge_read_for_agent() {
   fi
 
   # Knowledge dimensions in matrix (underscore) → knowledge type (hyphen)
-  local dimensions="project_model conventions decisions patterns quality_map failures"
+  local dimensions="project_model conventions decisions patterns quality_map failures libraries"
   local output=""
   local has_content=false
 
@@ -107,9 +111,13 @@ moira_knowledge_read_for_agent() {
       continue
     fi
 
-    # Read the knowledge content
+    # Libraries at L2: load L1 (summary.md) as best available aggregate
     local content
-    content=$(moira_knowledge_read "$knowledge_dir" "$ktype" "$level" 2>/dev/null) || true
+    if [[ "$ktype" == "libraries" && "$level" == "L2" ]]; then
+      content=$(moira_knowledge_read "$knowledge_dir" "$ktype" "L1" 2>/dev/null) || true
+    else
+      content=$(moira_knowledge_read "$knowledge_dir" "$ktype" "$level" 2>/dev/null) || true
+    fi
 
     if [[ -n "$content" ]]; then
       # Convert type name for display (hyphen → space, capitalize)
@@ -408,6 +416,18 @@ moira_knowledge_validate_consistency() {
     echo "confirm"
   fi
 
+  return 0
+}
+
+# ── moira_knowledge_read_library <knowledge_dir> <library_name> ──
+# Read individual cached library documentation.
+moira_knowledge_read_library() {
+  local knowledge_dir="$1"
+  local library_name="$2"
+  local target="${knowledge_dir}/libraries/${library_name}.md"
+  if [[ -f "$target" ]]; then
+    cat "$target"
+  fi
   return 0
 }
 
