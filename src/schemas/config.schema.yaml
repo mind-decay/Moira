@@ -31,38 +31,23 @@ fields:
     type: boolean
     required: false
     default: false
+  # Gates are fixed per Art 2.2 — defined in pipeline YAML definitions only, not configurable
   pipelines.quick.max_retries:
     type: number
     required: false
     default: 1
-  pipelines.quick.gates:
-    type: array
-    required: false
-    default: [classification, final]
   pipelines.standard.max_retries:
     type: number
     required: false
     default: 2
-  pipelines.standard.gates:
-    type: array
-    required: false
-    default: [classification, architecture, plan, final]
   pipelines.full.max_retries:
     type: number
     required: false
     default: 2
-  pipelines.full.gates:
-    type: array
-    required: false
-    default: [classification, architecture, plan, per-phase, final]
   pipelines.decomposition.max_retries:
     type: number
     required: false
     default: 2
-  pipelines.decomposition.gates:
-    type: array
-    required: false
-    default: [classification, decomposition, per-task, final]
   budgets.orchestrator_max_percent:
     type: number
     required: false
@@ -168,7 +153,7 @@ fields:
     type: array
     required: false
     default: []
-    description: "Shell commands to run after implementation (e.g., typecheck, lint, type generation). Implementer runs these and fixes errors before returning. Empty = no validation."
+    description: "Shell commands to run after implementation (e.g., typecheck, lint, type generation). Implementer runs these and fixes errors before returning. Empty = no validation. (not yet active — future: injected into implementer prompts via dispatch.md)"
   bootstrap.quick_scan_completed:
     type: boolean
     required: false

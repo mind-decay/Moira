@@ -195,6 +195,11 @@ Reference: `errors.md` skill for full procedures.
 | success + reviewer factual error | E9-SEMANTIC | Reviewer-detected: E5-QUALITY retry path. Gate-detected: gate modify flow |
 | success + architect contradiction | E10-DIVERGE | Present contradiction at architecture gate (Metis flags it) |
 | budget pre-check near limit | E11-TRUNCATION | Pre-execution: E4-BUDGET split. Post-execution: E5-QUALITY retry reduced scope |
+| knowledge freshness stale | E8-STALE | Write stale entries to status.yaml warnings, display warning, continue |
+
+### Stale Knowledge Detection
+
+When E8-STALE is detected (knowledge freshness check returns stale entries), write stale knowledge entries to `status.yaml` under the `warnings:` block using `moira_yaml_block_append status.yaml warnings '<entry>'`. Display a warning to the user listing the stale entries. The pipeline continues — stale knowledge is informational, not blocking.
 
 ### Scope Change Detection
 
@@ -219,13 +224,14 @@ Track orchestrator context usage approximately. Report status at every gate. Orc
 
 | Level | Range | ~Tokens (1M) | Action |
 |-------|-------|-------------|--------|
-| Normal | <40% | <400k | No action |
-| Warning | 40-60% | 400-600k | Display warning, suggest checkpoint |
-| Critical | >60% | >600k | Strong checkpoint recommendation |
+| Healthy | <25% | <250k | No action |
+| Monitor | 25-40% | 250-400k | Include in gate status display |
+| Warning | 40-60% | 400-600k | Display warning, offer checkpoint |
+| Critical | >60% | >600k | Mandatory checkpoint |
 
 ### Warning Display
 
-When context exceeds 40%:
+When context exceeds warning threshold (40%):
 
 ```
 ⚠ ORCHESTRATOR CONTEXT WARNING
@@ -242,7 +248,7 @@ Recommendation: checkpoint and continue in fresh session.
 ### Budget Monitoring After Each Agent
 
 After each agent returns:
-1. After each agent returns, call `moira_state_agent_done <task_id> <step_name> <role> <tokens_used>` to record budget usage and update orchestrator context tracking.
+1. After each agent returns, call `moira_state_agent_done <step> <role> <status> <duration_sec> <tokens_used> <result_summary>` to record budget usage and update orchestrator context tracking.
 2. Read `context_budget.warning_level` from `current.yaml` (updated by `moira_budget_orchestrator_check` via `moira_state_agent_done`)
 3. If level is `warning` or `critical`: display the warning template above
 4. Include orchestrator health data in every gate display (per `gates.md` Health Report Section)
@@ -284,6 +290,11 @@ When the pipeline reaches the completion step:
 - Write `structural.violations`: array of violation entries from `violations.log` for the current task (empty array if none)
 - Write budget data to telemetry: update `telemetry.yaml` with `execution.budget_total_tokens` from `status.yaml` `budget.actual_tokens`
 - For each agent dispatched during the pipeline, record in `telemetry.yaml` → `execution.agents_called[]`: `role`, `step`, `tokens_used`, `context_pct` (from `moira_state_agent_done` data), `duration_sec` (wall-clock time between dispatch and response).
+- Write completion fields to status.yaml:
+  - `moira_yaml_set status.yaml completion.action <action>` (done/tweak/redo)
+  - `moira_yaml_set status.yaml completion.tweak_count <count>` (number of tweak iterations, 0 if none)
+  - `moira_yaml_set status.yaml completion.redo_count <count>` (number of redo iterations, 0 if none)
+  - `moira_yaml_set status.yaml completion.final_review_passed <true|false>` (whether final review passed)
 - Tick evolution cooldown: call `moira_quality_tick_cooldown` on config.yaml
 - If quality mode was `evolve`: call `moira_quality_complete_evolve` on config.yaml
 - Call `moira_knowledge_update_quality_map` with task findings (if Themis Q4 findings exist)

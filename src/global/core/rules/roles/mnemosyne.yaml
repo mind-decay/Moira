@@ -31,7 +31,7 @@ never:
   - "Never change rules directly"
   - "Never propose rule changes with fewer than 3 observations"
   - "Never block the pipeline (runs post-completion)"
-  - "Never modify project or system files"
+  - "Never modify project source files or moira configuration files (knowledge writes go through the knowledge management subsystem)"
 
 knowledge_access:
   project_model: L2

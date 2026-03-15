@@ -22,7 +22,7 @@ Multiple engineers on same project, each with their own Claude sessions:
 │   ├── .gitignore
 │   └── tasks/     ← per-task, per-branch isolation
 │
-├── metrics/       ← SHARED (git-tracked, append-friendly)
+├── state/metrics/ ← SHARED (git-tracked, append-friendly)
 └── hooks/         ← SHARED (git-tracked)
 ```
 

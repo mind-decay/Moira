@@ -74,6 +74,7 @@ fields:
     type: string
     required: false
     default: ""
+  # Managed by /moira:bypass command — not referenced by skills/shell libs directly
   bypass.active:
     type: boolean
     required: false

@@ -42,7 +42,7 @@ Used for:
 
 ### Steps
 
-1. **Read role definition:** `~/.claude/moira/core/rules/roles/{agent_name}.yaml`
+1. **Read role definition:** `~/.claude/moira/core/rules/roles/{agent_name}.yaml`  <!-- Runtime path; installed by src/install.sh from src/global/core/rules/roles/ -->
    - Extract: `identity`, `capabilities`, `never` constraints
 2. **Read base rules:** `~/.claude/moira/core/rules/base.yaml`
    - Extract: `inviolable` rules (always included)
@@ -199,7 +199,7 @@ If the response does not contain a valid `STATUS:` line:
 ### After Successful Dispatch
 
 1. Record agent completion:
-   - Use `moira_state_agent_done()` pattern (step, status, duration, tokens, summary)
+   - Use `moira_state_agent_done()` pattern (step, role, status, duration, tokens, summary)
 2. If a gate follows this step (per pipeline definition):
    - Set `gate_pending` in `current.yaml`
    - Present gate (per `gates.md`)
@@ -277,8 +277,8 @@ For agents with quality gate assignments, append the quality checklist to their 
 
 ### Injection Path
 
-- **Pre-planning agents** (Athena Q1): checklist injected via simplified assembly path — append to prompt template after Task section
-- **Post-planning agents** (Metis Q2, Daedalus Q3, Themis Q4, Aletheia Q5): checklist injected via instruction files written by Daedalus
+- **Pre-planning agents** (Athena Q1, Daedalus Q3): checklist injected via simplified assembly path — append to prompt template after Task section
+- **Post-planning agents** (Metis Q2, Themis Q4, Aletheia Q5): checklist injected via instruction files written by Daedalus
 
 ### Checklist Prompt Appendix
 

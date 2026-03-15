@@ -122,7 +122,7 @@ fields:
   completion.action:
     type: enum
     required: false
-    enum: [done, tweak, redo, diff, test]
+    enum: [done, tweak, redo, diff, test, abort]
     default: null
   completion.tweak_count:
     type: number

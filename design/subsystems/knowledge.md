@@ -31,6 +31,8 @@ Every knowledge document exists in three forms:
 
 **Authoritative source:** `src/global/core/knowledge-access-matrix.yaml`. This table is a summary. Write access is defined in the authoritative source.
 
+**Note:** Package map access levels are a sub-dimension of project-model; see Package Map section below.
+
 Architect reads full decisions — needs ALL precedents.
 Implementer reads full conventions — needs exact HOW.
 Explorer reads almost nothing — must be unbiased.

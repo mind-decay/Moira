@@ -221,6 +221,7 @@ User → /moira <task>
 │   │   ├── summary.md
 │   │   └── full.md
 │   ├── quality-map/
+│   │   ├── index.md
 │   │   ├── summary.md
 │   │   └── full.md
 │   └── libraries/                # Cached MCP documentation for project dependencies
@@ -248,16 +249,16 @@ User → /moira <task>
 │   │           ├── explorer.md
 │   │           ├── implementer-A.md
 │   │           └── ...
+│   ├── violations.log
+│   ├── tool-usage.log
+│   ├── budget-tool-usage.log
+│   ├── init/
 │   ├── metrics/
 │   │   └── monthly-{YYYY-MM}.yaml
 │   └── audits/
 │       └── {date}-audit.md
 │
-└── hooks/                        # Placeholder entries — actual hook executables live at
-                                  # the global layer (~/.claude/moira/hooks/) and are
-                                  # registered in settings.json from there
-    ├── guard.sh                  # Orchestrator tool restriction
-    └── budget-track.sh           # Context budget logging
+└── hooks/                        # Hook executables live at global layer; registered via settings.json
 ```
 
 ## Orchestrator Boundaries

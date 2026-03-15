@@ -205,41 +205,56 @@ After installation, `~/.claude/` contains:
 ├── moira/                                # Core system (global layer)
 │   ├── .version                          # "1.0.0"
 │   ├── core/
-│   │   └── rules/
-│   │       ├── base.yaml                 # Layer 1: inviolable + overridable rules
-│   │       ├── roles/
-│   │       │   ├── apollo.yaml           # Layer 2: Classifier
-│   │       │   ├── hermes.yaml           # Explorer
-│   │       │   ├── athena.yaml           # Analyst
-│   │       │   ├── metis.yaml            # Architect
-│   │       │   ├── daedalus.yaml         # Planner
-│   │       │   ├── hephaestus.yaml       # Implementer
-│   │       │   ├── themis.yaml           # Reviewer
-│   │       │   ├── aletheia.yaml         # Tester
-│   │       │   ├── mnemosyne.yaml        # Reflector
-│   │       │   └── argus.yaml            # Auditor
-│   │       └── quality/
-│   │           ├── q1-completeness.yaml
-│   │           ├── q2-soundness.yaml
-│   │           ├── q3-feasibility.yaml
-│   │           ├── q4-correctness.yaml
-│   │           └── q5-coverage.yaml
-│   │
+│   │   ├── rules/
+│   │   │   ├── base.yaml                 # Layer 1: inviolable + overridable rules
+│   │   │   ├── roles/
+│   │   │   │   ├── apollo.yaml           # Layer 2: Classifier
+│   │   │   │   ├── hermes.yaml           # Explorer
+│   │   │   │   ├── athena.yaml           # Analyst
+│   │   │   │   ├── metis.yaml            # Architect
+│   │   │   │   ├── daedalus.yaml         # Planner
+│   │   │   │   ├── hephaestus.yaml       # Implementer
+│   │   │   │   ├── themis.yaml           # Reviewer
+│   │   │   │   ├── aletheia.yaml         # Tester
+│   │   │   │   ├── mnemosyne.yaml        # Reflector
+│   │   │   │   └── argus.yaml            # Auditor
+│   │   │   └── quality/
+│   │   │       ├── q1-completeness.yaml
+│   │   │       ├── q2-soundness.yaml
+│   │   │       ├── q3-feasibility.yaml
+│   │   │       ├── q4-correctness.yaml
+│   │   │       └── q5-coverage.yaml
+│   │   ├── response-contract.yaml
+│   │   ├── knowledge-access-matrix.yaml
+│   │   └── pipelines/                    # Pipeline definitions (D-035)
+│   │       ├── quick.yaml
+│   │       ├── standard.yaml
+│   │       ├── full.yaml
+│   │       └── decomposition.yaml
 │   ├── skills/
-│   │   └── orchestrator.md               # Main orchestrator skill (referenced by commands)
-│   │
+│   │   ├── orchestrator.md               # Main orchestrator skill
+│   │   ├── gates.md                      # Gate presentation templates
+│   │   ├── dispatch.md                   # Agent dispatch instructions
+│   │   └── errors.md                     # Error handling procedures
 │   ├── hooks/
 │   │   ├── guard.sh                      # Orchestrator tool restriction
 │   │   └── budget-track.sh              # Context usage logging
-│   │
 │   ├── templates/
 │   │   ├── project-claude-md.tmpl        # CLAUDE.md template for projects
-│   │   ├── project-agents-md.tmpl        # AGENTS.md template for projects
-│   │   ├── project-config.tmpl           # config.yaml template
-│   │   ├── project-model.tmpl            # project-model skeleton
-│   │   ├── conventions.tmpl              # conventions.yaml skeleton
-│   │   ├── patterns.tmpl                 # patterns.yaml skeleton
-│   │   ├── quality-map.tmpl              # quality-map skeleton
+│   │   ├── budgets.yaml.tmpl             # Budget configuration template
+│   │   └── scanners/                     # Scanner instruction templates
+│   │       └── deep/                     # Deep scan templates
+│   ├── schemas/                          # YAML schema definitions
+│   │   ├── budgets.schema.yaml
+│   │   ├── config.schema.yaml
+│   │   ├── current.schema.yaml
+│   │   ├── findings.schema.yaml
+│   │   ├── locks.schema.yaml
+│   │   ├── manifest.schema.yaml
+│   │   ├── queue.schema.yaml
+│   │   ├── status.schema.yaml
+│   │   ├── telemetry.schema.yaml
+│   │   └── mcp-registry.schema.yaml
 │   └── lib/
 │       ├── bootstrap.sh                  # Project bootstrap logic
 │       ├── bench.sh                      # Behavioral test runner
@@ -251,7 +266,8 @@ After installation, `~/.claude/` contains:
 │       ├── settings-merge.sh             # Settings.json merge utility
 │       ├── state.sh                      # State management utilities
 │       ├── task-id.sh                    # Task ID generation
-│       └── yaml-utils.sh                # YAML read/write/validate (pure bash)
+│       ├── yaml-utils.sh                # YAML read/write/validate (pure bash)
+│       └── mcp.sh                        # MCP integration utilities
 │
 ├── commands/moira/                       # User-facing slash commands (D-030)
 │   ├── init.md                           # /moira:init

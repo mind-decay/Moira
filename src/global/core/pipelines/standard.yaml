@@ -52,6 +52,7 @@ steps:
       - "tasks/{task_id}/exploration.md"
       - "tasks/{task_id}/requirements.md"
 
+  # Single step definition — expanded at runtime by orchestrator into batches per Planner's plan.md output
   - id: implementation
     agent: hephaestus
     role: implementer
@@ -178,10 +179,12 @@ error_handlers:
     display: agent_failure_gate
   E7-DRIFT:
     action: log
-    note: "Stub — full detection in Phase 8"
+    blocking: false
+    note: "Non-blocking — detection via guard.sh PostToolUse hook"
   E8-STALE:
-    action: log_and_escalate
-    note: "Stub — full detection in Phase 4"
+    action: warn
+    display: stale_knowledge_warning
+    blocking: false
   E9-SEMANTIC:
     action: retry_with_feedback
     max_attempts: 2

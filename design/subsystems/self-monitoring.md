@@ -112,7 +112,7 @@ Quality of orchestration may degrade.
 
 Recommendation: checkpoint and continue in fresh session.
 
-▸ checkpoint — save state, run /moira continue later
+▸ checkpoint — save state, run /moira:resume later
 ▸ proceed    — continue (not recommended)
 ```
 

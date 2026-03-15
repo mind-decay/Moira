@@ -51,7 +51,7 @@ ORCHESTRATOR HEALTH:
 ```
 
 Status emoji rules:
-- Context: ✅ <40%, ⚠ 40-60%, 🔴 >60%
+- Context: ✅ <25%, 📊 25-40%, ⚠ 40-60%, 🔴 >60%
 - Violations: ✅ if 0, 🔴 if >0
 
 Data sources:
@@ -86,7 +86,7 @@ Per-agent budget status thresholds (individual agent usage vs. allocated budget)
 - ⚠ 50-70%: acceptable but monitor
 - 🔴 >70%: over safety margin, quality risk
 
-Note: These are per-agent thresholds, distinct from the orchestrator context thresholds in orchestrator.md Section 6 (Normal <40%, Warning 40-60%, Critical >60%).
+Note: These are per-agent thresholds, distinct from the orchestrator context thresholds in orchestrator.md Section 6 (Healthy <25%, Monitor 25-40%, Warning 40-60%, Critical >60%).
 
 ---
 
@@ -202,7 +202,8 @@ After each phase iteration in Full Pipeline (after Aletheia (tester) completes p
 ```
 1) proceed    — Phase complete, continue to next
 2) checkpoint — Save progress and pause (resumable via /moira:resume)
-3) abort      — Stop implementation
+3) modify     — Rework this phase (re-dispatch phase agents with user feedback)
+4) abort      — Stop implementation
 ```
 
 **Gate state:** `moira_state_gate("phase_gate_{n}", decision)`

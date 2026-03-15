@@ -83,6 +83,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 **Monorepo mode:** When dispatched with package-scoped instructions, Explorer limits exploration to the specified packages and their direct dependencies. If Explorer discovers that additional packages are relevant (e.g., shared utilities not in scope), it reports E2-SCOPE (monorepo subtype, D-070) for scope expansion rather than silently expanding.
 
 **Knowledge access:** L0 (project-model index only — must be unbiased)
+**Write access:** project_model
 
 **Budget:** 140k (needs room for large codebases)
 
@@ -153,6 +154,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 **Rules:**
 - Does NOT make architectural decisions, only decomposes
+- Uses quality-map (full) to inject quality pattern context into agent instruction files and align plan steps with existing quality patterns
 - Must pass Plan Feasibility Checklist:
   - [ ] Every file in plan exists (or explicitly marked as new)
   - [ ] Dependencies between steps correctly ordered
@@ -226,6 +228,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - False positive awareness: if unsure, mark as WARNING not CRITICAL
 
 **Knowledge access:** L1 (project-model), L2 (conventions — FULL), L1 (decisions), L1 (patterns), L1 (quality-map)
+**Write access:** quality_map
 
 **Budget:** 100k
 
@@ -296,7 +299,8 @@ BOUNDARY_COMPLIANCE: {all_clear|violations_found} — {detail}
 RULE_PROPOSALS: [{proposal with 3+ evidence citations}] (if any)
 ```
 
-**Knowledge access:** Full access to all knowledge + task state files
+**Knowledge access:** L2 (all knowledge types)
+**Write access:** all knowledge types
 
 **Budget:** 80k
 
@@ -317,7 +321,7 @@ RULE_PROPOSALS: [{proposal with 3+ evidence citations}] (if any)
 - Recommendations must be actionable and specific
 - Classifies findings by risk: low/medium/high
 
-**Knowledge access:** Full access (read-only)
+**Knowledge access:** L2 (all knowledge types — read-only)
 
 **Budget:** 140k (needs to cross-reference many files)
 

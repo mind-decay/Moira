@@ -135,7 +135,7 @@ Displayed after every pipeline completion:
 ╠══════════════════════════════════════════════╣
 ║ Agent         │ Budget │ Est.  │ % │ Status  ║
 ║───────────────┼────────┼───────┼───┼─────────║
-║ Classifier    │  20k   │  12k  │60%│ ⚠️      ║
+║ Classifier    │  20k   │   8k  │40%│ ✅      ║
 ║ Explorer      │ 140k   │  67k  │48%│ ✅      ║
 ║ Analyst       │  80k   │  34k  │43%│ ✅      ║
 ║ Architect     │ 100k   │  58k  │58%│ ⚠️      ║

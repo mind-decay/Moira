@@ -30,7 +30,6 @@ Moira is a meta-orchestration framework for Claude Code that transforms Claude f
 ### Implementation
 - [Implementation Guide](IMPLEMENTATION-GUIDE.md) — full context for implementing agents (read BEFORE any work)
 - [Implementation Roadmap](IMPLEMENTATION-ROADMAP.md) — 12-phase build order with dependencies
-- [Testing Implementation Plan](TESTING-IMPLEMENTATION-PLAN.md) — testing infrastructure plan
 
 ### Reports
 - [Reports directory](reports/) — audit and analysis reports (historical, never modified after creation)
@@ -41,7 +40,7 @@ Moira is a meta-orchestration framework for Claude Code that transforms Claude f
 
 ### Decisions
 - [Decision Log](decisions/log.md) — all architectural decisions with reasoning
-- [Blocker Resolution Design](decisions/2026-03-11-blocker-resolution-design.md) — pre-implementation review: Classifier, YAML schemas, distribution, guard mechanism, bootstrap scanners
+- [Blocker Resolution Design](specs/archive/2026-03-11-blocker-resolution-design.md) — pre-implementation review: Classifier, YAML schemas, distribution, guard mechanism, bootstrap scanners
 
 ### UX
 - [Command Reference](architecture/commands.md) — user-facing commands and flows

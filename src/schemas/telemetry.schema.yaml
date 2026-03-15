@@ -10,7 +10,7 @@
 _meta:
   name: telemetry
   file: telemetry.yaml
-  location: .claude/moira/state/tasks/{id}/
+  location: .claude/moira/state/tasks/{task_id}/
   git: gitignored
   version: "1.0"
   description: "Per-task execution telemetry for live metrics collection"
@@ -82,9 +82,9 @@ fields:
         description: "Gate decision records"
         item_fields:
           name:
-            type: enum
-            values: [classification_gate, architecture_gate, plan_gate, phase_gate, decomposition_gate, subtask_gate, final_gate]
+            type: string
             required: true
+            description: "Gate name — base names (classification_gate, architecture_gate, etc.) may have numeric suffixes for repeating gates"
           result:
             type: enum
             values: [proceed, modify, abort]
@@ -126,6 +126,7 @@ fields:
         type: boolean
         required: false
         description: "Whether reviewer accepted on first pass"
+      # Final results only — diff/test are intermediate actions that loop back to final gate
       final_result:
         type: enum
         values: [done, tweak, redo, abort]

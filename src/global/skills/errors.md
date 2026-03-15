@@ -286,6 +286,8 @@ Root cause analysis:
 
 After 2 failures → present quality failure gate. User decides next action.
 
+**Pipeline-specific:** Quick Pipeline limits E5 retries to max_attempts=1 (single retry only).
+
 ---
 
 ## E6-AGENT: Agent Failure

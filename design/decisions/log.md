@@ -370,6 +370,7 @@ All architectural decisions made during Moira system design.
 - Keep 4 dimensions + hardcode quality-map — fragile, easy to miss agents, violates single source of truth
 - Add failures access for more agents now — no content exists until Phase 10, premature
 **Reasoning:** Single source of truth for agent knowledge access. Matrix-driven access is testable and prevents hardcoded exceptions that diverge from design docs over time.
+**Verified 2026-03-15:** Daedalus quality_map = L2 confirmed across all 5 sources (this decision, agents.md, knowledge.md, knowledge-access-matrix.yaml, daedalus.yaml). No contradiction exists.
 
 ## D-040: Daedalus Writes Instruction Files (Not Orchestrator)
 
@@ -782,3 +783,13 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 - Silently remove absent servers — user may have intentionally configured servers not currently running
 - Append only (never remove) — stale entries accumulate forever
 **Reasoning:** Users may edit `when_to_use`, `token_estimate`, etc. — overwriting loses their tuning. Flagging (not deleting) removed servers lets users decide. New servers always added — no reason to exclude available tools. Consistent with how `/moira:refresh` handles knowledge updates (additive, not destructive).
+
+## D-085: Architecture Gate in Decomposition Pipeline
+
+**Context:** System audit (2026-03-15) found that the decomposition pipeline dispatches Metis (architect) but has no approval gate after the architecture step. Standard and Full pipelines both have architecture gates. Epic tasks are the most expensive — an architectural error before decomposition wastes the entire Planner pass and cascades into all sub-tasks.
+**Decision:** Add `architecture_gate` to the decomposition pipeline between the `architecture` and `decomposition` steps. This makes the decomposition pipeline gates: classification + architecture + decomposition + per-task + final. The architecture and decomposition results are shown in two separate gates (not merged) so the user can reject architecture before the Planner runs.
+**Alternatives rejected:**
+- No gate, document as intentional — user sees architecture only at decomposition_gate, mixed with plan output. Can't reject architecture without also discarding decomposition. Planner tokens wasted on bad architecture.
+- Merged gate (show architecture + plan together) — same problem: can't reject architecture independently. User forced to parse two artifacts at once.
+- Soft/optional gate — prohibited by Art 2.2 ("Gates MUST NOT be made optional")
+**Reasoning:** Epic tasks are high-stakes. Architecture gate is cheap (one user confirmation), but catching a bad architecture before Planner runs saves significant token budget and prevents cascading errors through all sub-tasks. Consistent with standard/full pipelines. Requires Constitutional amendment to Art 2.2.

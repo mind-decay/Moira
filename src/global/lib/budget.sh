@@ -145,7 +145,9 @@ moira_budget_estimate_agent() {
 
   # Determine status
   local status="ok"
-  if [[ "$percentage" -gt 70 ]]; then
+  local max_load
+  max_load=$(_moira_budget_get_max_load "$config_path")
+  if [[ "$percentage" -gt "$max_load" ]]; then
     status="exceeded"
   elif [[ "$percentage" -ge 50 ]]; then
     status="warning"
@@ -221,11 +223,12 @@ moira_budget_record_agent() {
   fi
 
   # Append to budget.by_agent block
-  # TODO: H-06 — append target should be budget.by_agent but yaml_block_append
-  # only supports top-level keys. Using "by_agent" requires status.yaml to have
-  # a top-level "by_agent:" key under "budget:", which moira_yaml_init generates
-  # from the schema. When yaml-utils gains nested-key support, change to
-  # moira_yaml_block_append "$status_file" "budget.by_agent" "$budget_entry".
+  # Workaround: append target should be budget.by_agent but yaml_block_append
+  # only supports top-level keys. Using "by_agent" works because moira_yaml_init
+  # generates status.yaml with "by_agent:" as a child of "budget:", and
+  # yaml_block_append finds it by key name. Verified working with init-generated files.
+  # When yaml-utils gains nested-key support, change to:
+  # moira_yaml_block_append "$status_file" "budget.by_agent" "$budget_entry"
   local budget_entry="  - role: ${agent_role}
     estimated: ${estimated_tokens}
     actual: ${actual_tokens}

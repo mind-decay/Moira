@@ -155,6 +155,7 @@ USER → epic description (from YouTrack, Slack, etc.)
   ├─ Analyst → deep requirement breakdown → epic-requirements.md
   │
   ├─ Architect → system-level design → epic-architecture.md
+  │   └─ [GATE: architecture approval] (D-085)
   │
   ├─ Planner → decomposition into tasks:
   │   tasks/

@@ -21,7 +21,7 @@ steps:
     agent: hermes
     role: explorer
     mode: foreground
-    writes_to: "tasks/{task_id}/context.md"
+    writes_to: "tasks/{task_id}/context.md"  # Intentionally "context.md" (not "exploration.md") — lighter exploration for quick pipeline
     reads_from: "tasks/{task_id}/classification.md"
 
   - id: implementation
@@ -73,6 +73,8 @@ gates:
         description: "Rollback and redo"
       - id: diff
         description: "Show changes"
+      - id: test
+        description: "Run additional tests"
 
 error_handlers:
   E1-INPUT:
@@ -109,10 +111,12 @@ error_handlers:
     display: agent_failure_gate
   E7-DRIFT:
     action: log
-    note: "Stub — full detection in Phase 8"
+    blocking: false
+    note: "Non-blocking — detection via guard.sh PostToolUse hook"
   E8-STALE:
-    action: log_and_escalate
-    note: "Stub — full detection in Phase 4"
+    action: warn
+    display: stale_knowledge_warning
+    blocking: false
   E9-SEMANTIC:
     action: retry_with_feedback
     max_attempts: 1

@@ -20,7 +20,7 @@ The orchestrator (main Claude) MUST NOT directly read, write, or modify project 
 ### 1.2 Agent Single Responsibility
 Each agent type has exactly ONE responsibility. An agent MUST NOT perform actions outside its defined role.
 
-- Classifier: determines task size and confidence — NEVER reads source code, NEVER proposes solutions
+- Classifier: determines task size and confidence — NEVER reads source code, NEVER proposes solutions, NEVER selects pipeline type
 - Explorer: reads code, reports facts — NEVER proposes solutions
 - Analyst: formalizes requirements — NEVER proposes technical implementation
 - Architect: makes technical decisions — NEVER writes code
@@ -59,7 +59,7 @@ Every pipeline has a fixed set of approval gates. Gates MUST NOT be skipped, reo
 - Quick: classification gate + final gate
 - Standard: classification + architecture + plan + final
 - Full: classification + architecture + plan + per-phase + final
-- Decomposition: classification + decomposition + per-task + final
+- Decomposition: classification + architecture + decomposition + per-task + final
 
 **Test:** Pipeline definitions contain all required gates. No conditional skip logic exists for gates.
 

@@ -14,6 +14,7 @@ Based on dependency analysis. Each phase builds on previous.
 - Directory scaffold generator (creates `~/.claude/moira/` global tree + `.claude/moira/` project tree)
 - Command files in `~/.claude/commands/moira/` (native custom commands, D-030)
 - YAML state schemas — full schemas per D-029:
+  - `budgets.schema.yaml` — context budget allocations (committed)
   - `config.yaml` — project configuration (committed)
   - `current.yaml` — active pipeline state (gitignored)
   - `status.yaml` — per-task status (gitignored)
@@ -219,7 +220,7 @@ Based on dependency analysis. Each phase builds on previous.
 - 5-domain audit system
 - Batch recommendation approval
 - Tiered audit depth (light/standard/deep)
-- Cross-reference manifest (`src/global/core/xref-manifest.yaml`) — dependency map between files for consistency enforcement (D-077)
+- Cross-reference manifest (`src/global/core/xref-manifest.yaml`) — dependency map between files for consistency enforcement (D-077). Design doc for manifest schema TBD in phase spec
 - Tier 1 xref validation tests — verify manifest entries match actual file content
 - Agent pre-commit xref check — agents consult manifest before committing to find affected files
 

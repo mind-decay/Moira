@@ -91,6 +91,19 @@ gates:
       - id: abort
         description: "Cancel task"
 
+  # D-085: Architecture gate added — user approves architecture before Planner runs.
+  # Prevents wasting Planner tokens on bad architecture for epic tasks.
+  - id: architecture_gate
+    after_step: architecture
+    required: true
+    options:
+      - id: proceed
+        description: "Architecture approved, continue to decomposition"
+      - id: modify
+        description: "Request architecture changes"
+      - id: abort
+        description: "Cancel task"
+
   - id: decomposition_gate
     after_step: decomposition
     required: true
@@ -102,6 +115,7 @@ gates:
       - id: abort
         description: "Cancel task"
 
+  # No "modify" option — sub-task rework is handled within the sub-pipeline's own gates
   - id: subtask_gate
     after_step: "repeatable_group.implementation"
     required: true
@@ -164,10 +178,12 @@ error_handlers:
     display: agent_failure_gate
   E7-DRIFT:
     action: log
-    note: "Stub — full detection in Phase 8"
+    blocking: false
+    note: "Non-blocking — detection via guard.sh PostToolUse hook"
   E8-STALE:
-    action: log_and_escalate
-    note: "Stub — full detection in Phase 4"
+    action: warn
+    display: stale_knowledge_warning
+    blocking: false
   E9-SEMANTIC:
     action: retry_with_feedback
     max_attempts: 2
