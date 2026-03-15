@@ -14,7 +14,7 @@ COMMANDS_DIR="$HOME/.claude/commands/moira"
 # Scanner template tests
 # ═══════════════════════════════════════════════════════════════════════
 
-for scanner in tech-scan structure-scan convention-scan pattern-scan; do
+for scanner in tech-scan structure-scan convention-scan pattern-scan mcp-scan; do
   assert_file_exists "$MOIRA_HOME/templates/scanners/${scanner}.md" "scanner template: ${scanner}.md exists"
 done
 
@@ -47,6 +47,7 @@ if [[ -f "$MOIRA_HOME/lib/bootstrap.sh" ]]; then
   for func in moira_bootstrap_generate_config moira_bootstrap_generate_project_rules \
               moira_bootstrap_populate_knowledge moira_bootstrap_inject_claude_md \
               moira_bootstrap_setup_gitignore moira_bootstrap_inject_hooks \
+              moira_bootstrap_scan_mcp \
               _moira_parse_frontmatter _moira_parse_frontmatter_list; do
     if grep -q "$func" "$MOIRA_HOME/lib/bootstrap.sh" 2>/dev/null; then
       pass "bootstrap.sh: function $func declared"
@@ -102,8 +103,8 @@ if [[ -f "$init_file" ]]; then
     fail "init.md: appears to be a stub ($line_count lines)"
   fi
 
-  # Check all steps present (11 steps after Phase 8 hook injection step)
-  for step_num in 1 2 3 4 5 6 7 8 9 10 11; do
+  # Check all steps present (12 steps after Phase 9 MCP discovery step)
+  for step_num in 1 2 3 4 5 6 7 8 9 10 11 12; do
     assert_file_contains "$init_file" "Step ${step_num}" "init.md: Step $step_num present"
   done
 

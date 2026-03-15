@@ -26,7 +26,7 @@ done
 
 # Template file count
 template_count=$(find "$MOIRA_HOME/templates/knowledge" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
-assert_equals "$template_count" "17" "17 knowledge template files exist"
+assert_equals "$template_count" "19" "19 knowledge template files exist"
 
 # Quality-map has NO index.md (L0)
 if [[ ! -f "$MOIRA_HOME/templates/knowledge/quality-map/index.md" ]]; then

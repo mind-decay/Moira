@@ -166,7 +166,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh; do
     ((checks_total++)) || true
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then
@@ -285,20 +285,20 @@ verify() {
   ((checks_total++)) || true
   local template_count
   template_count=$(find "$MOIRA_HOME/templates/knowledge" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
-  if [[ "$template_count" -ge 17 ]]; then
+  if [[ "$template_count" -ge 19 ]]; then
     ((checks_passed++)) || true
   else
-    errors+="  knowledge templates: expected >=17, found ${template_count}\n"
+    errors+="  knowledge templates: expected >=19, found ${template_count}\n"
   fi
 
   # Check: scanner templates exist (Phase 5)
   ((checks_total++)) || true
   local scanner_count
   scanner_count=$(find "$MOIRA_HOME/templates/scanners" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
-  if [[ "$scanner_count" -ge 4 ]]; then
+  if [[ "$scanner_count" -ge 5 ]]; then
     ((checks_passed++)) || true
   else
-    errors+="  scanner templates: expected >=4, found ${scanner_count}\n"
+    errors+="  scanner templates: expected >=5, found ${scanner_count}\n"
   fi
 
   # Check: CLAUDE.md template exists (Phase 5)

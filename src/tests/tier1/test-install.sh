@@ -46,10 +46,10 @@ done
 # Phase 4: knowledge templates
 assert_dir_exists "$MOIRA_HOME/templates/knowledge" "clean install: knowledge templates dir exists"
 template_count=$(find "$MOIRA_HOME/templates/knowledge" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
-if [[ "$template_count" -ge 17 ]]; then
-  pass "clean install: $template_count knowledge templates (>=17)"
+if [[ "$template_count" -ge 19 ]]; then
+  pass "clean install: $template_count knowledge templates (>=19)"
 else
-  fail "clean install: expected >=17 knowledge templates, found $template_count"
+  fail "clean install: expected >=19 knowledge templates, found $template_count"
 fi
 
 # Phase 5: bootstrap.sh
@@ -62,10 +62,10 @@ fi
 
 # Phase 5: scanner templates
 scanner_count=$(find "$MOIRA_HOME/templates/scanners" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
-if [[ "$scanner_count" -ge 4 ]]; then
-  pass "clean install: $scanner_count scanner templates (>=4)"
+if [[ "$scanner_count" -ge 5 ]]; then
+  pass "clean install: $scanner_count scanner templates (>=5)"
 else
-  fail "clean install: expected >=4 scanner templates, found $scanner_count"
+  fail "clean install: expected >=5 scanner templates, found $scanner_count"
 fi
 
 # Phase 5: CLAUDE.md template
