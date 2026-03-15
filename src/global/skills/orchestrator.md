@@ -77,6 +77,12 @@ Before entering the main loop:
    - If `bench_mode: true`: read `bench_test_case` path from `current.yaml`
    - Load gate responses from the test case file for auto-responding at gates
    - All gate decisions are still recorded in state files (Art 3.1)
+3. **Check audit-pending flag:** Read `.claude/moira/state/audit-pending.yaml`
+   - If the file exists: read `audit_pending` field (depth: light or standard)
+   - Display: "Audit due ({depth}). Run `/moira audit` before starting? [yes/skip]"
+   - If user says yes: invoke `/moira audit` with appropriate depth. Wait for completion.
+   - If user says skip: continue with pipeline.
+   - Delete `audit-pending.yaml` after audit completes or is skipped.
 
 ### Main Loop
 
@@ -301,6 +307,7 @@ When the pipeline reaches the completion step:
 - If quality mode was `evolve`: call `moira_quality_complete_evolve` on config.yaml
 - Call `moira_knowledge_update_quality_map` with task findings (if Themis Q4 findings exist)
 - If MCP was enabled for this task: extract MCP call data from agent dispatches (Planner's instruction files list authorized MCP tools, Reviewer's MCP verification findings confirm actual usage). Write `mcp_calls[]` entries to `telemetry.yaml` with: server, tool, query_summary (sanitized per D-027), tokens_used, agent. If no MCP calls: omit `mcp_calls` section (field is `required: false` in schema).
+- Collect metrics: call `moira_metrics_collect_task <task_id>` to aggregate task data into monthly metrics and check for audit triggers.
 - Set pipeline status to `completed`
 
 ### Reflection Dispatch

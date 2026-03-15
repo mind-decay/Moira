@@ -121,6 +121,17 @@ install_global() {
     cp -f "$SCRIPT_DIR/global/templates/judge/"*.md "$MOIRA_HOME/templates/judge/"
   fi
 
+  # Copy audit templates (Phase 11)
+  if [[ -d "$SCRIPT_DIR/global/templates/audit" ]]; then
+    mkdir -p "$MOIRA_HOME/templates/audit"
+    cp -f "$SCRIPT_DIR/global/templates/audit/"*.md "$MOIRA_HOME/templates/audit/"
+  fi
+
+  # Copy xref manifest (Phase 11)
+  if [[ -f "$SCRIPT_DIR/global/core/xref-manifest.yaml" ]]; then
+    cp -f "$SCRIPT_DIR/global/core/xref-manifest.yaml" "$MOIRA_HOME/core/"
+  fi
+
   # Copy bench infrastructure (Phase 6)
   if [[ -d "$SCRIPT_DIR/tests/bench" ]]; then
     mkdir -p "$MOIRA_HOME/tests/bench/fixtures" "$MOIRA_HOME/tests/bench/cases" "$MOIRA_HOME/tests/bench/rubrics"
@@ -200,7 +211,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh reflection.sh judge.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh reflection.sh judge.sh metrics.sh audit.sh; do
     ((checks_total++)) || true
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then
@@ -401,6 +412,34 @@ verify() {
       fi
     else
       errors+="  hooks/$hook_file not found or not executable\n"
+    fi
+  done
+
+  # Check: audit templates exist (Phase 11)
+  ((checks_total++)) || true
+  local audit_template_count
+  audit_template_count=$(find "$MOIRA_HOME/templates/audit" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$audit_template_count" -ge 12 ]]; then
+    ((checks_passed++)) || true
+  else
+    errors+="  audit templates: expected >=12, found ${audit_template_count}\n"
+  fi
+
+  # Check: xref manifest exists (Phase 11)
+  ((checks_total++)) || true
+  if [[ -f "$MOIRA_HOME/core/xref-manifest.yaml" ]]; then
+    ((checks_passed++)) || true
+  else
+    errors+="  core/xref-manifest.yaml not found\n"
+  fi
+
+  # Check: metrics and audit schemas exist (Phase 11)
+  for schema_file in metrics.schema.yaml audit.schema.yaml; do
+    ((checks_total++)) || true
+    if [[ -f "$MOIRA_HOME/schemas/$schema_file" ]]; then
+      ((checks_passed++)) || true
+    else
+      errors+="  schemas/$schema_file not found\n"
     fi
   done
 

@@ -40,7 +40,7 @@ Used for:
 
 **Note:** Mnemosyne (reflector) dispatch bypasses the standard dispatch flow.
 The `reflection.md` skill handles prompt assembly directly, using reflection templates
-instead of the standard simplified/full assembly paths. Argus (auditor) uses simplified assembly (user-invoked via `/moira audit`).
+instead of the standard simplified/full assembly paths. Argus (auditor) uses template-based dispatch when invoked via `/moira audit`. The audit command reads domain-specific templates from `~/.claude/moira/templates/audit/` and uses them as the agent prompt. Simplified assembly is the fallback if templates are missing.
 
 ### Steps
 
