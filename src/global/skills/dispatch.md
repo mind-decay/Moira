@@ -364,6 +364,77 @@ Read the evolution target from `.claude/moira/config.yaml` → `quality.evolutio
 
 ---
 
+## MCP Tool Allocation
+
+When MCP is enabled for the project, include MCP context in agent dispatches.
+
+### Condition Check
+
+Before injecting MCP context, check if MCP is enabled:
+- Read `.claude/moira/config.yaml` → `mcp.enabled`
+- If `false` or not found: skip the entire MCP section
+- If `true`: read `.claude/moira/config/mcp-registry.yaml` and include MCP context
+
+### For Daedalus (Planner) — Simplified Assembly
+
+When MCP is enabled and registry exists, append to the Daedalus prompt:
+
+```
+## Available MCP Tools
+
+The following MCP servers and tools are available for allocation to agents:
+
+{For each server in registry:}
+### {server_name} ({type})
+{For each tool:}
+- **{tool_name}**: {purpose}
+  - Cost: {cost}, Reliability: {reliability}
+  - Use when: {when_to_use}
+  - Do NOT use when: {when_NOT_to_use}
+  - Token estimate: ~{token_estimate} tokens
+
+When creating plan steps, explicitly AUTHORIZE or PROHIBIT MCP tools per step:
+- AUTHORIZE with justification and budget impact
+- PROHIBIT with reason (e.g., "design already extracted", "agent should know this")
+- Include MCP token estimates in step budget calculations
+```
+
+When MCP is disabled, append instead:
+```
+## MCP Tools
+MCP tools are not configured for this project. Do not allocate MCP tools in plan steps.
+```
+
+### For Post-Planning Agents — Instruction Files
+
+Daedalus MUST include an "MCP Usage Rules for This Step" section in instruction files:
+
+```
+## MCP Usage Rules for This Step
+
+{If step has authorized MCP tools:}
+You MAY use:
+- {server}:{tool} for "{specific query}" — {justification}
+
+You MUST NOT use:
+- Any other MCP tool
+- {server}:{tool} for {reason it's prohibited}
+
+Before calling any MCP tool, verify:
+1. Do I actually need this to write correct code?
+2. Is this available in project files I was given?
+3. Will the response fit within my context budget?
+
+If (1) is no or (2) is yes → DO NOT call.
+
+{If step has no MCP authorization:}
+No MCP tools are authorized for this step. Do not use any MCP tools.
+```
+
+This section is part of the Planner's output — Phase 9 provides the registry data that makes it actionable.
+
+---
+
 ## Worktree Isolation
 
 NOT used in Phase 3. Implementers write directly to the project.

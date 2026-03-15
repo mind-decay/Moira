@@ -87,6 +87,24 @@ sections:
         check: "No hardcoded values that should be config"
         required: true
 
+  mcp_usage:
+    items:
+      - id: Q4-M01
+        check: "All MCP tool calls were authorized in the plan"
+        required: false
+      - id: Q4-M02
+        check: "No unauthorized MCP calls were made"
+        required: false
+      - id: Q4-M03
+        check: "No MCP calls for information available in project files"
+        required: false
+      - id: Q4-M04
+        check: "MCP responses were actually used (not fetched and ignored)"
+        required: false
+      - id: Q4-M05
+        check: "MCP results were applied correctly (not misinterpreted)"
+        required: false
+
   project_conventions:
     items:
       - id: Q4-V01

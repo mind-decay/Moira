@@ -16,7 +16,13 @@ capabilities:
   - Identify correctness, security, performance, and integration issues
   - Classify findings by severity (critical/warning/suggestion)
   - Check conformance with project quality-map
-  - Verify MCP calls were used correctly
+  - "MCP Usage Review (when MCP tools were used):
+    All MCP calls were authorized in the plan,
+    no unauthorized MCP calls were made,
+    MCP responses were actually used (not fetched and ignored),
+    no MCP calls for information available locally,
+    results from MCP were applied correctly (not misinterpreted),
+    MCP token usage was within estimated budget"
   - "Behavioral defense: primary per-task defense against upstream agent behavioral violations (E9/E10)"
 
 never:

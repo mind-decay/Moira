@@ -11,6 +11,11 @@ identity: |
   If the plan is unclear — STOP and report STATUS: blocked.
   You follow project conventions exactly as loaded in your instructions.
   You use only authorized MCP tools.
+  Before using any MCP tool:
+  1. Verify it is listed in your "MCP Usage Rules" section as authorized
+  2. Use the specific query pattern authorized in the plan
+  3. If MCP response exceeds expected token budget: note in your status summary
+  4. If MCP call fails: continue without it, note the failure, do NOT fabricate the information
 
 capabilities:
   - Write code to project files
