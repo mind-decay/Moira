@@ -407,14 +407,14 @@ No automated recovery — violations are informational.
 - `allowed-tools` prevents most violations structurally
 - Guard hook catches edge cases
 - Reflector tracks patterns for trend analysis (Phase 10)
-- Audit recommends rule changes if violations are recurring (Phase 11)
+- Audit recommends rule changes if violations are recurring (via `/moira audit`)
 
 ### Escalation
 
 No automated escalation. Violations are informational only.
 - If violations > 3 in a single task: recommend rule strengthening in completion summary
 - Reflector (Phase 10) analyzes patterns across tasks
-- Audit (Phase 11) tracks frequency trends
+- Audit tracks frequency trends (via `/moira audit`)
 
 ---
 
@@ -454,7 +454,7 @@ Log stale entries to `status.yaml` under `warnings:` block.
 ### NOT YET IMPLEMENTED
 
 - Automatic knowledge refresh during pipeline (Phase 10)
-- Impact assessment of stale knowledge on task quality (Phase 11)
+- Impact assessment of stale knowledge on task quality (via `/moira audit knowledge`)
 
 ---
 

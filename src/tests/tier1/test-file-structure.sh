@@ -185,6 +185,37 @@ for skill in orchestrator gates dispatch errors reflection; do
   assert_file_exists "$MOIRA_HOME/skills/${skill}.md" "skill ${skill}.md exists"
 done
 
+# ── Phase 11: metrics + audit system artifacts ───────────────────────
+assert_file_exists "$MOIRA_HOME/lib/metrics.sh" "lib/metrics.sh exists"
+if [[ -f "$MOIRA_HOME/lib/metrics.sh" ]]; then
+  if bash -n "$MOIRA_HOME/lib/metrics.sh" 2>/dev/null; then
+    pass "lib/metrics.sh syntax valid"
+  else
+    fail "lib/metrics.sh has syntax errors"
+  fi
+fi
+
+assert_file_exists "$MOIRA_HOME/lib/audit.sh" "lib/audit.sh exists"
+if [[ -f "$MOIRA_HOME/lib/audit.sh" ]]; then
+  if bash -n "$MOIRA_HOME/lib/audit.sh" 2>/dev/null; then
+    pass "lib/audit.sh syntax valid"
+  else
+    fail "lib/audit.sh has syntax errors"
+  fi
+fi
+
+assert_dir_exists "$MOIRA_HOME/templates/audit" "templates/audit/ exists"
+audit_template_count=$(ls "$MOIRA_HOME/templates/audit/"*.md 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$audit_template_count" -ge 12 ]]; then
+  pass "audit templates: $audit_template_count files (>=12)"
+else
+  fail "audit templates: expected >=12, found $audit_template_count"
+fi
+
+assert_file_exists "$MOIRA_HOME/core/xref-manifest.yaml" "core/xref-manifest.yaml exists"
+assert_file_exists "$MOIRA_HOME/schemas/metrics.schema.yaml" "schemas/metrics.schema.yaml exists"
+assert_file_exists "$MOIRA_HOME/schemas/audit.schema.yaml" "schemas/audit.schema.yaml exists"
+
 # ── Command stubs ────────────────────────────────────────────────────
 commands=(task init status resume knowledge metrics audit bypass refresh help bench health)
 for cmd in "${commands[@]}"; do

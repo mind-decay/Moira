@@ -141,6 +141,36 @@ if [[ -d "$MOIRA_HOME/tests/bench/calibration" ]]; then
   fi
 fi
 
+# Phase 11: metrics.sh and audit.sh
+assert_file_exists "$MOIRA_HOME/lib/metrics.sh" "clean install: metrics.sh exists"
+if bash -n "$MOIRA_HOME/lib/metrics.sh" 2>/dev/null; then
+  pass "clean install: metrics.sh syntax valid"
+else
+  fail "clean install: metrics.sh has syntax errors"
+fi
+
+assert_file_exists "$MOIRA_HOME/lib/audit.sh" "clean install: audit.sh exists"
+if bash -n "$MOIRA_HOME/lib/audit.sh" 2>/dev/null; then
+  pass "clean install: audit.sh syntax valid"
+else
+  fail "clean install: audit.sh has syntax errors"
+fi
+
+# Phase 11: audit templates
+audit_tmpl_count=$(find "$MOIRA_HOME/templates/audit" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+if [[ "$audit_tmpl_count" -ge 12 ]]; then
+  pass "clean install: $audit_tmpl_count audit templates (>=12)"
+else
+  fail "clean install: expected >=12 audit templates, found $audit_tmpl_count"
+fi
+
+# Phase 11: xref manifest
+assert_file_exists "$MOIRA_HOME/core/xref-manifest.yaml" "clean install: xref-manifest.yaml exists"
+
+# Phase 11: metrics and audit schemas
+assert_file_exists "$MOIRA_HOME/schemas/metrics.schema.yaml" "clean install: metrics.schema.yaml exists"
+assert_file_exists "$MOIRA_HOME/schemas/audit.schema.yaml" "clean install: audit.schema.yaml exists"
+
 # Pipeline definitions
 assert_dir_exists "$MOIRA_HOME/core/pipelines" "clean install: pipelines dir exists"
 for pipeline in quick standard full decomposition; do
