@@ -114,10 +114,10 @@ else
   fail "hephaestus access incorrect: $result"
 fi
 
-# Metis: project-model L1 + conventions L0 + decisions L2 + patterns L1 + quality-map L1 (no failures)
+# Metis: project-model L1 + conventions L0 + decisions L2 + patterns L1 + quality-map L1 + failures L0
 result=$(moira_knowledge_read_for_agent "$AGENT_KNOW_DIR" "metis" "$MATRIX_FILE")
-if echo "$result" | grep -q "pm-summary" && echo "$result" | grep -q "conv-index" && echo "$result" | grep -q "dec-full" && echo "$result" | grep -q "pat-summary" && echo "$result" | grep -q "qm-summary" && ! echo "$result" | grep -q "fail-"; then
-  pass "metis gets project-model L1 + conventions L0 + decisions L2 + patterns L1 + quality-map L1 (no failures)"
+if echo "$result" | grep -q "pm-summary" && echo "$result" | grep -q "conv-index" && echo "$result" | grep -q "dec-full" && echo "$result" | grep -q "pat-summary" && echo "$result" | grep -q "qm-summary" && echo "$result" | grep -q "fail-index"; then
+  pass "metis gets project-model L1 + conventions L0 + decisions L2 + patterns L1 + quality-map L1 + failures L0"
 else
   fail "metis access incorrect: $result"
 fi
@@ -137,10 +137,10 @@ else
   fail "output missing section headers"
 fi
 
-# Daedalus: quality-map L0 skipped (no L0 file)
+# Daedalus: project-model L1 + conventions L1 + decisions L0 + patterns L0 + quality-map L2
 result=$(moira_knowledge_read_for_agent "$AGENT_KNOW_DIR" "daedalus" "$MATRIX_FILE")
-if echo "$result" | grep -q "pm-summary" && ! echo "$result" | grep -q "qm-"; then
-  pass "daedalus quality-map L0 skipped (no L0 file)"
+if echo "$result" | grep -q "pm-summary" && echo "$result" | grep -q "conv-summary" && echo "$result" | grep -q "dec-index" && echo "$result" | grep -q "pat-index" && echo "$result" | grep -q "qm-full"; then
+  pass "daedalus gets project-model L1 + conventions L1 + decisions L0 + patterns L0 + quality-map L2"
 else
   fail "daedalus access incorrect: $result"
 fi

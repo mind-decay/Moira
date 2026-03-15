@@ -66,6 +66,8 @@ dir_utils: src/lib/utils/
 
 **Directory convention fields** (`dir_*`): file placement patterns detected from recurring directory structures. If 3+ files of the same type exist in a directory, record as `dir_{role}: {path}/`. Standard keys: `dir_components`, `dir_pages`, `dir_api`, `dir_services`, `dir_types`, `dir_utils`. Additional keys are allowed (e.g., `dir_hooks`, `dir_stores`, `dir_middleware`). Omit any `dir_*` field you cannot determine.
 
+**CRITICAL:** Use these EXACT field names VERBATIM. Do NOT rename fields. The downstream parser matches these exact strings — renamed fields will be silently lost.
+
 All values are plain strings. Omit any field you cannot determine.
 
 ### Markdown Body

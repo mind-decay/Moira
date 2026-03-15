@@ -44,10 +44,9 @@ Read `.claude/moira/config.yaml`.
 
 ## Step 3: Create Project Scaffold
 
-Run via Bash:
+Run via Bash (always use `bash -c` to ensure bash execution — user's default shell may be zsh):
 ```bash
-source ~/.claude/moira/lib/scaffold.sh
-moira_scaffold_project "{project_root}"
+bash -c 'source ~/.claude/moira/lib/scaffold.sh && moira_scaffold_project "{project_root}"'
 ```
 
 This creates all directories and copies knowledge templates. Idempotent — safe to re-run.
@@ -98,43 +97,37 @@ Wait for all 4 to complete. Check results:
 
 ## Step 5: Generate Config and Rules
 
-Run via Bash:
+Run via Bash (always use `bash -c` — bootstrap.sh uses BASH_REMATCH which requires bash):
 ```bash
-source ~/.claude/moira/lib/bootstrap.sh
-moira_bootstrap_generate_config "{project_root}" ".claude/moira/state/init/tech-scan.md"
-moira_bootstrap_generate_project_rules "{project_root}" ".claude/moira/state/init"
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_generate_config "{project_root}" ".claude/moira/state/init/tech-scan.md" && moira_bootstrap_generate_project_rules "{project_root}" ".claude/moira/state/init"'
 ```
 
 ## Step 6: Populate Knowledge
 
 Run via Bash:
 ```bash
-source ~/.claude/moira/lib/bootstrap.sh
-moira_bootstrap_populate_knowledge "{project_root}" ".claude/moira/state/init"
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_populate_knowledge "{project_root}" ".claude/moira/state/init"'
 ```
 
 ## Step 7: Integrate CLAUDE.md
 
 Run via Bash:
 ```bash
-source ~/.claude/moira/lib/bootstrap.sh
-moira_bootstrap_inject_claude_md "{project_root}" "$HOME/.claude/moira"
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_inject_claude_md "{project_root}" "$HOME/.claude/moira"'
 ```
 
 ## Step 8: Setup Gitignore
 
 Run via Bash:
 ```bash
-source ~/.claude/moira/lib/bootstrap.sh
-moira_bootstrap_setup_gitignore "{project_root}"
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_setup_gitignore "{project_root}"'
 ```
 
 ## Step 9: Configure Hooks
 
 Run via Bash:
 ```bash
-source ~/.claude/moira/lib/bootstrap.sh
-moira_bootstrap_inject_hooks "{project_root}" "$HOME/.claude/moira"
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_inject_hooks "{project_root}" "$HOME/.claude/moira"'
 ```
 
 This registers guard and budget-track hooks in `.claude/settings.json` and creates empty log files. If hook injection fails: display warning but continue initialization.

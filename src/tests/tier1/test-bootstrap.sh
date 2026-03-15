@@ -288,6 +288,301 @@ src/hooks.server.ts"
   else
     fail "frontmatter: do_not_modify mismatch, got '$result'"
   fi
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Frontmatter alias tests
+  # ═══════════════════════════════════════════════════════════════════════
+
+  FM_ALIAS_TEST="$TEST_DIR/fm-alias-test.md"
+  cat > "$FM_ALIAS_TEST" << 'EOF'
+---
+primary_language: TypeScript
+css_framework: Tailwind CSS
+framework: SvelteKit
+---
+EOF
+
+  # Alias: primary_language → language fallback
+  result=$(_moira_parse_frontmatter_alias "$FM_ALIAS_TEST" "language" "primary_language" "lang")
+  if [[ "$result" == "TypeScript" ]]; then
+    pass "frontmatter alias: falls back to primary_language"
+  else
+    fail "frontmatter alias: expected 'TypeScript', got '$result'"
+  fi
+
+  # Alias: css_framework → styling fallback
+  result=$(_moira_parse_frontmatter_alias "$FM_ALIAS_TEST" "styling" "css_framework" "css")
+  if [[ "$result" == "Tailwind CSS" ]]; then
+    pass "frontmatter alias: falls back to css_framework"
+  else
+    fail "frontmatter alias: expected 'Tailwind CSS', got '$result'"
+  fi
+
+  # Alias: direct match takes priority
+  result=$(_moira_parse_frontmatter_alias "$FM_ALIAS_TEST" "framework" "primary_framework")
+  if [[ "$result" == "SvelteKit" ]]; then
+    pass "frontmatter alias: direct match takes priority"
+  else
+    fail "frontmatter alias: expected 'SvelteKit', got '$result'"
+  fi
+
+  # Alias: all miss → empty
+  result=$(_moira_parse_frontmatter_alias "$FM_ALIAS_TEST" "nonexistent" "also_missing")
+  if [[ -z "$result" ]]; then
+    pass "frontmatter alias: all miss returns empty"
+  else
+    fail "frontmatter alias: expected empty, got '$result'"
+  fi
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # gen_* exit code tests (Bug #1: exit code 1 from compound blocks)
+  # ═══════════════════════════════════════════════════════════════════════
+
+  GEN_TEST_DIR="$TEST_DIR/gen-test"
+  mkdir -p "$GEN_TEST_DIR/rules"
+
+  # Create minimal tech-scan with only framework (all other fields empty)
+  cat > "$GEN_TEST_DIR/tech-scan.md" << 'EOF'
+---
+framework: SvelteKit
+---
+## Body
+EOF
+
+  # gen_stack: must succeed even when most fields are empty
+  set +e
+  _moira_bootstrap_gen_stack "$GEN_TEST_DIR/tech-scan.md" "$GEN_TEST_DIR/rules/stack.yaml"
+  exit_code=$?
+  set -e
+  if [[ "$exit_code" -eq 0 ]]; then
+    pass "gen_stack: exit code 0 with sparse frontmatter"
+  else
+    fail "gen_stack: exit code $exit_code with sparse frontmatter"
+  fi
+
+  if [[ -f "$GEN_TEST_DIR/rules/stack.yaml" ]] && grep -q "framework: SvelteKit" "$GEN_TEST_DIR/rules/stack.yaml"; then
+    pass "gen_stack: output contains framework"
+  else
+    fail "gen_stack: output missing or incomplete"
+  fi
+
+  # Create minimal convention-scan and structure-scan
+  cat > "$GEN_TEST_DIR/convention-scan.md" << 'EOF'
+---
+naming_files: kebab-case
+indent: 2 spaces
+---
+## Body
+EOF
+
+  cat > "$GEN_TEST_DIR/structure-scan.md" << 'EOF'
+---
+layout_pattern: single-app
+dir_components: src/lib/components/
+dir_pages: src/routes/
+do_not_modify:
+  - node_modules/
+  - .svelte-kit/
+modify_with_caution:
+  - svelte.config.js
+---
+## Body
+EOF
+
+  # gen_conventions: must succeed
+  set +e
+  _moira_bootstrap_gen_conventions "$GEN_TEST_DIR/convention-scan.md" "$GEN_TEST_DIR/structure-scan.md" "$GEN_TEST_DIR/rules/conventions.yaml"
+  exit_code=$?
+  set -e
+  if [[ "$exit_code" -eq 0 ]]; then
+    pass "gen_conventions: exit code 0"
+  else
+    fail "gen_conventions: exit code $exit_code"
+  fi
+
+  if [[ -f "$GEN_TEST_DIR/rules/conventions.yaml" ]] && grep -q "naming:" "$GEN_TEST_DIR/rules/conventions.yaml"; then
+    pass "gen_conventions: output has naming section"
+  else
+    fail "gen_conventions: output missing naming section"
+  fi
+
+  if grep -q "components: src/lib/components/" "$GEN_TEST_DIR/rules/conventions.yaml"; then
+    pass "gen_conventions: output has dir_* structure"
+  else
+    fail "gen_conventions: missing dir_* structure in output"
+  fi
+
+  # Create minimal pattern-scan
+  cat > "$GEN_TEST_DIR/pattern-scan.md" << 'EOF'
+---
+data_fetching: SvelteKit load functions
+error_handling: SvelteKit fail()
+---
+## Body
+EOF
+
+  # gen_patterns: must succeed with sparse data
+  set +e
+  _moira_bootstrap_gen_patterns "$GEN_TEST_DIR/pattern-scan.md" "$GEN_TEST_DIR/rules/patterns.yaml"
+  exit_code=$?
+  set -e
+  if [[ "$exit_code" -eq 0 ]]; then
+    pass "gen_patterns: exit code 0"
+  else
+    fail "gen_patterns: exit code $exit_code"
+  fi
+
+  # gen_boundaries: must succeed
+  set +e
+  _moira_bootstrap_gen_boundaries "$GEN_TEST_DIR/structure-scan.md" "$GEN_TEST_DIR/rules/boundaries.yaml"
+  exit_code=$?
+  set -e
+  if [[ "$exit_code" -eq 0 ]]; then
+    pass "gen_boundaries: exit code 0"
+  else
+    fail "gen_boundaries: exit code $exit_code"
+  fi
+
+  if grep -q "node_modules/" "$GEN_TEST_DIR/rules/boundaries.yaml"; then
+    pass "gen_boundaries: output has do_not_modify entries"
+  else
+    fail "gen_boundaries: missing do_not_modify entries"
+  fi
+
+  # Full pipeline: generate_project_rules must succeed end-to-end
+  PIPELINE_DIR="$TEST_DIR/pipeline-test"
+  mkdir -p "$PIPELINE_DIR/.claude/moira/project/rules" "$PIPELINE_DIR/.claude/moira/state/init"
+  cp "$GEN_TEST_DIR/tech-scan.md" "$PIPELINE_DIR/.claude/moira/state/init/"
+  cp "$GEN_TEST_DIR/convention-scan.md" "$PIPELINE_DIR/.claude/moira/state/init/"
+  cp "$GEN_TEST_DIR/structure-scan.md" "$PIPELINE_DIR/.claude/moira/state/init/"
+  cp "$GEN_TEST_DIR/pattern-scan.md" "$PIPELINE_DIR/.claude/moira/state/init/"
+
+  set +e
+  moira_bootstrap_generate_project_rules "$PIPELINE_DIR" "$PIPELINE_DIR/.claude/moira/state/init"
+  exit_code=$?
+  set -e
+  if [[ "$exit_code" -eq 0 ]]; then
+    pass "generate_project_rules: full pipeline exit code 0"
+  else
+    fail "generate_project_rules: full pipeline exit code $exit_code"
+  fi
+
+  for rule_file in stack.yaml conventions.yaml patterns.yaml boundaries.yaml; do
+    if [[ -f "$PIPELINE_DIR/.claude/moira/project/rules/$rule_file" ]]; then
+      pass "generate_project_rules: $rule_file created"
+    else
+      fail "generate_project_rules: $rule_file not created"
+    fi
+  done
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # L1 summary condensation tests (Bug #4: grep patterns miss bold markdown)
+  # ═══════════════════════════════════════════════════════════════════════
+
+  SUMMARY_DIR="$TEST_DIR/summary-test"
+  mkdir -p "$SUMMARY_DIR/conventions" "$SUMMARY_DIR/patterns"
+
+  # Simulate real scanner output with bold markdown (what scanners actually produce)
+  cat > "$SUMMARY_DIR/scan-conventions.md" << 'EOF'
+## Naming Conventions
+| What | Convention | Evidence |
+|------|-----------|----------|
+| Files | kebab-case | src/components/user-profile.tsx |
+| Functions | camelCase | getUserById in src/services/user.ts:12 |
+
+- **File naming:** kebab-case throughout the project
+- **Function naming:** camelCase for all exported functions
+- **Component naming:** PascalCase for React components
+
+## Import Style
+- **Named imports** are preferred: `import { foo } from 'bar'`
+
+## Export Style
+- Default exports for components, named exports for utilities
+EOF
+
+  _condense_to_summary "$SUMMARY_DIR/scan-conventions.md" \
+    "$SUMMARY_DIR/conventions/summary.md" "2026-01-01" \
+    "File|Function|Component|Import|Export|Naming|Convention|indent|quote|semicolon"
+
+  # Count non-metadata lines
+  content_lines=$(grep -v '^<!-- moira:' "$SUMMARY_DIR/conventions/summary.md" | grep -v '^$' | wc -l | tr -d ' ')
+  if [[ "$content_lines" -ge 5 ]]; then
+    pass "condense_to_summary: extracts $content_lines lines from bold markdown"
+  else
+    fail "condense_to_summary: only $content_lines lines extracted (expected >= 5)"
+  fi
+
+  # Verify bold bullet lines ARE captured
+  if grep -q "File naming" "$SUMMARY_DIR/conventions/summary.md"; then
+    pass "condense_to_summary: captures **bold** bullet lines"
+  else
+    fail "condense_to_summary: misses **bold** bullet lines"
+  fi
+
+  # Verify section headers ARE captured
+  if grep -q "## Naming Conventions" "$SUMMARY_DIR/conventions/summary.md"; then
+    pass "condense_to_summary: captures section headers"
+  else
+    fail "condense_to_summary: misses section headers"
+  fi
+
+  # Verify table rows ARE captured
+  if grep -q "| Files |" "$SUMMARY_DIR/conventions/summary.md"; then
+    pass "condense_to_summary: captures table rows"
+  else
+    fail "condense_to_summary: misses table rows"
+  fi
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Scanner ↔ parser field contract tests (Bug #3: field name mismatch)
+  # ═══════════════════════════════════════════════════════════════════════
+
+  # Verify that fields the parser expects exist in scanner template contracts
+  SCANNER_DIR="$MOIRA_HOME/templates/scanners"
+  BOOTSTRAP_SH="$MOIRA_HOME/lib/bootstrap.sh"
+
+  # tech-scan: parser expects language, framework, runtime, styling, orm, testing, ci
+  for field in language framework runtime styling orm testing ci; do
+    if grep -q "^${field}:" "$SCANNER_DIR/tech-scan.md" 2>/dev/null; then
+      pass "contract: tech-scan defines '$field'"
+    else
+      fail "contract: tech-scan missing '$field' — parser will get empty value"
+    fi
+  done
+
+  # convention-scan: parser expects naming_files, naming_functions, naming_components, naming_constants, naming_types, indent, quotes, semicolons, max_line_length
+  for field in naming_files naming_functions naming_components naming_constants naming_types indent quotes semicolons max_line_length; do
+    if grep -q "^${field}:" "$SCANNER_DIR/convention-scan.md" 2>/dev/null; then
+      pass "contract: convention-scan defines '$field'"
+    else
+      fail "contract: convention-scan missing '$field'"
+    fi
+  done
+
+  # pattern-scan: parser expects data_fetching, error_handling, api_style, api_validation, component_structure, component_state, component_styling, client_state, server_state
+  for field in data_fetching error_handling api_style api_validation component_structure component_state component_styling client_state server_state; do
+    if grep -q "^${field}:" "$SCANNER_DIR/pattern-scan.md" 2>/dev/null; then
+      pass "contract: pattern-scan defines '$field'"
+    else
+      fail "contract: pattern-scan missing '$field'"
+    fi
+  done
+
+  # structure-scan: parser expects do_not_modify, modify_with_caution, dir_*
+  for field in do_not_modify modify_with_caution; do
+    if grep -q "^${field}:" "$SCANNER_DIR/structure-scan.md" 2>/dev/null; then
+      pass "contract: structure-scan defines '$field'"
+    else
+      fail "contract: structure-scan missing '$field'"
+    fi
+  done
+
+  if grep -q "^dir_" "$SCANNER_DIR/structure-scan.md" 2>/dev/null; then
+    pass "contract: structure-scan defines dir_* fields"
+  else
+    fail "contract: structure-scan missing dir_* fields"
+  fi
 fi
 
 test_summary

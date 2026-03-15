@@ -37,7 +37,7 @@ for test_file in "$SCRIPT_DIR"/test-*.sh; do
     TOTAL_FAILURES=$((TOTAL_FAILURES + ${BASH_REMATCH[3]}))
   fi
 
-  ((TOTAL_FILES++))
+  TOTAL_FILES=$((TOTAL_FILES + 1))
   echo ""
 done
 

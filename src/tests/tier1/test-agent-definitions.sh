@@ -117,8 +117,8 @@ for agent in "${AGENTS[@]}"; do
   for dim in "${KNOWLEDGE_DIMS[@]}"; do
     # Extract value from role file (under knowledge_access: block)
     role_val=$(sed -n '/^knowledge_access:/,/^[^ ]/{ /'"$dim"':/p; }' "$role_file" | sed 's/.*: *//' | tr -d ' ')
-    # Extract value from matrix (inline YAML format)
-    matrix_val=$(grep "^  ${agent}:" "$matrix_file" | grep -o "${dim}: *[A-Za-z0-9]*" | sed 's/.*: *//' | tr -d ' ')
+    # Extract value from matrix (inline YAML format) — only from read_access section
+    matrix_val=$(sed -n '/^read_access:/,/^[a-z]/{ /^  '"${agent}"':/p; }' "$matrix_file" | grep -o "${dim}: *[A-Za-z0-9]*" | sed 's/.*: *//' | tr -d ' ')
 
     if [[ "$role_val" == "$matrix_val" ]]; then
       pass "${agent}: knowledge_access.${dim} matches matrix ($role_val)"

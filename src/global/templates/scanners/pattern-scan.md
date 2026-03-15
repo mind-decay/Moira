@@ -52,6 +52,8 @@ server_state: SvelteKit load functions
 
 Fields: `component_structure`, `component_state`, `component_styling`, `api_style`, `api_handler_structure`, `api_validation`, `api_response_format`, `data_fetching`, `error_handling`, `client_state`, `server_state`.
 
+**CRITICAL:** Use these EXACT field names VERBATIM. Do NOT rename fields. The downstream parser matches these exact strings — renamed fields will be silently lost.
+
 All values are plain strings. Omit any field you cannot determine.
 
 ### Markdown Body

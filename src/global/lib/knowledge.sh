@@ -89,9 +89,11 @@ moira_knowledge_read_for_agent() {
     # Convert dimension name to knowledge type (underscore → hyphen)
     local ktype="${dim//_/-}"
 
-    # Extract level from matrix using grep/sed since yaml-utils can't parse inline maps
+    # Extract level from read_access section only (not write_access)
+    # Use sed to print only lines between read_access: and write_access:, then grep agent
     local level
-    level=$(grep "^[[:space:]]*${agent_name}:" "$matrix_file" 2>/dev/null | \
+    level=$(sed -n '/^read_access:/,/^write_access:/p' "$matrix_file" 2>/dev/null | \
+      grep "^[[:space:]]*${agent_name}:" | head -1 | \
       sed -n "s/.*${dim}: *\([^ ,}]*\).*/\1/p" | tr -d ' ')
 
     # Skip null or empty access

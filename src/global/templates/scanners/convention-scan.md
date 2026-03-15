@@ -53,6 +53,8 @@ export_style: default
 
 Fields: `naming_files`, `naming_functions`, `naming_components`, `naming_constants`, `naming_types`, `indent`, `quotes`, `semicolons`, `max_line_length`, `import_style`, `export_style`.
 
+**CRITICAL:** Use these EXACT field names VERBATIM. Do NOT rename fields (e.g., do NOT use `file_naming` instead of `naming_files`). The downstream parser matches these exact strings — renamed fields will be silently lost.
+
 All values are plain strings. Omit any field you cannot determine.
 
 ### Markdown Body

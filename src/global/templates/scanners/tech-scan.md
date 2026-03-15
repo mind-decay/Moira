@@ -63,6 +63,8 @@ deployment: Vercel
 
 Fields: `language`, `language_version`, `framework`, `framework_version`, `framework_type`, `runtime`, `package_manager`, `build_tool`, `styling`, `orm`, `testing`, `ci`, `deployment`.
 
+**CRITICAL:** Use these EXACT field names VERBATIM. Do NOT rename fields (e.g., do NOT use `primary_language` instead of `language`, do NOT use `css_framework` instead of `styling`). The downstream parser matches these exact strings — renamed fields will be silently lost.
+
 All values are plain strings. Omit any field you cannot determine.
 
 ### Markdown Body
