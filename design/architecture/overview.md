@@ -106,11 +106,12 @@ User → /moira <task>
 │   │   │       └── q5-coverage.yaml
 │   │   ├── response-contract.yaml
 │   │   ├── knowledge-access-matrix.yaml
-│   │   └── pipelines/                 # Pipeline definitions (D-035)
-│   │       ├── quick.yaml
-│   │       ├── standard.yaml
-│   │       ├── full.yaml
-│   │       └── decomposition.yaml
+│   │   ├── pipelines/                 # Pipeline definitions (D-035)
+│   │   │   ├── quick.yaml
+│   │   │   ├── standard.yaml
+│   │   │   ├── full.yaml
+│   │   │   └── decomposition.yaml
+│   │   └── xref-manifest.yaml         # Cross-reference dependency map (D-077)
 │   ├── skills/
 │   │   ├── orchestrator.md            # Main orchestrator skill
 │   │   ├── gates.md                   # Gate presentation templates
@@ -128,7 +129,8 @@ User → /moira <task>
 │   │   ├── scanners/                  # Scanner instruction templates
 │   │   │   └── deep/                  # Deep scan templates
 │   │   ├── reflection/                # Reflection templates (background, deep, lightweight, epic)
-│   │   └── judge/                     # LLM-judge rubric templates (feature, bugfix, refactor)
+│   │   ├── judge/                     # LLM-judge rubric templates (feature, bugfix, refactor)
+│   │   └── audit/                     # Audit instruction templates (12 domain-depth templates)
 │   ├── schemas/                       # YAML schema definitions
 │   │   ├── budgets.schema.yaml
 │   │   ├── config.schema.yaml
@@ -139,7 +141,9 @@ User → /moira <task>
 │   │   ├── queue.schema.yaml
 │   │   ├── status.schema.yaml
 │   │   ├── telemetry.schema.yaml
-│   │   └── mcp-registry.schema.yaml
+│   │   ├── mcp-registry.schema.yaml
+│   │   ├── metrics.schema.yaml
+│   │   └── audit.schema.yaml
 │   └── lib/
 │       ├── bootstrap.sh
 │       ├── bench.sh
@@ -154,7 +158,9 @@ User → /moira <task>
 │       ├── yaml-utils.sh
 │       ├── mcp.sh
 │       ├── reflection.sh
-│       └── judge.sh
+│       ├── judge.sh
+│       ├── metrics.sh
+│       └── audit.sh
 │
 ├── commands/moira/                    # User-facing slash commands (D-030)
 │   ├── init.md                        # /moira:init

@@ -1,0 +1,104 @@
+# Audit Schema — Structured Audit Findings
+# Source: design/subsystems/audit.md (Audit Output section)
+# Validates the structured findings block within audit reports.
+# Reports contain both human-readable narrative and a YAML findings block.
+# Written by: moira_audit_generate_report
+# Location: state/audits/{date}-audit.yaml (findings data) alongside {date}-audit.md (report)
+
+_meta:
+  name: audit
+  file: "{date}-audit.yaml"
+  location: .claude/moira/state/audits/
+  git: gitignored
+  version: "1.0"
+  description: "Structured audit findings with risk classification and recommendations"
+
+fields:
+  meta.date:
+    type: string
+    required: true
+    description: "Audit date in YYYY-MM-DD format"
+  meta.depth:
+    type: enum
+    required: true
+    enum: [light, standard, deep]
+    description: "Audit depth tier"
+  meta.domains:
+    type: array
+    required: true
+    description: "Domains audited"
+    item_type: string
+    item_enum: [rules, knowledge, agents, config, consistency]
+  meta.moira_version:
+    type: string
+    required: true
+
+  findings:
+    type: array
+    required: true
+    default: []
+    description: "Per-finding records"
+    item_fields:
+      id:
+        type: string
+        required: true
+        description: "Finding ID with domain prefix (R-01, K-03, A-02, C-01, X-05)"
+      domain:
+        type: enum
+        required: true
+        enum: [rules, knowledge, agents, config, consistency]
+      risk:
+        type: enum
+        required: true
+        enum: [low, medium, high]
+      description:
+        type: string
+        required: true
+      evidence:
+        type: string
+        required: true
+        description: "File paths, metric values, or other concrete evidence"
+      recommendation:
+        type: string
+        required: true
+      target_file:
+        type: string
+        required: false
+        description: "File to modify if recommendation is applied"
+
+  summary.total:
+    type: number
+    required: true
+    default: 0
+  summary.by_risk.low:
+    type: number
+    required: false
+    default: 0
+  summary.by_risk.medium:
+    type: number
+    required: false
+    default: 0
+  summary.by_risk.high:
+    type: number
+    required: false
+    default: 0
+  summary.by_domain.rules:
+    type: number
+    required: false
+    default: 0
+  summary.by_domain.knowledge:
+    type: number
+    required: false
+    default: 0
+  summary.by_domain.agents:
+    type: number
+    required: false
+    default: 0
+  summary.by_domain.config:
+    type: number
+    required: false
+    default: 0
+  summary.by_domain.consistency:
+    type: number
+    required: false
+    default: 0

@@ -1,0 +1,233 @@
+# Metrics Schema — Monthly Aggregated Performance Data
+# Source: design/subsystems/metrics.md (Metric Storage section)
+# Written by: moira_metrics_collect_task (incremental) or moira_metrics_aggregate_monthly (full recalc)
+# Location: state/metrics/monthly-{YYYY-MM}.yaml
+
+_meta:
+  name: metrics
+  file: monthly-{YYYY-MM}.yaml
+  location: .claude/moira/state/metrics/
+  git: gitignored
+  version: "1.0"
+  description: "Monthly aggregated performance metrics with per-task drill-down records"
+
+fields:
+  period:
+    type: string
+    required: true
+    description: "Month period in YYYY-MM format"
+
+  # --- Task Metrics ---
+  tasks.total:
+    type: number
+    required: true
+    default: 0
+    description: "Total tasks completed this period"
+  tasks.by_size.small:
+    type: number
+    required: false
+    default: 0
+  tasks.by_size.medium:
+    type: number
+    required: false
+    default: 0
+  tasks.by_size.large:
+    type: number
+    required: false
+    default: 0
+  tasks.by_size.epic:
+    type: number
+    required: false
+    default: 0
+  tasks.bypassed:
+    type: number
+    required: false
+    default: 0
+    description: "Tasks completed via escape hatch"
+  tasks.aborted:
+    type: number
+    required: false
+    default: 0
+    description: "Tasks aborted before completion"
+
+  # --- Quality Metrics ---
+  quality.first_pass_accepted:
+    type: number
+    required: false
+    default: 0
+    description: "Tasks accepted by reviewer on first pass"
+  quality.tweaks:
+    type: number
+    required: false
+    default: 0
+    description: "Tasks requiring targeted modification"
+  quality.redos:
+    type: number
+    required: false
+    default: 0
+    description: "Tasks requiring full rollback"
+  quality.retry_loops_total:
+    type: number
+    required: false
+    default: 0
+    description: "Total quality gate retries across all tasks"
+  quality.reviewer_criticals:
+    type: number
+    required: false
+    default: 0
+    description: "Critical findings caught by reviewer"
+
+  # --- Accuracy Metrics ---
+  accuracy.classification_correct:
+    type: number
+    required: false
+    default: 0
+    description: "Tasks where size classification was correct"
+  accuracy.architecture_first_try:
+    type: number
+    required: false
+    default: 0
+    description: "Tasks where architecture was approved first try"
+  accuracy.plan_first_try:
+    type: number
+    required: false
+    default: 0
+    description: "Tasks where plan was approved first try"
+
+  # --- Efficiency Metrics ---
+  efficiency.avg_orchestrator_context_pct:
+    type: number
+    required: false
+    default: 0
+    description: "Average orchestrator context usage percentage"
+  efficiency.avg_implementer_context_pct:
+    type: number
+    required: false
+    default: 0
+    description: "Average implementer context usage percentage"
+  efficiency.checkpoints_needed:
+    type: number
+    required: false
+    default: 0
+    description: "Context overflow checkpoint count"
+  efficiency.mcp_calls:
+    type: number
+    required: false
+    default: 0
+    description: "Total MCP tool calls"
+  efficiency.mcp_useful:
+    type: number
+    required: false
+    default: 0
+    description: "MCP calls that were actually useful"
+  efficiency.mcp_cache_hits:
+    type: number
+    required: false
+    default: 0
+    description: "MCP calls served from cache"
+
+  # --- Knowledge Metrics ---
+  knowledge.patterns_total:
+    type: number
+    required: false
+    default: 0
+  knowledge.patterns_added:
+    type: number
+    required: false
+    default: 0
+  knowledge.decisions_total:
+    type: number
+    required: false
+    default: 0
+  knowledge.decisions_added:
+    type: number
+    required: false
+    default: 0
+  knowledge.quality_map_coverage_pct:
+    type: number
+    required: false
+    default: 0
+    description: "Percentage of project covered by quality map"
+  knowledge.freshness_pct:
+    type: number
+    required: false
+    default: 0
+    description: "Percentage of knowledge entries confirmed recent"
+  knowledge.stale_entries:
+    type: number
+    required: false
+    default: 0
+
+  # --- Evolution Metrics ---
+  evolution.improvements_proposed:
+    type: number
+    required: false
+    default: 0
+  evolution.applied:
+    type: number
+    required: false
+    default: 0
+  evolution.deferred:
+    type: number
+    required: false
+    default: 0
+  evolution.rejected:
+    type: number
+    required: false
+    default: 0
+  evolution.regressions:
+    type: number
+    required: false
+    default: 0
+    description: "Regressions caused by evolution changes (target: 0)"
+
+  # --- Per-Task Records (for drill-down) ---
+  task_records:
+    type: array
+    required: false
+    default: []
+    description: "Per-task snapshots for drill-down queries"
+    item_fields:
+      task_id:
+        type: string
+        required: true
+      pipeline:
+        type: enum
+        values: [quick, standard, full, decomposition]
+        required: true
+      size:
+        type: enum
+        values: [small, medium, large, epic]
+        required: true
+      first_pass:
+        type: boolean
+        required: false
+        default: false
+        description: "Whether reviewer accepted on first pass"
+      tweaked:
+        type: boolean
+        required: false
+        default: false
+      redone:
+        type: boolean
+        required: false
+        default: false
+      retries:
+        type: number
+        required: false
+        default: 0
+        description: "Total retry count for this task"
+      orchestrator_pct:
+        type: number
+        required: false
+        default: 0
+        description: "Orchestrator context percentage at completion"
+      reviewer_criticals:
+        type: number
+        required: false
+        default: 0
+      by_agent:
+        type: block
+        required: false
+        default: null
+        description: "Per-agent budget usage percentages"
