@@ -298,6 +298,7 @@ When the pipeline reaches the completion step:
 - Tick evolution cooldown: call `moira_quality_tick_cooldown` on config.yaml
 - If quality mode was `evolve`: call `moira_quality_complete_evolve` on config.yaml
 - Call `moira_knowledge_update_quality_map` with task findings (if Themis Q4 findings exist)
+- If MCP was enabled for this task: extract MCP call data from agent dispatches (Planner's instruction files list authorized MCP tools, Reviewer's MCP verification findings confirm actual usage). Write `mcp_calls[]` entries to `telemetry.yaml` with: server, tool, query_summary (sanitized per D-027), tokens_used, agent. If no MCP calls: omit `mcp_calls` section (field is `required: false` in schema).
 - Set pipeline status to `completed`
 
 ### Reflection Dispatch
@@ -308,6 +309,10 @@ When the pipeline reaches the completion step:
 | `background`   | Dispatch Mnemosyne (reflector) as background agent. Non-blocking. |
 | `deep`         | Dispatch Mnemosyne (reflector) as foreground agent. Wait for completion. |
 | `epic`         | Dispatch Mnemosyne (reflector) with epic-level scope (cross-subtask patterns). |
+
+**Reference:** `reflection.md` skill for full dispatch instructions, prompt assembly,
+periodic escalation, and post-reflection processing (knowledge updates, rule proposals,
+MCP caching recommendations).
 
 **`tweak`** — Targeted modification:
 - Ask user to describe what needs changing

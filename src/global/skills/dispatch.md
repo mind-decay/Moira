@@ -38,7 +38,9 @@ Used for:
 | Full | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Daedalus |
 | Decomposition | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Daedalus |
 
-**Note:** Mnemosyne (reflector) uses simplified assembly (background, post-task). Argus (auditor) uses simplified assembly (user-invoked via `/moira audit`).
+**Note:** Mnemosyne (reflector) dispatch bypasses the standard dispatch flow.
+The `reflection.md` skill handles prompt assembly directly, using reflection templates
+instead of the standard simplified/full assembly paths. Argus (auditor) uses simplified assembly (user-invoked via `/moira audit`).
 
 ### Steps
 
