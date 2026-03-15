@@ -66,18 +66,36 @@ moira_judge_invoke() {
   local rubric_criteria
   rubric_criteria=$(cat "$rubric_path")
 
-  # Substitute placeholders in template
-  # Use awk for multi-line substitution safety
-  local output="$template"
-  output=$(echo "$output" | awk -v val="$task_description" '{gsub(/\{task_description\}/, val); print}')
-  output=$(echo "$output" | awk -v val="$requirements" '{gsub(/\{requirements\}/, val); print}')
-  output=$(echo "$output" | awk -v val="$architecture" '{gsub(/\{architecture\}/, val); print}')
-  output=$(echo "$output" | awk -v val="$implementation" '{gsub(/\{implementation\}/, val); print}')
-  output=$(echo "$output" | awk -v val="$review_findings" '{gsub(/\{review_findings\}/, val); print}')
-  output=$(echo "$output" | awk -v val="$test_results" '{gsub(/\{test_results\}/, val); print}')
-  output=$(echo "$output" | awk -v val="$rubric_criteria" '{gsub(/\{rubric_criteria\}/, val); print}')
+  # Assemble prompt by concatenating template sections with artifact content.
+  # Avoids awk -v multi-line substitution issues by writing sections to temp files
+  # and using sed with file-based replacement.
+  local tmpdir
+  tmpdir=$(mktemp -d)
+  trap 'rm -rf "$tmpdir"' RETURN
 
-  echo "$output"
+  # Write each artifact to a temp file
+  echo "$task_description" > "$tmpdir/task_description"
+  echo "$requirements" > "$tmpdir/requirements"
+  echo "$architecture" > "$tmpdir/architecture"
+  echo "$implementation" > "$tmpdir/implementation"
+  echo "$review_findings" > "$tmpdir/review_findings"
+  echo "$test_results" > "$tmpdir/test_results"
+  echo "$rubric_criteria" > "$tmpdir/rubric_criteria"
+
+  # Process template: replace each placeholder line with file contents
+  local output=""
+  while IFS= read -r line; do
+    case "$line" in
+      *'{task_description}'*) cat "$tmpdir/task_description" ;;
+      *'{requirements}'*) cat "$tmpdir/requirements" ;;
+      *'{architecture}'*) cat "$tmpdir/architecture" ;;
+      *'{implementation}'*) cat "$tmpdir/implementation" ;;
+      *'{review_findings}'*) cat "$tmpdir/review_findings" ;;
+      *'{test_results}'*) cat "$tmpdir/test_results" ;;
+      *'{rubric_criteria}'*) cat "$tmpdir/rubric_criteria" ;;
+      *) echo "$line" ;;
+    esac
+  done <<< "$template"
   return 0
 }
 
@@ -85,8 +103,9 @@ moira_judge_invoke() {
 # Calculate weighted composite score from evaluation YAML.
 # Weights: requirements_coverage=25, code_correctness=30, architecture_quality=25, conventions_adherence=20
 # Uses integer arithmetic (multiply by 100 for precision).
-# If automated_pass is "false", echoes "quality_capped: true".
-# Echoes composite score as integer*100 (e.g., 375 for 3.75).
+# Echoes ONLY the composite score as integer*100 (e.g., 375 for 3.75).
+# If automated_pass is "false", writes quality_capped flag to stderr.
+# Callers can redirect stderr to capture the cap flag separately.
 moira_judge_composite_score() {
   local evaluation_path="$1"
   local automated_pass="${2:-true}"
@@ -106,7 +125,7 @@ moira_judge_composite_score() {
   local composite=$(( req * 25 + code * 30 + arch * 25 + conv * 20 ))
 
   if [[ "$automated_pass" == "false" ]]; then
-    echo "quality_capped: true"
+    echo "quality_capped: true" >&2
   fi
 
   echo "$composite"

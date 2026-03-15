@@ -394,36 +394,7 @@ moira_reflection_auto_defer_stale() {
 
   local threshold=$(( now_epoch - 30 * 86400 ))
 
-  # Find pending proposals with created date older than 30 days
-  local tmpfile
-  tmpfile=$(mktemp)
-
-  awk -v threshold="$threshold" '
-  BEGIN { current_id=""; current_status=""; current_created="" }
-  /^[[:space:]]*- id:/ {
-    gsub(/^[[:space:]]*- id:[[:space:]]*/, "")
-    gsub(/["'"'"']/, "")
-    current_id=$0
-  }
-  /^[[:space:]]*status:/ {
-    gsub(/^[[:space:]]*status:[[:space:]]*/, "")
-    gsub(/["'"'"']/, "")
-    current_status=$0
-  }
-  /^[[:space:]]*created:/ {
-    gsub(/^[[:space:]]*created:[[:space:]]*/, "")
-    gsub(/["'"'"']/, "")
-    current_created=$0
-  }
-  {
-    # Check if we should defer this proposal
-    # We defer when we encounter the next proposal or EOF
-    print
-  }
-  ' "$proposals_file" > "$tmpfile"
-  rm -f "$tmpfile"
-
-  # Use a simpler approach: extract pending proposal IDs with old dates, then resolve each
+  # Extract pending proposal IDs with old dates, then resolve each
   local stale_ids=""
   local current_id="" current_status="" current_created=""
 

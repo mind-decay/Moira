@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bench.sh — Behavioral bench test runner for Moira
 # Executes bench test cases through the Moira pipeline with predefined gate responses.
-# Phase 6: automated checks only (no LLM-judge).
+# Includes LLM-judge integration and statistical regression detection.
 #
 # Responsibilities: bench test execution and reporting ONLY
 # Does NOT handle pipeline logic (that's the orchestrator)
@@ -11,6 +11,8 @@ set -euo pipefail
 _MOIRA_BENCH_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=yaml-utils.sh
 source "${_MOIRA_BENCH_LIB_DIR}/yaml-utils.sh"
+# shellcheck source=judge.sh
+source "${_MOIRA_BENCH_LIB_DIR}/judge.sh"
 
 # Budget guards
 _MOIRA_BENCH_TIER2_MAX=5
@@ -99,6 +101,28 @@ timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 YAML
 
   echo "  Result: ${run_dir}/${test_id}.yaml"
+
+  # Judge integration (Phase 10)
+  local rubric_dir
+  rubric_dir="$(cd "$(dirname "$test_case_path")/.." && pwd)/rubrics"
+  local category
+  category=$(moira_yaml_get "$test_case_path" "meta.category" 2>/dev/null) || category="feature-implementation"
+  local rubric_file="${rubric_dir}/${category}.yaml"
+  if [[ ! -f "$rubric_file" ]]; then
+    rubric_file="${rubric_dir}/feature-implementation.yaml"
+  fi
+
+  # Prepare judge prompt (actual Agent dispatch is done by bench.md command)
+  local judge_prompt=""
+  if [[ -f "$rubric_file" ]]; then
+    judge_prompt=$(moira_judge_invoke "${run_dir}" "$rubric_file" 2>/dev/null) || true
+  fi
+
+  if [[ -n "$judge_prompt" ]]; then
+    echo "$judge_prompt" > "${run_dir}/${test_id}-judge-prompt.md"
+    echo "  Judge prompt prepared: ${run_dir}/${test_id}-judge-prompt.md"
+  fi
+
   return 0
 }
 
@@ -194,16 +218,198 @@ moira_bench_report() {
     fi
   done
 
+  # Aggregate quality scores if available
+  local quality_total=0 quality_count=0
+  for result_file in "$run_dir"/*.yaml; do
+    [[ -f "$result_file" ]] || continue
+    [[ "$(basename "$result_file")" == "summary.yaml" ]] && continue
+    local composite
+    composite=$(moira_yaml_get "$result_file" "quality_scores.composite" 2>/dev/null) || composite=""
+    if [[ -n "$composite" && "$composite" != "null" ]]; then
+      quality_total=$((quality_total + composite))
+      quality_count=$((quality_count + 1))
+    fi
+  done
+
+  local quality_avg="null"
+  if [[ $quality_count -gt 0 ]]; then
+    quality_avg=$((quality_total / quality_count))
+  fi
+
   cat > "${run_dir}/summary.yaml" << YAML
 timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 test_count: ${test_count}
 pass_count: ${pass_count}
 automated_pass_count: 0
-quality_scores: null
+quality_scores: ${quality_avg}
 YAML
 
   echo "Bench Report: ${run_dir}"
   echo "  Tests: ${test_count}"
   echo "  Structural pass: ${pass_count}/${test_count}"
-  echo "  Quality scores: not available (no LLM-judge)"
+
+  if [[ "$quality_avg" != "null" ]]; then
+    echo "  Quality score: ${quality_avg} (avg composite across ${quality_count} tests)"
+    # Show zone if baseline exists
+    local aggregate_path="${run_dir}/../aggregate.yaml"
+    if [[ -f "$aggregate_path" ]]; then
+      local zone
+      zone=$(moira_bench_classify_zone "$aggregate_path" "composite_score" "$quality_avg" 2>/dev/null) || zone=""
+      if [[ -n "$zone" ]]; then
+        echo "  Zone: ${zone}"
+      fi
+    fi
+  else
+    echo "  Quality scores: not available (no LLM-judge data)"
+  fi
+}
+
+# ── moira_bench_update_baseline <aggregate_path> <metric> <new_value> ──
+moira_bench_update_baseline() {
+  local agg_path="$1"
+  local metric="$2"
+  local new_value="$3"
+
+  mkdir -p "$(dirname "$agg_path")"
+
+  local current_mean current_var current_n
+  current_mean=$(moira_yaml_get "$agg_path" "baselines.${metric}.mean" 2>/dev/null) || current_mean=""
+  current_var=$(moira_yaml_get "$agg_path" "baselines.${metric}.variance" 2>/dev/null) || current_var=""
+  current_n=$(moira_yaml_get "$agg_path" "baselines.${metric}.n_observations" 2>/dev/null) || current_n=""
+
+  if [[ -z "$current_mean" || "$current_mean" == "null" ]]; then
+    # First observation
+    moira_yaml_set "$agg_path" "baselines.${metric}.mean" "$new_value"
+    moira_yaml_set "$agg_path" "baselines.${metric}.variance" "0"
+    moira_yaml_set "$agg_path" "baselines.${metric}.n_observations" "1"
+    moira_yaml_set "$agg_path" "baselines.${metric}.confidence_band.low" "$new_value"
+    moira_yaml_set "$agg_path" "baselines.${metric}.confidence_band.high" "$new_value"
+  else
+    # Incremental update (integer arithmetic)
+    local n=$((current_n + 1))
+    # new_mean = old_mean + (value - old_mean) / n
+    local diff=$((new_value - current_mean))
+    local new_mean=$((current_mean + diff / n))
+    # Approximate variance update
+    local new_var=$(( (current_var * (n - 1) + diff * (new_value - new_mean)) / n ))
+    if [[ $new_var -lt 0 ]]; then new_var=0; fi
+    local band_low=$((new_mean - new_var))
+    local band_high=$((new_mean + new_var))
+
+    moira_yaml_set "$agg_path" "baselines.${metric}.mean" "$new_mean"
+    moira_yaml_set "$agg_path" "baselines.${metric}.variance" "$new_var"
+    moira_yaml_set "$agg_path" "baselines.${metric}.n_observations" "$n"
+    moira_yaml_set "$agg_path" "baselines.${metric}.confidence_band.low" "$band_low"
+    moira_yaml_set "$agg_path" "baselines.${metric}.confidence_band.high" "$band_high"
+  fi
+}
+
+# ── moira_bench_classify_zone <aggregate_path> <metric> <value> ────
+moira_bench_classify_zone() {
+  local agg_path="$1"
+  local metric="$2"
+  local value="$3"
+
+  local mean var n_obs
+  mean=$(moira_yaml_get "$agg_path" "baselines.${metric}.mean" 2>/dev/null) || mean=""
+  var=$(moira_yaml_get "$agg_path" "baselines.${metric}.variance" 2>/dev/null) || var=""
+  n_obs=$(moira_yaml_get "$agg_path" "baselines.${metric}.n_observations" 2>/dev/null) || n_obs=""
+
+  if [[ -z "$mean" || "$mean" == "null" || -z "$n_obs" ]]; then
+    echo "NORMAL"
+    return 0
+  fi
+
+  # Cold start protocol
+  if [[ $n_obs -lt 5 ]]; then
+    echo "NORMAL"
+    return 0
+  fi
+
+  # Minimum effect size: composite <3pts, sub-metric <5pts
+  local min_effect=3
+  if [[ "$metric" != "composite_score" ]]; then
+    min_effect=5
+  fi
+
+  local diff=$((value - mean))
+  if [[ $diff -lt 0 ]]; then diff=$((-diff)); fi
+
+  if [[ $diff -lt $min_effect ]]; then
+    echo "NORMAL"
+    return 0
+  fi
+
+  if [[ $n_obs -lt 10 ]]; then
+    # Phase 2: only ALERT triggers (wide bands)
+    local alert_threshold=$((var * 2))
+    if [[ $alert_threshold -lt 1 ]]; then alert_threshold=1; fi
+    if [[ $diff -gt $alert_threshold ]]; then
+      echo "ALERT"
+    else
+      echo "NORMAL"
+    fi
+    return 0
+  fi
+
+  # Phase 3: full model
+  if [[ $var -lt 1 ]]; then var=1; fi
+  if [[ $diff -gt $((var * 2)) ]]; then
+    echo "ALERT"
+  elif [[ $diff -gt $var ]]; then
+    echo "WARN"
+  else
+    echo "NORMAL"
+  fi
+}
+
+# ── moira_bench_check_regression <aggregate_path> <run_result_path> ─
+# Check current run's metrics against baselines for regression.
+# run_result_path: YAML file with the current run's quality_scores.
+moira_bench_check_regression() {
+  local agg_path="$1"
+  local run_result_path="${2:-}"
+
+  if [[ ! -f "$agg_path" ]]; then
+    echo "no_baseline"
+    return 0
+  fi
+
+  if [[ -z "$run_result_path" || ! -f "$run_result_path" ]]; then
+    echo "no_data"
+    return 0
+  fi
+
+  local alerts=0 warns=0
+  local metrics="composite_score requirements_coverage code_correctness architecture_quality conventions_adherence"
+
+  for metric in $metrics; do
+    local mean
+    mean=$(moira_yaml_get "$agg_path" "baselines.${metric}.mean" 2>/dev/null) || continue
+    [[ -z "$mean" || "$mean" == "null" ]] && continue
+
+    # Read current value from run result
+    local current_value
+    current_value=$(moira_yaml_get "$run_result_path" "quality_scores.${metric}" 2>/dev/null) || continue
+    [[ -z "$current_value" || "$current_value" == "null" ]] && continue
+
+    local zone
+    zone=$(moira_bench_classify_zone "$agg_path" "$metric" "$current_value" 2>/dev/null) || continue
+    case "$zone" in
+      ALERT) alerts=$((alerts + 1)) ;;
+      WARN) warns=$((warns + 1)) ;;
+    esac
+  done
+
+  if [[ $alerts -gt 0 ]]; then
+    echo "regression"
+  elif [[ $warns -ge 3 ]]; then
+    echo "regression"
+  elif [[ $warns -ge 2 ]]; then
+    echo "sustained_warn"
+  elif [[ $warns -ge 1 ]]; then
+    echo "noise"
+  else
+    echo "stable"
+  fi
 }
