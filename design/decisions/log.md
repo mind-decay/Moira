@@ -793,3 +793,59 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 - Merged gate (show architecture + plan together) — same problem: can't reject architecture independently. User forced to parse two artifacts at once.
 - Soft/optional gate — prohibited by Art 2.2 ("Gates MUST NOT be made optional")
 **Reasoning:** Epic tasks are high-stakes. Architecture gate is cheap (one user confirmation), but catching a bad architecture before Planner runs saves significant token budget and prevents cascading errors through all sub-tasks. Consistent with standard/full pipelines. Requires Constitutional amendment to Art 2.2.
+
+## D-086: Observations in Task State Files (Not Separate Database)
+
+**Context:** Where should post-task reflection observations be stored?
+**Decision:** Observations stored within each task's `reflection.md` file, tagged with pattern keys. Cross-task counting uses file scanning, not a separate database.
+**Alternatives rejected:**
+- Separate observation database — new state file format to maintain, breaks file-based communication principle
+**Reasoning:** Leverages existing task state lifecycle. Pattern key registry provides index for efficient counting. Consistent with D-002.
+
+## D-087: Judge as Agent Tool Call (Not Direct API)
+
+**Context:** How should the LLM-judge be invoked?
+**Decision:** LLM-judge invoked via Claude Code's Agent tool, not via direct API call.
+**Alternatives rejected:**
+- Direct API call — Moira has no direct API access, runs within Claude Code
+**Reasoning:** Agent tool is the only mechanism for spawning separate Claude contexts. Judge independence (D-024) achieved by model tier selection. Consistent with agent-based architecture.
+
+## D-088: Three Rubric Variants by Task Category
+
+**Context:** Should there be one universal rubric or multiple variants?
+**Decision:** Three rubric variants (feature/bugfix/refactor) with adjusted weights per task category.
+**Alternatives rejected:**
+- Single universal rubric — can't capture that a bugfix shouldn't restructure architecture or that a refactor shouldn't add features
+**Reasoning:** Weight adjustment captures distinctions without changing criteria. Test case `meta.category` determines rubric — deterministic selection.
+
+## D-089: Pattern Key Registry for Efficient Cross-Task Counting
+
+**Context:** How to efficiently count observation patterns across tasks?
+**Decision:** Maintain a lightweight `pattern-keys.yaml` registry that tracks observation counts, updated incrementally by Mnemosyne.
+**Alternatives rejected:**
+- Scan all task reflection files on every reflection — O(n) per reflection vs O(1) lookup
+**Reasoning:** O(1) lookup for threshold checks. Full scan available for verification but not needed routinely. Registry is gitignored, rebuilt from task files if lost.
+
+## D-090: `/moira health` as Separate Command (Not Bench Subcommand)
+
+**Context:** Should health check be part of `/moira bench` or a standalone command?
+**Decision:** `/moira health` is a standalone command, not a `bench` subcommand.
+**Alternatives rejected:**
+- `bench health` subcommand — health uses live telemetry, not bench fixtures; different audience (project devs vs Moira devs)
+**Reasoning:** Different data sources (live telemetry vs bench fixtures). Different audience. Consistent with testing.md design.
+
+## D-091: Libraries Knowledge Access Matrix
+
+**Context:** Which agents should access the `libraries` knowledge type?
+**Decision:** Mnemosyne=L2 (read+write), Hephaestus=L1, Daedalus=L0, Argus=L2 (read-only), all others=null.
+**Alternatives rejected:**
+- Universal access — most agents don't interact with external library docs
+**Reasoning:** Mnemosyne manages cache. Hephaestus benefits from cached API reference. Daedalus needs to know what's cached for budget estimation. Explorer gets null because libraries are external, not project code.
+
+## D-092: Periodic Deep Reflection Every 5 Tasks
+
+**Context:** How to implement "Pattern analysis (per 5 tasks)" from roadmap?
+**Decision:** Counter-based escalation: every 5th standard-pipeline task auto-escalates from `background` to `deep` template.
+**Alternatives rejected:**
+- Time-based triggers — inconsistent cadence depending on task frequency
+**Reasoning:** Matches roadmap requirement. Counter in `state/reflection/deep-reflection-counter.yaml`. Only escalates background→deep (lightweight stays lightweight, epic stays epic). Acceptable cadence for richer analysis.

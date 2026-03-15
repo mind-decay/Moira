@@ -115,7 +115,8 @@ User → /moira <task>
 │   │   ├── orchestrator.md            # Main orchestrator skill
 │   │   ├── gates.md                   # Gate presentation templates
 │   │   ├── dispatch.md                # Agent dispatch instructions
-│   │   └── errors.md                  # Error handling procedures
+│   │   ├── errors.md                  # Error handling procedures
+│   │   └── reflection.md             # Reflection engine skill
 │   ├── statusline/
 │   │   └── context-status.sh          # Claude Code status line (context tracking)
 │   ├── hooks/
@@ -124,8 +125,10 @@ User → /moira <task>
 │   ├── templates/
 │   │   ├── project-claude-md.tmpl
 │   │   ├── budgets.yaml.tmpl
-│   │   └── scanners/                  # Scanner instruction templates
-│   │       └── deep/                  # Deep scan templates
+│   │   ├── scanners/                  # Scanner instruction templates
+│   │   │   └── deep/                  # Deep scan templates
+│   │   ├── reflection/                # Reflection templates (background, deep, lightweight, epic)
+│   │   └── judge/                     # LLM-judge rubric templates (feature, bugfix, refactor)
 │   ├── schemas/                       # YAML schema definitions
 │   │   ├── budgets.schema.yaml
 │   │   ├── config.schema.yaml
@@ -149,7 +152,9 @@ User → /moira <task>
 │       ├── state.sh
 │       ├── task-id.sh
 │       ├── yaml-utils.sh
-│       └── mcp.sh
+│       ├── mcp.sh
+│       ├── reflection.sh
+│       └── judge.sh
 │
 ├── commands/moira/                    # User-facing slash commands (D-030)
 │   ├── init.md                        # /moira:init
@@ -251,6 +256,9 @@ User → /moira <task>
 │   │           ├── explorer.md
 │   │           ├── implementer-A.md
 │   │           └── ...
+│   ├── reflection/
+│   │   ├── pattern-keys.yaml         # Pattern key registry (D-089, gitignored)
+│   │   └── deep-reflection-counter.yaml  # Counter for periodic deep reflection (D-092)
 │   ├── violations.log
 │   ├── tool-usage.log
 │   ├── budget-tool-usage.log
