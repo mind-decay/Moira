@@ -1,5 +1,5 @@
 _meta:
-  id: bugfix-quality
+  id: bugfix
   name: Bugfix Quality
   version: "1.0"
 
@@ -15,7 +15,7 @@ criteria:
       5: {label: "Root cause", description: "Root cause addressed, prevents similar future bugs"}
 
   - id: requirements_coverage
-    weight: 25
+    weight: 20
     scale: [1, 2, 3, 4, 5]
     anchors:
       1: {label: "Wrong fix", description: "Fix does not address the reported issue"}
@@ -25,7 +25,7 @@ criteria:
       5: {label: "Complete", description: "Fix plus regression test added"}
 
   - id: conventions_adherence
-    weight: 20
+    weight: 25
     scale: [1, 2, 3, 4, 5]
     anchors:
       1: {label: "Ignored", description: "Fix ignores project conventions"}

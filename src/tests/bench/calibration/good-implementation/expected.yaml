@@ -1,0 +1,5 @@
+requirements_coverage: 4
+code_correctness: 4
+architecture_quality: 4
+conventions_adherence: 4
+tolerance: 1
