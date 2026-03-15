@@ -133,7 +133,8 @@ User → /moira <task>
 │   │   ├── manifest.schema.yaml
 │   │   ├── queue.schema.yaml
 │   │   ├── status.schema.yaml
-│   │   └── telemetry.schema.yaml
+│   │   ├── telemetry.schema.yaml
+│   │   └── mcp-registry.schema.yaml
 │   └── lib/
 │       ├── bootstrap.sh
 │       ├── bench.sh
@@ -145,7 +146,8 @@ User → /moira <task>
 │       ├── settings-merge.sh
 │       ├── state.sh
 │       ├── task-id.sh
-│       └── yaml-utils.sh
+│       ├── yaml-utils.sh
+│       └── mcp.sh
 │
 ├── commands/moira/                    # User-facing slash commands (D-030)
 │   ├── init.md                        # /moira:init

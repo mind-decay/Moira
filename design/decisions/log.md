@@ -719,3 +719,66 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 - Reduce duplication to single source of truth (option C) — ideal long-term but requires major design doc refactoring; can be done incrementally alongside the manifest
 - No action — 58-finding audits will recur after every phase
 **Reasoning:** The manifest is a pragmatic middle ground: it doesn't require restructuring existing documents but gives agents an explicit dependency map to follow. Combined with Tier 1 validation, it catches both forgotten updates (test) and prevents them (manifest lookup at commit time). Option C (deduplication) remains a complementary long-term goal.
+
+## D-078: MCP Authorization via Prompting (Not Enforcement)
+
+**Context:** MCP tools are available to all agents in the Claude Code environment. Moira needs a mechanism to control which agents use which MCP tools and when.
+**Decision:** MCP tool authorization is enforced via agent instructions (prompting), not via `allowed-tools` or hooks. Agents receive explicit lists of authorized and prohibited MCP tools per step.
+**Alternatives rejected:**
+- Use `allowed-tools` to restrict MCP per step — Claude Code's `allowed-tools` is session-wide, cannot selectively allow MCP tools per step
+- Use hooks to block unauthorized MCP calls — Claude Code hook API cannot reject tool output or block calls
+**Reasoning:** Prompting-based authorization matches how we handle other agent constraints (NEVER rules). Reviewer (Themis) provides behavioral verification that MCP rules were followed. Consistent with D-031's defense-in-depth: prompting is Layer 3, behavioral review is additional validation.
+
+## D-079: MCP Scanner as Hermes (Explorer) Dispatch
+
+**Context:** MCP discovery needs to catalog available MCP servers and their tools during `/moira init`. Need to decide how this scanning is implemented.
+**Decision:** MCP discovery uses the same Explorer agent pattern as other bootstrap scanners (tech, structure, convention, pattern). The scanner is a Layer 4 instruction template dispatched via Agent tool.
+**Alternatives rejected:**
+- New dedicated MCP agent type — violates Art 1.3 (no god components), unnecessary when Explorer already reads system state
+- Shell-based discovery without agent — MCP tool classification requires LLM judgment (purpose, cost, reliability)
+**Reasoning:** Consistent with existing scanner architecture (D-032). Explorer is the only agent that reads system state — MCP configuration is system state. Layer 4 instructions customize the Explorer for the specific scan type.
+
+## D-080: Registry in Config (Committed), Not State (Gitignored)
+
+**Context:** MCP registry needs a home in the project layer. Could live in `config/` (committed) or `state/` (gitignored).
+**Decision:** MCP registry lives in `.claude/moira/config/mcp-registry.yaml` (committed) — same as `budgets.yaml` and `locks.yaml`.
+**Alternatives rejected:**
+- Store in `state/` (gitignored) — team members wouldn't share MCP classifications, user customizations lost on re-init
+- Store outside `.claude/moira/` — breaks project layer containment
+**Reasoning:** Registry is project configuration, not ephemeral state. Team members share the same MCP tool classifications. User customizations (editing when_to_use, adjusting token_estimates) persist across sessions. Already defined this way in `overview.md` file structure and `config.schema.yaml`.
+
+## D-081: MCP Caching Structure Now, Logic Later
+
+**Context:** MCP documentation caching can save significant tokens by avoiding repeated identical MCP calls. Need to decide how much caching infrastructure to build in Phase 9.
+**Decision:** Phase 9 creates `knowledge/libraries/` directory and templates. Phase 10 (Reflector) implements the actual caching logic (repeated call detection, cache proposal, freshness management).
+**Alternatives rejected:**
+- Build full caching in Phase 9 — Reflector doesn't exist until Phase 10; caching logic belongs to the agent that tracks patterns
+- Defer all caching to Phase 10 — would require Phase 10 to create directories and templates, mixing infrastructure with intelligence
+**Reasoning:** Clean separation: Phase 9 = infrastructure, Phase 10 = intelligence. Creating structure now means Phase 10 has somewhere to write.
+
+## D-082: Registry `tools` as Map (Not List-of-Maps)
+
+**Context:** The design doc (`mcp.md`) shows registry tools as a YAML list-of-maps. Need to decide the canonical format.
+**Decision:** Use a YAML map instead (tool name as key, metadata as value) for natural key-based lookups. Design doc (`mcp.md`) updated to match.
+**Alternatives rejected:**
+- Keep list-of-maps format from original design doc — requires iterating to find a tool by name, more complex shell parsing
+**Reasoning:** Map format enables direct key lookup: `servers.context7.tools.query-docs`. Tool names are unique within a server — natural keys. Consistent with how `config.yaml` and `budgets.yaml` use map structures. Simpler parsing in shell scripts (grep for `tool_name:` indent level).
+
+## D-083: `token_estimate` Numeric Field in Registry
+
+**Context:** Budget system needs machine-readable token estimates for MCP calls. Design doc has `budget_impact` as a descriptive string.
+**Decision:** Add a `token_estimate` (number) field per tool, extending the design doc's `budget_impact` (string) field. Both fields coexist: `budget_impact` for human display, `token_estimate` for budget calculations.
+**Alternatives rejected:**
+- Parse `budget_impact` string for numbers — fragile, format varies ("~5-20k", "high")
+- Replace `budget_impact` with numeric only — loses human-readable context
+**Reasoning:** D-059 specifies config-driven MCP token estimates — numeric field bridges registry with budget system. Fallback chain: registry `token_estimate` → `budgets.yaml` `mcp_estimates` → default 5000.
+
+## D-084: Registry Merge Strategy on Refresh
+
+**Context:** When `/moira:refresh` re-scans MCP servers, need to decide how new results merge with existing registry.
+**Decision:** Merge strategy: add new servers, flag removed servers (set `removed: true`), preserve user customizations to existing tool entries.
+**Alternatives rejected:**
+- Overwrite entirely — loses user tuning of when_to_use, token_estimates, etc.
+- Silently remove absent servers — user may have intentionally configured servers not currently running
+- Append only (never remove) — stale entries accumulate forever
+**Reasoning:** Users may edit `when_to_use`, `token_estimate`, etc. — overwriting loses their tuning. Flagging (not deleting) removed servers lets users decide. New servers always added — no reason to exclude available tools. Consistent with how `/moira:refresh` handles knowledge updates (additive, not destructive).

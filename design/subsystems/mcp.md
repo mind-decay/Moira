@@ -21,30 +21,32 @@ servers:
   context7:
     type: documentation
     tools:
-      - resolve-library-id:
-          purpose: "Find library identifier for doc lookup"
-          cost: low
-          reliability: high
-          when_to_use: "When agent needs docs for a specific library"
-          when_NOT_to_use: "For internal project code, for general knowledge"
-
-      - query-docs:
-          purpose: "Fetch documentation for a library"
-          cost: medium-high
-          reliability: high
-          when_to_use: "When implementation requires specific API knowledge"
-          when_NOT_to_use: "For exploratory browsing, when project has local docs"
-          budget_impact: "~5-20k tokens per query"
+      resolve-library-id:
+        purpose: "Find library identifier for doc lookup"
+        cost: low
+        reliability: high
+        when_to_use: "When agent needs docs for a specific library"
+        when_NOT_to_use: "For internal project code, for general knowledge"
+        token_estimate: 2000
+      query-docs:
+        purpose: "Fetch documentation for a library"
+        cost: medium-high
+        reliability: high
+        when_to_use: "When implementation requires specific API knowledge"
+        when_NOT_to_use: "For exploratory browsing, when project has local docs"
+        budget_impact: "~5-20k tokens per query"
+        token_estimate: 14000
 
   figma:
     type: design
     tools:
-      - get_design_context:
-          purpose: "Get design specs from Figma"
-          cost: high
-          reliability: medium
-          when_to_use: "When implementing UI from Figma design"
-          when_NOT_to_use: "Backend tasks, when design is in text"
+      get_design_context:
+        purpose: "Get design specs from Figma"
+        cost: high
+        reliability: medium
+        when_to_use: "When implementing UI from Figma design"
+        when_NOT_to_use: "Backend tasks, when design is in text"
+        token_estimate: 20000
 ```
 
 ## MCP Allocation in Plans
