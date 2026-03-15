@@ -1,0 +1,81 @@
+# Cross-Reference Manifest — Data Dependencies Between Files
+# Source: D-077
+# Purpose: Agents consult this before committing to find all affected files.
+# Tier 1 tests validate entries against actual file content.
+# Phase 11 delivers manifest + validation; mechanical enforcement deferred to Phase 12 (D-093g).
+
+entries:
+  - id: xref-001
+    description: "Agent budget defaults"
+    canonical_source: "src/schemas/budgets.schema.yaml"
+    dependents:
+      - file: "src/global/lib/budget.sh"
+        field: "_MOIRA_BUDGET_DEFAULTS_*"
+        sync_type: "value_must_match"
+      - file: "src/global/core/rules/roles/*.yaml"
+        field: "_meta.budget"
+        sync_type: "value_must_match"
+    values_tracked: "per-agent token budget numbers (classifier=20000, explorer=140000, analyst=80000, architect=100000, planner=70000, implementer=120000, reviewer=100000, tester=90000, reflector=80000, auditor=140000)"
+
+  - id: xref-002
+    description: "Pipeline step names"
+    canonical_source: "src/global/core/pipelines/*.yaml"
+    dependents:
+      - file: "src/global/lib/state.sh"
+        field: "valid_steps"
+        sync_type: "enum_must_match"
+      - file: "src/schemas/current.schema.yaml"
+        field: "step enum"
+        sync_type: "enum_must_match"
+    values_tracked: "pipeline step name strings (classification, exploration, analysis, architecture, plan, implementation, review, testing, reflection, decomposition, integration, completion)"
+
+  - id: xref-003
+    description: "Agent role names (Greek)"
+    canonical_source: "design/architecture/agents.md"
+    dependents:
+      - file: "src/global/core/rules/roles/*.yaml"
+        field: "filenames"
+        sync_type: "names_must_match"
+      - file: "src/global/core/knowledge-access-matrix.yaml"
+        field: "agent keys"
+        sync_type: "names_must_match"
+      - file: "src/schemas/telemetry.schema.yaml"
+        field: "role enum values"
+        sync_type: "enum_must_match"
+    values_tracked: "agent Greek names (apollo, hermes, athena, metis, daedalus, hephaestus, themis, aletheia, mnemosyne, argus) and role mappings (classifier, explorer, analyst, architect, planner, implementer, reviewer, tester, reflector, auditor)"
+
+  - id: xref-004
+    description: "Knowledge access levels"
+    canonical_source: "src/global/core/knowledge-access-matrix.yaml"
+    dependents:
+      - file: "src/global/core/rules/roles/*.yaml"
+        field: "knowledge_access"
+        sync_type: "value_must_match"
+      - file: "src/global/skills/dispatch.md"
+        field: "knowledge access notes"
+        sync_type: "value_must_match"
+    values_tracked: "per-agent knowledge type access levels (L0/L1/L2/null)"
+
+  - id: xref-005
+    description: "Quality gate assignments"
+    canonical_source: "src/global/skills/dispatch.md"
+    dependents:
+      - file: "src/global/core/rules/quality/*.yaml"
+        field: "quality checklist files"
+        sync_type: "names_must_match"
+      - file: "src/schemas/findings.schema.yaml"
+        field: "_meta.gate enum"
+        sync_type: "enum_must_match"
+    values_tracked: "agent-to-gate mapping (athena=Q1/q1-completeness, metis=Q2/q2-soundness, daedalus=Q3/q3-feasibility, themis=Q4/q4-correctness, aletheia=Q5/q5-coverage)"
+
+  - id: xref-006
+    description: "Pipeline gate names"
+    canonical_source: "src/global/core/pipelines/*.yaml"
+    dependents:
+      - file: "src/global/skills/gates.md"
+        field: "gate presentation templates"
+        sync_type: "names_must_match"
+      - file: "src/schemas/status.schema.yaml"
+        field: "gates item_schema"
+        sync_type: "names_must_match"
+    values_tracked: "gate names (classification_gate, architecture_gate, plan_gate, final_gate)"
