@@ -63,7 +63,7 @@ fi
 
 # ── Phase 4: knowledge templates ───────────────────────────────────
 assert_dir_exists "$MOIRA_HOME/templates/knowledge" "templates/knowledge/ exists"
-for ktype in project-model conventions decisions patterns failures quality-map; do
+for ktype in project-model conventions decisions patterns failures quality-map libraries; do
   assert_dir_exists "$MOIRA_HOME/templates/knowledge/$ktype" "templates/knowledge/$ktype/ exists"
 done
 
@@ -90,6 +90,25 @@ if [[ -f "$MOIRA_HOME/lib/mcp.sh" ]]; then
     pass "lib/mcp.sh syntax valid"
   else
     fail "lib/mcp.sh has syntax errors"
+  fi
+fi
+
+# ── Phase 10: reflection + judge libs ─────────────────────────────
+assert_file_exists "$MOIRA_HOME/lib/reflection.sh" "lib/reflection.sh exists"
+if [[ -f "$MOIRA_HOME/lib/reflection.sh" ]]; then
+  if bash -n "$MOIRA_HOME/lib/reflection.sh" 2>/dev/null; then
+    pass "lib/reflection.sh syntax valid"
+  else
+    fail "lib/reflection.sh has syntax errors"
+  fi
+fi
+
+assert_file_exists "$MOIRA_HOME/lib/judge.sh" "lib/judge.sh exists"
+if [[ -f "$MOIRA_HOME/lib/judge.sh" ]]; then
+  if bash -n "$MOIRA_HOME/lib/judge.sh" 2>/dev/null; then
+    pass "lib/judge.sh syntax valid"
+  else
+    fail "lib/judge.sh has syntax errors"
   fi
 fi
 
@@ -136,6 +155,10 @@ assert_dir_exists "$MOIRA_HOME/tests/bench/fixtures" "tests/bench/fixtures/ exis
 assert_dir_exists "$MOIRA_HOME/tests/bench/cases" "tests/bench/cases/ exists"
 assert_dir_exists "$MOIRA_HOME/tests/bench/rubrics" "tests/bench/rubrics/ exists"
 
+# ── Phase 10: reflection + judge templates ────────────────────────
+assert_dir_exists "$MOIRA_HOME/templates/reflection" "templates/reflection/ exists"
+assert_dir_exists "$MOIRA_HOME/templates/judge" "templates/judge/ exists"
+
 # ── Phase 8: hooks system artifacts ──────────────────────────────────
 assert_file_exists "$MOIRA_HOME/hooks/guard.sh" "hooks/guard.sh exists"
 assert_file_exists "$MOIRA_HOME/hooks/budget-track.sh" "hooks/budget-track.sh exists"
@@ -158,12 +181,12 @@ for pipeline in quick standard full decomposition; do
 done
 
 # ── Skill files ─────────────────────────────────────────────────────
-for skill in orchestrator gates dispatch errors; do
+for skill in orchestrator gates dispatch errors reflection; do
   assert_file_exists "$MOIRA_HOME/skills/${skill}.md" "skill ${skill}.md exists"
 done
 
 # ── Command stubs ────────────────────────────────────────────────────
-commands=(task init status resume knowledge metrics audit bypass refresh help bench)
+commands=(task init status resume knowledge metrics audit bypass refresh help bench health)
 for cmd in "${commands[@]}"; do
   assert_file_exists "$COMMANDS_DIR/${cmd}.md" "command ${cmd}.md exists"
 done

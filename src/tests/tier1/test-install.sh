@@ -86,6 +86,21 @@ else
   fail "clean install: bench.sh has syntax errors"
 fi
 
+# Phase 10: reflection.sh and judge.sh
+assert_file_exists "$MOIRA_HOME/lib/reflection.sh" "clean install: reflection.sh exists"
+if bash -n "$MOIRA_HOME/lib/reflection.sh" 2>/dev/null; then
+  pass "clean install: reflection.sh syntax valid"
+else
+  fail "clean install: reflection.sh has syntax errors"
+fi
+
+assert_file_exists "$MOIRA_HOME/lib/judge.sh" "clean install: judge.sh exists"
+if bash -n "$MOIRA_HOME/lib/judge.sh" 2>/dev/null; then
+  pass "clean install: judge.sh syntax valid"
+else
+  fail "clean install: judge.sh has syntax errors"
+fi
+
 # Phase 6: findings schema
 assert_file_exists "$MOIRA_HOME/schemas/findings.schema.yaml" "clean install: findings schema exists"
 
@@ -116,6 +131,16 @@ fi
 # Phase 6: bench command
 assert_file_exists "$TEST_HOME/.claude/commands/moira/bench.md" "clean install: bench.md command exists"
 
+# Phase 10: calibration examples
+if [[ -d "$MOIRA_HOME/tests/bench/calibration" ]]; then
+  cal_count=$(find "$MOIRA_HOME/tests/bench/calibration" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "$cal_count" -ge 3 ]]; then
+    pass "clean install: $cal_count calibration examples (>=3)"
+  else
+    fail "clean install: expected >=3 calibration examples, found $cal_count"
+  fi
+fi
+
 # Pipeline definitions
 assert_dir_exists "$MOIRA_HOME/core/pipelines" "clean install: pipelines dir exists"
 for pipeline in quick standard full decomposition; do
@@ -128,7 +153,7 @@ for pipeline in quick standard full decomposition; do
 done
 
 # Skill files
-for skill in orchestrator gates dispatch errors; do
+for skill in orchestrator gates dispatch errors reflection; do
   assert_file_exists "$MOIRA_HOME/skills/${skill}.md" "clean install: skill ${skill}.md exists"
 done
 
@@ -144,7 +169,7 @@ assert_file_exists "$MOIRA_HOME/schemas/telemetry.schema.yaml" "clean install: t
 
 # Count command stubs
 cmd_count=$(ls "$TEST_HOME/.claude/commands/moira/"*.md 2>/dev/null | wc -l | tr -d ' ')
-assert_equals "$cmd_count" "11" "clean install: 11 command stubs installed"
+assert_equals "$cmd_count" "12" "clean install: 12 command stubs installed"
 
 # ── Test: idempotency (re-run) ────────────────────────────────────────
 output2=$(bash "$SRC_DIR/install.sh" 2>&1) || true
@@ -186,6 +211,7 @@ assert_dir_exists "$test_project/.claude/moira/state/tasks" "scaffold: state/tas
 assert_dir_exists "$test_project/.claude/moira/state/metrics" "scaffold: state/metrics"
 assert_dir_exists "$test_project/.claude/moira/state/audits" "scaffold: state/audits"
 assert_dir_exists "$test_project/.claude/moira/state/init" "scaffold: state/init"
+assert_dir_exists "$test_project/.claude/moira/state/reflection" "scaffold: state/reflection"
 assert_dir_exists "$test_project/.claude/moira/hooks" "scaffold: hooks"
 
 # Idempotency: run scaffold again

@@ -90,4 +90,13 @@ else
   fail "array field pipelines.quick.gates: got '$val'"
 fi
 
+# ── Test: telemetry schema has mcp_calls section (Phase 10) ──────────
+if [[ -f "$MOIRA_SCHEMA_DIR/telemetry.schema.yaml" ]]; then
+  if grep -q "mcp_calls:" "$MOIRA_SCHEMA_DIR/telemetry.schema.yaml" 2>/dev/null; then
+    pass "telemetry schema has mcp_calls section"
+  else
+    fail "telemetry schema missing mcp_calls section"
+  fi
+fi
+
 test_summary

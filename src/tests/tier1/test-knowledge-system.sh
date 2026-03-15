@@ -20,7 +20,7 @@ source "$MOIRA_HOME/lib/knowledge.sh"
 
 assert_dir_exists "$MOIRA_HOME/templates/knowledge" "templates/knowledge/ exists"
 
-for ktype in project-model conventions decisions patterns failures quality-map; do
+for ktype in project-model conventions decisions patterns failures quality-map libraries; do
   assert_dir_exists "$MOIRA_HOME/templates/knowledge/$ktype" "templates/knowledge/$ktype/ exists"
 done
 
@@ -73,7 +73,7 @@ assert_equals "$result" "" "read nonexistent type file returns empty"
 
 # Set up test knowledge + matrix
 AGENT_KNOW_DIR="$TEMP_DIR/agent-knowledge"
-for ktype in project-model conventions decisions patterns failures quality-map; do
+for ktype in project-model conventions decisions patterns failures quality-map libraries; do
   mkdir -p "$AGENT_KNOW_DIR/$ktype"
 done
 
@@ -94,6 +94,9 @@ echo "fail-summary" > "$AGENT_KNOW_DIR/failures/summary.md"
 echo "fail-full" > "$AGENT_KNOW_DIR/failures/full.md"
 echo "qm-summary" > "$AGENT_KNOW_DIR/quality-map/summary.md"
 echo "qm-full" > "$AGENT_KNOW_DIR/quality-map/full.md"
+mkdir -p "$AGENT_KNOW_DIR/libraries"
+echo "lib-index" > "$AGENT_KNOW_DIR/libraries/index.md"
+echo "lib-summary" > "$AGENT_KNOW_DIR/libraries/summary.md"
 
 # Use the real matrix file
 MATRIX_FILE="$MOIRA_HOME/core/knowledge-access-matrix.yaml"
@@ -122,10 +125,10 @@ else
   fail "metis access incorrect: $result"
 fi
 
-# Mnemosyne: all 6 types at L2
+# Mnemosyne: all 7 types at L2 (libraries L2 gets L1 content)
 result=$(moira_knowledge_read_for_agent "$AGENT_KNOW_DIR" "mnemosyne" "$MATRIX_FILE")
-if echo "$result" | grep -q "pm-full" && echo "$result" | grep -q "conv-full" && echo "$result" | grep -q "dec-full" && echo "$result" | grep -q "pat-full" && echo "$result" | grep -q "qm-full" && echo "$result" | grep -q "fail-full"; then
-  pass "mnemosyne gets all 6 types at L2"
+if echo "$result" | grep -q "pm-full" && echo "$result" | grep -q "conv-full" && echo "$result" | grep -q "dec-full" && echo "$result" | grep -q "pat-full" && echo "$result" | grep -q "qm-full" && echo "$result" | grep -q "fail-full" && echo "$result" | grep -q "lib-summary"; then
+  pass "mnemosyne gets all 7 types (libraries L2 loads L1)"
 else
   fail "mnemosyne access incorrect: $result"
 fi
@@ -137,10 +140,10 @@ else
   fail "output missing section headers"
 fi
 
-# Daedalus: project-model L1 + conventions L1 + decisions L0 + patterns L0 + quality-map L2
+# Daedalus: project-model L1 + conventions L1 + decisions L0 + patterns L0 + quality-map L2 + libraries L0
 result=$(moira_knowledge_read_for_agent "$AGENT_KNOW_DIR" "daedalus" "$MATRIX_FILE")
-if echo "$result" | grep -q "pm-summary" && echo "$result" | grep -q "conv-summary" && echo "$result" | grep -q "dec-index" && echo "$result" | grep -q "pat-index" && echo "$result" | grep -q "qm-full"; then
-  pass "daedalus gets project-model L1 + conventions L1 + decisions L0 + patterns L0 + quality-map L2"
+if echo "$result" | grep -q "pm-summary" && echo "$result" | grep -q "conv-summary" && echo "$result" | grep -q "dec-index" && echo "$result" | grep -q "pat-index" && echo "$result" | grep -q "qm-full" && echo "$result" | grep -q "lib-index"; then
+  pass "daedalus gets project-model L1 + conventions L1 + decisions L0 + patterns L0 + quality-map L2 + libraries L0"
 else
   fail "daedalus access incorrect: $result"
 fi
@@ -190,7 +193,7 @@ assert_equals "$result" "unknown" "freshness: no tag = unknown"
 # ── 5. Stale entry detection ────────────────────────────────────────
 
 STALE_DIR="$TEMP_DIR/stale"
-for ktype in project-model conventions decisions patterns failures quality-map; do
+for ktype in project-model conventions decisions patterns failures quality-map libraries; do
   mkdir -p "$STALE_DIR/$ktype"
 done
 echo "<!-- moira:freshness task-010 2024-01-01 -->" > "$STALE_DIR/project-model/summary.md"

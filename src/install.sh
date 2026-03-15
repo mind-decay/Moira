@@ -109,12 +109,30 @@ install_global() {
     cp -f "$SCRIPT_DIR/global/templates/budgets.yaml.tmpl" "$MOIRA_HOME/templates/"
   fi
 
+  # Copy reflection templates (Phase 10)
+  if [[ -d "$SCRIPT_DIR/global/templates/reflection" ]]; then
+    mkdir -p "$MOIRA_HOME/templates/reflection"
+    cp -f "$SCRIPT_DIR/global/templates/reflection/"*.md "$MOIRA_HOME/templates/reflection/"
+  fi
+
+  # Copy judge templates (Phase 10)
+  if [[ -d "$SCRIPT_DIR/global/templates/judge" ]]; then
+    mkdir -p "$MOIRA_HOME/templates/judge"
+    cp -f "$SCRIPT_DIR/global/templates/judge/"*.md "$MOIRA_HOME/templates/judge/"
+  fi
+
   # Copy bench infrastructure (Phase 6)
   if [[ -d "$SCRIPT_DIR/tests/bench" ]]; then
     mkdir -p "$MOIRA_HOME/tests/bench/fixtures" "$MOIRA_HOME/tests/bench/cases" "$MOIRA_HOME/tests/bench/rubrics"
     cp -rf "$SCRIPT_DIR/tests/bench/fixtures/"* "$MOIRA_HOME/tests/bench/fixtures/"
     cp -f "$SCRIPT_DIR/tests/bench/cases/"*.yaml "$MOIRA_HOME/tests/bench/cases/"
     cp -f "$SCRIPT_DIR/tests/bench/rubrics/"*.yaml "$MOIRA_HOME/tests/bench/rubrics/"
+  fi
+
+  # Copy calibration examples (Phase 10)
+  if [[ -d "$SCRIPT_DIR/tests/bench/calibration" ]]; then
+    mkdir -p "$MOIRA_HOME/tests/bench/calibration"
+    cp -rf "$SCRIPT_DIR/tests/bench/calibration/"* "$MOIRA_HOME/tests/bench/calibration/"
   fi
 
   # Copy statusline script
@@ -182,7 +200,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh reflection.sh judge.sh; do
     ((checks_total++)) || true
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then
@@ -197,7 +215,7 @@ verify() {
   done
 
   # Check 6: all 10 command stubs exist
-  local commands=(task init status resume knowledge metrics audit bypass refresh help)
+  local commands=(task init status resume knowledge metrics audit bypass refresh help bench health)
   for cmd in "${commands[@]}"; do
     ((checks_total++)) || true
     local cmd_path="$HOME/.claude/commands/moira/${cmd}.md"
