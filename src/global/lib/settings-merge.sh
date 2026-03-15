@@ -171,6 +171,45 @@ HOOKS
   mv "$tmpfile" "$settings_file"
 }
 
+# ── moira_settings_register_statusline <moira_home> ───────────────────
+# Register statusline script in user-level ~/.claude/settings.json.
+# Idempotent — safe to re-run.
+moira_settings_register_statusline() {
+  local moira_home="$1"
+  local settings_file="$HOME/.claude/settings.json"
+
+  mkdir -p "$HOME/.claude"
+
+  # Already registered?
+  if [[ -f "$settings_file" ]] && grep -q 'moira/statusline/context-status.sh' "$settings_file" 2>/dev/null; then
+    return 0
+  fi
+
+  local statusline_cmd="bash ${moira_home}/statusline/context-status.sh"
+
+  if command -v jq &>/dev/null; then
+    if [[ ! -f "$settings_file" ]] || [[ ! -s "$settings_file" ]]; then
+      jq -n --arg cmd "$statusline_cmd" '{ statusLine: { type: "command", command: $cmd } }' > "$settings_file"
+    else
+      local tmpfile
+      tmpfile=$(mktemp)
+      jq --arg cmd "$statusline_cmd" '.statusLine = { type: "command", command: $cmd }' "$settings_file" > "$tmpfile" 2>/dev/null
+      if [[ $? -eq 0 ]] && [[ -s "$tmpfile" ]]; then
+        mv "$tmpfile" "$settings_file"
+      else
+        rm -f "$tmpfile"
+        echo "Warning: Could not register statusLine — please add manually to ~/.claude/settings.json:" >&2
+        echo "  \"statusLine\": { \"type\": \"command\", \"command\": \"$statusline_cmd\" }" >&2
+        return 1
+      fi
+    fi
+  else
+    echo "Warning: jq not found — please add statusLine to ~/.claude/settings.json manually:" >&2
+    echo "  \"statusLine\": { \"type\": \"command\", \"command\": \"$statusline_cmd\" }" >&2
+    return 1
+  fi
+}
+
 # ── moira_settings_remove_hooks <project_root> ────────────────────────
 # Remove Moira hook entries from settings.json.
 moira_settings_remove_hooks() {

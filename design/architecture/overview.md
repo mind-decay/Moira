@@ -116,6 +116,8 @@ User → /moira <task>
 │   │   ├── gates.md                   # Gate presentation templates
 │   │   ├── dispatch.md                # Agent dispatch instructions
 │   │   └── errors.md                  # Error handling procedures
+│   ├── statusline/
+│   │   └── context-status.sh          # Claude Code status line (context tracking)
 │   ├── hooks/
 │   │   ├── guard.sh                   # PostToolUse violation detection (D-031)
 │   │   └── budget-track.sh            # Context budget logging
@@ -157,7 +159,7 @@ User → /moira <task>
 │   ├── resume.md                      # /moira:resume
 │   └── ...
 │
-└── settings.json                      # Hooks registration (merge)
+└── settings.json                      # Hooks + statusline registration (merge)
 ```
 
 ### Project Layer (`.claude/moira/`)

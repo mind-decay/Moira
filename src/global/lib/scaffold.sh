@@ -28,6 +28,7 @@ moira_scaffold_global() {
   mkdir -p "$target_dir"/templates/knowledge
   mkdir -p "$target_dir"/lib
   mkdir -p "$target_dir"/schemas
+  mkdir -p "$target_dir"/statusline
 }
 
 # ── moira_scaffold_project <project_root> ─────────────────────────────

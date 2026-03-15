@@ -117,6 +117,12 @@ install_global() {
     cp -f "$SCRIPT_DIR/tests/bench/rubrics/"*.yaml "$MOIRA_HOME/tests/bench/rubrics/"
   fi
 
+  # Copy statusline script
+  if [[ -d "$SCRIPT_DIR/global/statusline" ]]; then
+    cp -f "$SCRIPT_DIR/global/statusline/"*.sh "$MOIRA_HOME/statusline/"
+    chmod +x "$MOIRA_HOME/statusline/"*.sh 2>/dev/null || true
+  fi
+
   # Write version marker
   echo "$MOIRA_VERSION" > "$MOIRA_HOME/.version"
 
@@ -143,7 +149,17 @@ install_schemas() {
   echo "[OK] Schemas installed"
 }
 
-# ── Step 5: Verify installation ──────────────────────────────────────
+# ── Step 5: Register statusline ──────────────────────────────────────
+install_statusline() {
+  echo "  Registering statusline..."
+
+  source "$SCRIPT_DIR/global/lib/settings-merge.sh"
+  moira_settings_register_statusline "$MOIRA_HOME"
+
+  echo "[OK] Statusline registered"
+}
+
+# ── Step 6: Verify installation ──────────────────────────────────────
 verify() {
   echo "  Verifying installation..."
 
@@ -386,6 +402,7 @@ check_prerequisites
 install_global
 install_commands
 install_schemas
+install_statusline
 verify
 
 echo ""

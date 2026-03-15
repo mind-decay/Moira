@@ -157,6 +157,33 @@ These are available at gates and completion:
 ▸ abort     — stop execution
 ```
 
+## Status Line
+
+Claude Code status line provides always-visible context tracking at the bottom of the terminal.
+
+**Idle mode** (no active pipeline):
+```
+⚡ context: 23k/1M ▓▓░░░░░░░░ 2%
+```
+
+**Pipeline mode** (during `/moira:task` execution — future enhancement):
+```
+⚡ MOIRA [task-0042] ── standard pipeline
+  ├─ ✅🏹 → ✅🪽 → ✅🦉 → ⚙️ 🏛️ Metis → ○📐 → ○⚒️ → ○⚖️
+  ├─ context: 23k/1M ▓▓░░░░░░░░ 2%
+  └─ ⏳ gate: architecture approval
+```
+
+**Color thresholds** for context bar:
+- Green (0-25%) — normal operation
+- Yellow (25-40%) — monitor
+- Orange (40-60%) — warning
+- Red (60%+) — critical
+
+Context window size auto-detected from Claude Code session data (200k, 1M, etc.).
+
+Registered in `~/.claude/settings.json` during `install.sh`. Script: `~/.claude/moira/statusline/context-status.sh`.
+
 ## Progressive Disclosure
 
 ```

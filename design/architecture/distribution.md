@@ -236,6 +236,8 @@ After installation, `~/.claude/` contains:
 │   │   ├── gates.md                      # Gate presentation templates
 │   │   ├── dispatch.md                   # Agent dispatch instructions
 │   │   └── errors.md                     # Error handling procedures
+│   ├── statusline/
+│   │   └── context-status.sh             # Claude Code status line (context tracking)
 │   ├── hooks/
 │   │   ├── guard.sh                      # Orchestrator tool restriction
 │   │   └── budget-track.sh              # Context usage logging
@@ -281,7 +283,7 @@ After installation, `~/.claude/` contains:
 │   ├── refresh.md                        # /moira:refresh
 │   └── help.md                           # /moira:help
 │
-└── settings.json                         # Hooks registration (merge)
+└── settings.json                         # Hooks + statusline registration (merge)
 ```
 
 ---
