@@ -227,8 +227,7 @@ User → /moira <task>
 │   │   ├── index.md
 │   │   ├── summary.md
 │   │   └── full.md
-│   ├── quality-map/
-│   │   ├── index.md
+│   ├── quality-map/              # No L0 index — quality-map has no index level
 │   │   ├── summary.md
 │   │   └── full.md
 │   └── libraries/                # Cached MCP documentation for project dependencies

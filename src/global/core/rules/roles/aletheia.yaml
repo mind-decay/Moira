@@ -29,6 +29,7 @@ knowledge_access:
   patterns: L0
   quality_map: null
   failures: null
+  libraries: null
 
 quality_checklist: q5-coverage
 

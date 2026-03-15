@@ -99,6 +99,8 @@ gates:
     options:
       - id: proceed
         description: "Architecture approved, continue to decomposition"
+      - id: details
+        description: "Show full architecture reasoning"
       - id: modify
         description: "Request architecture changes"
       - id: abort
@@ -110,6 +112,8 @@ gates:
     options:
       - id: proceed
         description: "Task breakdown approved, begin execution"
+      - id: details
+        description: "Show full decomposition document"
       - id: modify
         description: "Adjust decomposition"
       - id: abort

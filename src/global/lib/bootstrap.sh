@@ -158,16 +158,12 @@ classification:
 pipelines:
   quick:
     max_retries: 1
-    gates: [classification, final]
   standard:
     max_retries: 2
-    gates: [classification, architecture, plan, final]
   full:
     max_retries: 2
-    gates: [classification, architecture, plan, per-phase, final]
   decomposition:
     max_retries: 2
-    gates: [classification, decomposition, per-task, final]
 
 budgets:
   orchestrator_max_percent: 25

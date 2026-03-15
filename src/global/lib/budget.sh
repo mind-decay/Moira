@@ -149,6 +149,7 @@ moira_budget_estimate_agent() {
   max_load=$(_moira_budget_get_max_load "$config_path")
   if [[ "$percentage" -gt "$max_load" ]]; then
     status="exceeded"
+  # Fixed warning threshold at 50% of agent budget (distinct from configurable max_load)
   elif [[ "$percentage" -ge 50 ]]; then
     status="warning"
   fi
@@ -292,12 +293,14 @@ moira_budget_orchestrator_check() {
   local percentage=$(( estimated_tokens * 100 / _MOIRA_BUDGET_ORCHESTRATOR_CAPACITY ))
 
   # Determine level (from context-budget.md / self-monitoring.md)
-  # Values must match current.schema.yaml warning_level enum: [normal, warning, critical]
+  # Values must match current.schema.yaml warning_level enum: [normal, monitor, warning, critical]
   local level="normal"
   if [[ "$percentage" -gt 60 ]]; then
     level="critical"
   elif [[ "$percentage" -gt 40 ]]; then
     level="warning"
+  elif [[ "$percentage" -gt 25 ]]; then
+    level="monitor"
   fi
 
   # Update current.yaml

@@ -160,7 +160,7 @@ fields:
         item_pattern: "Art-[0-9]+\\.[0-9]+"
 
   mcp_calls:
-    type: list
+    type: array
     required: false
     description: "MCP tool calls made during this task"
     item_schema:

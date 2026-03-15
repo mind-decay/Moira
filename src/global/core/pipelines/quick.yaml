@@ -24,6 +24,8 @@ steps:
     writes_to: "tasks/{task_id}/context.md"  # Intentionally "context.md" (not "exploration.md") — lighter exploration for quick pipeline
     reads_from: "tasks/{task_id}/classification.md"
 
+  # No Analyst step — quick pipeline uses classification as implicit requirements for small tasks
+
   - id: implementation
     agent: hephaestus
     role: implementer

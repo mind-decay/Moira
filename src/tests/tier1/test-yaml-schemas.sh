@@ -83,11 +83,18 @@ else
 fi
 
 # ── Test: array field read ────────────────────────────────────────────
-val=$(moira_yaml_get "$config_file" "pipelines.quick.gates" 2>/dev/null) || true
-if [[ "$val" == *"classification"* && "$val" == *"final"* ]]; then
-  pass "array field pipelines.quick.gates contains expected values"
+# Config doesn't have inline arrays by default, so create a temp file with one
+array_file="$TMPDIR/array-test.yaml"
+cat > "$array_file" <<'ARRAYEOF'
+top_level_array: [alpha, beta, gamma]
+nested:
+  items: [one, two, three]
+ARRAYEOF
+val=$(moira_yaml_get "$array_file" "top_level_array" 2>/dev/null) || true
+if [[ "$val" == *"alpha"* && "$val" == *"gamma"* ]]; then
+  pass "array field read: inline array parsed correctly"
 else
-  fail "array field pipelines.quick.gates: got '$val'"
+  fail "array field read: got '$val'"
 fi
 
 # ── Test: telemetry schema has mcp_calls section (Phase 10) ──────────

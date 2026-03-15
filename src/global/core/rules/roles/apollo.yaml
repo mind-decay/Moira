@@ -31,6 +31,7 @@ knowledge_access:
   patterns: null
   quality_map: null
   failures: null
+  libraries: null
 
 quality_checklist: null
 

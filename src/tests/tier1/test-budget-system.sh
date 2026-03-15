@@ -93,13 +93,14 @@ fi
 
 # ── Orchestrator health thresholds ───────────────────────────────────
 if [[ -f "$MOIRA_HOME/skills/orchestrator.md" ]]; then
-  # Check all 3 health levels are defined (Normal/<40%, Warning/40-60%, Critical/>60%)
-  for level in Normal Warning Critical; do
+  # Check all 4 health levels are defined (Healthy/<25%, Monitor/25-40%, Warning/40-60%, Critical/>60%)
+  for level in Healthy Monitor Warning Critical; do
     assert_file_contains "$MOIRA_HOME/skills/orchestrator.md" "$level" "orchestrator.md defines $level level"
   done
 
-  # Check threshold values match design: <40%, 40-60%, >60%
-  assert_file_contains "$MOIRA_HOME/skills/orchestrator.md" "<40%" "orchestrator.md has <40% threshold"
+  # Check threshold values match design: <25%, 25-40%, 40-60%, >60%
+  assert_file_contains "$MOIRA_HOME/skills/orchestrator.md" "<25%" "orchestrator.md has <25% threshold"
+  assert_file_contains "$MOIRA_HOME/skills/orchestrator.md" "25-40%" "orchestrator.md has 25-40% threshold"
   assert_file_contains "$MOIRA_HOME/skills/orchestrator.md" "40-60%" "orchestrator.md has 40-60% threshold"
   assert_file_contains "$MOIRA_HOME/skills/orchestrator.md" ">60%" "orchestrator.md has >60% threshold"
 fi

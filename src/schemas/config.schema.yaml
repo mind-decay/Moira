@@ -33,18 +33,22 @@ fields:
     default: false
   # Gates are fixed per Art 2.2 — defined in pipeline YAML definitions only, not configurable
   pipelines.quick.max_retries:
+    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence.
     type: number
     required: false
     default: 1
   pipelines.standard.max_retries:
+    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence.
     type: number
     required: false
     default: 2
   pipelines.full.max_retries:
+    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence.
     type: number
     required: false
     default: 2
   pipelines.decomposition.max_retries:
+    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence.
     type: number
     required: false
     default: 2
@@ -52,7 +56,7 @@ fields:
     type: number
     required: false
     default: 25
-    description: "Reserved for future use (not yet active). Orchestrator thresholds are currently hardcoded in orchestrator.md Section 6 (Healthy <25%, Monitor 25-40%, Warning 40-60%, Critical >60%)."
+    description: "Reserved — will replace hardcoded 25% threshold in budget.sh and orchestrator.md in a future phase"
   budgets.agent_max_load_percent:
     type: number
     required: false

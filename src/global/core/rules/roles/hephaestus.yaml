@@ -40,6 +40,7 @@ knowledge_access:
   patterns: L1
   quality_map: null
   failures: null
+  libraries: L1
 
 post_implementation: |
   After completing all code changes, before returning STATUS: success:

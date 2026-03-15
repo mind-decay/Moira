@@ -95,7 +95,7 @@ resume_context: |
 | User requests | Manual checkpoint |
 | Session end (unexpected) | State is already persisted in manifest |
 
-## Resume Flow (/moira continue)
+## Resume Flow (/moira resume)
 
 ```
 1. Read manifest.yaml
@@ -193,7 +193,7 @@ epic:
   integration_verified: false
 ```
 
-`/moira continue` on an epic:
+`/moira resume` on an epic:
 1. Reads queue.yaml
 2. Finds first non-completed task
 3. If task is in_progress → resumes it

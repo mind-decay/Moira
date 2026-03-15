@@ -173,7 +173,7 @@ Handled by Daedalus (planner) during plan creation:
 When agent returns `STATUS: budget_exceeded` with `COMPLETED` and `REMAINING` fields:
 1. Read agent's partial result file (it wrote output before stopping)
 2. Parse `COMPLETED` and `REMAINING` from agent response
-3. Increment `retries.budget_splits` in `status.yaml`
+3. Call `moira_budget_handle_overflow <task_id> <role> <completed> <remaining>` to handle the overflow (increments `retries.budget_splits`, returns continuation or escalation data)
 4. Record partial result in budget tracking
 5. Spawn NEW continuation agent with:
    - Task-specific instruction: "Continue work. Previously completed: {completed}. Your task: {remaining}."
@@ -626,6 +626,9 @@ retries:
 ```
 
 After each retry:
-1. Increment the specific counter
-2. Increment `total`
-3. Include retry count in health report at next gate
+1. Increment the specific counter and `total` via `moira_state_increment_retry <task_id> <type>`:
+   - E5-QUALITY retries: `moira_state_increment_retry <task_id> quality`
+   - E6-AGENT retries: `moira_state_increment_retry <task_id> agent_failures`
+   - E4-BUDGET splits: handled by `moira_budget_handle_overflow` (increments `retries.budget_splits` directly)
+   - Generic retries: `moira_state_increment_retry <task_id>` (increments `total` only)
+2. Include retry count in health report at next gate

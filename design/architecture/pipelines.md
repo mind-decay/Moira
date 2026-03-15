@@ -43,7 +43,8 @@ USER → task description
       ├─ done   — accept
       ├─ tweak  — targeted modification
       ├─ redo   — rollback
-      └─ diff   — show changes
+      ├─ diff   — show changes
+      └─ test   — run additional tests
 
   Post: Orchestrator writes structured reflection note to
         `.claude/moira/state/tasks/{id}/reflection-note.yaml`:

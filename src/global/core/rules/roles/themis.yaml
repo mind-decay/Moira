@@ -38,6 +38,7 @@ knowledge_access:
   patterns: L1
   quality_map: L1
   failures: null
+  libraries: null
 
 write_access:
   quality_map: true

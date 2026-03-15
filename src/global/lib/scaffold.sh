@@ -76,7 +76,7 @@ moira_scaffold_project() {
   mkdir -p "$base"/state/reflection
   mkdir -p "$base"/state/init
 
-  # Hooks
+  # Hooks — placeholder; hook scripts live at global layer, registered via settings.json
   mkdir -p "$base"/hooks
 
   # Copy knowledge templates if available (idempotent — only copy if target doesn't exist)

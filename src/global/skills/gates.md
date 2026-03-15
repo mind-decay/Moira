@@ -66,7 +66,7 @@ Data sources:
 
 ## Budget Report Section
 
-Display at pipeline completion (final gate and post-pipeline):
+Display at pipeline completion (final gate and post-pipeline). Generate using `moira_budget_generate_report <task_id>`:
 
 ```
 ╔══════════════════════════════════════════════╗
@@ -233,8 +233,9 @@ After Daedalus (planner) decomposes an epic.
 **Options:**
 ```
 1) proceed — Task breakdown approved, begin execution
-2) modify  — Adjust decomposition
-3) abort   — Cancel task
+2) details — Show full decomposition document
+3) modify  — Adjust decomposition
+4) abort   — Cancel task
 ```
 
 **Gate state:** `moira_state_gate("decomposition_gate", decision)`

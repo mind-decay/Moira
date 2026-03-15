@@ -28,6 +28,7 @@ knowledge_access:
   decisions: L0
   patterns: null
   failures: L0
+  libraries: null
 
 quality_checklist: q1-completeness
 

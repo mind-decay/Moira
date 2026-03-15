@@ -61,7 +61,7 @@ First `/moira init` on any project.
 ═══════════════════════════════════════════
 
   /moira <task>      — do a task
-  /moira continue    — resume interrupted work
+  /moira resume    — resume interrupted work
   /moira status      — where am I?
   /moira knowledge   — what does the system know?
   /moira metrics     — how well is it working?

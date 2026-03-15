@@ -64,7 +64,7 @@ fields:
   context_budget.warning_level:
     type: enum
     required: false
-    enum: [normal, warning, critical]
+    enum: [normal, monitor, warning, critical]
     default: normal
   bench_mode:
     type: boolean

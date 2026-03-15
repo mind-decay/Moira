@@ -28,7 +28,7 @@ Orchestrator NEVER reads full artifact files. It reads only summaries and decide
 
 ## Apollo (classifier)
 
-**Purpose:** Determines task size and selects pipeline type. First step of every pipeline (D-028).
+**Purpose:** Determines task size and confidence. First step of every pipeline (D-028).
 
 **Input:** User's task description + optional size hint + project-model summary
 **Output:** Classification result
@@ -175,7 +175,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 3. **Budget Estimation** — Estimate tokens per batch. Success: all batches within agent budget limits. Failure: batch exceeds limit after maximum splitting.
 4. **Instruction Assembly** — Assemble Layer 1-4 rules per agent invocation. Success: each instruction set includes all required rule layers + knowledge. Failure: missing rule layer or inaccessible knowledge level.
 
-**Knowledge access:** L1 (project-model), L1 (conventions), L0 (decisions), L0 (patterns), L2 (quality-map)
+**Knowledge access:** L1 (project-model), L1 (conventions), L0 (decisions), L0 (patterns), L2 (quality-map), L0 (libraries)
 
 **Budget:** 70k
 
@@ -198,7 +198,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Uses only authorized MCP tools
 - After code changes: runs post-implementation validation commands from `.claude/moira/config.yaml` → `tooling.post_implementation[]` (D-063). If commands fail, fixes errors before returning STATUS: success. If no commands configured, skips validation.
 
-**Knowledge access:** L0 (project-model), L2 (conventions — FULL), L1 (patterns)
+**Knowledge access:** L0 (project-model), L2 (conventions — FULL), L1 (patterns), L1 (libraries)
 
 **Budget:** 120k
 
@@ -299,8 +299,8 @@ BOUNDARY_COMPLIANCE: {all_clear|violations_found} — {detail}
 RULE_PROPOSALS: [{proposal with 3+ evidence citations}] (if any)
 ```
 
-**Knowledge access:** L2 (all knowledge types)
-**Write access:** all knowledge types
+**Knowledge access:** L2 (all knowledge types, including libraries)
+**Write access:** all knowledge types (including libraries)
 
 **Budget:** 80k
 
@@ -321,7 +321,7 @@ RULE_PROPOSALS: [{proposal with 3+ evidence citations}] (if any)
 - Recommendations must be actionable and specific
 - Classifies findings by risk: low/medium/high
 
-**Knowledge access:** L2 (all knowledge types — read-only)
+**Knowledge access:** L2 (all knowledge types, including libraries — read-only)
 
 **Budget:** 140k (needs to cross-reference many files)
 

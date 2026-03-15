@@ -13,6 +13,7 @@ _MOIRA_KNOWLEDGE_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && p
 source "${_MOIRA_KNOWLEDGE_LIB_DIR}/yaml-utils.sh"
 
 # Valid knowledge types (includes libraries for MCP documentation caching)
+# libraries = per-library MCP docs cached individually, no single full.md (follows different lifecycle)
 _MOIRA_KNOWLEDGE_TYPES="project-model conventions decisions patterns failures quality-map libraries"
 
 # Level-to-file mapping

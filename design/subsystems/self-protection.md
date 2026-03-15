@@ -250,7 +250,7 @@ article_2_2:
     quick_pipeline_gates: ["classification", "final"]
     standard_pipeline_gates: ["classification", "architecture", "plan", "final"]
     full_pipeline_gates: ["classification", "architecture", "plan", "phase", "final"]
-    decomposition_gates: ["classification", "decomposition", "per_task", "final"]
+    decomposition_gates: ["classification", "architecture", "decomposition", "per_task", "final"]
   severity: "CONSTITUTIONAL_VIOLATION"
 
 article_4_1:

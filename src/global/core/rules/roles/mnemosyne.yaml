@@ -40,6 +40,7 @@ knowledge_access:
   patterns: L2
   quality_map: L2
   failures: L2
+  libraries: L2
 
 write_access:
   project_model: true
@@ -48,6 +49,7 @@ write_access:
   patterns: true
   quality_map: true
   failures: true
+  libraries: true
 
 quality_checklist: null
 

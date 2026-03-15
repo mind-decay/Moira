@@ -15,7 +15,7 @@ source "${_MOIRA_REFLECTION_LIB_DIR}/yaml-utils.sh"
 
 # ── moira_reflection_task_history <state_dir> [count] ─────────────────
 # Scan completed tasks and return recent history sorted by completion time.
-# Output per task: task_id pipeline_type first_pass_accepted retry_count classification_correct
+# Output per task: task_id pipeline_type final_review_passed retries_total classification_correct
 # Returns 1 if no completed tasks found.
 moira_reflection_task_history() {
   local state_dir="$1"
@@ -34,20 +34,21 @@ moira_reflection_task_history() {
     local status_file="${task_dir}status.yaml"
     [[ ! -f "$status_file" ]] && continue
 
-    local step
-    step=$(moira_yaml_get "$status_file" "step" 2>/dev/null) || continue
+    local status
+    status=$(moira_yaml_get "$status_file" "status" 2>/dev/null) || continue
 
     # Only include completed tasks
-    if [[ "$step" != "done" && "$step" != "completed" ]]; then
+    if [[ "$status" != "completed" ]]; then
       continue
     fi
 
     local task_id pipeline_type first_pass retry_count classification_correct completed_at
     task_id=$(moira_yaml_get "$status_file" "task_id" 2>/dev/null) || task_id="unknown"
     pipeline_type=$(moira_yaml_get "$status_file" "pipeline" 2>/dev/null) || pipeline_type="unknown"
-    first_pass=$(moira_yaml_get "$status_file" "first_pass_accepted" 2>/dev/null) || first_pass="unknown"
-    retry_count=$(moira_yaml_get "$status_file" "retry_count" 2>/dev/null) || retry_count="0"
-    classification_correct=$(moira_yaml_get "$status_file" "classification_correct" 2>/dev/null) || classification_correct="unknown"
+    first_pass=$(moira_yaml_get "$status_file" "completion.final_review_passed" 2>/dev/null) || first_pass="unknown"
+    retry_count=$(moira_yaml_get "$status_file" "retries.total" 2>/dev/null) || retry_count="0"
+    local telemetry_file="${task_dir}telemetry.yaml"
+    classification_correct=$(moira_yaml_get "$telemetry_file" "pipeline.classification_correct" 2>/dev/null) || classification_correct="unknown"
     completed_at=$(moira_yaml_get "$status_file" "completed_at" 2>/dev/null) || completed_at="unknown"
 
     found=true

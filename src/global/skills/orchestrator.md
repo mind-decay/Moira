@@ -40,7 +40,7 @@ If you catch yourself thinking:
 - "I can easily fix this..." → DISPATCH Hephaestus (implementer)
 - "This is so simple I'll just..." → FOLLOW THE PIPELINE
 - "To save time..." → TIME IS NOT YOUR CONCERN, QUALITY IS
-- "The user said to skip..." → ONLY `/moira:bypass` can skip pipeline
+- "The user said to skip..." → ONLY `/moira bypass:` can skip pipeline
 
 ANY violation is logged and reported.
 
@@ -81,7 +81,7 @@ Before entering the main loop:
 ### Main Loop
 
 1. Read the pipeline definition YAML for the current pipeline type from `~/.claude/moira/core/pipelines/{type}.yaml` (global)
-2. For each step in the pipeline `steps[]` array:
+2. For each step in the pipeline `steps[]` array (note: steps with `agent: null` are orchestrator-handled — e.g., the final gate completion step — and are not dispatched to an agent):
    a. Update state: set step and status to `in_progress` in `.claude/moira/state/current.yaml`
    b. Construct agent prompt (per `dispatch.md` skill)
    c. Dispatch agent (foreground, background, or parallel per step `mode`)
@@ -199,7 +199,7 @@ Reference: `errors.md` skill for full procedures.
 
 ### Stale Knowledge Detection
 
-When E8-STALE is detected (knowledge freshness check returns stale entries), write stale knowledge entries to `status.yaml` under the `warnings:` block using `moira_yaml_block_append status.yaml warnings '<entry>'`. Display a warning to the user listing the stale entries. The pipeline continues — stale knowledge is informational, not blocking.
+When E8-STALE is detected (knowledge freshness check returns stale entries), write stale knowledge entries to `status.yaml` under the `warnings:` block using `moira_state_write_warning <task_id> stale_knowledge <entry_path> <last_task_id> <distance>`. Display a warning to the user listing the stale entries. The pipeline continues — stale knowledge is informational, not blocking.
 
 ### Scope Change Detection
 
@@ -283,7 +283,7 @@ When the pipeline reaches the completion step:
 
 **`done`** — Accept all changes:
 - Display completion summary (files changed, tests passed, etc.)
-- Display full budget report: read `status.yaml` budget data + `current.yaml` orchestrator data, format per `gates.md` budget report template
+- Display full budget report: call `moira_budget_generate_report <task_id>` to generate the formatted budget report table (reads `status.yaml` budget data + `current.yaml` orchestrator data)
 - Check `state/violations.log` line count. If > 0: include violation count in completion summary ("{N} orchestrator violations detected").
 - Write violation count to `telemetry.yaml` `compliance.orchestrator_violation_count` field.
 - Write `structural.constitutional_pass`: `true` if `violations.log` has zero entries for the current task, `false` otherwise
@@ -291,10 +291,12 @@ When the pipeline reaches the completion step:
 - Write budget data to telemetry: update `telemetry.yaml` with `execution.budget_total_tokens` from `status.yaml` `budget.actual_tokens`
 - For each agent dispatched during the pipeline, record in `telemetry.yaml` → `execution.agents_called[]`: `role`, `step`, `tokens_used`, `context_pct` (from `moira_state_agent_done` data), `duration_sec` (wall-clock time between dispatch and response).
 - Write completion fields to status.yaml:
-  - `moira_yaml_set status.yaml completion.action <action>` (done/tweak/redo)
+  - `moira_yaml_set status.yaml completion.action <action>` (done/tweak/redo/diff/test/abort)
   - `moira_yaml_set status.yaml completion.tweak_count <count>` (number of tweak iterations, 0 if none)
   - `moira_yaml_set status.yaml completion.redo_count <count>` (number of redo iterations, 0 if none)
   - `moira_yaml_set status.yaml completion.final_review_passed <true|false>` (whether final review passed)
+- Write `quality.final_result` to `telemetry.yaml`: the final completion action that ended the pipeline (done/tweak/redo/abort — if the user used diff/test first, record the eventual terminal action)
+- Aggregate quality data: call `moira_quality_aggregate_task <task_id>` to compute aggregate quality metrics for the task
 - Tick evolution cooldown: call `moira_quality_tick_cooldown` on config.yaml
 - If quality mode was `evolve`: call `moira_quality_complete_evolve` on config.yaml
 - Call `moira_knowledge_update_quality_map` with task findings (if Themis Q4 findings exist)

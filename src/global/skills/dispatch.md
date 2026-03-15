@@ -34,9 +34,9 @@ Used for:
 | Pipeline | Pre-assembled (instruction file) | Simplified (fallback) |
 |----------|----------------------------------|----------------------|
 | Quick | none | all agents |
-| Standard | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Daedalus |
-| Full | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Daedalus |
-| Decomposition | Metis, Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Daedalus |
+| Standard | Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Metis, Daedalus |
+| Full | Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Metis, Daedalus |
+| Decomposition | Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Metis, Daedalus |
 
 **Note:** Mnemosyne (reflector) dispatch bypasses the standard dispatch flow.
 The `reflection.md` skill handles prompt assembly directly, using reflection templates
@@ -279,8 +279,8 @@ For agents with quality gate assignments, append the quality checklist to their 
 
 ### Injection Path
 
-- **Pre-planning agents** (Athena Q1, Daedalus Q3): checklist injected via simplified assembly path — append to prompt template after Task section
-- **Post-planning agents** (Metis Q2, Themis Q4, Aletheia Q5): checklist injected via instruction files written by Daedalus
+- **Pre-planning agents** (Athena Q1, Metis Q2, Daedalus Q3): checklist injected via simplified assembly path — append to prompt template after Task section
+- **Post-planning agents** (Themis Q4, Aletheia Q5): checklist injected via instruction files written by Daedalus
 
 ### Checklist Prompt Appendix
 

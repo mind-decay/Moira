@@ -45,6 +45,7 @@ knowledge_access:
   patterns: L2
   quality_map: L2
   failures: L2
+  libraries: L2
 
 quality_checklist: null
 

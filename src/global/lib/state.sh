@@ -187,12 +187,15 @@ moira_state_agent_done() {
   fi
 }
 
-# ── moira_state_increment_retry <task_id> [state_dir] ─────────────────
-# Increment retries.total in status.yaml for the given task.
-# Creates the field with value 1 if it doesn't exist yet.
+# ── moira_state_increment_retry <task_id> [type] [state_dir] ──────────
+# Increment retry counters in status.yaml for the given task.
+# <type> defaults to "total". When type is not "total", increments BOTH
+# the specific counter (retries.<type>) AND retries.total.
+# Creates fields with value 1 if they don't exist yet.
 moira_state_increment_retry() {
   local task_id="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local type="${2:-total}"
+  local state_dir="${3:-.claude/moira/state}"
   local status_file="${state_dir}/tasks/${task_id}/status.yaml"
 
   if [[ ! -f "$status_file" ]]; then
@@ -200,9 +203,42 @@ moira_state_increment_retry() {
     return 0
   fi
 
+  # Always increment retries.total
   local current_total
   current_total=$(moira_yaml_get "$status_file" "retries.total" 2>/dev/null) || true
   current_total=${current_total:-0}
-
   moira_yaml_set "$status_file" "retries.total" "$(( current_total + 1 ))"
+
+  # If type is not "total", also increment the specific counter
+  if [[ "$type" != "total" ]]; then
+    local current_specific
+    current_specific=$(moira_yaml_get "$status_file" "retries.${type}" 2>/dev/null) || true
+    current_specific=${current_specific:-0}
+    moira_yaml_set "$status_file" "retries.${type}" "$(( current_specific + 1 ))"
+  fi
+}
+
+# ── moira_state_write_warning <task_id> <warning_type> <entry_path> <last_task_id> <distance> [state_dir]
+# Append a warning entry to the warnings block in status.yaml.
+# Used by E8-STALE and other warning producers.
+moira_state_write_warning() {
+  local task_id="$1"
+  local warning_type="$2"
+  local entry_path="$3"
+  local last_task_id="$4"
+  local distance="$5"
+  local state_dir="${6:-.claude/moira/state}"
+  local status_file="${state_dir}/tasks/${task_id}/status.yaml"
+
+  if [[ ! -f "$status_file" ]]; then
+    echo "Warning: status file not found: $status_file" >&2
+    return 0
+  fi
+
+  local warning_entry="  - type: ${warning_type}
+    entry: \"${entry_path}\"
+    last_confirmed: \"${last_task_id}\"
+    distance: ${distance}"
+
+  moira_yaml_block_append "$status_file" "warnings" "$warning_entry"
 }

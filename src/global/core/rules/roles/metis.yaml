@@ -32,6 +32,7 @@ knowledge_access:
   patterns: L1
   quality_map: L1
   failures: L0
+  libraries: null
 
 quality_checklist: q2-soundness
 

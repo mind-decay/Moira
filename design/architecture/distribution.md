@@ -235,6 +235,7 @@ After installation, `~/.claude/` contains:
 │   │   ├── orchestrator.md               # Main orchestrator skill
 │   │   ├── gates.md                      # Gate presentation templates
 │   │   ├── dispatch.md                   # Agent dispatch instructions
+│   │   ├── reflection.md                 # Reflection dispatch skill
 │   │   └── errors.md                     # Error handling procedures
 │   ├── statusline/
 │   │   └── context-status.sh             # Claude Code status line (context tracking)
@@ -244,8 +245,10 @@ After installation, `~/.claude/` contains:
 │   ├── templates/
 │   │   ├── project-claude-md.tmpl        # CLAUDE.md template for projects
 │   │   ├── budgets.yaml.tmpl             # Budget configuration template
-│   │   └── scanners/                     # Scanner instruction templates
-│   │       └── deep/                     # Deep scan templates
+│   │   ├── scanners/                     # Scanner instruction templates
+│   │   │   └── deep/                     # Deep scan templates
+│   │   ├── reflection/                   # Reflection prompt templates
+│   │   └── judge/                        # LLM-judge prompt templates
 │   ├── schemas/                          # YAML schema definitions
 │   │   ├── budgets.schema.yaml
 │   │   ├── config.schema.yaml
@@ -263,6 +266,8 @@ After installation, `~/.claude/` contains:
 │       ├── budget.sh                     # Budget tracking utilities
 │       ├── knowledge.sh                  # Knowledge read/write utilities
 │       ├── quality.sh                    # Quality criteria utilities
+│       ├── reflection.sh                 # Reflection dispatch utilities
+│       ├── judge.sh                      # LLM-judge invocation utilities
 │       ├── rules.sh                      # Rule assembly utilities
 │       ├── scaffold.sh                   # Directory scaffold generator
 │       ├── settings-merge.sh             # Settings.json merge utility
