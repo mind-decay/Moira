@@ -1,0 +1,44 @@
+_meta:
+  name: mcp-registry
+  file: mcp-registry.yaml
+  location: .claude/moira/config/
+  git: committed
+  description: MCP tools registry — available servers and tool metadata
+
+servers:
+  type: map
+  description: "Map of MCP server names to their configuration"
+  value_schema:
+    type:
+      type: enum
+      enum: [documentation, design, code, search, communication, other]
+      required: true
+    tools:
+      type: map
+      description: "Map of tool names to their metadata"
+      value_schema:
+        purpose:
+          type: string
+          required: true
+        cost:
+          type: enum
+          enum: [low, medium, medium-high, high]
+          required: true
+        reliability:
+          type: enum
+          enum: [low, medium, high]
+          required: true
+        when_to_use:
+          type: string
+          required: true
+        when_NOT_to_use:
+          type: string
+          required: true
+        budget_impact:
+          type: string
+          required: false
+          description: "Approximate token impact per call (human-readable)"
+        token_estimate:
+          type: number
+          required: false
+          description: "Estimated tokens per call for budget calculations"
