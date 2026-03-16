@@ -218,6 +218,27 @@ Still remaining: {remaining items}
 
 State: record gate as `moira_state_gate("budget_overflow_e4", decision)`
 
+### Critical Level Override
+
+When `context_budget.warning_level` is `critical` (>60%), E4-BUDGET mid-execution recovery changes:
+
+1. Instead of spawning a continuation agent, route to mandatory checkpoint flow
+2. Call `moira_checkpoint_create <task_id> <current_step> context_limit`
+3. Display context warning with mandatory checkpoint message:
+
+```
+🔴 CONTEXT BUDGET CRITICAL (>60%)
+Orchestrator context usage has reached critical level.
+Mandatory checkpoint — cannot continue in this session.
+
+Progress saved. Resume in a new session:
+→ /moira resume
+```
+
+4. Stop pipeline — user must resume in new session via `/moira resume`
+
+This overrides the default E4-BUDGET mid-exec recovery only at critical level. Normal and warning levels continue to use the standard continuation agent flow.
+
 ---
 
 ## E5-QUALITY: Quality Gate Failed
@@ -358,6 +379,8 @@ Recommendation: {recommendation}
 ### Escalation
 
 After retry failure → present agent failure gate. User decides next action.
+
+**Note:** Resume validation failures (inconsistent, branch_changed, external_changes) are command-level errors handled by `/moira resume` command, not pipeline-level error handlers.
 
 ---
 
@@ -614,6 +637,38 @@ Re-dispatching Hephaestus (implementer) with reduced scope...
 
 - Pre-execution: follows E4-BUDGET escalation (double overflow → user gate)
 - Post-execution: follows E5-QUALITY escalation (max retries → user gate)
+
+---
+
+## DAG Cycle Detection
+
+Not a separate error code — handled inline during epic decomposition.
+
+### Detection
+
+When `moira_epic_validate_dag` returns `cycle_detected` during Decomposition Pipeline planning.
+
+### Display
+
+```
+🔴 EPIC DECOMPOSITION: CIRCULAR DEPENDENCIES
+Epic decomposition contains circular dependencies: {cycle_path}
+
+1) modify — send back to Daedalus (planner) with cycle feedback
+2) abort  — cancel task
+```
+
+### Recovery
+
+- `modify`: re-dispatch Daedalus (planner) with the cycle path as feedback, requesting a DAG without circular dependencies
+- `abort`: stop pipeline, record failure
+
+No automatic retry — cycles are a planning error, not a transient failure.
+
+### State Updates
+
+- Recorded as part of decomposition gate flow (not a separate gate)
+- If `modify`: Daedalus (planner) re-invoked with cycle feedback appended to original context
 
 ---
 

@@ -269,6 +269,91 @@ On `checkpoint`: write manifest.yaml with current progress, set status to `check
 
 ---
 
+### Tweak Scope Gate
+
+Presented when tweak scope check detects files outside original task scope.
+
+```
+═══════════════════════════════════════════
+ TWEAK: Scope Check
+═══════════════════════════════════════════
+ Tweak would modify files outside original task scope:
+ {list of out-of-scope files}
+
+ Original task modified: {list of in-scope files}
+
+ 1) force-tweak — apply tweak anyway (may cause inconsistencies)
+ 2) new-task    — create separate task for out-of-scope changes
+ 3) cancel      — keep current result
+═══════════════════════════════════════════
+```
+
+**Gate decision mapping:** `force-tweak` → `proceed` (note: "force-tweak"), `new-task` → `modify` (note: "new-task recommended"), `cancel` → `abort`.
+
+---
+
+### Redo Re-entry Gate
+
+Presented when user chooses redo at final gate.
+
+```
+═══════════════════════════════════════════
+ REDO — Choose Re-entry Point
+═══════════════════════════════════════════
+ What prompted the redo?
+ > {user reason}
+
+ Re-enter pipeline at:
+ 1) architecture — change approach entirely (preserves exploration + analysis)
+ 2) plan         — keep architecture, change execution plan
+ 3) implement    — keep plan, re-implement from scratch
+ 4) cancel       — keep current result
+═══════════════════════════════════════════
+```
+
+**Gate decision mapping:** `architecture/plan/implement` → `proceed` (note: "re-entry: {point}"), `cancel` → `abort`.
+
+---
+
+### Xref Warning Gate
+
+Presented when xref cross-reference inconsistency detected at final gate.
+
+```
+═══════════════════════════════════════════
+ ⚠ XREF CONSISTENCY WARNING
+═══════════════════════════════════════════
+ {per-inconsistency block:}
+ Modified: {dependent_file}
+ Canonical: {canonical_source}
+ Field: {field}
+ Issue: {description of mismatch}
+
+ 1) fix    — dispatch Hephaestus (implementer) to synchronize
+ 2) ignore — proceed (inconsistency remains)
+═══════════════════════════════════════════
+```
+
+**Gate decision mapping:** `fix` → `modify`, `ignore` → `proceed`.
+
+---
+
+### Passive Audit Warning
+
+Inline warning displayed during pipeline execution. Non-blocking — no gate ID, no user response required.
+
+```
+⚠ {warning_type}: {description}
+{details if any}
+(Non-blocking — recorded in status.yaml warnings)
+```
+
+**Warning types:** `STALE LOCKS`, `ORPHANED STATE`, `KNOWLEDGE DRIFT`, `CONVENTION DRIFT`
+
+Passive audit warnings are informational only. They do not create gate state and are recorded in `status.yaml` `warnings[]` block using existing schema fields.
+
+---
+
 ### Final Gate
 
 After pipeline completion (after review/testing in Quick/Standard, after integration in Full/Decomposition).
@@ -292,6 +377,10 @@ After pipeline completion (after review/testing in Quick/Standard, after integra
 4) diff  — Show full git diff
 5) test  — Run full test suite
 ```
+
+**Completion action flows:**
+- `tweak` triggers the tweak pipeline (orchestrator Section 7)
+- `redo` triggers the redo pipeline (orchestrator Section 7)
 
 **Gate state:** Always record gate: write equivalent of `moira_state_gate("final_gate", "proceed")` to `current.yaml` and `status.yaml`. Then handle completion action separately.
 
