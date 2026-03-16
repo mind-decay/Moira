@@ -224,19 +224,26 @@ _moira_knowledge_exp_decay() {
     return 0
   fi
 
-  # Compute λ × d × 100 (exponent scaled by 10000)
-  local exponent=$(( lambda * distance ))
+  # Use repeated multiplication approach:
+  # e^(-λd) = (e^(-λ))^d
+  # For each unit distance, multiply by decay factor.
+  # Decay factor per step = (100 - λ) / 100 (first-order approx of e^(-λ/100))
+  # Work in scale of 10000 for precision.
+  local confidence=10000  # starts at 100.00%
+  local decay_factor=$(( 100 - lambda ))  # per-step multiplier (×100)
 
-  # Integer approximation of e^(-x/100) × 100
-  # Using Taylor series: e^(-x) ≈ 1 - x + x²/2 - x³/6 + x⁴/24
-  # where x = exponent/100
-  # Result = 100 × (1 - x/100 + x²/20000 - x³/6000000 + x⁴/2400000000)
-  # Simplified for integer math:
-  local x=$exponent
-  local result=$(( 10000 - x * 100 + x * x / 2 - x * x * x / 60000 ))
+  local i
+  for (( i=0; i<distance; i++ )); do
+    confidence=$(( confidence * decay_factor / 100 ))
+    # Early exit if already zero
+    if [[ $confidence -le 0 ]]; then
+      echo "0"
+      return 0
+    fi
+  done
 
-  # Clamp to valid range
-  result=$(( result / 100 ))
+  # Convert from ×10000 to ×100
+  local result=$(( confidence / 100 ))
   if [[ $result -lt 0 ]]; then result=0; fi
   if [[ $result -gt 100 ]]; then result=100; fi
 

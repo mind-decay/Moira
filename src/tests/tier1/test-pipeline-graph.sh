@@ -154,6 +154,11 @@ bfs_reachable() {
     return 0
   fi
 
+  # If the start node is excluded, target is unreachable
+  if [ -n "$excluded" ] && [ "$start" = "$excluded" ]; then
+    return 1
+  fi
+
   # BFS through sequential adjacency, skipping excluded
   local visited=""
   local queue="$start"
@@ -176,10 +181,13 @@ bfs_reachable() {
     IFS="$IFS_SAVE"
     queue="${rest# }"
 
-    # Skip if already visited
+    # Skip if already visited or excluded
     case " $visited " in
       *" $current "*) continue ;;
     esac
+    if [ "$current" = "$excluded" ]; then
+      continue
+    fi
     visited="$visited $current"
 
     # Check if we reached the target
