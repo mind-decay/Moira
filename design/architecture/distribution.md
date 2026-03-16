@@ -226,11 +226,12 @@ After installation, `~/.claude/` contains:
 │   │   │       └── q5-coverage.yaml
 │   │   ├── response-contract.yaml
 │   │   ├── knowledge-access-matrix.yaml
-│   │   └── pipelines/                    # Pipeline definitions (D-035)
-│   │       ├── quick.yaml
-│   │       ├── standard.yaml
-│   │       ├── full.yaml
-│   │       └── decomposition.yaml
+│   │   ├── pipelines/                    # Pipeline definitions (D-035)
+│   │   │   ├── quick.yaml
+│   │   │   ├── standard.yaml
+│   │   │   ├── full.yaml
+│   │   │   └── decomposition.yaml
+│   │   └── xref-manifest.yaml           # Cross-reference dependency map (D-077)
 │   ├── skills/
 │   │   ├── orchestrator.md               # Main orchestrator skill
 │   │   ├── gates.md                      # Gate presentation templates
@@ -248,7 +249,8 @@ After installation, `~/.claude/` contains:
 │   │   ├── scanners/                     # Scanner instruction templates
 │   │   │   └── deep/                     # Deep scan templates
 │   │   ├── reflection/                   # Reflection prompt templates
-│   │   └── judge/                        # LLM-judge prompt templates
+│   │   ├── judge/                        # LLM-judge prompt templates
+│   │   └── audit/                        # Audit instruction templates
 │   ├── schemas/                          # YAML schema definitions
 │   │   ├── budgets.schema.yaml
 │   │   ├── config.schema.yaml
@@ -259,7 +261,9 @@ After installation, `~/.claude/` contains:
 │   │   ├── queue.schema.yaml
 │   │   ├── status.schema.yaml
 │   │   ├── telemetry.schema.yaml
-│   │   └── mcp-registry.schema.yaml
+│   │   ├── mcp-registry.schema.yaml
+│   │   ├── metrics.schema.yaml
+│   │   └── audit.schema.yaml
 │   └── lib/
 │       ├── bootstrap.sh                  # Project bootstrap logic
 │       ├── bench.sh                      # Behavioral test runner
@@ -274,7 +278,10 @@ After installation, `~/.claude/` contains:
 │       ├── state.sh                      # State management utilities
 │       ├── task-id.sh                    # Task ID generation
 │       ├── yaml-utils.sh                # YAML read/write/validate (pure bash)
-│       └── mcp.sh                        # MCP integration utilities
+│       ├── mcp.sh                        # MCP integration utilities
+│       ├── retry.sh                      # Retry logic utilities
+│       ├── audit.sh                      # Audit engine utilities
+│       └── metrics.sh                    # Metrics collection utilities
 │
 ├── commands/moira/                       # User-facing slash commands (D-030)
 │   ├── init.md                           # /moira:init
@@ -417,6 +424,8 @@ This means: when another developer clones the repo and runs `/moira init`, they 
 ---
 
 ## Update — /moira upgrade
+
+(Phase 12 deliverable — not yet implemented)
 
 ```bash
 > /moira upgrade

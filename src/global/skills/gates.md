@@ -110,7 +110,7 @@ After Apollo (classifier) completes.
 3) abort   — Cancel task
 ```
 
-**Gate state:** `moira_state_gate("classification_gate", decision)`
+**Gate state:** Record gate: write equivalent of `moira_state_gate("classification_gate", decision)` to `current.yaml` and `status.yaml`
 
 ---
 
@@ -125,6 +125,8 @@ After Metis (architect) completes.
 - Show: alternatives considered and why rejected
 - Show: impact on files and components
 - For Full Pipeline: present alternatives as choices (user CHOOSES, not just approves)
+
+**Note:** The Decomposition Pipeline uses the Standard variant (proceed/details/modify/abort).
 
 **Options (Standard Pipeline):**
 ```
@@ -146,7 +148,7 @@ After Metis (architect) completes.
 
 When a user selects an alternative by number, record gate decision as `proceed` with the selected alternative number noted in the `note` field (e.g., `note: 'Selected alternative 2'`).
 
-**Gate state:** `moira_state_gate("architecture_gate", decision)`
+**Gate state:** Record gate: write equivalent of `moira_state_gate("architecture_gate", decision)` to `current.yaml` and `status.yaml`
 
 ---
 
@@ -181,7 +183,7 @@ After Daedalus (planner) completes.
 **Option handling:**
 - `rearchitect` — Re-enter pipeline at architecture step. Preserves Explorer and Analyst data. Metis (architect) receives original exploration/analysis data plus user's architectural feedback.
 
-**Gate state:** `moira_state_gate("plan_gate", decision)`
+**Gate state:** Record gate: write equivalent of `moira_state_gate("plan_gate", decision)` to `current.yaml` and `status.yaml`
 
 ---
 
@@ -206,7 +208,7 @@ After each phase iteration in Full Pipeline (after Aletheia (tester) completes p
 4) abort      — Stop implementation
 ```
 
-**Gate state:** `moira_state_gate("phase_gate_{n}", decision)`
+**Gate state:** Record gate: write equivalent of `moira_state_gate("phase_gate_{n}", decision)` to `current.yaml` and `status.yaml`
 
 On `checkpoint`: write manifest.yaml with current progress, set status to `checkpointed`.
 
@@ -238,11 +240,11 @@ After Daedalus (planner) decomposes an epic.
 4) abort   — Cancel task
 ```
 
-**Gate state:** `moira_state_gate("decomposition_gate", decision)`
+**Gate state:** Record gate: write equivalent of `moira_state_gate("decomposition_gate", decision)` to `current.yaml` and `status.yaml`
 
 ---
 
-### Subtask Gate
+### Per-Task Gate
 
 After each sub-task iteration in Decomposition Pipeline (after sub-pipeline completes).
 
@@ -261,7 +263,7 @@ After each sub-task iteration in Decomposition Pipeline (after sub-pipeline comp
 3) abort      — Stop execution
 ```
 
-**Gate state:** `moira_state_gate("subtask_gate_{n}", decision)`
+**Gate state:** Record gate: write equivalent of `moira_state_gate("per_task_gate_{n}", decision)` to `current.yaml` and `status.yaml`
 
 On `checkpoint`: write manifest.yaml with current progress, set status to `checkpointed`.
 
@@ -291,11 +293,13 @@ After pipeline completion (after review/testing in Quick/Standard, after integra
 5) test  — Run full test suite
 ```
 
-**Gate state:** Always `moira_state_gate("final_gate", "proceed")`. Then handle completion action separately.
+**Gate state:** Always record gate: write equivalent of `moira_state_gate("final_gate", "proceed")` to `current.yaml` and `status.yaml`. Then handle completion action separately.
 
 ---
 
 ## Quality Checkpoint
+
+<!-- Quality Checkpoint is a conditional gate defined here, not in pipeline YAML step sequences. It is triggered dynamically when a quality-gate agent returns fail_warning. -->
 
 Presented when a quality-gate agent returns `fail_warning` verdict (zero critical findings, but 1+ warning findings).
 
@@ -334,7 +338,7 @@ This is a CONDITIONAL gate — only presented when warnings exist. It does NOT r
 
 **Finding display:** Use `moira_quality_format_warnings()` from `quality.sh` to format warning items.
 
-**Gate state:** `moira_state_gate("quality_checkpoint_{gate}", decision)`
+**Gate state:** Record gate: write equivalent of `moira_state_gate("quality_checkpoint_{gate}", decision)` to `current.yaml` and `status.yaml`
 
 ---
 
@@ -407,16 +411,16 @@ See `errors.md` → E6-AGENT → Display (After Failure) for template.
 
 ## Gate State Management
 
-For ALL gates:
+For ALL gates, the orchestrator writes YAML directly (see `orchestrator.md` Section 1 — State Management Mechanism):
 
-1. **Before presenting gate:** set `gate_pending` in `current.yaml` via `moira_yaml_set`
-2. **After user decision:** record via `moira_state_gate(gate_name, decision)`
+1. **Before presenting gate:** write `gate_pending: {gate_id}` to `current.yaml`
+2. **After user decision:** write the equivalent of `moira_state_gate(gate_name, decision)` — update `current.yaml` (`gate_pending: null`) and append to `status.yaml` `gates[]` array (see `lib/state.sh` for field logic)
    - `decision` must be one of: `proceed`, `modify`, `abort`
    - `rearchitect` (plan gate only) records as `modify` with note indicating re-architecture requested.
    - For error gates: map user choice to nearest gate decision
      - answer/point/skip/upgrade/split/reduce/continue/a/b → `proceed` (continuing with modification)
      - abort/rollback → `abort`
-3. **Gate clears:** `moira_state_gate()` sets `gate_pending: null` in `current.yaml`
+3. **Gate clears:** the gate write sets `gate_pending: null` in `current.yaml`
 
 ### Agent Naming Convention
 

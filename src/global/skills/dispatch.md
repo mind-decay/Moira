@@ -37,10 +37,12 @@ Used for:
 | Standard | Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Metis, Daedalus |
 | Full | Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Metis, Daedalus |
 | Decomposition | Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Metis, Daedalus |
+| Any | Mnemosyne (reflector) | dedicated dispatch via `reflection.md` |
+| Any | Argus (auditor) | dedicated dispatch via `/moira audit` templates |
 
 **Note:** Mnemosyne (reflector) dispatch bypasses the standard dispatch flow.
 The `reflection.md` skill handles prompt assembly directly, using reflection templates
-instead of the standard simplified/full assembly paths. Argus (auditor) uses template-based dispatch when invoked via `/moira audit`. The audit command reads domain-specific templates from `~/.claude/moira/templates/audit/` and uses them as the agent prompt. Simplified assembly is the fallback if templates are missing.
+instead of the standard simplified/full assembly paths. Argus (auditor) uses template-based dispatch when invoked via `~/.claude/commands/moira/audit.md`. The audit command reads domain-specific templates from `~/.claude/moira/templates/audit/` and uses them as the agent prompt. Simplified assembly is the fallback if templates are missing.
 
 ### Steps
 
@@ -195,13 +197,13 @@ If the response does not contain a valid `STATUS:` line:
 
 1. Call state transition to mark step as in_progress:
    - Write to `current.yaml`: step = {step_id}, step_status = in_progress
-   - Use `moira_state_transition()` pattern (validate step name, set status)
+   - Write the equivalent of `moira_state_transition()` updates to `current.yaml` (see `lib/state.sh` for field logic)
 2. Log: "Dispatching {Name} ({role})..."
 
 ### After Successful Dispatch
 
 1. Record agent completion:
-   - Use `moira_state_agent_done()` pattern (step, role, status, duration, tokens, summary)
+   - Write the equivalent of `moira_state_agent_done()` updates to `current.yaml` and `status.yaml` (see `lib/state.sh` for field logic)
 2. If a gate follows this step (per pipeline definition):
    - Set `gate_pending` in `current.yaml`
    - Present gate (per `gates.md`)
@@ -276,6 +278,8 @@ For agents with quality gate assignments, append the quality checklist to their 
 | Daedalus (planner) | Q3 | q3-feasibility.yaml |
 | Themis (reviewer) | Q4 | q4-correctness.yaml |
 | Aletheia (tester) | Q5 | q5-coverage.yaml |
+
+Agents not listed (Apollo, Hermes, Hephaestus, Mnemosyne, Argus) have no quality gate assignment.
 
 ### Injection Path
 

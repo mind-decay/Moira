@@ -38,9 +38,15 @@ Moira is a meta-orchestration framework for Claude Code that transforms Claude f
 - [Constitution](CONSTITUTION.md) — inviolable system invariants
 - [Self-Protection System](subsystems/self-protection.md) — three-layer defense against degradation
 
+### Implementation Specs
+Active implementation specs live in `design/specs/` by convention. Completed specs are moved to `design/specs/archive/`.
+
 ### Decisions
 - [Decision Log](decisions/log.md) — all architectural decisions with reasoning
 - [Blocker Resolution Design](specs/archive/2026-03-11-blocker-resolution-design.md) — pre-implementation review: Classifier, YAML schemas, distribution, guard mechanism, bootstrap scanners
+
+### Guides
+- [Metrics Guide](guides/metrics-guide.md) — what metrics exist, how to read them, when to react
 
 ### UX
 - [Command Reference](architecture/commands.md) — user-facing commands and flows

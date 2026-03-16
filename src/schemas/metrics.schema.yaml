@@ -193,11 +193,11 @@ fields:
         required: true
       pipeline:
         type: enum
-        values: [quick, standard, full, decomposition]
+        enum: [quick, standard, full, decomposition]
         required: true
       size:
         type: enum
-        values: [small, medium, large, epic]
+        enum: [small, medium, large, epic]
         required: true
       first_pass:
         type: boolean

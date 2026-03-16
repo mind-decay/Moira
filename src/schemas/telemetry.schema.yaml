@@ -1,7 +1,3 @@
-# NOTE: This schema uses nested object/fields format that moira_yaml_validate
-# does not currently support. Telemetry validation requires validator enhancement.
-# See audit finding M-14 (2026-03-14).
-#
 # Telemetry Schema — Per-Task Metrics
 # Source: design/subsystems/testing.md → Per-Task Telemetry Format
 # Privacy: numbers and enums only, never content strings (D-027)
@@ -31,150 +27,135 @@ fields:
     required: true
     description: "Moira version at time of execution"
 
-  pipeline:
-    type: object
+  # --- Pipeline ---
+  pipeline.type:
+    type: enum
+    enum: [quick, standard, full, decomposition]
     required: true
-    fields:
-      type:
-        type: enum
-        values: [quick, standard, full, decomposition]
-        required: true
-        description: "Pipeline type used"
-      classification_confidence:
-        type: enum
-        values: [high, low]
-        required: true
-        description: "Classifier confidence level"
-      classification_correct:
-        type: boolean
-        required: false
-        default: null
-        description: "Whether classification was correct (set by reflector)"
+    description: "Pipeline type used"
+  pipeline.classification_confidence:
+    type: enum
+    enum: [high, low]
+    required: true
+    description: "Classifier confidence level"
+  pipeline.classification_correct:
+    type: boolean
+    required: false
+    default: null
+    description: "Whether classification was correct (set by reflector)"
 
-  execution:
-    type: object
+  # --- Execution ---
+  execution.agents_called:
+    type: array
     required: true
-    fields:
-      agents_called:
-        type: array
+    description: "Per-agent execution records"
+    item_fields:
+      role:
+        type: enum
+        enum: [classifier, explorer, analyst, architect, planner, implementer, reviewer, tester, reflector, auditor]
         required: true
-        description: "Per-agent execution records"
-        item_fields:
-          role:
-            type: enum
-            values: [classifier, explorer, analyst, architect, planner, implementer, reviewer, tester, reflector, auditor]
-            required: true
-          status:
-            type: enum
-            values: [success, failure, blocked, budget_exceeded]
-            required: true
-          context_pct:
-            type: integer
-            required: false
-            description: "Estimated context usage percentage"
-          duration_sec:
-            type: integer
-            required: false
-            description: "Execution duration in seconds"
-      gates:
-        type: array
+      status:
+        type: enum
+        enum: [success, failure, blocked, budget_exceeded]
         required: true
-        description: "Gate decision records"
-        item_fields:
-          name:
-            type: string
-            required: true
-            description: "Gate name — base names (classification_gate, architecture_gate, etc.) may have numeric suffixes for repeating gates"
-          result:
-            type: enum
-            values: [proceed, modify, abort]
-            required: true
-            description: "Gate decision"
-          retry_count:
-            type: integer
-            required: false
-            default: 0
-      retries_total:
-        type: integer
+      context_pct:
+        type: number
+        required: false
+        description: "Estimated context usage percentage"
+      duration_sec:
+        type: number
+        required: false
+        description: "Execution duration in seconds"
+  execution.gates:
+    type: array
+    required: true
+    description: "Gate decision records"
+    item_fields:
+      name:
+        type: string
         required: true
-        default: 0
-        description: "Total retry count across all error types"
-      budget_total_tokens:
-        type: integer
+        description: "Gate name — base names (classification_gate, architecture_gate, etc.) may have numeric suffixes for repeating gates"
+      result:
+        type: enum
+        enum: [proceed, modify, abort]
+        required: true
+        description: "Gate decision"
+      retry_count:
+        type: number
         required: false
         default: 0
-        description: "Estimated total token usage across all agents"
-
-  quality:
-    type: object
+  execution.retries_total:
+    type: number
     required: true
-    fields:
-      reviewer_findings:
-        type: object
-        required: false
-        fields:
-          critical:
-            type: integer
-            default: 0
-          warning:
-            type: integer
-            default: 0
-          suggestion:
-            type: integer
-            default: 0
-      first_pass_accepted:
-        type: boolean
-        required: false
-        description: "Whether reviewer accepted on first pass"
-      # Final results only — diff/test are intermediate actions that loop back to final gate
-      final_result:
-        type: enum
-        values: [done, tweak, redo, abort]
-        required: true
-        description: "Final completion action chosen by user"
+    default: 0
+    description: "Total retry count across all error types"
+  execution.budget_total_tokens:
+    type: number
+    required: false
+    default: 0
+    description: "Estimated total token usage across all agents"
 
-  compliance:
-    type: object
+  # --- Quality ---
+  quality.reviewer_findings.critical:
+    type: number
+    required: false
+    default: 0
+  quality.reviewer_findings.warning:
+    type: number
+    required: false
+    default: 0
+  quality.reviewer_findings.suggestion:
+    type: number
+    required: false
+    default: 0
+  quality.first_pass_accepted:
+    type: boolean
+    required: false
+    description: "Whether reviewer accepted on first pass"
+  # Final results only — diff/test are intermediate actions that loop back to final gate
+  quality.final_result:
+    type: enum
+    enum: [done, tweak, redo, abort]
     required: true
-    fields:
-      orchestrator_violation_count:
-        type: integer
-        required: true
-        default: 0
-        description: "Count of orchestrator tool-use violations detected by guard.sh"
+    description: "Final completion action chosen by user"
 
-  structural:
-    type: object
+  # --- Compliance ---
+  compliance.orchestrator_violation_count:
+    type: number
     required: true
-    fields:
-      constitutional_pass:
-        type: boolean
-        required: true
-        description: "Whether all constitutional invariants held"
-      violations:
-        type: array
-        required: true
-        default: []
-        description: "List of constitutional violation codes (if any)"
-        item_type: string
-        item_pattern: "Art-[0-9]+\\.[0-9]+"
+    default: 0
+    description: "Count of orchestrator tool-use violations detected by guard.sh"
 
+  # --- Structural ---
+  structural.constitutional_pass:
+    type: boolean
+    required: true
+    description: "Whether all constitutional invariants held"
+  structural.violations:
+    type: array
+    required: true
+    default: []
+    description: "List of constitutional violation codes (if any)"
+    item_type: string
+    item_pattern: "Art-[0-9]+\\.[0-9]+"
+
+  # --- Budget Accuracy ---
+  # Dynamic keys: agent role names (explorer, implementer, etc.)
+  # Each has:
+  #   estimated_pct: number — estimated context usage percentage
+  #   actual_pct: number — actual context usage percentage
+  #   error: number — error ratio × 10000 ((actual-estimated)/estimated)
   budget_accuracy:
-    type: object
+    type: block
     required: false
     description: "Per-agent budget estimation accuracy for adaptive margin computation"
-    fields:
-      # Dynamic keys: agent role names (explorer, implementer, etc.)
-      # Each has:
-      #   estimated_pct: integer — estimated context usage percentage
-      #   actual_pct: integer — actual context usage percentage
-      #   error: integer — error ratio × 10000 ((actual-estimated)/estimated)
 
+  # --- MCP Calls ---
   mcp_calls:
     type: array
     required: false
     description: "MCP tool calls made during this task"
-    item_schema:
+    item_fields:
       server:
         type: string
         required: true

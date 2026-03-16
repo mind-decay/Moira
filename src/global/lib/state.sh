@@ -237,7 +237,7 @@ moira_state_write_warning() {
 
   local warning_entry="  - type: ${warning_type}
     entry: \"${entry_path}\"
-    last_confirmed: \"${last_task_id}\"
+    last_task: \"${last_task_id}\"
     distance: ${distance}"
 
   moira_yaml_block_append "$status_file" "warnings" "$warning_entry"

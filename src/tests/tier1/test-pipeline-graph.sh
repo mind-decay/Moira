@@ -386,7 +386,7 @@ EOF
     done
     $is_required || continue
 
-    # Skip if gate is on a repeatable_group sub-step (phase_gate, subtask_gate)
+    # Skip if gate is on a repeatable_group sub-step (phase_gate, per_task_gate)
     # — these gate sub-steps within a group, not the linear pipeline path
     case "$after" in
       repeatable_group.*) continue ;;

@@ -251,6 +251,8 @@ article_2_2:
     standard_pipeline_gates: ["classification", "architecture", "plan", "final"]
     full_pipeline_gates: ["classification", "architecture", "plan", "phase", "final"]
     decomposition_gates: ["classification", "architecture", "decomposition", "per_task", "final"]
+  # Gate names here are short identifiers; YAML implementations use `_gate` suffix
+  # (e.g., 'classification' → `classification_gate`).
   severity: "CONSTITUTIONAL_VIOLATION"
 
 article_4_1:

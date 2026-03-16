@@ -885,3 +885,19 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 - For (f): Bonferroni correction — too conservative with 4 metrics (each test needs p<0.0125)
 - For (g): Taylor series for exp decay — integer overflow for large exponents
 **Reasoning:** Each technique targets measurable improvements to efficiency (less waste, faster pipelines) and reliability (fewer false alarms, better regression detection, provable invariants). All changes are backward compatible with existing behavior during cold start.
+
+## D-095: max_attempts Semantics Definition
+
+**Date:** 2026-03-16
+**Status:** Accepted
+**Context:** Audit C-01 found that `max_attempts` in pipeline YAMLs was ambiguous — could mean total executions or retry count. errors.md described 2 escalating E5-QUALITY retry strategies requiring 3 total executions, but YAMLs had `max_attempts: 2`.
+**Decision:** `max_attempts` means total executions including the original attempt. E5-QUALITY gets `max_attempts: 3` for Standard/Full/Decomposition (original + simple retry + architect rethink) and `max_attempts: 2` for Quick (original + simple retry). E6-AGENT gets `max_attempts: 2` everywhere (original + 1 retry).
+**Consequences:** The architect-rethink escalation path in errors.md is now reachable. All pipeline YAMLs include a comment defining the semantics.
+
+## D-096: Orchestrator State Management via Direct YAML Writes
+
+**Date:** 2026-03-16
+**Status:** Accepted
+**Context:** Audit H-01 found that skills reference shell functions (moira_state_gate, moira_state_transition, etc.) as if the orchestrator calls them, but orchestrator.md Section 1 explicitly prohibits bash execution and allowed-tools excludes Bash.
+**Decision:** The orchestrator manages state by directly reading and writing YAML files using Read/Write tools. Shell functions in lib/ serve as canonical reference for the logic (which fields, which values, which files). Skills that reference shell functions mean "perform the equivalent YAML writes."
+**Consequences:** No new infrastructure needed. Shell functions remain single source of truth for state logic. Skills use consistent language pattern: "write the equivalent of function_name() updates."

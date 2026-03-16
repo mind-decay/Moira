@@ -64,7 +64,7 @@ User → /moira <task>
   Orchestrator spawns: Classifier agent
   │
   Classifier reads: project-model summary, task description
-  Classifier writes: .moira/state/tasks/{id}/classification.md
+  Classifier writes: .claude/moira/state/tasks/{id}/classification.md
   Classifier returns: "STATUS: success | SUMMARY: medium task | NEXT: explore+analyze"
   │
   Orchestrator reads: classifier summary (not full file)
@@ -161,6 +161,7 @@ User → /moira <task>
 │       ├── judge.sh
 │       ├── metrics.sh
 │       ├── audit.sh
+│       ├── bench.sh
 │       └── retry.sh
 │
 ├── commands/moira/                    # User-facing slash commands (D-030)
@@ -181,7 +182,7 @@ User → /moira <task>
 ├── config.yaml                    # Project configuration
 ├── core/
 │   └── rules/
-│       ├── base.yaml              # Layer 1: universal rules (inviolable + overridable)
+│       ├── base.yaml              # Layer 1: project-adapted copy (base from global, customizable by init)
 │       ├── roles/                 # Layer 2: per-agent role rules (D-034 Greek names)
 │       │   ├── apollo.yaml        # Classifier
 │       │   ├── hermes.yaml        # Explorer
@@ -243,6 +244,9 @@ User → /moira <task>
 │   ├── current.yaml              # Current task state machine
 │   ├── queue.yaml                # Task queue (for epics)
 │   ├── bypass-log.yaml           # Escape hatch usage log
+│   ├── budget-accuracy.yaml      # Budget estimation accuracy tracking
+│   ├── retry-stats.yaml          # Retry outcome statistics
+│   ├── audit-pending.yaml        # Pending audit trigger flag
 │   ├── tasks/
 │   │   └── {task-id}/
 │   │       ├── input.md          # Original task description
@@ -264,7 +268,8 @@ User → /moira <task>
 │   │           └── ...
 │   ├── reflection/
 │   │   ├── pattern-keys.yaml         # Pattern key registry (D-089, gitignored)
-│   │   └── deep-reflection-counter.yaml  # Counter for periodic deep reflection (D-092)
+│   │   ├── deep-reflection-counter.yaml  # Counter for periodic deep reflection (D-092)
+│   │   └── proposals.yaml            # Pending rule change proposals
 │   ├── violations.log
 │   ├── tool-usage.log
 │   ├── budget-tool-usage.log
@@ -272,7 +277,9 @@ User → /moira <task>
 │   ├── metrics/
 │   │   └── monthly-{YYYY-MM}.yaml
 │   └── audits/
-│       └── {date}-audit.md
+│       ├── {date}-audit.md
+│       ├── {date}-audit.yaml
+│       └── {date}-{domain}.yaml
 │
 └── hooks/                        # Hook executables live at global layer; registered via settings.json
 ```

@@ -27,6 +27,7 @@ knowledge_access:
   conventions: null
   decisions: L0
   patterns: null
+  quality_map: null
   failures: L0
   libraries: null
 

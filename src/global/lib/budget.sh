@@ -35,7 +35,7 @@ _MOIRA_BUDGET_ORCH_PER_STEP=500
 _MOIRA_BUDGET_ORCH_PER_GATE=2000
 
 # ── _moira_budget_get_agent_budget <role> [config_path] ───────────────
-# Look up agent budget: budgets.yaml → config.yaml → hardcoded defaults
+# Look up agent budget: budgets.yaml → config.yaml → role definition YAML → hardcoded defaults
 _moira_budget_get_agent_budget() {
   local role="$1"
   local config_path="${2:-}"
@@ -49,6 +49,14 @@ _moira_budget_get_agent_budget() {
   # Try config.yaml fallback
   if [[ -z "$budget" && -n "$config_path" && -f "$config_path/config.yaml" ]]; then
     budget=$(moira_yaml_get "$config_path/config.yaml" "budgets.per_agent.${role}" 2>/dev/null) || true
+  fi
+
+  # Try role definition YAML fallback
+  if [[ -z "$budget" ]]; then
+    local role_file="${HOME}/.claude/moira/core/rules/roles/${role}.yaml"
+    if [[ -f "$role_file" ]]; then
+      budget=$(moira_yaml_get "$role_file" "budget" 2>/dev/null) || true
+    fi
   fi
 
   # Hardcoded defaults fallback

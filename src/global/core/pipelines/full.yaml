@@ -152,6 +152,7 @@ gates:
   - id: final_gate
     after_step: integration
     required: true
+    # NOTE: These are completion actions, not gate decisions. Gate is always recorded as "proceed" (see gates.md).
     options:
       - id: done
         description: "Accept result"
@@ -164,6 +165,8 @@ gates:
       - id: test
         description: "Run additional tests"
 
+  # max_attempts = total executions including original (not retry count)
+  # e.g., max_attempts: 3 means original + 2 retries
 error_handlers:
   E1-INPUT:
     action: pause
@@ -189,12 +192,12 @@ error_handlers:
       then: spawn_new_agent
   E5-QUALITY:
     action: retry
-    max_attempts: 2
+    max_attempts: 3
     on_max: escalate
     display: quality_failure_gate
   E6-AGENT:
     action: retry
-    max_attempts: 1
+    max_attempts: 2
     on_max: diagnose_and_escalate
     display: agent_failure_gate
   E7-DRIFT:

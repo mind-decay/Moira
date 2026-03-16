@@ -472,6 +472,7 @@ moira_rules_assemble_instruction() {
     echo "SUMMARY: <1-2 sentences>"
     echo "ARTIFACTS: [<file paths>]"
     echo "NEXT: <recommended next step>"
+    echo "QUALITY: <gate>=<verdict> (<critical>C/<warning>W/<suggestion>S)  [only if quality gate assigned]"
     echo ""
     echo "Write all detailed output to artifact files. Return ONLY the status summary above."
     echo ""

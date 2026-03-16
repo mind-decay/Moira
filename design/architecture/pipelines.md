@@ -9,7 +9,7 @@ First step of ANY task. Classifier agent determines size and pipeline.
 | **Small** | 1-2 files, no architecture decisions, local context | Quick | 2 (classify + final) |
 | **Medium** | 3-10 files, needs project context, no new entities | Standard | 4 (classify, arch, plan, final) |
 | **Large** | New entities, architecture changes, >10 files | Full | 5+ (classify, arch, plan, per-phase, final) |
-| **Epic** | Multiple related tasks, requires decomposition | Decomposition | Many (classify, decomp, per-task, final) |
+| **Epic** | Multiple related tasks, requires decomposition | Decomposition | Many (classify, arch, decomp, per-task, final) |
 
 Classifier also reports **confidence**: high or low.
 - High confidence + Small → Quick Pipeline
@@ -37,7 +37,7 @@ USER → task description
   │   (loads conventions L2, project context minimal)
   │
   ├─ Reviewer → quick review
-  │   └─ If CRITICAL → Implementer retry (max 1)
+  │   └─ If CRITICAL → Implementer retry (max 2 attempts total)
   │
   └─ [GATE: user final review]
       ├─ done   — accept
@@ -97,8 +97,8 @@ USER → task description
   │       └─ Implementer-E → Batch E (shared files)
   │
   ├─ Reviewer → reviews all changes (foreground)
-  │   └─ If CRITICAL → Implementer retry (max 2 attempts total)
-  │       After 2 failures → escalate to user
+  │   └─ If CRITICAL → Implementer retry (max 3 attempts total)
+  │       After 3 failures → escalate to user
   │
   ├─ Tester → writes + runs tests (foreground)
   │
@@ -288,11 +288,13 @@ Summary of pipeline-level error handling:
 | Conflict detected | Stop, present options, gate |
 | Budget exceeded (pre-exec) | Planner auto-splits |
 | Budget exceeded (mid-exec) | Save partial, spawn new agent |
-| Quality gate failed (attempt 1) | Retry with feedback |
-| Quality gate failed (attempt 2) | Escalate to user |
+| Quality gate failed (attempts 1-2) | Retry with feedback / architect rethink |
+| Quality gate failed (attempt 3) | Escalate to user |
 | Agent crash | Retry 1x, then diagnose + escalate |
 | Semantic error (wrong content) | Reviewer catches → retry with feedback, or gate modify |
 | Agent data conflict | Architect flags → present both versions at gate |
 | Context truncation | Budget pre-check → split; Reviewer post-check → retry reduced |
 | Orchestrator context >40% | Warning |
 | Orchestrator context >60% | Recommend checkpoint |
+
+See orchestrator.md Section 6 for the full 4-tier budget threshold specification.

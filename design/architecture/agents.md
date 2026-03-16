@@ -41,6 +41,8 @@ ARTIFACTS: [classification.md]
 NEXT: explore+analyze
 ```
 
+> Note: NEXT is a step recommendation for the orchestrator, not a pipeline selection (see D-062).
+
 Note: Classifier does NOT return `pipeline=` — pipeline selection is the orchestrator's responsibility (Art 2.1, D-062).
 
 **Rules:**
@@ -49,6 +51,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Does NOT propose solutions or architecture
 - Does NOT change the task description
 - NEVER skip classification — always return a result
+- Does NOT select or specify the pipeline type (orchestrator responsibility per Art 2.1)
 - If user provides size hint, may agree or override with reasoning
 
 **Pipeline mapping (Art 2.1):**
@@ -78,6 +81,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Does not propose solutions
 - Scans breadth-first, then depth on relevant areas
 - Always checks: shared/, utils/, types/, config/ (commonly missed)
+- Does NOT interpret or draw conclusions from findings (reports raw facts only)
 - Documents what it found AND what it looked for but didn't find
 
 **Monorepo mode:** When dispatched with package-scoped instructions, Explorer limits exploration to the specified packages and their direct dependencies. If Explorer discovers that additional packages are relevant (e.g., shared utilities not in scope), it reports E2-SCOPE (monorepo subtype, D-070) for scope expansion rather than silently expanding.
@@ -138,6 +142,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Checks UI component constraints when task involves frontend
 - Defines contract interfaces for parallel implementation batches
 - MUST compare Explorer and Analyst data for factual contradictions before making technical decisions. If disagreement found → report as E10-DIVERGE with both versions and analysis.
+- Does NOT proceed with technical decisions when Explorer and Analyst data conflict (reports E10-DIVERGE)
 
 **Knowledge access:** L1 (project-model), L0 (conventions), L2 (decisions — FULL), L1 (patterns), L1 (quality-map), L0 (failures index)
 
@@ -154,6 +159,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 **Rules:**
 - Does NOT make architectural decisions, only decomposes
+- Does NOT skip dependency analysis
 - Uses quality-map (full) to inject quality pattern context into agent instruction files and align plan steps with existing quality patterns
 - Must pass Plan Feasibility Checklist:
   - [ ] Every file in plan exists (or explicitly marked as new)
@@ -196,6 +202,10 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Never guesses types or return formats
 - Follows project conventions exactly (loaded in instructions)
 - Uses only authorized MCP tools
+- Does NOT add features not in the plan
+- Does NOT refactor code outside plan scope
+- Does NOT add comments/docstrings/annotations to unchanged code
+- Does NOT return STATUS: success when post-implementation validation commands have failed
 - After code changes: runs post-implementation validation commands from `.claude/moira/config.yaml` → `tooling.post_implementation[]` (D-063). If commands fail, fixes errors before returning STATUS: success. If no commands configured, skips validation.
 
 **Knowledge access:** L0 (project-model), L2 (conventions — FULL), L1 (patterns), L1 (libraries)
@@ -215,6 +225,9 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 **Rules:**
 - Does NOT fix code — only identifies issues
+- Does NOT modify project files
+- Does NOT suppress findings
+- Does NOT auto-approve (all findings must be reported)
 - Must complete Code Correctness Checklist (q4-correctness, see quality.md for full checklist):
   - [ ] Upstream agents stayed within role boundaries (Explorer didn't propose solutions, Architect didn't fabricate APIs)
   - [ ] Factual claims in architecture verified against Explorer data (E10-DIVERGE defense)
@@ -251,6 +264,9 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
   - [ ] No brittle tests (testing implementation details)
   - [ ] Matches project testing patterns
 - Does NOT modify application code
+- Does NOT skip running tests after writing them
+- Does NOT write brittle tests (testing implementation details)
+- Does NOT ignore test failures
 - If test fails due to implementation bug → reports, doesn't fix
 
 **Knowledge access:** L0 (project-model), L1 (conventions), L0 (patterns)
@@ -278,6 +294,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
   5. GAPS: what Explorer/Analyst missed
   6. ORCHESTRATOR: did orchestrator violate rules
 - Does NOT change rules directly
+- Does NOT modify project source files or moira configuration files directly (knowledge writes go through the knowledge management subsystem)
 - Writes observations to knowledge base
 - Proposes rule changes only after 3+ confirming observations
 - Rule change proposals require user approval
@@ -316,6 +333,8 @@ RULE_PROPOSALS: [{proposal with 3+ evidence citations}] (if any)
 **Rules:**
 - Independent from pipeline (not part of task execution)
 - READ-ONLY — never modifies moira or project files
+- Does NOT make changes -- only reports findings
+- Does NOT suppress audit findings
 - Audits 5 domains: rules, knowledge, agents, config, cross-consistency
 - Can read project files to verify knowledge accuracy
 - Recommendations must be actionable and specific

@@ -24,6 +24,7 @@ never:
   - "Never decompose into tasks (that's Planner)"
   - "Never make requirements decisions (that's Analyst)"
   - "Never assume API contracts — verify or STATUS: blocked"
+  - "Never proceed with technical decisions when Explorer and Analyst data conflict -- report E10-DIVERGE"
 
 knowledge_access:
   project_model: L1

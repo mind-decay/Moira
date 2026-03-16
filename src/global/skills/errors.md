@@ -246,14 +246,14 @@ Before retrying, consult retry optimizer: `moira_retry_should_retry E5_QUALITY {
 5. Re-dispatch Reviewer
 6. If passes → continue pipeline
 
-**After 2 failures → escalate:**
+**After 3 failures → escalate:**
 
 Present quality failure gate to user.
 
 ### Display — During Retry
 
 ```
-🔄 QUALITY RETRY (attempt {n}/2)
+🔄 QUALITY RETRY (attempt {n}/3)
 Reviewer found {count} CRITICAL issue(s):
 {list of critical findings}
 
@@ -263,7 +263,7 @@ Re-dispatching Hephaestus (implementer) with feedback...
 ### Display — After Max Retries
 
 ```
-🔴 QUALITY GATE FAILED (2 attempts)
+🔴 QUALITY GATE FAILED (3 attempts)
 Step: {step_description}
 
 Attempt 1: {attempt_1_issue}
@@ -286,9 +286,9 @@ Root cause analysis:
 
 ### Escalation
 
-After 2 failures → present quality failure gate. User decides next action.
+After 3 failures → present quality failure gate. User decides next action.
 
-**Pipeline-specific:** Quick Pipeline limits E5 retries to max_attempts=1 (single retry only).
+**Pipeline-specific:** Quick Pipeline limits E5 retries to max_attempts=2 (single retry only).
 
 ---
 
@@ -430,13 +430,13 @@ At pipeline start (after classification, before dispatching exploration agents),
 
 1. Read the current task number from status files (count of completed tasks)
 2. Call freshness check on all knowledge types used by the current pipeline
-3. If any entries are `stale` (>20 tasks since last confirmation):
+3. If any entries are `stale` (confidence below 30% via exponential decay):
 
 ### Display
 
 ```
 Warning: STALE KNOWLEDGE WARNING
-The following knowledge entries have not been confirmed in 20+ tasks:
+The following knowledge entries have confidence below 30% (exponential decay):
   - {type}: last confirmed at task {task_id} ({distance} tasks ago)
   ...
 

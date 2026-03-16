@@ -32,6 +32,7 @@ never:
   - "Never add comments/docstrings/annotations to unchanged code"
   - "Never fabricate API endpoints, URLs, schemas, data structures"
   - "Never guess types or return formats"
+  - "Never return STATUS: success when post-implementation validation commands have failed"
 
 knowledge_access:
   project_model: L0

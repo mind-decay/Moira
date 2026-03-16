@@ -31,28 +31,31 @@ fields:
     type: boolean
     required: false
     default: false
+  # Note: classification confidence is classifier-determined only and not configurable.
   # Gates are fixed per Art 2.2 — defined in pipeline YAML definitions only, not configurable
   pipelines.quick.max_retries:
-    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence.
+    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence. Target activation: Phase 12.
     type: number
     required: false
     default: 1
   pipelines.standard.max_retries:
-    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence.
+    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence. Target activation: Phase 12.
     type: number
     required: false
     default: 2
   pipelines.full.max_retries:
-    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence.
+    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence. Target activation: Phase 12.
     type: number
     required: false
     default: 2
   pipelines.decomposition.max_retries:
-    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence.
+    # Reserved — not yet read by orchestrator. Pipeline YAML max_attempts takes precedence. Target activation: Phase 12.
     type: number
     required: false
     default: 2
   budgets.orchestrator_max_percent:
+    # This marks the healthy/monitor boundary (25%), not a hard maximum.
+    # Actual warning threshold is 40% and critical is 60% (see orchestrator.md Section 6).
     type: number
     required: false
     default: 25
@@ -116,10 +119,11 @@ fields:
     required: false
     default: 0
     description: "Tasks remaining in post-evolution cooldown (0 = not in cooldown)"
-  knowledge.freshness_days:
+  knowledge.freshness_confidence_threshold:
     type: number
     required: false
     default: 30
+    description: "Minimum confidence percentage (exponential decay model). Entries below this are flagged stale."
   knowledge.archival_max_entries:
     type: number
     required: false
@@ -142,6 +146,7 @@ fields:
     required: false
     default: false
   mcp.registry_path:
+    # Reserved -- currently hardcoded in mcp.sh. Will be read from config in a future phase.
     type: string
     required: false
     default: config/mcp-registry.yaml

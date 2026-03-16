@@ -27,3 +27,5 @@ write_access:
   hermes:      { project_model: true, conventions: false, decisions: false, patterns: false, quality_map: false, failures: false, libraries: false }
   themis:      { project_model: false, conventions: false, decisions: false, patterns: false, quality_map: true, failures: false, libraries: false }
   # argus: READ-ONLY — never modifies any knowledge
+
+# Path resolution for access levels (L0/L1/L2) is defined in dispatch.md Section 5.

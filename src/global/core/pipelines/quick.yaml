@@ -66,6 +66,7 @@ gates:
   - id: final_gate
     after_step: review
     required: true
+    # NOTE: These are completion actions, not gate decisions. Gate is always recorded as "proceed" (see gates.md).
     options:
       - id: done
         description: "Accept result"
@@ -77,7 +78,10 @@ gates:
         description: "Show changes"
       - id: test
         description: "Run additional tests"
+        # Dispatches Aletheia (tester) ad-hoc, outside the pipeline step sequence
 
+  # max_attempts = total executions including original (not retry count)
+  # e.g., max_attempts: 3 means original + 2 retries
 error_handlers:
   E1-INPUT:
     action: pause
@@ -103,12 +107,12 @@ error_handlers:
       then: spawn_new_agent
   E5-QUALITY:
     action: retry
-    max_attempts: 1
+    max_attempts: 2
     on_max: escalate
     display: quality_failure_gate
   E6-AGENT:
     action: retry
-    max_attempts: 1
+    max_attempts: 2
     on_max: diagnose_and_escalate
     display: agent_failure_gate
   E7-DRIFT:
@@ -123,13 +127,7 @@ error_handlers:
     action: retry_with_feedback
     max_attempts: 1
     note: "Reviewer-detected: E5-QUALITY retry path. Gate-detected: gate modify flow"
-  E10-DIVERGE:
-    action: escalate_to_user
-    display: diverge_gate
-    note: "Present contradiction at architecture gate"
   E11-TRUNCATION:
-    pre_exec:
-      action: split_and_retry
     post_exec:
       action: retry_reduced_scope
       max_attempts: 1

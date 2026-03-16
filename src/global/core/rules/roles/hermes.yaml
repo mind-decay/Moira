@@ -24,6 +24,7 @@ never:
   - "Never make architectural suggestions"
   - "Never modify any files"
   - "Never silently expand exploration scope — report E2-SCOPE if additional packages are needed"
+  - "Never interpret or draw conclusions from findings -- report raw facts only"
 
 knowledge_access:
   project_model: L0

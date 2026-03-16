@@ -124,6 +124,7 @@ fields:
     required: false
     enum: [done, tweak, redo, diff, test, abort]
     default: null
+    description: "Records the last user action including intermediate actions (diff, test). For terminal-only actions, see telemetry.schema.yaml quality.final_result."
   completion.tweak_count:
     type: number
     required: false
