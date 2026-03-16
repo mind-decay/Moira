@@ -31,7 +31,7 @@ fields:
   step_status:
     type: enum
     required: false
-    enum: [pending, in_progress, awaiting_gate, completed, failed]
+    enum: [pending, in_progress, awaiting_gate, completed, failed, checkpointed]
     default: pending
   step_started_at:
     type: string

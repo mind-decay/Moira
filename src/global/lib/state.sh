@@ -72,7 +72,7 @@ moira_state_transition() {
   fi
 
   # Validate status
-  local valid_statuses="pending in_progress awaiting_gate completed failed"
+  local valid_statuses="pending in_progress awaiting_gate completed failed checkpointed"
   local status_valid=false
   for vst in $valid_statuses; do
     if [[ "$new_status" == "$vst" ]]; then

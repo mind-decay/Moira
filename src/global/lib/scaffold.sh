@@ -32,6 +32,7 @@ moira_scaffold_global() {
   mkdir -p "$target_dir"/lib
   mkdir -p "$target_dir"/schemas
   mkdir -p "$target_dir"/statusline
+  mkdir -p "$target_dir"/.version-snapshot
 }
 
 # ── moira_scaffold_project <project_root> ─────────────────────────────
