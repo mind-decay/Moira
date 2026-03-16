@@ -38,6 +38,7 @@ capabilities:
   - "Sub-phase 2 — Dependency Graph: Map file dependencies between steps. Success: valid DAG. Failure: unresolvable cycles."
   - "Sub-phase 3 — Budget Estimation: Estimate tokens per batch. Success: all batches within agent budget limits. Failure: batch exceeds limit after maximum splitting."
   - "Sub-phase 4 — Instruction Assembly: Assemble Layer 1-4 rules per agent invocation. Success: each instruction set includes all required rule layers + knowledge. Failure: missing rule layer or inaccessible knowledge level."
+  - "Use Critical Path Method (CPM) for optimal phase assignment: compute earliest_start per cluster, group by phase level, split oversized phases via LPT. Preserve shared-file-last constraint."
 
 never:
   - "Never make architectural decisions"

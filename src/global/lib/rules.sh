@@ -486,3 +486,536 @@ moira_rules_assemble_instruction() {
 
   return 0
 }
+
+# ── CPM (Critical Path Method) Batch Scheduling ─────────────────────
+# Pure-bash DAG scheduling for Daedalus planner.
+# All functions use parallel indexed arrays (bash 3.2+ compatible).
+
+# ── moira_rules_cpm_schedule <dep_graph_yaml> ────────────────────────
+# Takes a dependency graph YAML file (nodes + dependencies).
+# Outputs phase assignments as "node_id: phase_N" lines.
+# Algorithm: topological sort -> forward pass (earliest_start) -> group by phase.
+moira_rules_cpm_schedule() {
+  local dep_graph_yaml="$1"
+
+  if [[ ! -f "$dep_graph_yaml" ]]; then
+    echo "Error: dependency graph not found: $dep_graph_yaml" >&2
+    return 1
+  fi
+
+  # Parse nodes: extract id and estimated_tokens into parallel arrays
+  local node_ids=()
+  local node_tokens=()
+  local _id _tokens
+  while IFS= read -r _id; do
+    node_ids+=("$_id")
+  done < <(awk '
+    /^nodes:/ { in_nodes=1; next }
+    /^[a-z]/ && in_nodes { in_nodes=0 }
+    in_nodes && /id:/ {
+      sub(/.*id:[[:space:]]*/, "")
+      gsub(/["'"'"']/, "")
+      gsub(/[[:space:]]*$/, "")
+      print
+    }
+  ' "$dep_graph_yaml")
+
+  while IFS= read -r _tokens; do
+    node_tokens+=("$_tokens")
+  done < <(awk '
+    /^nodes:/ { in_nodes=1; next }
+    /^[a-z]/ && in_nodes { in_nodes=0 }
+    in_nodes && /estimated_tokens:/ {
+      sub(/.*estimated_tokens:[[:space:]]*/, "")
+      gsub(/[[:space:]]*$/, "")
+      print
+    }
+  ' "$dep_graph_yaml")
+
+  local node_count=${#node_ids[@]}
+  if [[ $node_count -eq 0 ]]; then
+    echo "Error: no nodes found in dependency graph" >&2
+    return 1
+  fi
+
+  # Parse dependencies: from -> to edges
+  local dep_from=()
+  local dep_to=()
+  while IFS= read -r _id; do
+    dep_from+=("$_id")
+  done < <(awk '
+    /^dependencies:/ { in_deps=1; next }
+    /^[a-z]/ && !/^[[:space:]]/ && in_deps { in_deps=0 }
+    in_deps && /from:/ {
+      sub(/.*from:[[:space:]]*/, "")
+      gsub(/["'"'"']/, "")
+      gsub(/[[:space:]]*$/, "")
+      print
+    }
+  ' "$dep_graph_yaml")
+
+  while IFS= read -r _id; do
+    dep_to+=("$_id")
+  done < <(awk '
+    /^dependencies:/ { in_deps=1; next }
+    /^[a-z]/ && !/^[[:space:]]/ && in_deps { in_deps=0 }
+    in_deps && /to:/ {
+      sub(/.*to:[[:space:]]*/, "")
+      gsub(/["'"'"']/, "")
+      gsub(/[[:space:]]*$/, "")
+      print
+    }
+  ' "$dep_graph_yaml")
+
+  local dep_count=${#dep_from[@]}
+
+  # Helper: find index of node_id in node_ids array
+  _moira_cpm_node_index() {
+    local target="$1"
+    local i
+    for (( i=0; i<node_count; i++ )); do
+      if [[ "${node_ids[$i]}" == "$target" ]]; then
+        echo "$i"
+        return 0
+      fi
+    done
+    return 1
+  }
+
+  # Compute in-degree for each node
+  local in_degree=()
+  for (( i=0; i<node_count; i++ )); do
+    in_degree+=( 0 )
+  done
+  for (( e=0; e<dep_count; e++ )); do
+    local to_idx
+    to_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
+    in_degree[$to_idx]=$(( ${in_degree[$to_idx]} + 1 ))
+  done
+
+  # Topological sort (Kahn's algorithm)
+  local topo_order=()
+  local queue=()
+  for (( i=0; i<node_count; i++ )); do
+    if [[ ${in_degree[$i]} -eq 0 ]]; then
+      queue+=( "$i" )
+    fi
+  done
+
+  while [[ ${#queue[@]} -gt 0 ]]; do
+    local current="${queue[0]}"
+    queue=("${queue[@]:1}")
+    topo_order+=( "$current" )
+
+    # For each edge from current
+    for (( e=0; e<dep_count; e++ )); do
+      local from_idx
+      from_idx=$(_moira_cpm_node_index "${dep_from[$e]}") || continue
+      if [[ $from_idx -eq $current ]]; then
+        local to_idx
+        to_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
+        in_degree[$to_idx]=$(( ${in_degree[$to_idx]} - 1 ))
+        if [[ ${in_degree[$to_idx]} -eq 0 ]]; then
+          queue+=( "$to_idx" )
+        fi
+      fi
+    done
+  done
+
+  if [[ ${#topo_order[@]} -ne $node_count ]]; then
+    echo "Error: cycle detected in dependency graph" >&2
+    return 1
+  fi
+
+  # Forward pass: earliest_start[v] = max(earliest_finish[u]) for predecessors u
+  # earliest_finish[u] = earliest_start[u] + estimated_tokens[u]
+  local earliest_start=()
+  local earliest_finish=()
+  for (( i=0; i<node_count; i++ )); do
+    earliest_start+=( 0 )
+    earliest_finish+=( 0 )
+  done
+
+  for idx in "${topo_order[@]}"; do
+    local max_pred_finish=0
+    # Check all edges where dep_to == node_ids[idx]
+    for (( e=0; e<dep_count; e++ )); do
+      if [[ "${dep_to[$e]}" == "${node_ids[$idx]}" ]]; then
+        local pred_idx
+        pred_idx=$(_moira_cpm_node_index "${dep_from[$e]}") || continue
+        if [[ ${earliest_finish[$pred_idx]} -gt $max_pred_finish ]]; then
+          max_pred_finish=${earliest_finish[$pred_idx]}
+        fi
+      fi
+    done
+    earliest_start[$idx]=$max_pred_finish
+    earliest_finish[$idx]=$(( max_pred_finish + ${node_tokens[$idx]} ))
+  done
+
+  # Backward pass: latest_finish[v] = min(latest_start[succ]) for successors
+  # latest_start[v] = latest_finish[v] - estimated_tokens[v]
+  # Terminal nodes: latest_finish = project_end (max of all earliest_finish)
+  local project_end=0
+  for (( i=0; i<node_count; i++ )); do
+    if [[ ${earliest_finish[$i]} -gt $project_end ]]; then
+      project_end=${earliest_finish[$i]}
+    fi
+  done
+
+  local latest_start=()
+  local latest_finish=()
+  for (( i=0; i<node_count; i++ )); do
+    latest_finish+=( $project_end )
+    latest_start+=( $(( project_end - ${node_tokens[$i]} )) )
+  done
+
+  # Reverse topological order
+  local rev_count=${#topo_order[@]}
+  for (( r=rev_count-1; r>=0; r-- )); do
+    local idx="${topo_order[$r]}"
+    local min_succ_start=$project_end
+    # Check all edges where dep_from == node_ids[idx]
+    for (( e=0; e<dep_count; e++ )); do
+      if [[ "${dep_from[$e]}" == "${node_ids[$idx]}" ]]; then
+        local succ_idx
+        succ_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
+        if [[ ${latest_start[$succ_idx]} -lt $min_succ_start ]]; then
+          min_succ_start=${latest_start[$succ_idx]}
+        fi
+      fi
+    done
+    latest_finish[$idx]=$min_succ_start
+    latest_start[$idx]=$(( min_succ_start - ${node_tokens[$idx]} ))
+  done
+
+  # Phase assignment: group nodes by earliest_start value
+  # Nodes with the same earliest_start go in the same phase
+  # Collect unique earliest_start values, sorted ascending
+  local unique_starts=()
+  for idx in "${topo_order[@]}"; do
+    local es=${earliest_start[$idx]}
+    local already=false
+    for us in "${unique_starts[@]+"${unique_starts[@]}"}"; do
+      if [[ $us -eq $es ]]; then
+        already=true
+        break
+      fi
+    done
+    if ! $already; then
+      unique_starts+=( "$es" )
+    fi
+  done
+
+  # Sort unique_starts numerically
+  local sorted_starts=()
+  while IFS= read -r val; do
+    sorted_starts+=( "$val" )
+  done < <(printf '%s\n' "${unique_starts[@]}" | sort -n)
+
+  # Assign phases
+  for idx in "${topo_order[@]}"; do
+    local es=${earliest_start[$idx]}
+    local phase_num=0
+    for (( p=0; p<${#sorted_starts[@]}; p++ )); do
+      if [[ ${sorted_starts[$p]} -eq $es ]]; then
+        phase_num=$(( p + 1 ))
+        break
+      fi
+    done
+    echo "${node_ids[$idx]}: phase_${phase_num}"
+  done
+
+  return 0
+}
+
+# ── moira_rules_cpm_critical_path <dep_graph_yaml> ───────────────────
+# Returns nodes on the critical path (zero slack).
+# Slack = latest_start - earliest_start. Output: one node ID per line.
+moira_rules_cpm_critical_path() {
+  local dep_graph_yaml="$1"
+
+  if [[ ! -f "$dep_graph_yaml" ]]; then
+    echo "Error: dependency graph not found: $dep_graph_yaml" >&2
+    return 1
+  fi
+
+  # Parse nodes
+  local node_ids=()
+  local node_tokens=()
+  local _id _tokens
+  while IFS= read -r _id; do
+    node_ids+=("$_id")
+  done < <(awk '
+    /^nodes:/ { in_nodes=1; next }
+    /^[a-z]/ && in_nodes { in_nodes=0 }
+    in_nodes && /id:/ {
+      sub(/.*id:[[:space:]]*/, "")
+      gsub(/["'"'"']/, "")
+      gsub(/[[:space:]]*$/, "")
+      print
+    }
+  ' "$dep_graph_yaml")
+
+  while IFS= read -r _tokens; do
+    node_tokens+=("$_tokens")
+  done < <(awk '
+    /^nodes:/ { in_nodes=1; next }
+    /^[a-z]/ && in_nodes { in_nodes=0 }
+    in_nodes && /estimated_tokens:/ {
+      sub(/.*estimated_tokens:[[:space:]]*/, "")
+      gsub(/[[:space:]]*$/, "")
+      print
+    }
+  ' "$dep_graph_yaml")
+
+  local node_count=${#node_ids[@]}
+  if [[ $node_count -eq 0 ]]; then
+    echo "Error: no nodes found in dependency graph" >&2
+    return 1
+  fi
+
+  # Parse dependencies
+  local dep_from=()
+  local dep_to=()
+  while IFS= read -r _id; do
+    dep_from+=("$_id")
+  done < <(awk '
+    /^dependencies:/ { in_deps=1; next }
+    /^[a-z]/ && !/^[[:space:]]/ && in_deps { in_deps=0 }
+    in_deps && /from:/ {
+      sub(/.*from:[[:space:]]*/, "")
+      gsub(/["'"'"']/, "")
+      gsub(/[[:space:]]*$/, "")
+      print
+    }
+  ' "$dep_graph_yaml")
+
+  while IFS= read -r _id; do
+    dep_to+=("$_id")
+  done < <(awk '
+    /^dependencies:/ { in_deps=1; next }
+    /^[a-z]/ && !/^[[:space:]]/ && in_deps { in_deps=0 }
+    in_deps && /to:/ {
+      sub(/.*to:[[:space:]]*/, "")
+      gsub(/["'"'"']/, "")
+      gsub(/[[:space:]]*$/, "")
+      print
+    }
+  ' "$dep_graph_yaml")
+
+  local dep_count=${#dep_from[@]}
+
+  _moira_cpm_node_index() {
+    local target="$1"
+    local i
+    for (( i=0; i<node_count; i++ )); do
+      if [[ "${node_ids[$i]}" == "$target" ]]; then
+        echo "$i"
+        return 0
+      fi
+    done
+    return 1
+  }
+
+  # In-degree + topological sort
+  local in_degree=()
+  for (( i=0; i<node_count; i++ )); do
+    in_degree+=( 0 )
+  done
+  for (( e=0; e<dep_count; e++ )); do
+    local to_idx
+    to_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
+    in_degree[$to_idx]=$(( ${in_degree[$to_idx]} + 1 ))
+  done
+
+  local topo_order=()
+  local queue=()
+  for (( i=0; i<node_count; i++ )); do
+    if [[ ${in_degree[$i]} -eq 0 ]]; then
+      queue+=( "$i" )
+    fi
+  done
+
+  while [[ ${#queue[@]} -gt 0 ]]; do
+    local current="${queue[0]}"
+    queue=("${queue[@]:1}")
+    topo_order+=( "$current" )
+    for (( e=0; e<dep_count; e++ )); do
+      local from_idx
+      from_idx=$(_moira_cpm_node_index "${dep_from[$e]}") || continue
+      if [[ $from_idx -eq $current ]]; then
+        local to_idx
+        to_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
+        in_degree[$to_idx]=$(( ${in_degree[$to_idx]} - 1 ))
+        if [[ ${in_degree[$to_idx]} -eq 0 ]]; then
+          queue+=( "$to_idx" )
+        fi
+      fi
+    done
+  done
+
+  if [[ ${#topo_order[@]} -ne $node_count ]]; then
+    echo "Error: cycle detected in dependency graph" >&2
+    return 1
+  fi
+
+  # Forward pass
+  local earliest_start=()
+  local earliest_finish=()
+  for (( i=0; i<node_count; i++ )); do
+    earliest_start+=( 0 )
+    earliest_finish+=( 0 )
+  done
+
+  for idx in "${topo_order[@]}"; do
+    local max_pred_finish=0
+    for (( e=0; e<dep_count; e++ )); do
+      if [[ "${dep_to[$e]}" == "${node_ids[$idx]}" ]]; then
+        local pred_idx
+        pred_idx=$(_moira_cpm_node_index "${dep_from[$e]}") || continue
+        if [[ ${earliest_finish[$pred_idx]} -gt $max_pred_finish ]]; then
+          max_pred_finish=${earliest_finish[$pred_idx]}
+        fi
+      fi
+    done
+    earliest_start[$idx]=$max_pred_finish
+    earliest_finish[$idx]=$(( max_pred_finish + ${node_tokens[$idx]} ))
+  done
+
+  # Backward pass
+  local project_end=0
+  for (( i=0; i<node_count; i++ )); do
+    if [[ ${earliest_finish[$i]} -gt $project_end ]]; then
+      project_end=${earliest_finish[$i]}
+    fi
+  done
+
+  local latest_start=()
+  local latest_finish=()
+  for (( i=0; i<node_count; i++ )); do
+    latest_finish+=( $project_end )
+    latest_start+=( $(( project_end - ${node_tokens[$i]} )) )
+  done
+
+  local rev_count=${#topo_order[@]}
+  for (( r=rev_count-1; r>=0; r-- )); do
+    local idx="${topo_order[$r]}"
+    local min_succ_start=$project_end
+    for (( e=0; e<dep_count; e++ )); do
+      if [[ "${dep_from[$e]}" == "${node_ids[$idx]}" ]]; then
+        local succ_idx
+        succ_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
+        if [[ ${latest_start[$succ_idx]} -lt $min_succ_start ]]; then
+          min_succ_start=${latest_start[$succ_idx]}
+        fi
+      fi
+    done
+    latest_finish[$idx]=$min_succ_start
+    latest_start[$idx]=$(( min_succ_start - ${node_tokens[$idx]} ))
+  done
+
+  # Output nodes with zero slack
+  for (( i=0; i<node_count; i++ )); do
+    local slack=$(( ${latest_start[$i]} - ${earliest_start[$i]} ))
+    if [[ $slack -eq 0 ]]; then
+      echo "${node_ids[$i]}"
+    fi
+  done
+
+  return 0
+}
+
+# ── moira_rules_lpt_split <phase_files_csv> <budget_limit> ──────────
+# Split a phase into sub-batches using LPT (Longest Processing Time first).
+# Input: comma-separated "file:size" pairs, integer budget limit.
+# Output: "batch_N: file1,file2,..." lines.
+moira_rules_lpt_split() {
+  local phase_files_csv="$1"
+  local budget_limit="$2"
+
+  if [[ -z "$phase_files_csv" || -z "$budget_limit" ]]; then
+    echo "Error: usage: moira_rules_lpt_split <file:size,...> <budget_limit>" >&2
+    return 1
+  fi
+
+  # Parse file:size pairs into parallel arrays
+  local file_names=()
+  local file_sizes=()
+  local IFS=','
+  for pair in $phase_files_csv; do
+    local fname="${pair%%:*}"
+    local fsize="${pair##*:}"
+    file_names+=("$fname")
+    file_sizes+=("$fsize")
+  done
+  unset IFS
+
+  local file_count=${#file_names[@]}
+  if [[ $file_count -eq 0 ]]; then
+    echo "Error: no files provided" >&2
+    return 1
+  fi
+
+  # Sort by size descending (insertion sort for bash 3.2 compat)
+  for (( i=1; i<file_count; i++ )); do
+    local j=$i
+    while [[ $j -gt 0 && ${file_sizes[$((j-1))]} -lt ${file_sizes[$j]} ]]; do
+      # Swap sizes
+      local tmp_size="${file_sizes[$j]}"
+      file_sizes[$j]="${file_sizes[$((j-1))]}"
+      file_sizes[$((j-1))]="$tmp_size"
+      # Swap names
+      local tmp_name="${file_names[$j]}"
+      file_names[$j]="${file_names[$((j-1))]}"
+      file_names[$((j-1))]="$tmp_name"
+      j=$((j-1))
+    done
+  done
+
+  # LPT: assign each file to the batch with the smallest current total
+  # Start with one batch; add new batch if all existing exceed budget
+  local batch_totals=()
+  local batch_files=()
+  local batch_count=0
+
+  for (( i=0; i<file_count; i++ )); do
+    local fsize=${file_sizes[$i]}
+    local fname="${file_names[$i]}"
+
+    # Find batch with smallest total that can fit this file
+    local best_batch=-1
+    local best_total=-1
+
+    for (( b=0; b<batch_count; b++ )); do
+      local new_total=$(( ${batch_totals[$b]} + fsize ))
+      if [[ $new_total -le $budget_limit ]]; then
+        if [[ $best_batch -eq -1 || ${batch_totals[$b]} -lt $best_total ]]; then
+          best_batch=$b
+          best_total=${batch_totals[$b]}
+        fi
+      fi
+    done
+
+    if [[ $best_batch -eq -1 ]]; then
+      # No existing batch can fit -- create new batch
+      best_batch=$batch_count
+      batch_totals+=( 0 )
+      batch_files+=( "" )
+      batch_count=$(( batch_count + 1 ))
+    fi
+
+    batch_totals[$best_batch]=$(( ${batch_totals[$best_batch]} + fsize ))
+    if [[ -z "${batch_files[$best_batch]}" ]]; then
+      batch_files[$best_batch]="$fname"
+    else
+      batch_files[$best_batch]="${batch_files[$best_batch]},${fname}"
+    fi
+  done
+
+  # Output
+  for (( b=0; b<batch_count; b++ )); do
+    echo "batch_$(( b + 1 )): ${batch_files[$b]}"
+  done
+
+  return 0
+}
