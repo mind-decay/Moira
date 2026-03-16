@@ -160,7 +160,8 @@ User → /moira <task>
 │       ├── reflection.sh
 │       ├── judge.sh
 │       ├── metrics.sh
-│       └── audit.sh
+│       ├── audit.sh
+│       └── retry.sh
 │
 ├── commands/moira/                    # User-facing slash commands (D-030)
 │   ├── init.md                        # /moira:init

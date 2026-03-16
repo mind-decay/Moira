@@ -228,6 +228,8 @@ Reviewer returns findings with severity `CRITICAL`. Parse the review artifact fo
 
 ### Recovery
 
+Before retrying, consult retry optimizer: `moira_retry_should_retry E5_QUALITY {agent_type}`. If optimizer recommends skipping retry (low success probability), present recommendation to user with probability and suggest escalation instead.
+
 **Attempt 1 (retry with feedback):**
 
 1. Extract CRITICAL findings from review
@@ -299,6 +301,8 @@ After 2 failures → present quality failure gate. User decides next action.
 - Agent times out (no response)
 
 ### Recovery
+
+Before retrying, consult retry optimizer: `moira_retry_should_retry E6_AGENT {agent_type}`. If optimizer recommends skipping retry (low success probability), present recommendation to user with probability and suggest escalation instead.
 
 **Retry 1x:**
 

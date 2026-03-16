@@ -204,6 +204,16 @@ if [[ -f "$MOIRA_HOME/lib/audit.sh" ]]; then
   fi
 fi
 
+# ── Retry optimizer lib ──────────────────────────────────────────────
+assert_file_exists "$MOIRA_HOME/lib/retry.sh" "lib/retry.sh exists"
+if [[ -f "$MOIRA_HOME/lib/retry.sh" ]]; then
+  if bash -n "$MOIRA_HOME/lib/retry.sh" 2>/dev/null; then
+    pass "lib/retry.sh syntax valid"
+  else
+    fail "lib/retry.sh has syntax errors"
+  fi
+fi
+
 assert_dir_exists "$MOIRA_HOME/templates/audit" "templates/audit/ exists"
 audit_template_count=$(ls "$MOIRA_HOME/templates/audit/"*.md 2>/dev/null | wc -l | tr -d ' ')
 if [[ "$audit_template_count" -ge 12 ]]; then

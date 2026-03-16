@@ -79,3 +79,15 @@ entries:
         field: "gates item_schema"
         sync_type: "names_must_match"
     values_tracked: "gate names (classification_gate, architecture_gate, plan_gate, final_gate)"
+
+  - id: xref-007
+    description: "Retry hard limits"
+    canonical_source: "design/subsystems/fault-tolerance.md"
+    dependents:
+      - file: "src/global/lib/retry.sh"
+        field: "_MOIRA_RETRY_HARD_LIMIT_E5, _MOIRA_RETRY_HARD_LIMIT_E6"
+        sync_type: "value_must_match"
+      - file: "src/global/skills/errors.md"
+        field: "E5-QUALITY max retries, E6-AGENT retry count"
+        sync_type: "value_must_match"
+    values_tracked: "retry hard limits per error type (E5_QUALITY=2 attempts, E6_AGENT=1 retry)"
