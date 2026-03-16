@@ -87,6 +87,15 @@ Before entering the main loop:
    - If user says yes: invoke `/moira audit` with appropriate depth. Wait for completion.
    - If user says skip: continue with pipeline.
    - Delete `audit-pending.yaml` after audit completes or is skipped.
+4. **Check for checkpointed task:** Read `.claude/moira/state/current.yaml` → `step_status`
+   - If `checkpointed`:
+     - Read `task_id` and `step` from `current.yaml`
+     - Display: "Task {task_id} was checkpointed at step {step}. Run `/moira resume` to continue."
+     - Do NOT start a new pipeline — return to user prompt
+     - User must explicitly run `/moira resume` or start a new task (which resets current.yaml)
+5. **Passive audit — task start checks:**
+   - Check `.claude/moira/config/locks.yaml` for stale locks (TTL expired) → if found, display passive audit warning (per `gates.md` Passive Audit Warning template). Informational only (D-068).
+   - Check `current.yaml` for orphaned `in_progress` state (task_id set but step_status not `checkpointed` and no active session) → if found, display warning, offer cleanup (reset current.yaml to idle).
 
 ### Main Loop
 
@@ -101,6 +110,18 @@ Before entering the main loop:
       - `failure` → trigger E6 recovery (per `errors.md`)
       - `blocked` → trigger E1 recovery (per `errors.md`)
       - `budget_exceeded` → trigger E4 mid-execution recovery (per `errors.md`)
+   e1b. **Passive audit — post-exploration check** (after exploration step completes with success):
+      - Read `knowledge/project-model/summary.md`
+      - Compare key facts (stack, structure, languages) against Explorer's SUMMARY
+      - If contradictions detected → display passive audit warning: "⚠ KNOWLEDGE DRIFT: Explorer found {X}, knowledge says {Y}. Consider `/moira refresh`."
+      - Record in status.yaml `warnings[]` (type: "knowledge_drift", entry: knowledge path)
+      - Non-blocking: continue pipeline
+   e1c. **Passive audit — post-review check** (after review step completes with success):
+      - Read `knowledge/conventions/summary.md`
+      - Check if Reviewer findings mention convention violations inconsistent with documented conventions
+      - If detected → display passive audit warning: "⚠ CONVENTION DRIFT: Reviewer found patterns inconsistent with documented conventions."
+      - Record in status.yaml `warnings[]` (type: "convention_drift", entry: conventions path)
+      - Non-blocking: continue pipeline
    e2. Quality Gate Check (after success, before approval gate):
       If the agent has a quality gate assignment (Athena→Q1, Metis→Q2, Daedalus→Q3, Themis→Q4, Aletheia→Q5):
       - Read QUALITY line from agent response: `QUALITY: {gate}={verdict} ({C}C/{W}W/{S}S)`
@@ -145,9 +166,43 @@ When a step contains `repeatable_group`:
 - Execute the group's internal steps in sequence
 - After each iteration: present the phase/per-task gate
 - On `proceed` → start next iteration
-- On `checkpoint` → write manifest, set status to `checkpointed`, stop
+- On `checkpoint`:
+  - Call `moira_checkpoint_create <task_id> <current_step> user_pause` — creates manifest.yaml with pipeline state, decisions, git info, resume context
+  - Set `current.yaml` step_status to `checkpointed` via state transition
+  - Display: "Checkpoint saved. Resume with `/moira resume`."
+  - Stop pipeline execution (return from main loop)
 - On `abort` → stop
 - Continue until all iterations complete, then proceed to next pipeline step
+
+### Sub-Pipeline Execution (Decomposition Pipeline)
+
+When a `repeatable_group` has `role: sub-pipeline` (from decomposition.yaml):
+
+1. **DAG Validation:** After decomposition gate approval, call `moira_epic_validate_dag <task_id>`.
+   - If `cycle_detected`: display error per `errors.md` DAG Cycle Detection section. Offer `modify` (send back to Daedalus with cycle feedback) or `abort`. No automatic retry.
+   - If `valid`: proceed to sub-task execution.
+
+2. **Sub-task execution loop:**
+   - Call `moira_epic_next_tasks <task_id>` → get eligible sub-tasks (pending, all deps completed)
+   - For each eligible sub-task (sequentially by default):
+     a. Call `moira_epic_check_dependencies <task_id> <subtask_id>` (safety check)
+     b. Create sub-task state: write `state/tasks/{subtask_id}/input.md` from decomposition artifact's task description
+     c. Dispatch Apollo (classifier) to classify sub-task → determine pipeline type
+     d. **Nested pipeline execution:** Re-enter the Main Loop (above) with the sub-task's classified pipeline definition. The same orchestrator session runs the sub-task pipeline. Budget tracking is cumulative — sub-task agent dispatches count toward the epic's total context.
+   - After sub-task completion: call `moira_epic_update_progress <task_id> <subtask_id> completed`
+   - Present per-task gate (from decomposition.yaml gate definition)
+   - On `proceed`: call `moira_epic_next_tasks` again → next batch
+   - On `checkpoint`: call `moira_checkpoint_create` for the epic (includes queue.yaml progress state), stop
+   - On `abort`: stop
+
+3. **Parallel option:** After getting eligible sub-tasks, if more than one eligible:
+   - Display: "{N} independent sub-tasks available. Execute in parallel? (uses more context)"
+   - If user approves: dispatch multiple sub-task pipelines. Practical parallelism depends on orchestrator context budget.
+   - If user declines: execute sequentially (default) (D-094c)
+
+4. **Queue file handling:** Decomposition pipeline writes queue to `state/tasks/{task_id}/queue.yaml` (per-task scope). Also write global pointer `state/queue.yaml` with `epic_id` pointing to task_id for `/moira resume` discovery.
+
+5. When all sub-tasks completed: proceed to integration step in the decomposition pipeline.
 
 ---
 
@@ -260,8 +315,22 @@ Recommendation: checkpoint and continue in fresh session.
 After each agent returns:
 1. After each agent returns, call `moira_state_agent_done <step> <role> <status> <duration_sec> <tokens_used> <result_summary>` to record budget usage and update orchestrator context tracking.
 2. Read `context_budget.warning_level` from `current.yaml` (updated by `moira_budget_orchestrator_check` via `moira_state_agent_done`)
-3. If level is `warning` or `critical`: display the warning template above
-4. Include orchestrator health data in every gate display (per `gates.md` Health Report Section)
+3. If level is `warning`: display the warning template above (checkpoint offered but optional)
+4. If level is `critical` (>60%): **mandatory checkpoint** — quality will degrade:
+   - Call `moira_checkpoint_create <task_id> <current_step> context_limit`
+   - Set `current.yaml` step_status to `checkpointed`
+   - Display:
+     ```
+     🔴 MANDATORY CHECKPOINT — Context Critical
+     Context usage: ~{pct}% ({est_used}k/1000k)
+
+     Pipeline state saved. Quality will degrade if continued.
+     Resume in a new session: /moira resume
+
+     Checkpoint saved at step: {step}
+     ```
+   - Stop pipeline execution — do NOT offer "proceed" option (D-094a)
+5. Include orchestrator health data in every gate display (per `gates.md` Health Report Section)
 
 ### Violation Monitoring
 
@@ -312,7 +381,28 @@ When the pipeline reaches the completion step:
 - Call `moira_knowledge_update_quality_map` with task findings (if Themis Q4 findings exist)
 - If MCP was enabled for this task: extract MCP call data from agent dispatches (Planner's instruction files list authorized MCP tools, Reviewer's MCP verification findings confirm actual usage). Write `mcp_calls[]` entries to `telemetry.yaml` with: server, tool, query_summary (sanitized per D-027), tokens_used, agent. If no MCP calls: omit `mcp_calls` section (field is `required: false` in schema).
 - Collect metrics: call `moira_metrics_collect_task <task_id>` to aggregate task data into monthly metrics and check for audit triggers.
+- Checkpoint cleanup: call `moira_checkpoint_cleanup <task_id>` — removes manifest.yaml if it exists (handles case where task was previously checkpointed)
 - Set pipeline status to `completed`
+
+### Xref Consistency Check (Pre-Final Gate)
+
+After implementation completes and BEFORE presenting the final gate (D-094g):
+
+1. Read `~/.claude/moira/core/xref-manifest.yaml` (global, read-only)
+2. Get list of files modified in this task via `git diff --name-only` against pre-task HEAD
+3. For each xref entry with `sync_type` of `value_must_match` or `enum_must_match`:
+   - Check if any `dependents[].file` matches a modified file
+   - If match found:
+     - Read canonical source file
+     - Read dependent file
+     - Compare tracked values
+     - If mismatch → add to warnings list
+4. If warnings list non-empty: present Xref Warning Gate (per `gates.md`):
+   - On `fix` per inconsistency: dispatch Hephaestus (implementer) with xref context (canonical value, target file, field to update)
+   - On `ignore` per inconsistency: proceed to final gate with warning noted
+5. If no warnings: proceed to final gate silently
+
+**Scope:** Only applies to Moira system files (files listed in xref-manifest.yaml). Does not affect project source code.
 
 ### Reflection Dispatch
 
@@ -330,19 +420,44 @@ periodic escalation, and post-reflection processing (knowledge updates, rule pro
 MCP caching recommendations).
 
 **`tweak`** — Targeted modification:
-- Ask user to describe what needs changing
-- Dispatch Hermes (explorer) to check scope of tweak
-- Dispatch Hephaestus (implementer) with: original plan + tweak description + scope limits
-- Dispatch Themis (reviewer) on modified code
-- Present final gate again
+1. Ask user to describe what needs changing
+2. Dispatch Hermes (explorer) — quick exploration to identify affected files
+3. **Scope check:** Get task's modified files via `git diff --name-only` against pre-task HEAD (stored in status.yaml `git.pre_task_head`). Compare against Explorer's tweak file list.
+   - If `tweak_files ⊆ task_files ∪ directly_connected(task_files)` → proceed ("directly connected" = files that import from or are imported by task files) (D-094d)
+   - Otherwise → present Tweak Scope Gate (per `gates.md`):
+     - On `force-tweak` → proceed anyway
+     - On `new-task` → display recommendation to create separate task, return to final gate
+     - On `cancel` → return to final gate
+4. Dispatch Hephaestus (implementer) with: original plan context (from `plan.md`) + current file state + tweak description + "change ONLY what the tweak describes"
+5. Dispatch Themis (reviewer) — review ONLY changed lines + integration points
+6. Dispatch Aletheia (tester) — update affected tests
+7. Increment `completion.tweak_count` in status.yaml
+8. Present final gate again
 
 **`redo`** — Full rollback:
-- Ask user for re-entry point: architecture, plan, or implement
-- Git revert task changes (dispatch agent to do this)
-- Archive previous artifacts (rename to -v1.md)
-- Re-enter pipeline at chosen point
-- Agent receives: original requirements + REJECTED approach with reason + updated constraints
-- Continue pipeline normally
+1. Present Redo Re-entry Gate (per `gates.md`): ask user for reason and re-entry point
+2. On `cancel` → return to final gate
+3. **Git revert:** Dispatch Hephaestus (implementer) with explicit instructions (D-094e):
+   - "Revert these commits: {commit_list}. Use `git revert` in reverse chronological order. Do NOT make any other changes."
+   - Get commit list from git log since task start (pre-task HEAD from status.yaml)
+4. **Archive artifacts:** Read current `redo_count` from status.yaml → N = redo_count + 1
+   - Rename: `architecture.md` → `architecture-v{N}.md`, `plan.md` → `plan-v{N}.md`
+   - These are within `state/tasks/{task_id}/` — orchestrator CAN write here
+5. **Knowledge capture:** Write failure entry to `knowledge/failures/full.md`:
+   - Append section: `## [{task_id}-v{N}] {approach} rejected`
+   - `CONTEXT: {task description}`
+   - `APPROACH: {architecture summary}`
+   - `REJECTED BECAUSE: {user reason}`
+   - `LESSON: {extracted from reason}`
+   - `APPLIES TO: {scope}`
+   - Also update `knowledge/failures/index.md` and `knowledge/failures/summary.md` L0/L1 entries
+6. **Re-enter pipeline at chosen point:**
+   - `architecture` → re-dispatch Metis with: exploration.md + requirements.md + REJECTED approach context + user constraints
+   - `plan` → re-dispatch Daedalus with: architecture.md (current, not archived) + REJECTED plan context
+   - `implement` → re-dispatch implementation batch with: plan.md (current)
+   - In all cases: agent receives rejected approach + reason as additional context
+7. Increment `completion.redo_count` in status.yaml
+8. Pipeline continues normally from re-entry point
 
 **`diff`** — Show changes:
 - Dispatch an agent to run `git diff` and return the output
