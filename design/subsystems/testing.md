@@ -239,6 +239,7 @@ regression_confirmed:
   - single_alert: score dropped into ALERT zone (>2σ below baseline)
   - sustained_warn: 2+ consecutive runs in WARN zone
   - multi_metric_warn: 3+ metrics simultaneously in WARN zone
+  - drift_detected: CUSUM S⁻ₙ > h (sustained small downward shift)
 
 improvement_confirmed:
   - single_alert: score rose into ALERT zone (>2σ above baseline)
@@ -274,6 +275,77 @@ cold_start:
     band_width: normal
     decisions: full model
 ```
+
+### Sequential Testing (SPRT)
+
+Sequential Probability Ratio Test for bench runs, allowing early termination when enough statistical evidence exists. Applies to Tier 2 and Tier 3 bench runs only (Tier 1 is deterministic).
+
+```
+H₀: μ ≥ μ₀           (quality ≥ baseline, no regression)
+H₁: μ ≤ μ₀ - δ       (quality dropped by at least δ)
+
+δ = minimum_effect_size (3 points for composite, 5 for sub-metric)
+
+After each test i with score xᵢ:
+  Λᵢ = Λᵢ₋₁ × L(xᵢ | H₁) / L(xᵢ | H₀)
+
+Decision:
+  Λ > A = (1-β)/α     → reject H₀ (regression confirmed), STOP
+  Λ < B = β/(1-α)     → accept H₀ (no regression), STOP
+  B ≤ Λ ≤ A            → continue testing
+
+Default parameters:
+  α = 0.05  (false positive rate)
+  β = 0.10  (false negative rate)
+  A = 18, B ≈ 0.105
+
+Likelihood ratio (normal model):
+  L(xᵢ | H₁) / L(xᵢ | H₀) = exp(-δ(2xᵢ - 2μ₀ + δ) / (2σ²))
+```
+
+User can always override: "run all tests anyway". Display: "Regression confirmed after N/M tests (SPRT early stop)".
+
+### Cumulative Sum (CUSUM)
+
+CUSUM detects small sustained metric shifts that individual observations classify as NORMAL. Runs alongside the existing zone system — adds a DRIFT signal, does NOT replace WARN/ALERT.
+
+```
+For each tracked metric m, maintain:
+  S⁺ₙ = max(0, S⁺ₙ₋₁ + (xₙ - μ₀ - k))   — detects upward shift
+  S⁻ₙ = max(0, S⁻ₙ₋₁ + (μ₀ - k - xₙ))   — detects downward shift
+
+Parameters:
+  μ₀ = baseline mean (from aggregate.yaml)
+  k = δ/2 where δ = minimum_effect_size
+  h = decision threshold = 4σ
+
+Alarm when S⁺ₙ > h (improvement) or S⁻ₙ > h (regression)
+```
+
+Advantages over "2 consecutive WARNs":
+- Detects small sustained shifts (e.g., 1-point degradation over 5 runs)
+- Mathematically guaranteed Average Run Length (ARL)
+- Self-resetting: after alarm, S resets to 0
+
+State persistence: CUSUM accumulator values (S⁺, S⁻) stored in `bench/results/aggregate.yaml` alongside existing baseline statistics.
+
+### Multiple Comparison Correction (BH)
+
+Benjamini-Hochberg procedure for controlling false discovery rate when evaluating multiple metrics simultaneously.
+
+```
+Given m metrics tested simultaneously (m = 4 for standard rubric):
+  p₁ ≤ p₂ ≤ ... ≤ pₘ  (sorted p-values)
+
+Find largest k such that pₖ ≤ (k/m) × α
+
+Reject hypotheses 1..k (significant)
+Accept hypotheses k+1..m (noise)
+```
+
+Why BH over Bonferroni: BH controls False Discovery Rate (FDR) instead of Family-Wise Error Rate (FWER), giving more power while still controlling false alarms. Without correction, P(≥1 false alarm) ≈ 18.5% per bench run with 4 metrics. With BH at α=0.05, FDR ≤ 5%.
+
+Applied automatically in bench report generation. Report notes which findings survive BH correction.
 
 ### Safeguards Against False Conclusions
 

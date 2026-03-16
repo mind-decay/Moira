@@ -110,6 +110,8 @@ Need from you:
 
 Note: Pipeline-specific retry limits may override this default. Quick Pipeline uses max 1 attempt total (D-071).
 
+**Markov retry optimization:** Retry count may be reduced from the hard maximum by the Markov retry optimizer (`retry.sh`) when historical data shows low success probability. The optimizer uses exponential moving average of past retry outcomes per (error_type, agent_type) pair to estimate success probability. Hard limits (2 attempts total) remain as upper bounds — the optimizer can recommend fewer retries, never more. Report includes: "Retry recommended (estimated N% success probability based on M historical observations)" or "Escalating to user (estimated N% success probability — retry unlikely to help)."
+
 **Attempt 1:** Implementer gets review feedback, fixes issues → re-review
 
 **Attempt 2 (if still failing):** Different approach:
@@ -137,6 +139,8 @@ may not be suitable. Consider alternatives.
 ```
 
 ### E6-AGENT: Agent Failure
+
+**Markov retry optimization:** Same as E5 — retry optimizer (`retry.sh`) may recommend skipping the retry if historical success probability is low. Hard limit (1 retry) remains as upper bound.
 
 **Recovery:**
 1. Retry 1x with same input (may be transient)

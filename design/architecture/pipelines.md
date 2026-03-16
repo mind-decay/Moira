@@ -202,6 +202,29 @@ src/db/user-repository.ts ──┘
 - Phase 2: dependent clusters (after Phase 1 completes)
 - Final: shared files (imports from multiple clusters)
 
+**Step 5: CPM Optimization**
+
+Critical Path Method replaces the fixed 3-phase heuristic with optimal multi-phase scheduling:
+
+```
+Input: File dependency DAG from Steps 1-2
+Output: Optimal phase assignment minimizing total pipeline time
+
+1. Topological sort the DAG
+2. Forward pass: earliest_start(v) = max(earliest_finish(u)) for all predecessors u
+3. Backward pass: latest_start(v) from terminal nodes
+4. Critical path = nodes where earliest_start == latest_start (zero slack)
+5. Phase assignment: nodes with same earliest_start go in same phase
+6. Budget check: if any phase exceeds agent budget, split using LPT heuristic
+```
+
+LPT (Longest Processing Time first) for budget-constrained splitting: sort files by estimated size descending, assign each to batch with smallest current total. Guarantee: total makespan ≤ (4/3) × optimal.
+
+Constraints preserved:
+- Shared files (modified by multiple clusters) still go in FINAL batch (unchanged)
+- Contract interfaces between batches still defined by Architect (unchanged)
+- Budget per batch still checked (now uses LPT for splitting instead of arbitrary splits)
+
 ### Contract Interface System
 
 When batches depend on each other, Architect defines contracts:

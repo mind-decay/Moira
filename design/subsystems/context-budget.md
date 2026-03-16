@@ -16,13 +16,42 @@ Context is the only non-renewable resource. An agent with a full context halluci
 │ Working data (code, files)     ~20-80k  │ ← MANAGED
 │ Agent reasoning                ~30-50k  │ ← uncontrolled
 │ ─────────────────────────────────────── │
-│ SAFETY MARGIN                  ~30%     │ ← UNTOUCHABLE
+│ SAFETY MARGIN           adaptive 20-50% │ ← data-driven
 └─────────────────────────────────────────┘
 ```
 
-**Hard rule: Never load an agent beyond 70% capacity. 30% safety margin always reserved.**
+**Hard rule: Never load an agent beyond its adaptive capacity limit. Minimum 20% safety margin always reserved. Maximum 50% margin cap. Default 30% during cold start (<5 observations).**
 
 Note: With 1M context (D-064), agent budgets remain at pre-1M allocations — they define maximum useful work, not context limits. Orchestrator has significant headroom.
+
+### Adaptive Margin Model
+
+The safety margin is adaptive per agent type, computed from telemetry history:
+
+```
+For each agent type a:
+  ε_a = (actual_usage - estimated_usage) / estimated_usage
+
+  From historical telemetry (last 20 tasks with this agent type):
+    μ_a = mean(ε_a)          — systematic bias
+    σ_a = stddev(ε_a)        — estimation variance
+
+  Adaptive margin:
+    margin_a = max(0.20, min(0.50, μ_a + 2×σ_a))
+
+    - Lower bound 20% (structural minimum — preserves meaningful safety margin)
+    - Upper bound 50% (cap to prevent excessive waste)
+    - Default (cold start, <5 observations): 30% (current value)
+```
+
+**Cold start behavior:**
+- <5 observations for an agent type → fixed 30% margin (identical to pre-adaptive behavior)
+- 5-20 observations → wider confidence: max(0.20, μ + 3σ) instead of μ + 2σ
+- 20+ observations → standard formula: max(0.20, min(0.50, μ + 2σ))
+
+**Data source:** `telemetry.yaml` records `context_pct` per agent. Budget library reads monthly aggregate to compute per-agent estimation accuracy statistics.
+
+**Transparency (Art 3.2):** Adaptive margins are reported in budget report with source data (N observations, computed margin). Not hidden.
 
 ## Budget Allocations Per Agent
 

@@ -168,20 +168,48 @@ New knowledge is checked against existing:
 
 ## Freshness System
 
-Every fact is tagged:
+Every fact is tagged with a freshness marker:
 
 ```markdown
-<!-- moira:freshness task-078 2024-01-20 -->
+<!-- moira:freshness task-078 2024-01-20 λ=0.05 -->
 ## API Error Handling Pattern
 ...
 ```
 
-Freshness categories:
-- **Fresh** (confirmed < 10 tasks ago): trusted
-- **Aging** (10-20 tasks ago): still used but may be outdated
-- **Stale** (> 20 tasks ago): needs verification
+Legacy format (without λ) is also supported — parser uses default λ for the knowledge type.
 
-Stale entries are flagged by Audit and verified by Explorer at next `/moira refresh`.
+### Exponential Decay Model
+
+Confidence decays continuously based on tasks elapsed since last verification:
+
+```
+confidence(entry) = e^(-λ × tasks_since_verified)
+```
+
+Per-knowledge-type decay rates (initial estimates, tunable):
+
+| Knowledge Type | λ | Rationale |
+|---------------|-----|-----------|
+| conventions | 0.02 | Slow decay — conventions rarely change |
+| patterns | 0.05 | Moderate — patterns evolve |
+| project_model | 0.08 | Faster — project structure changes with development |
+| decisions | 0.01 | Very slow — architectural decisions are stable |
+| failures | 0.03 | Moderate — failure lessons remain relevant |
+| quality_map | 0.07 | Faster — code quality evolves |
+
+### Confidence Thresholds
+
+| Confidence | Category | Behavior |
+|-----------|----------|----------|
+| > 0.7 | Trusted | Equivalent to "fresh" — used without question |
+| 0.3 – 0.7 | Usable | Verification welcome but not required |
+| ≤ 0.3 | Needs verification | Must be verified before use |
+
+### Verification Priority Queue
+
+Instead of binary "stale → verify", entries are sorted by confidence score ascending (lowest confidence first = highest priority). `/moira refresh` verifies lowest-confidence entries first — more efficient than verifying everything past a fixed threshold.
+
+Low-confidence entries are flagged by Audit and verified by Explorer at next `/moira refresh`.
 
 ## Size Management — Archival Rotation
 
