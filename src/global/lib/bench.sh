@@ -414,6 +414,47 @@ moira_bench_check_regression() {
   fi
 }
 
+# ── _moira_bench_int_ln <x_times_100> ─────────────────────────────────
+# Integer approximation of ln(x/100) × 1000.
+# Input: x × 100 (e.g., 1800 = 18.0, 10 = 0.10)
+# Output: ln(x/100) × 1000
+# Uses piecewise linear interpolation between known anchor points.
+_moira_bench_int_ln() {
+  local x="$1"  # x × 100
+
+  # Anchor points: (x×100, ln(x/100)×1000)
+  # 1 → -4605, 5 → -2996, 10 → -2303, 20 → -1609, 50 → -693,
+  # 100 → 0, 200 → 693, 500 → 1609, 1000 → 2303, 1800 → 2890,
+  # 2000 → 2996, 5000 → 3912, 10000 → 4605
+  if [[ $x -le 0 ]]; then
+    echo "-9999"
+  elif [[ $x -le 1 ]]; then
+    echo "-4605"
+  elif [[ $x -le 5 ]]; then
+    echo $(( -4605 + (x - 1) * (4605 - 2996) / 4 ))
+  elif [[ $x -le 10 ]]; then
+    echo $(( -2996 + (x - 5) * (2996 - 2303) / 5 ))
+  elif [[ $x -le 20 ]]; then
+    echo $(( -2303 + (x - 10) * (2303 - 1609) / 10 ))
+  elif [[ $x -le 50 ]]; then
+    echo $(( -1609 + (x - 20) * (1609 - 693) / 30 ))
+  elif [[ $x -le 100 ]]; then
+    echo $(( -693 + (x - 50) * 693 / 50 ))
+  elif [[ $x -le 200 ]]; then
+    echo $(( (x - 100) * 693 / 100 ))
+  elif [[ $x -le 500 ]]; then
+    echo $(( 693 + (x - 200) * (1609 - 693) / 300 ))
+  elif [[ $x -le 1000 ]]; then
+    echo $(( 1609 + (x - 500) * (2303 - 1609) / 500 ))
+  elif [[ $x -le 2000 ]]; then
+    echo $(( 2303 + (x - 1000) * (2996 - 2303) / 1000 ))
+  elif [[ $x -le 5000 ]]; then
+    echo $(( 2996 + (x - 2000) * (3912 - 2996) / 3000 ))
+  else
+    echo $(( 3912 + (x - 5000) * (4605 - 3912) / 5000 ))
+  fi
+}
+
 # ═══════════════════════════════════════════════════════════════════════
 # SPRT — Sequential Probability Ratio Test
 # Allows early termination of bench runs when statistical evidence is sufficient.
@@ -457,22 +498,15 @@ moira_bench_sprt_init() {
     _MOIRA_SPRT_LOG_A=2890
     _MOIRA_SPRT_LOG_B=-2254
   else
-    # Approximate: ln(x) ≈ (x-1) for x near 1, otherwise use lookup
-    # For general case, use simpler thresholds
-    local a_num=$(( (100 - beta) * 100 / alpha ))
-    local b_num=$(( beta * 100 / (100 - alpha) ))
-    # Rough ln approximation: ln(x) ≈ (x/100 - 1) × 1000 for x in [10,10000]
-    # Better: use piecewise for common ranges
-    if [[ $a_num -gt 100 ]]; then
-      _MOIRA_SPRT_LOG_A=$(( (a_num - 100) * 10 ))
-    else
-      _MOIRA_SPRT_LOG_A=100
-    fi
-    if [[ $b_num -gt 0 ]]; then
-      _MOIRA_SPRT_LOG_B=$(( (b_num - 100) * 10 ))
-    else
-      _MOIRA_SPRT_LOG_B=-2000
-    fi
+    # Compute thresholds for custom alpha/beta
+    # A = (1-β)/α, B = β/(1-α), need ln(A)×1000 and ln(B)×1000
+    local a_num=$(( (100 - beta) * 100 / alpha ))   # A × 100
+    local b_num=$(( beta * 100 / (100 - alpha) ))    # B × 100
+
+    # Integer ln(x/100) × 1000 using piecewise lookup
+    # Covers A in [2..100] and B in [0.01..1]
+    _MOIRA_SPRT_LOG_A=$(_moira_bench_int_ln "$a_num")
+    _MOIRA_SPRT_LOG_B=$(_moira_bench_int_ln "$b_num")
   fi
 }
 
@@ -575,10 +609,23 @@ moira_bench_cusum_update() {
     min_effect=5
   fi
 
-  # Parameters: k = δ/2, h = 4σ (using variance as σ approximation)
+  # Parameters: k = δ/2, h = 4σ
+  # Note: "variance" field in aggregate.yaml is an approximate spread measure.
+  # Compute integer sqrt to get proper σ for threshold calculation.
   local k=$(( min_effect / 2 ))
   if [[ $k -lt 1 ]]; then k=1; fi
-  local h=$(( var * 4 ))
+  local sigma=$var
+  if [[ $var -gt 1 ]]; then
+    # Integer sqrt via Newton's method
+    sigma=$var
+    local prev=0
+    while [[ $sigma -ne $prev ]]; do
+      prev=$sigma
+      sigma=$(( (sigma + var / sigma) / 2 ))
+    done
+  fi
+  if [[ $sigma -lt 1 ]]; then sigma=1; fi
+  local h=$(( sigma * 4 ))
   if [[ $h -lt 1 ]]; then h=4; fi
 
   # Read current accumulators

@@ -36,6 +36,12 @@ _MOIRA_RETRY_EMA_ALPHA=80
 _MOIRA_RETRY_HARD_LIMIT_E5=2
 _MOIRA_RETRY_HARD_LIMIT_E6=1
 
+# ── Cost model constants ─────────────────────────────────────────────
+# Abstract cost units for expected cost comparison.
+# Ratio matters more than absolute values: escalation = 2× retry cost.
+_MOIRA_RETRY_COST_RETRY=100       # cost of one agent re-dispatch
+_MOIRA_RETRY_COST_ESCALATE=200    # cost of user interruption + context switch
+
 # ── Private: get default entry ────────────────────────────────────────
 # Returns: max_retries:p1:p2 for the given error_type and agent_type
 # Falls back to "any" agent_type if specific not found.
@@ -242,10 +248,8 @@ moira_retry_expected_cost() {
     return 0
   fi
 
-  # Cost of a single retry (agent dispatch) = 100 units
-  local c_retry=100
-  # Cost of escalation (user interruption) = 200 units
-  local c_escalate=200
+  local c_retry=$_MOIRA_RETRY_COST_RETRY
+  local c_escalate=$_MOIRA_RETRY_COST_ESCALATE
 
   # Calculate expected cost of retrying from current attempt onward
   # E[cost] = c_retry + (1-p_current) * [c_retry + (1-p_next) * c_escalate]
