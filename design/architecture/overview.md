@@ -84,6 +84,7 @@ User → /moira <task>
 ~/.claude/
 ├── moira/                             # Core system (installed once)
 │   ├── .version
+│   ├── .version-snapshot/            # Upgrade three-way comparison baseline (D-098)
 │   ├── core/
 │   │   ├── rules/
 │   │   │   ├── base.yaml              # Layer 1: inviolable + overridable rules
@@ -145,24 +146,26 @@ User → /moira <task>
 │   │   ├── metrics.schema.yaml
 │   │   └── audit.schema.yaml
 │   └── lib/
-│       ├── bootstrap.sh
+│       ├── audit.sh
 │       ├── bench.sh
+│       ├── bootstrap.sh
 │       ├── budget.sh
+│       ├── checkpoint.sh
+│       ├── epic.sh
+│       ├── judge.sh
 │       ├── knowledge.sh
+│       ├── mcp.sh
+│       ├── metrics.sh
 │       ├── quality.sh
+│       ├── reflection.sh
+│       ├── retry.sh
 │       ├── rules.sh
 │       ├── scaffold.sh
 │       ├── settings-merge.sh
 │       ├── state.sh
 │       ├── task-id.sh
-│       ├── yaml-utils.sh
-│       ├── mcp.sh
-│       ├── reflection.sh
-│       ├── judge.sh
-│       ├── metrics.sh
-│       ├── audit.sh
-│       ├── bench.sh
-│       └── retry.sh
+│       ├── upgrade.sh
+│       └── yaml-utils.sh
 │
 ├── commands/moira/                    # User-facing slash commands (D-030)
 │   ├── init.md                        # /moira:init
@@ -170,6 +173,7 @@ User → /moira <task>
 │   ├── status.md                      # /moira:status
 │   ├── bypass.md                      # /moira:bypass
 │   ├── resume.md                      # /moira:resume
+│   ├── upgrade.md                     # /moira:upgrade
 │   └── ...
 │
 └── settings.json                      # Hooks + statusline registration (merge)

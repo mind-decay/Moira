@@ -155,6 +155,10 @@ install_global() {
   # Write version marker
   echo "$MOIRA_VERSION" > "$MOIRA_HOME/.version"
 
+  # Create initial version snapshot for upgrade three-way comparison (Phase 12)
+  source "$SCRIPT_DIR/global/lib/upgrade.sh"
+  moira_upgrade_snapshot "$MOIRA_HOME"
+
   echo "[OK] Global layer installed"
 }
 
@@ -211,7 +215,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh reflection.sh judge.sh metrics.sh audit.sh retry.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh reflection.sh judge.sh metrics.sh audit.sh retry.sh checkpoint.sh epic.sh upgrade.sh; do
     ((checks_total++)) || true
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then
@@ -226,7 +230,7 @@ verify() {
   done
 
   # Check 6: all 10 command stubs exist
-  local commands=(task init status resume knowledge metrics audit bypass refresh help bench health)
+  local commands=(task init status resume knowledge metrics audit bypass refresh help bench health upgrade)
   for cmd in "${commands[@]}"; do
     ((checks_total++)) || true
     local cmd_path="$HOME/.claude/commands/moira/${cmd}.md"
@@ -440,6 +444,25 @@ verify() {
       ((checks_passed++)) || true
     else
       errors+="  schemas/$schema_file not found\n"
+    fi
+  done
+
+  # Check: .version-snapshot/ directory exists (Phase 12)
+  ((checks_total++)) || true
+  if [[ -d "$MOIRA_HOME/.version-snapshot" ]]; then
+    ((checks_passed++)) || true
+  else
+    errors+="  .version-snapshot/ directory not found\n"
+  fi
+
+  # Check: Phase 12 libs are sourceable
+  for p12_lib in checkpoint.sh epic.sh upgrade.sh; do
+    ((checks_total++)) || true
+    local p12_path="$MOIRA_HOME/lib/$p12_lib"
+    if [[ -f "$p12_path" ]] && bash -n "$p12_path" 2>/dev/null; then
+      ((checks_passed++)) || true
+    else
+      errors+="  $p12_lib not found or has syntax errors\n"
     fi
   done
 
