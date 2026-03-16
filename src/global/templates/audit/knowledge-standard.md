@@ -17,7 +17,7 @@ Perform all checks from the knowledge audit domain:
 3. **Decision completeness** — Read `decisions/full.md`. Verify each decision has context, reasoning, and alternatives sections.
 4. **Pattern evidence** — Read `patterns/full.md`. Verify patterns reference specific tasks or evidence, not just assertions.
 5. **Quality map** — Read `quality-map/summary.md` and `full.md`. Check coverage percentage and accuracy of assessments.
-6. **Freshness** — Check modification dates of knowledge files. Flag entries not updated in many tasks as potentially stale.
+6. **Freshness** — Check freshness markers for confidence scores. Report entries below confidence 0.3 (needs verification) and entries between 0.3-0.7 (usable but verification welcome). Use `moira_knowledge_verification_priority` to get entries sorted by verification priority.
 7. **Contradictions** — Cross-reference knowledge entries for internal contradictions (e.g., conventions saying one thing, patterns saying another).
 8. **Missing areas** — Check for project directories not documented in the project model.
 

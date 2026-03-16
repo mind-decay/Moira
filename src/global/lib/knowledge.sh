@@ -158,7 +158,12 @@ moira_knowledge_write() {
   local target="${knowledge_dir}/${ktype}/${level_file}"
   local today
   today=$(date -u +%Y-%m-%d)
-  local freshness_tag="<!-- moira:freshness ${task_id} ${today} -->"
+  # Include λ in freshness tag for exponential decay
+  local lambda_x100
+  lambda_x100=$(_moira_knowledge_get_lambda "$ktype")
+  local lambda_str
+  printf -v lambda_str "0.%02d" "$lambda_x100"
+  local freshness_tag="<!-- moira:freshness ${task_id} ${today} λ=${lambda_str} -->"
 
   # Ensure directory exists
   mkdir -p "$(dirname "$target")"
@@ -183,9 +188,137 @@ moira_knowledge_write() {
   return 0
 }
 
+# ═══════════════════════════════════════════════════════════════════════
+# Exponential Knowledge Decay
+# Replaces discrete 3-tier freshness with continuous confidence scores.
+# confidence(entry) = e^(-λ × tasks_since_verified)
+# ═══════════════════════════════════════════════════════════════════════
+
+# Per-knowledge-type decay rates (× 100 for integer math)
+_MOIRA_KNOWLEDGE_LAMBDA_conventions=2       # 0.02
+_MOIRA_KNOWLEDGE_LAMBDA_patterns=5          # 0.05
+_MOIRA_KNOWLEDGE_LAMBDA_project_model=8     # 0.08
+_MOIRA_KNOWLEDGE_LAMBDA_decisions=1          # 0.01
+_MOIRA_KNOWLEDGE_LAMBDA_failures=3           # 0.03
+_MOIRA_KNOWLEDGE_LAMBDA_quality_map=7        # 0.07
+_MOIRA_KNOWLEDGE_LAMBDA_libraries=5          # 0.05 (default)
+
+# ── _moira_knowledge_get_lambda <knowledge_type>
+# Return λ × 100 for a knowledge type.
+_moira_knowledge_get_lambda() {
+  local ktype="$1"
+  # Convert hyphen to underscore for variable lookup
+  local var_name="_MOIRA_KNOWLEDGE_LAMBDA_${ktype//-/_}"
+  echo "${!var_name:-5}"
+}
+
+# ── _moira_knowledge_exp_decay <lambda_x100> <distance>
+# Compute e^(-λ × d) × 100 using integer approximation.
+# Returns confidence as integer 0-100.
+_moira_knowledge_exp_decay() {
+  local lambda="$1"   # λ × 100
+  local distance="$2" # tasks since verified
+
+  if [[ $distance -le 0 ]]; then
+    echo "100"
+    return 0
+  fi
+
+  # Compute λ × d × 100 (exponent scaled by 10000)
+  local exponent=$(( lambda * distance ))
+
+  # Integer approximation of e^(-x/100) × 100
+  # Using Taylor series: e^(-x) ≈ 1 - x + x²/2 - x³/6 + x⁴/24
+  # where x = exponent/100
+  # Result = 100 × (1 - x/100 + x²/20000 - x³/6000000 + x⁴/2400000000)
+  # Simplified for integer math:
+  local x=$exponent
+  local result=$(( 10000 - x * 100 + x * x / 2 - x * x * x / 60000 ))
+
+  # Clamp to valid range
+  result=$(( result / 100 ))
+  if [[ $result -lt 0 ]]; then result=0; fi
+  if [[ $result -gt 100 ]]; then result=100; fi
+
+  echo "$result"
+}
+
+# ── moira_knowledge_freshness_score <knowledge_dir> <knowledge_type> [current_task_count]
+# Compute confidence score for a knowledge entry.
+# Returns numeric score 0-100 (100 = fully trusted, 0 = needs verification).
+moira_knowledge_freshness_score() {
+  local knowledge_dir="$1"
+  local ktype="$2"
+  local current_task_count="${3:-0}"
+
+  _moira_valid_type "$ktype" || return 1
+
+  local target="${knowledge_dir}/${ktype}/summary.md"
+
+  if [[ ! -f "$target" ]]; then
+    echo "0"
+    return 0
+  fi
+
+  # Extract freshness tag
+  local tag
+  tag=$(grep -m1 '^<!-- moira:freshness ' "$target" 2>/dev/null || true)
+
+  if [[ -z "$tag" ]]; then
+    echo "0"
+    return 0
+  fi
+
+  # Parse task number
+  local entry_task_id
+  entry_task_id=$(echo "$tag" | sed 's/<!-- moira:freshness \([^ ]*\) .*/\1/')
+  local entry_task_number
+  entry_task_number=$(echo "$entry_task_id" | grep -o '[0-9]*$')
+
+  if [[ -z "$entry_task_number" ]]; then
+    echo "0"
+    return 0
+  fi
+
+  entry_task_number=$((10#$entry_task_number))
+  current_task_count=$((10#$current_task_count))
+
+  local distance=$(( current_task_count - entry_task_number ))
+  if [[ $distance -lt 0 ]]; then distance=0; fi
+
+  # Check for λ in tag: <!-- moira:freshness task-078 2024-01-20 λ=0.05 -->
+  local lambda
+  local tag_lambda
+  tag_lambda=$(echo "$tag" | sed -n 's/.*λ=\([0-9.]*\).*/\1/p')
+  if [[ -n "$tag_lambda" ]]; then
+    # Convert decimal λ to × 100 integer
+    lambda=$(echo "$tag_lambda" | sed 's/0\.\([0-9]*\)/\1/' | sed 's/^0*//')
+    lambda=${lambda:-5}
+  else
+    lambda=$(_moira_knowledge_get_lambda "$ktype")
+  fi
+
+  _moira_knowledge_exp_decay "$lambda" "$distance"
+}
+
+# ── moira_knowledge_freshness_category <score>
+# Map numeric score to human-readable category.
+# Returns: trusted, usable, needs-verification
+moira_knowledge_freshness_category() {
+  local score="$1"
+
+  if [[ $score -gt 70 ]]; then
+    echo "trusted"
+  elif [[ $score -gt 30 ]]; then
+    echo "usable"
+  else
+    echo "needs-verification"
+  fi
+}
+
 # ── moira_knowledge_freshness <knowledge_dir> <knowledge_type> <current_task_number>
 # Check freshness of a knowledge entry.
-# Returns: fresh, aging, stale, or unknown
+# Backward compatible: returns fresh, aging, stale, or unknown (mapped from confidence).
 moira_knowledge_freshness() {
   local knowledge_dir="$1"
   local ktype="$2"
@@ -193,7 +326,6 @@ moira_knowledge_freshness() {
 
   _moira_valid_type "$ktype" || return 1
 
-  # Read L1 (summary) as canonical freshness source
   local target="${knowledge_dir}/${ktype}/summary.md"
 
   if [[ ! -f "$target" ]]; then
@@ -201,48 +333,120 @@ moira_knowledge_freshness() {
     return 0
   fi
 
-  # Extract first freshness tag
   local tag
   tag=$(grep -m1 '^<!-- moira:freshness ' "$target" 2>/dev/null || true)
-
   if [[ -z "$tag" ]]; then
     echo "unknown"
     return 0
   fi
 
-  # Parse task ID from tag: <!-- moira:freshness {task_id} {date} -->
-  local entry_task_id
-  entry_task_id=$(echo "$tag" | sed 's/<!-- moira:freshness \([^ ]*\) .*/\1/')
+  local score
+  score=$(moira_knowledge_freshness_score "$knowledge_dir" "$ktype" "$current_task_number")
 
-  # Extract numeric portion from task ID (e.g., task-2024-01-15-042 → 42, or just 42 → 42)
-  local entry_task_number
-  entry_task_number=$(echo "$entry_task_id" | grep -o '[0-9]*$')
+  local category
+  category=$(moira_knowledge_freshness_category "$score")
 
-  if [[ -z "$entry_task_number" ]]; then
-    echo "unknown"
+  case "$category" in
+    trusted) echo "fresh" ;;
+    usable) echo "aging" ;;
+    needs-verification) echo "stale" ;;
+    *) echo "unknown" ;;
+  esac
+}
+
+# ── moira_knowledge_freshness_marker_write <entry_path> <task_id> <date> <knowledge_type>
+# Write freshness marker with λ parameter.
+moira_knowledge_freshness_marker_write() {
+  local entry_path="$1"
+  local task_id="$2"
+  local date="$3"
+  local ktype="$4"
+
+  local lambda_x100
+  lambda_x100=$(_moira_knowledge_get_lambda "$ktype")
+  # Convert to decimal string: 5 → 0.05, 2 → 0.02
+  local lambda_str
+  printf -v lambda_str "0.%02d" "$lambda_x100"
+
+  local marker="<!-- moira:freshness ${task_id} ${date} λ=${lambda_str} -->"
+
+  if [[ -f "$entry_path" ]]; then
+    # Replace existing marker or prepend
+    if grep -q '^<!-- moira:freshness ' "$entry_path" 2>/dev/null; then
+      local tmpfile
+      tmpfile=$(mktemp)
+      sed "s|^<!-- moira:freshness [^>]* -->|${marker}|" "$entry_path" > "$tmpfile"
+      mv "$tmpfile" "$entry_path"
+    else
+      local tmpfile
+      tmpfile=$(mktemp)
+      { echo "$marker"; echo ""; cat "$entry_path"; } > "$tmpfile"
+      mv "$tmpfile" "$entry_path"
+    fi
+  else
+    echo "$marker" > "$entry_path"
+  fi
+}
+
+# ── moira_knowledge_freshness_marker_read <entry_path>
+# Parse freshness marker. Handle both old and new format.
+# Output: task_id, date, lambda (as key: value lines)
+moira_knowledge_freshness_marker_read() {
+  local entry_path="$1"
+
+  if [[ ! -f "$entry_path" ]]; then
     return 0
   fi
 
-  # Remove leading zeros for arithmetic
-  entry_task_number=$((10#$entry_task_number))
-  current_task_number=$((10#$current_task_number))
+  local tag
+  tag=$(grep -m1 '^<!-- moira:freshness ' "$entry_path" 2>/dev/null || true)
 
-  local distance=$(( current_task_number - entry_task_number ))
-
-  if [[ $distance -lt 10 ]]; then
-    echo "fresh"
-  elif [[ $distance -le 20 ]]; then
-    echo "aging"
-  else
-    echo "stale"
+  if [[ -z "$tag" ]]; then
+    return 0
   fi
 
-  return 0
+  local task_id date_val lambda_val
+  task_id=$(echo "$tag" | sed 's/<!-- moira:freshness \([^ ]*\) .*/\1/')
+  date_val=$(echo "$tag" | sed 's/<!-- moira:freshness [^ ]* \([^ ]*\).*/\1/')
+  lambda_val=$(echo "$tag" | sed -n 's/.*λ=\([0-9.]*\).*/\1/p')
+
+  echo "task_id: ${task_id}"
+  echo "date: ${date_val}"
+  echo "lambda: ${lambda_val:-default}"
+}
+
+# ── moira_knowledge_verification_priority <knowledge_dir> [current_task_count]
+# Return entries sorted by confidence score ascending (lowest first = highest priority).
+# Output: one line per entry: {type} confidence={score} category={category}
+moira_knowledge_verification_priority() {
+  local knowledge_dir="$1"
+  local current_task_count="${2:-0}"
+
+  # Collect scores
+  local entries=""
+  for ktype in $_MOIRA_KNOWLEDGE_TYPES; do
+    local target="${knowledge_dir}/${ktype}/summary.md"
+    [[ -f "$target" ]] || continue
+
+    local score
+    score=$(moira_knowledge_freshness_score "$knowledge_dir" "$ktype" "$current_task_count" 2>/dev/null) || continue
+
+    local category
+    category=$(moira_knowledge_freshness_category "$score")
+
+    entries+="${score}|${ktype}|${category}"$'\n'
+  done
+
+  # Sort by score ascending (numeric)
+  echo "$entries" | sort -t'|' -k1 -n | while IFS='|' read -r score ktype category; do
+    [[ -z "$score" ]] && continue
+    echo "${ktype} confidence=${score} category=${category}"
+  done
 }
 
 # ── moira_knowledge_stale_entries <knowledge_dir> <current_task_number>
-# List all stale knowledge entries.
-# Output: one line per stale entry: {type} last_task={task_id} distance={N}
+# List all knowledge entries needing verification (confidence ≤ 30).
+# Output: one line per entry: {type} last_task={task_id} distance={N} confidence={score}
 moira_knowledge_stale_entries() {
   local knowledge_dir="$1"
   local current_task_number="$2"
@@ -274,8 +478,12 @@ moira_knowledge_stale_entries() {
     entry_task_number=$((10#$entry_task_number))
     local distance=$(( 10#$current_task_number - entry_task_number ))
 
-    if [[ $distance -gt 20 ]]; then
-      echo "${ktype} last_task=${entry_task_id} distance=${distance}"
+    # Use confidence score for stale detection
+    local score
+    score=$(moira_knowledge_freshness_score "$knowledge_dir" "$ktype" "$current_task_number" 2>/dev/null) || score="0"
+
+    if [[ $score -le 30 ]]; then
+      echo "${ktype} last_task=${entry_task_id} distance=${distance} confidence=${score}"
     fi
   done
 

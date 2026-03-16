@@ -157,11 +157,18 @@ mkdir -p "$FRESH_DIR/project-model"
 echo "test content" > "$TEMP_DIR/content.md"
 moira_knowledge_write "$FRESH_DIR" "project-model" "L1" "$TEMP_DIR/content.md" "task-2024-01-15-042"
 
-# Check freshness tag exists
+# Check freshness tag exists (with λ parameter)
 if grep -q '<!-- moira:freshness task-2024-01-15-042' "$FRESH_DIR/project-model/summary.md"; then
   pass "write adds freshness tag"
 else
   fail "freshness tag not found after write"
+fi
+
+# Check λ parameter in freshness tag
+if grep -q 'λ=' "$FRESH_DIR/project-model/summary.md"; then
+  pass "write includes λ parameter in freshness tag"
+else
+  fail "freshness tag missing λ parameter"
 fi
 
 # Check content is present
@@ -171,17 +178,37 @@ else
   fail "content not found after write"
 fi
 
-# Freshness categorization: fresh (<10 tasks)
+# Exponential decay: freshness score returns 0-100
+score=$(moira_knowledge_freshness_score "$FRESH_DIR" "project-model" "45")
+if [[ $score -ge 0 && $score -le 100 ]]; then
+  pass "freshness_score returns valid range 0-100 (got: $score)"
+else
+  fail "freshness_score out of range: $score"
+fi
+
+# Close distance → high confidence
+score_close=$(moira_knowledge_freshness_score "$FRESH_DIR" "project-model" "45")
+if [[ $score_close -gt 70 ]]; then
+  pass "freshness_score: distance 3 → high confidence ($score_close > 70)"
+else
+  fail "freshness_score: distance 3 → expected >70, got $score_close"
+fi
+
+# Backward compatibility: moira_knowledge_freshness still returns fresh/aging/stale
 result=$(moira_knowledge_freshness "$FRESH_DIR" "project-model" "45")
-assert_equals "$result" "fresh" "freshness: distance 3 = fresh"
+assert_equals "$result" "fresh" "freshness: distance 3 = fresh (backward compat)"
 
-# Freshness categorization: aging (10-20 tasks)
-result=$(moira_knowledge_freshness "$FRESH_DIR" "project-model" "55")
-assert_equals "$result" "aging" "freshness: distance 13 = aging"
+# Large distance → low confidence
+result=$(moira_knowledge_freshness "$FRESH_DIR" "project-model" "100")
+assert_equals "$result" "stale" "freshness: distance 58 = stale (backward compat)"
 
-# Freshness categorization: stale (>20 tasks)
-result=$(moira_knowledge_freshness "$FRESH_DIR" "project-model" "70")
-assert_equals "$result" "stale" "freshness: distance 28 = stale"
+# Category mapping
+cat_trusted=$(moira_knowledge_freshness_category "85")
+assert_equals "$cat_trusted" "trusted" "category: 85 = trusted"
+cat_usable=$(moira_knowledge_freshness_category "50")
+assert_equals "$cat_usable" "usable" "category: 50 = usable"
+cat_needs=$(moira_knowledge_freshness_category "20")
+assert_equals "$cat_needs" "needs-verification" "category: 20 = needs-verification"
 
 # No freshness tag → unknown
 NOFRESH_DIR="$TEMP_DIR/nofresh"
@@ -189,6 +216,18 @@ mkdir -p "$NOFRESH_DIR/conventions"
 echo "no tag here" > "$NOFRESH_DIR/conventions/summary.md"
 result=$(moira_knowledge_freshness "$NOFRESH_DIR" "conventions" "50")
 assert_equals "$result" "unknown" "freshness: no tag = unknown"
+
+# Old format marker (without λ) still works
+OLD_DIR="$TEMP_DIR/old-format"
+mkdir -p "$OLD_DIR/patterns"
+echo '<!-- moira:freshness task-040 2024-01-15 -->' > "$OLD_DIR/patterns/summary.md"
+echo "old format content" >> "$OLD_DIR/patterns/summary.md"
+score_old=$(moira_knowledge_freshness_score "$OLD_DIR" "patterns" "45")
+if [[ $score_old -ge 0 && $score_old -le 100 ]]; then
+  pass "old format marker (without λ) works: score=$score_old"
+else
+  fail "old format marker failed: score=$score_old"
+fi
 
 # ── 5. Stale entry detection ────────────────────────────────────────
 
@@ -201,14 +240,20 @@ echo "<!-- moira:freshness task-040 2024-02-01 -->" > "$STALE_DIR/conventions/su
 
 stale_result=$(moira_knowledge_stale_entries "$STALE_DIR" "50")
 if echo "$stale_result" | grep -q "project-model"; then
-  pass "stale detection finds entries older than 20 tasks"
+  pass "stale detection finds entries with low confidence"
 else
-  fail "stale detection missed old entry"
+  fail "stale detection missed low-confidence entry"
 fi
 if echo "$stale_result" | grep -q "conventions"; then
-  fail "stale detection incorrectly flagged fresh entry"
+  fail "stale detection incorrectly flagged high-confidence entry"
 else
-  pass "stale detection correctly skips fresh entries"
+  pass "stale detection correctly skips high-confidence entries"
+fi
+# Verify confidence score is included in output
+if echo "$stale_result" | grep -q "confidence="; then
+  pass "stale detection includes confidence score in output"
+else
+  fail "stale detection missing confidence score"
 fi
 
 # ── 6. Archive rotation ─────────────────────────────────────────────

@@ -15,7 +15,7 @@ Light knowledge audit: freshness spot check (~1 min).
    - `.claude/moira/knowledge/conventions/index.md`
    - `.claude/moira/knowledge/decisions/index.md`
    - `.claude/moira/knowledge/patterns/index.md`
-2. Check for any obvious stale markers or empty sections
+2. Check freshness using confidence scores: count entries with confidence < 0.3 (needs verification) and entries between 0.3-0.7 (usable but aging)
 3. Verify quality map exists: `.claude/moira/knowledge/quality-map/summary.md`
 
 ## Files to Read

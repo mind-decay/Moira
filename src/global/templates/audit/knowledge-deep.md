@@ -26,7 +26,7 @@ Perform all 8 standard checks (see knowledge-standard.md), PLUS:
 3. **Decision completeness** — Context, reasoning, alternatives present
 4. **Pattern evidence** — Patterns backed by task evidence
 5. **Quality map** — Coverage and accuracy of assessments
-6. **Freshness** — Flag old entries not updated recently
+6. **Freshness** — Report entries by confidence score: count entries below 0.3 (needs verification), between 0.3-0.7 (usable), above 0.7 (trusted). Use verification priority queue for targeted refresh recommendations.
 7. **Contradictions** — Internal consistency across knowledge types
 8. **Missing areas** — Undocumented project directories
 
