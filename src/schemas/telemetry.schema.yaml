@@ -159,6 +159,17 @@ fields:
         item_type: string
         item_pattern: "Art-[0-9]+\\.[0-9]+"
 
+  budget_accuracy:
+    type: object
+    required: false
+    description: "Per-agent budget estimation accuracy for adaptive margin computation"
+    fields:
+      # Dynamic keys: agent role names (explorer, implementer, etc.)
+      # Each has:
+      #   estimated_pct: integer — estimated context usage percentage
+      #   actual_pct: integer — actual context usage percentage
+      #   error: integer — error ratio × 10000 ((actual-estimated)/estimated)
+
   mcp_calls:
     type: array
     required: false

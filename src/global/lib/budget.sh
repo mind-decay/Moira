@@ -408,6 +408,124 @@ moira_budget_generate_report() {
   echo "$report"
 }
 
+# ═══════════════════════════════════════════════════════════════════════
+# Adaptive Budget Margins
+# Per-agent adaptive safety margins computed from telemetry history.
+# Replaces fixed 30% margin with data-driven margins (20%-50% range).
+# ═══════════════════════════════════════════════════════════════════════
+
+# ── moira_budget_adaptive_margin <agent_type> [state_dir]
+# Compute adaptive safety margin for an agent type.
+# Returns margin as integer percentage (20-50).
+# Cold start: <5 obs → 30%, 5-20 obs → max(20, μ+3σ), 20+ → max(20, min(50, μ+2σ))
+moira_budget_adaptive_margin() {
+  local agent_type="$1"
+  local state_dir="${2:-.claude/moira/state}"
+
+  local stats_file="${state_dir}/budget-accuracy.yaml"
+
+  # If no history file, return default
+  if [[ ! -f "$stats_file" ]]; then
+    echo "30"
+    return 0
+  fi
+
+  # Read observation count
+  local n_obs
+  n_obs=$(moira_yaml_get "$stats_file" "agents.${agent_type}.n_observations" 2>/dev/null) || n_obs=""
+  n_obs=${n_obs:-0}
+
+  # Cold start: <5 observations → fixed 30%
+  if [[ $n_obs -lt 5 ]]; then
+    echo "30"
+    return 0
+  fi
+
+  # Read mean error and stddev (stored as percentages × 100 for integer math)
+  local mu sigma
+  mu=$(moira_yaml_get "$stats_file" "agents.${agent_type}.mean_error" 2>/dev/null) || mu="3000"
+  sigma=$(moira_yaml_get "$stats_file" "agents.${agent_type}.stddev_error" 2>/dev/null) || sigma="500"
+  mu=${mu:-3000}
+  sigma=${sigma:-500}
+
+  local margin
+  if [[ $n_obs -lt 20 ]]; then
+    # 5-20 observations: wider confidence (μ + 3σ)
+    margin=$(( (mu + 3 * sigma) / 100 ))
+  else
+    # 20+ observations: standard formula (μ + 2σ)
+    margin=$(( (mu + 2 * sigma) / 100 ))
+  fi
+
+  # Apply bounds: floor 20%, ceiling 50%
+  if [[ $margin -lt 20 ]]; then
+    margin=20
+  elif [[ $margin -gt 50 ]]; then
+    margin=50
+  fi
+
+  echo "$margin"
+}
+
+# ── moira_budget_estimation_error <task_id> <agent_type> <estimated_pct> <actual_pct> [state_dir]
+# Record estimation accuracy for one agent invocation.
+# Updates running mean and stddev in budget-accuracy.yaml.
+moira_budget_estimation_error() {
+  local task_id="$1"
+  local agent_type="$2"
+  local estimated_pct="$3"
+  local actual_pct="$4"
+  local state_dir="${5:-.claude/moira/state}"
+
+  local stats_file="${state_dir}/budget-accuracy.yaml"
+  mkdir -p "$(dirname "$stats_file")"
+
+  # Compute error ratio as percentage × 100
+  # error = (actual - estimated) / estimated × 10000
+  local error=0
+  if [[ $estimated_pct -gt 0 ]]; then
+    error=$(( (actual_pct - estimated_pct) * 10000 / estimated_pct ))
+  fi
+
+  # Read current stats
+  local n_obs current_mean current_var
+  n_obs=$(moira_yaml_get "$stats_file" "agents.${agent_type}.n_observations" 2>/dev/null) || n_obs=""
+  current_mean=$(moira_yaml_get "$stats_file" "agents.${agent_type}.mean_error" 2>/dev/null) || current_mean=""
+  current_var=$(moira_yaml_get "$stats_file" "agents.${agent_type}.stddev_error" 2>/dev/null) || current_var=""
+
+  if [[ -z "$n_obs" || "$n_obs" == "null" ]]; then
+    # First observation
+    moira_yaml_set "$stats_file" "agents.${agent_type}.n_observations" "1"
+    moira_yaml_set "$stats_file" "agents.${agent_type}.mean_error" "$error"
+    moira_yaml_set "$stats_file" "agents.${agent_type}.stddev_error" "0"
+  else
+    # Incremental update (Welford's algorithm, integer version)
+    local n=$((n_obs + 1))
+    local diff=$(( error - current_mean ))
+    local new_mean=$(( current_mean + diff / n ))
+    # Variance update: new_var = ((n-1) * old_var² + diff * (error - new_mean)) / n
+    # We store stddev but compute with variance internally
+    local old_var_sq=$(( current_var * current_var ))
+    local new_var_sq=$(( ((n - 1) * old_var_sq + diff * (error - new_mean)) / n ))
+    if [[ $new_var_sq -lt 0 ]]; then new_var_sq=0; fi
+    # Integer square root approximation
+    local new_stddev=0
+    if [[ $new_var_sq -gt 0 ]]; then
+      # Newton's method for isqrt
+      new_stddev=$new_var_sq
+      local prev=0
+      while [[ $new_stddev -ne $prev ]]; do
+        prev=$new_stddev
+        new_stddev=$(( (new_stddev + new_var_sq / new_stddev) / 2 ))
+      done
+    fi
+
+    moira_yaml_set "$stats_file" "agents.${agent_type}.n_observations" "$n"
+    moira_yaml_set "$stats_file" "agents.${agent_type}.mean_error" "$new_mean"
+    moira_yaml_set "$stats_file" "agents.${agent_type}.stddev_error" "$new_stddev"
+  fi
+}
+
 # ── moira_budget_write_telemetry <task_id> [state_dir] ────────────────
 # Write budget data to telemetry.yaml for the task.
 moira_budget_write_telemetry() {
