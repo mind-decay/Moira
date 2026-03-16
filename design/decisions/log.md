@@ -849,3 +849,39 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 **Alternatives rejected:**
 - Time-based triggers — inconsistent cadence depending on task frequency
 **Reasoning:** Matches roadmap requirement. Counter in `state/reflection/deep-reflection-counter.yaml`. Only escalates background→deep (lightweight stays lightweight, epic stays epic). Acceptable cadence for richer analysis.
+
+## D-093: Phase 11 Architectural Choices
+
+**Context:** Phase 11 spec introduces several implementation decisions not covered by existing design docs.
+**Decisions:**
+- (a) Trend threshold for metric direction (↑/↓/→) is implementation-defined — `metrics.md` defines indicators but not the numeric threshold. Implementation will determine a reasonable default (e.g., 5% change).
+- (b) Automatic audit triggers use flag-based deferred execution: `moira_metrics_collect_task` writes `audit_pending` flag at pipeline completion; orchestrator checks the flag at the START of the next pipeline and offers to run the audit. This avoids bloating the completing pipeline's context.
+- (c) Only `rules-light` and `knowledge-light` audit templates exist. Light audits for agents, config, and consistency are omitted because surface checks for those domains require reading multiple cross-referenced files — not meaningfully lighter than standard.
+- (d) Audit finding IDs use domain prefix + sequence number (R-01, K-03, A-02, C-01, X-05). Domain prefixes: R=rules, K=knowledge, A=agents, C=config, X=consistency.
+- (e) Audit schema includes `_meta` block (`date`, `depth`, `domains`, `moira_version`) and `summary` block (`total`, `by_risk`, `by_domain`). Not specified in `audit.md` but consistent with its output examples.
+- (f) Per-task records in monthly metrics include: `task_id`, `pipeline`, `size`, `first_pass`, `tweaked`, `redone`, `retries`, `orchestrator_pct`, `reviewer_criticals`, `by_agent`. The `metrics.md` design doc says "Per-task data also stored for drill-down" without specifying fields.
+- (g) Agent pre-commit xref check deferred from mechanical enforcement to CLAUDE.md convention for Phase 11. Mechanical enforcement targeted for Phase 12 when the orchestrator skill gets checkpoint/resume updates and can incorporate xref verification.
+**Alternatives rejected:**
+- For (b): triggering audit inline at pipeline completion — would bloat orchestrator context during completion flow and provide no natural decision point for the user
+- For (c): creating stub light templates for all 5 domains — adds files with no meaningful differentiation from standard templates
+- For (g): implementing mechanical enforcement in Phase 11 — requires orchestrator skill changes that are better batched with Phase 12's orchestrator updates
+**Reasoning:** Each choice balances architectural correctness with practical implementation scope. Flag-based deferred triggers follow the same pattern as deep scan checks. Light template reduction avoids maintaining templates that would be identical to standard versions.
+
+## D-094: Formal Methods & Optimization Architectural Choices
+
+**Context:** Cross-cutting enhancement integrating mathematical techniques into existing subsystems for improved efficiency and reliability.
+**Decisions:**
+- (a) Pipeline graph verification uses path enumeration (tractable for small graphs <20 nodes). Decomposition pipeline per-task gates treated as loop with verified loop-body gate.
+- (b) CPM replaces 3-phase heuristic but preserves shared-file-last constraint. LPT splitting guarantees makespan ≤ (4/3) × optimal.
+- (c) Adaptive margin formula uses μ + 2σ with 20% floor and 50% ceiling. Requires updating context-budget.md "UNTOUCHABLE" 30% hard rule to adaptive model (ORANGE change). Cold start: <5 obs → 30% default, 5-20 → μ + 3σ, 20+ → μ + 2σ.
+- (d) SPRT uses α=0.05, β=0.10 as defaults, assumes normal distribution. User can always "run all tests anyway" override.
+- (e) CUSUM coexists with zone system — adds DRIFT signal, does not replace WARN/ALERT. Accumulators self-reset after alarm.
+- (f) BH chosen over Bonferroni for better power with controlled FDR (≤5% vs ~18.5% uncorrected with 4 metrics).
+- (g) Exponential decay rates per knowledge type are initial estimates, tunable. Uses repeated multiplication (not Taylor series) for integer arithmetic stability. Requires updating knowledge.md freshness model (ORANGE change).
+- (h) Markov retry model can recommend fewer retries than existing hard limits but never more. p2 only defined for error types permitting second retry. Uses EMA smoothing (α=0.8) for probability updates.
+- (i) Deferred Tier C techniques (Bayesian rule induction, IRT, information-theoretic value, ADWIN, Thompson Sampling) documented in spec for post-v1.
+**Alternatives rejected:**
+- For (c): keeping fixed 30% — wastes 10-15% usable context for stable agents
+- For (f): Bonferroni correction — too conservative with 4 metrics (each test needs p<0.0125)
+- For (g): Taylor series for exp decay — integer overflow for large exponents
+**Reasoning:** Each technique targets measurable improvements to efficiency (less waste, faster pipelines) and reliability (fewer false alarms, better regression detection, provable invariants). All changes are backward compatible with existing behavior during cold start.
