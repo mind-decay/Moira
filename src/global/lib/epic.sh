@@ -195,33 +195,8 @@ moira_epic_validate_dag() {
     return 1
   }
 
-  # Calculate in-degrees
-  for (( i=0; i<node_count; i++ )); do
-    local deps="${node_deps[$i]}"
-    if [[ -z "$deps" ]]; then
-      continue
-    fi
-    IFS=',' read -ra dep_list <<< "$deps"
-    for dep in "${dep_list[@]}"; do
-      dep="${dep## }"
-      dep="${dep%% }"
-      if [[ -z "$dep" ]]; then
-        continue
-      fi
-      local idx
-      idx=$(_epic_find_index "$dep") || continue
-      in_degree[$idx]=$(( ${in_degree[$idx]} + 1 ))
-    done
-  done
-
-  # Note: in Kahn's algorithm, edges go from dependency TO dependent.
-  # A depends on B means edge B->A, so A's in-degree increases.
-  # We need to recalculate: in-degree of a node = number of its dependencies.
-  # Actually, depends_on means "I depend on these", so in-degree of node i =
-  # number of items in node_deps[i]. Let's recalculate correctly.
-  for (( i=0; i<node_count; i++ )); do
-    in_degree[$i]=0
-  done
+  # Calculate in-degrees: in-degree of a node = count of its dependencies
+  # (depends_on means "I depend on these", so edge goes dep->me, and in-degree = |depends_on|)
   for (( i=0; i<node_count; i++ )); do
     local deps="${node_deps[$i]}"
     if [[ -z "$deps" ]]; then

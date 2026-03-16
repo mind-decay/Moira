@@ -155,10 +155,6 @@ install_global() {
   # Write version marker
   echo "$MOIRA_VERSION" > "$MOIRA_HOME/.version"
 
-  # Create initial version snapshot for upgrade three-way comparison (Phase 12)
-  source "$SCRIPT_DIR/global/lib/upgrade.sh"
-  moira_upgrade_snapshot "$MOIRA_HOME"
-
   echo "[OK] Global layer installed"
 }
 
@@ -483,6 +479,12 @@ install_global
 install_commands
 install_schemas
 install_statusline
+
+# Create version snapshot after all installation steps complete (Phase 12)
+# Must be after install_schemas so snapshot includes schema files for three-way upgrade diff
+source "$SCRIPT_DIR/global/lib/upgrade.sh"
+moira_upgrade_snapshot "$MOIRA_HOME"
+
 verify
 
 echo ""

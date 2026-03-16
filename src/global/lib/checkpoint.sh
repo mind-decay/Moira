@@ -79,10 +79,19 @@ moira_checkpoint_create() {
   local git_head=""
   git_head=$(git rev-parse HEAD 2>/dev/null) || true
 
-  # Files modified since task start (diff against HEAD)
+  # Files modified since task start
+  # Try to read pre-task HEAD from status.yaml for accurate diff
   local files_modified=""
-  if [[ -n "$git_head" ]]; then
-    files_modified=$(git diff --name-only 2>/dev/null) || true
+  local pre_task_head=""
+  if [[ -f "$status_file" ]]; then
+    pre_task_head=$(moira_yaml_get "$status_file" "git.pre_task_head" 2>/dev/null) || true
+  fi
+  if [[ -n "$pre_task_head" && "$pre_task_head" != "null" ]]; then
+    # Diff all changes (committed + staged + unstaged) since task start
+    files_modified=$(git diff --name-only "$pre_task_head" 2>/dev/null) || true
+  elif [[ -n "$git_head" ]]; then
+    # Fallback: capture staged + unstaged changes against HEAD
+    files_modified=$(git diff --name-only HEAD 2>/dev/null) || true
   fi
 
   # Build resume context
