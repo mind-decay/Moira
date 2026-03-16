@@ -226,8 +226,22 @@ assert_file_exists "$MOIRA_HOME/core/xref-manifest.yaml" "core/xref-manifest.yam
 assert_file_exists "$MOIRA_HOME/schemas/metrics.schema.yaml" "schemas/metrics.schema.yaml exists"
 assert_file_exists "$MOIRA_HOME/schemas/audit.schema.yaml" "schemas/audit.schema.yaml exists"
 
+# ── Phase 12: checkpoint + epic + upgrade libs ──────────────────────
+for lib in checkpoint.sh epic.sh upgrade.sh; do
+  assert_file_exists "$MOIRA_HOME/lib/$lib" "lib/$lib exists"
+  if [[ -f "$MOIRA_HOME/lib/$lib" ]]; then
+    if bash -n "$MOIRA_HOME/lib/$lib" 2>/dev/null; then
+      pass "lib/$lib syntax valid"
+    else
+      fail "lib/$lib has syntax errors"
+    fi
+  fi
+done
+
+assert_dir_exists "$MOIRA_HOME/.version-snapshot" ".version-snapshot/ exists"
+
 # ── Command stubs ────────────────────────────────────────────────────
-commands=(task init status resume knowledge metrics audit bypass refresh help bench health)
+commands=(task init status resume knowledge metrics audit bypass refresh help bench health upgrade)
 for cmd in "${commands[@]}"; do
   assert_file_exists "$COMMANDS_DIR/${cmd}.md" "command ${cmd}.md exists"
 done

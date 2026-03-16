@@ -171,6 +171,24 @@ assert_file_exists "$MOIRA_HOME/core/xref-manifest.yaml" "clean install: xref-ma
 assert_file_exists "$MOIRA_HOME/schemas/metrics.schema.yaml" "clean install: metrics.schema.yaml exists"
 assert_file_exists "$MOIRA_HOME/schemas/audit.schema.yaml" "clean install: audit.schema.yaml exists"
 
+# Phase 12: checkpoint.sh, epic.sh, upgrade.sh
+for lib in checkpoint.sh epic.sh upgrade.sh; do
+  assert_file_exists "$MOIRA_HOME/lib/$lib" "clean install: $lib exists"
+  if [[ -f "$MOIRA_HOME/lib/$lib" ]]; then
+    if bash -n "$MOIRA_HOME/lib/$lib" 2>/dev/null; then
+      pass "clean install: $lib syntax valid"
+    else
+      fail "clean install: $lib has syntax errors"
+    fi
+  fi
+done
+
+# Phase 12: .version-snapshot directory
+assert_dir_exists "$MOIRA_HOME/.version-snapshot" "clean install: .version-snapshot/ exists"
+
+# Phase 12: upgrade command
+assert_file_exists "$TEST_HOME/.claude/commands/moira/upgrade.md" "clean install: upgrade.md command exists"
+
 # Pipeline definitions
 assert_dir_exists "$MOIRA_HOME/core/pipelines" "clean install: pipelines dir exists"
 for pipeline in quick standard full decomposition; do
@@ -199,7 +217,7 @@ assert_file_exists "$MOIRA_HOME/schemas/telemetry.schema.yaml" "clean install: t
 
 # Count command stubs
 cmd_count=$(ls "$TEST_HOME/.claude/commands/moira/"*.md 2>/dev/null | wc -l | tr -d ' ')
-assert_equals "$cmd_count" "12" "clean install: 12 command stubs installed"
+assert_equals "$cmd_count" "13" "clean install: 13 command stubs installed"
 
 # ── Test: idempotency (re-run) ────────────────────────────────────────
 output2=$(bash "$SRC_DIR/install.sh" 2>&1) || true
