@@ -413,3 +413,313 @@ moira_bench_check_regression() {
     echo "stable"
   fi
 }
+
+# ═══════════════════════════════════════════════════════════════════════
+# SPRT — Sequential Probability Ratio Test
+# Allows early termination of bench runs when statistical evidence is sufficient.
+# ═══════════════════════════════════════════════════════════════════════
+
+# SPRT state (module-level, reset per init)
+_MOIRA_SPRT_LOG_LAMBDA=0       # cumulative log-likelihood ratio × 1000 (integer)
+_MOIRA_SPRT_LOG_A=0            # upper threshold × 1000
+_MOIRA_SPRT_LOG_B=0            # lower threshold × 1000
+_MOIRA_SPRT_BASELINE_MEAN=0
+_MOIRA_SPRT_BASELINE_VAR=1     # variance (σ²), NOT stddev
+_MOIRA_SPRT_EFFECT_SIZE=0
+_MOIRA_SPRT_COUNT=0
+_MOIRA_SPRT_DECISION="continue"
+
+# ── moira_bench_sprt_init <baseline_mean> <baseline_stddev> <effect_size> [alpha] [beta]
+# Initialize SPRT state. All values are integers.
+moira_bench_sprt_init() {
+  local mean="$1"
+  local stddev="$2"
+  local effect="$3"
+  local alpha="${4:-5}"   # percentage (5 = 0.05)
+  local beta="${5:-10}"   # percentage (10 = 0.10)
+
+  _MOIRA_SPRT_BASELINE_MEAN=$mean
+  _MOIRA_SPRT_BASELINE_VAR=$(( stddev * stddev ))
+  if [[ $_MOIRA_SPRT_BASELINE_VAR -lt 1 ]]; then
+    _MOIRA_SPRT_BASELINE_VAR=1
+  fi
+  _MOIRA_SPRT_EFFECT_SIZE=$effect
+  _MOIRA_SPRT_LOG_LAMBDA=0
+  _MOIRA_SPRT_COUNT=0
+  _MOIRA_SPRT_DECISION="continue"
+
+  # A = (1-β)/α, B = β/(1-α)
+  # log(A) × 1000 and log(B) × 1000 using integer approximation
+  # ln(18) ≈ 2890 (×1000), ln(0.105) ≈ -2254 (×1000)
+  # For default α=5%, β=10%: A=18, B≈0.105
+  # Use pre-computed values for common defaults
+  if [[ "$alpha" -eq 5 && "$beta" -eq 10 ]]; then
+    _MOIRA_SPRT_LOG_A=2890
+    _MOIRA_SPRT_LOG_B=-2254
+  else
+    # Approximate: ln(x) ≈ (x-1) for x near 1, otherwise use lookup
+    # For general case, use simpler thresholds
+    local a_num=$(( (100 - beta) * 100 / alpha ))
+    local b_num=$(( beta * 100 / (100 - alpha) ))
+    # Rough ln approximation: ln(x) ≈ (x/100 - 1) × 1000 for x in [10,10000]
+    # Better: use piecewise for common ranges
+    if [[ $a_num -gt 100 ]]; then
+      _MOIRA_SPRT_LOG_A=$(( (a_num - 100) * 10 ))
+    else
+      _MOIRA_SPRT_LOG_A=100
+    fi
+    if [[ $b_num -gt 0 ]]; then
+      _MOIRA_SPRT_LOG_B=$(( (b_num - 100) * 10 ))
+    else
+      _MOIRA_SPRT_LOG_B=-2000
+    fi
+  fi
+}
+
+# ── moira_bench_sprt_update <score>
+# Update SPRT with new observation. Returns decision via _MOIRA_SPRT_DECISION.
+# Also echoes the decision: "continue", "reject_h0" (regression), "accept_h0" (no regression)
+moira_bench_sprt_update() {
+  local score="$1"
+
+  if [[ "$_MOIRA_SPRT_DECISION" != "continue" ]]; then
+    echo "$_MOIRA_SPRT_DECISION"
+    return 0
+  fi
+
+  _MOIRA_SPRT_COUNT=$(( _MOIRA_SPRT_COUNT + 1 ))
+
+  # Log-likelihood ratio increment (×1000 for integer math):
+  # ln(L(x|H1)/L(x|H0)) = -δ(2x - 2μ₀ + δ) / (2σ²)
+  # Scale: multiply by 1000 for precision
+  local delta=$_MOIRA_SPRT_EFFECT_SIZE
+  local mu=$_MOIRA_SPRT_BASELINE_MEAN
+  local var=$_MOIRA_SPRT_BASELINE_VAR
+  local numerator=$(( -delta * (2 * score - 2 * mu + delta) ))
+  local denominator=$(( 2 * var ))
+  if [[ $denominator -eq 0 ]]; then denominator=1; fi
+  local increment=$(( numerator * 1000 / denominator ))
+
+  _MOIRA_SPRT_LOG_LAMBDA=$(( _MOIRA_SPRT_LOG_LAMBDA + increment ))
+
+  # Decision
+  if [[ $_MOIRA_SPRT_LOG_LAMBDA -gt $_MOIRA_SPRT_LOG_A ]]; then
+    _MOIRA_SPRT_DECISION="reject_h0"
+  elif [[ $_MOIRA_SPRT_LOG_LAMBDA -lt $_MOIRA_SPRT_LOG_B ]]; then
+    _MOIRA_SPRT_DECISION="accept_h0"
+  fi
+
+  echo "$_MOIRA_SPRT_DECISION"
+}
+
+# ── moira_bench_sprt_report
+# Returns human-readable SPRT status.
+moira_bench_sprt_report() {
+  local lambda_display=$(( _MOIRA_SPRT_LOG_LAMBDA / 10 ))
+  local sign=""
+  if [[ $lambda_display -lt 0 ]]; then
+    sign="-"
+    lambda_display=$(( -lambda_display ))
+  fi
+  local lambda_int=$(( lambda_display / 100 ))
+  local lambda_frac=$(( lambda_display % 100 ))
+
+  case "$_MOIRA_SPRT_DECISION" in
+    reject_h0)
+      echo "Regression confirmed after ${_MOIRA_SPRT_COUNT} tests (SPRT early stop)"
+      ;;
+    accept_h0)
+      echo "No regression detected after ${_MOIRA_SPRT_COUNT} tests (SPRT early stop)"
+      ;;
+    continue)
+      echo "SPRT: ${_MOIRA_SPRT_COUNT} tests, log-LR=${sign}${lambda_int}.${lambda_frac}, continuing"
+      ;;
+  esac
+}
+
+# ═══════════════════════════════════════════════════════════════════════
+# CUSUM — Cumulative Sum Change Detection
+# Detects small sustained metric shifts that individual observations miss.
+# Coexists with zone system — adds DRIFT signal.
+# ═══════════════════════════════════════════════════════════════════════
+
+# ── moira_bench_cusum_update <metric_name> <score> [aggregate_path]
+# Update CUSUM accumulators for a metric.
+# Returns: "normal", "drift_up", or "drift_down"
+moira_bench_cusum_update() {
+  local metric="$1"
+  local score="$2"
+  local agg_path="${3:-.claude/moira/testing/bench/results/aggregate.yaml}"
+
+  if [[ ! -f "$agg_path" ]]; then
+    echo "normal"
+    return 0
+  fi
+
+  # Read baseline parameters
+  local mu var
+  mu=$(moira_yaml_get "$agg_path" "baselines.${metric}.mean" 2>/dev/null) || mu=""
+  var=$(moira_yaml_get "$agg_path" "baselines.${metric}.variance" 2>/dev/null) || var=""
+
+  if [[ -z "$mu" || "$mu" == "null" ]]; then
+    echo "normal"
+    return 0
+  fi
+
+  var=${var:-1}
+  if [[ $var -lt 1 ]]; then var=1; fi
+
+  # Read minimum effect size
+  local min_effect=3
+  if [[ "$metric" != "composite_score" ]]; then
+    min_effect=5
+  fi
+
+  # Parameters: k = δ/2, h = 4σ (using variance as σ approximation)
+  local k=$(( min_effect / 2 ))
+  if [[ $k -lt 1 ]]; then k=1; fi
+  local h=$(( var * 4 ))
+  if [[ $h -lt 1 ]]; then h=4; fi
+
+  # Read current accumulators
+  local s_plus s_minus
+  s_plus=$(moira_yaml_get "$agg_path" "cusum.${metric}.s_plus" 2>/dev/null) || s_plus="0"
+  s_minus=$(moira_yaml_get "$agg_path" "cusum.${metric}.s_minus" 2>/dev/null) || s_minus="0"
+  s_plus=${s_plus:-0}
+  s_minus=${s_minus:-0}
+
+  # Update accumulators
+  # S⁺ₙ = max(0, S⁺ₙ₋₁ + (xₙ - μ₀ - k))
+  local new_s_plus=$(( s_plus + score - mu - k ))
+  if [[ $new_s_plus -lt 0 ]]; then new_s_plus=0; fi
+
+  # S⁻ₙ = max(0, S⁻ₙ₋₁ + (μ₀ - k - xₙ))
+  local new_s_minus=$(( s_minus + mu - k - score ))
+  if [[ $new_s_minus -lt 0 ]]; then new_s_minus=0; fi
+
+  # Persist
+  moira_yaml_set "$agg_path" "cusum.${metric}.s_plus" "$new_s_plus"
+  moira_yaml_set "$agg_path" "cusum.${metric}.s_minus" "$new_s_minus"
+
+  # Check for alarm
+  if [[ $new_s_plus -gt $h ]]; then
+    echo "drift_up"
+  elif [[ $new_s_minus -gt $h ]]; then
+    echo "drift_down"
+  else
+    echo "normal"
+  fi
+}
+
+# ── moira_bench_cusum_reset <metric_name> [aggregate_path]
+# Reset accumulators after alarm.
+moira_bench_cusum_reset() {
+  local metric="$1"
+  local agg_path="${2:-.claude/moira/testing/bench/results/aggregate.yaml}"
+
+  if [[ ! -f "$agg_path" ]]; then
+    return 0
+  fi
+
+  moira_yaml_set "$agg_path" "cusum.${metric}.s_plus" "0"
+  moira_yaml_set "$agg_path" "cusum.${metric}.s_minus" "0"
+}
+
+# ── moira_bench_cusum_state <metric_name> [aggregate_path]
+# Read current accumulator values for reporting.
+moira_bench_cusum_state() {
+  local metric="$1"
+  local agg_path="${2:-.claude/moira/testing/bench/results/aggregate.yaml}"
+
+  if [[ ! -f "$agg_path" ]]; then
+    echo "s_plus: 0"
+    echo "s_minus: 0"
+    return 0
+  fi
+
+  local s_plus s_minus
+  s_plus=$(moira_yaml_get "$agg_path" "cusum.${metric}.s_plus" 2>/dev/null) || s_plus="0"
+  s_minus=$(moira_yaml_get "$agg_path" "cusum.${metric}.s_minus" 2>/dev/null) || s_minus="0"
+
+  echo "s_plus: ${s_plus:-0}"
+  echo "s_minus: ${s_minus:-0}"
+}
+
+# ═══════════════════════════════════════════════════════════════════════
+# BH — Benjamini-Hochberg Multiple Comparison Correction
+# Controls false discovery rate when evaluating multiple metrics.
+# ═══════════════════════════════════════════════════════════════════════
+
+# ── moira_bench_bh_correct <p_values_csv> [alpha]
+# Apply Benjamini-Hochberg procedure.
+# Input: comma-separated p-values as integers (percentages × 100, e.g., 125 = 1.25%)
+# Output: space-separated indices (0-based) of significant results surviving correction.
+# If none survive, outputs "none".
+moira_bench_bh_correct() {
+  local p_values_csv="$1"
+  local alpha="${2:-500}"  # 500 = 5.00% (scaled by 100)
+
+  # Parse p-values into arrays
+  local p_vals=()
+  local indices=()
+  local i=0
+  IFS=',' read -ra raw_vals <<< "$p_values_csv"
+  for val in "${raw_vals[@]}"; do
+    val=$(echo "$val" | tr -d ' ')
+    p_vals+=("$val")
+    indices+=("$i")
+    i=$((i + 1))
+  done
+
+  local m=${#p_vals[@]}
+  if [[ $m -eq 0 ]]; then
+    echo "none"
+    return 0
+  fi
+
+  # Sort by p-value (ascending) — bubble sort for small m
+  local sorted_p=("${p_vals[@]}")
+  local sorted_idx=("${indices[@]}")
+  local j
+  for (( i=0; i<m-1; i++ )); do
+    for (( j=0; j<m-i-1; j++ )); do
+      if [[ ${sorted_p[j]} -gt ${sorted_p[j+1]} ]]; then
+        # Swap p-values
+        local tmp=${sorted_p[j]}
+        sorted_p[j]=${sorted_p[j+1]}
+        sorted_p[j+1]=$tmp
+        # Swap indices
+        tmp=${sorted_idx[j]}
+        sorted_idx[j]=${sorted_idx[j+1]}
+        sorted_idx[j+1]=$tmp
+      fi
+    done
+  done
+
+  # Find largest k such that p(k) ≤ (k/m) × α
+  # p-values and alpha are scaled ×100, so threshold = (k × alpha) / m
+  local largest_k=-1
+  for (( k=1; k<=m; k++ )); do
+    local threshold=$(( k * alpha / m ))
+    local p_k=${sorted_p[k-1]}
+    if [[ $p_k -le $threshold ]]; then
+      largest_k=$k
+    fi
+  done
+
+  if [[ $largest_k -lt 1 ]]; then
+    echo "none"
+    return 0
+  fi
+
+  # Return original indices of significant results (indices 0..largest_k-1 in sorted order)
+  local result=""
+  for (( k=0; k<largest_k; k++ )); do
+    if [[ -n "$result" ]]; then
+      result+=" "
+    fi
+    result+="${sorted_idx[k]}"
+  done
+
+  echo "$result"
+}
