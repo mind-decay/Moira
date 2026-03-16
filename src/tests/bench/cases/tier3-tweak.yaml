@@ -1,0 +1,42 @@
+meta:
+  id: tier3-tweak
+  name: Post-completion tweak flow with scope check
+  type: feature
+  pipeline: standard
+  rubric: feature-implementation
+  tier: 3
+
+fixture: mature-webapp
+
+task:
+  description: "Add rate limiting middleware for API endpoints. After completion, tweak to adjust the rate limit threshold (in-scope), then attempt a tweak to add logging to an unrelated service (out-of-scope)."
+  size: medium
+  confidence: medium
+
+gate_responses:
+  classification: proceed
+  architecture: proceed
+  plan: proceed
+  final: tweak
+  tweak_description: "Change the default rate limit from 100 to 200 requests per minute"
+  # After first tweak completes
+  final_after_tweak_1: tweak
+  tweak_2_description: "Add structured logging to the payment processing service"
+  # Scope gate triggers for out-of-scope tweak
+  tweak_scope: new-task
+  final_after_tweak_2: done
+
+expected_structural:
+  pipeline_type: standard
+  agents: [apollo, hermes, athena, metis, daedalus, hephaestus, themis, aletheia]
+  gate_count: 4
+  tweak_count: 1
+  tweak_in_scope: true
+  tweak_out_of_scope_detected: true
+
+expected_quality:
+  minimum_scores:
+    requirements_coverage: 3
+    code_correctness: 3
+  scope_check_accuracy: true
+  judge: null

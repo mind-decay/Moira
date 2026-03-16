@@ -1,0 +1,36 @@
+meta:
+  id: tier3-checkpoint-resume
+  name: Checkpoint at phase gate and resume in fresh session
+  type: feature
+  pipeline: standard
+  rubric: feature-implementation
+  tier: 3
+
+fixture: mature-webapp
+
+task:
+  description: "Add a caching layer for GET /api/products using Redis. Include cache invalidation on POST/PUT/DELETE. This task is designed to trigger checkpoint at the plan gate."
+  size: medium
+  confidence: medium
+
+gate_responses:
+  classification: proceed
+  architecture: proceed
+  plan: checkpoint
+  # Resume flow picks up here in fresh session
+  resume_confirm: "yes"
+  final: done
+
+expected_structural:
+  pipeline_type: standard
+  agents: [apollo, hermes, athena, metis, daedalus, hephaestus, themis, aletheia]
+  gate_count: 4
+  checkpoint_at: plan
+  resume_validation: valid
+
+expected_quality:
+  minimum_scores:
+    requirements_coverage: 3
+    code_correctness: 3
+  post_resume_quality_check: true
+  judge: null

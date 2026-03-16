@@ -1,0 +1,42 @@
+meta:
+  id: tier3-epic-decomposition
+  name: Epic with 3 sub-tasks verifying DAG scheduling
+  type: feature
+  pipeline: decomposition
+  rubric: feature-implementation
+  tier: 3
+
+fixture: mature-webapp
+
+task:
+  description: "Add user authentication system: (1) database schema for users table, (2) auth middleware depending on schema, (3) login/register endpoints depending on both schema and middleware. Verifies DAG scheduling with 1 independent + 2 dependent sub-tasks."
+  size: epic
+  confidence: high
+
+gate_responses:
+  classification: proceed
+  decomposition: proceed
+  # Sub-task gates
+  per_task_1: proceed
+  per_task_2: proceed
+  per_task_3: proceed
+  integration: proceed
+  final: done
+
+expected_structural:
+  pipeline_type: decomposition
+  agents: [apollo, hermes, athena, metis, daedalus, hephaestus, themis, aletheia]
+  gate_count: 6
+  subtask_count: 3
+  dag_valid: true
+  parallel_eligible: 0
+  execution_order:
+    - subtask_1_schema
+    - subtask_2_middleware
+    - subtask_3_endpoints
+
+expected_quality:
+  minimum_scores:
+    requirements_coverage: 3
+    code_correctness: 3
+  judge: null

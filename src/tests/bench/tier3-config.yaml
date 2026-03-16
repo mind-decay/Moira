@@ -1,0 +1,14 @@
+tier: 3
+budget:
+  max_tokens: 300000
+  max_tests: 30
+  warn_at: 200000
+trigger_matrix:
+  - pipeline_flow_change
+  - gate_logic_change
+  - agent_role_boundary
+  - orchestrator_skill
+  - rules_assembly_logic
+  - new_agent_type
+  - constitution_amendment
+  - major_version_release

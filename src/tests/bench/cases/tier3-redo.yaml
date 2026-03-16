@@ -1,0 +1,42 @@
+meta:
+  id: tier3-redo
+  name: Redo flow at each re-entry point
+  type: feature
+  pipeline: standard
+  rubric: feature-implementation
+  tier: 3
+
+fixture: mature-webapp
+
+task:
+  description: "Refactor the data access layer to use the repository pattern. After completion, redo at the implement re-entry point to verify artifact archiving and failure knowledge capture."
+  size: medium
+  confidence: medium
+
+gate_responses:
+  classification: proceed
+  architecture: proceed
+  plan: proceed
+  final: redo
+  redo_reason: "Implementation uses raw SQL instead of the ORM as specified in the architecture"
+  redo_reentry: implement
+  # After redo, pipeline re-enters at implementation
+  final_after_redo: done
+
+expected_structural:
+  pipeline_type: standard
+  agents: [apollo, hermes, athena, metis, daedalus, hephaestus, themis, aletheia]
+  gate_count: 4
+  redo_count: 1
+  redo_reentry_point: implement
+  artifacts_archived: true
+  failure_knowledge_written: true
+
+expected_quality:
+  minimum_scores:
+    requirements_coverage: 3
+    code_correctness: 3
+  knowledge_capture:
+    failure_entry_exists: true
+    rejected_approach_documented: true
+  judge: null
