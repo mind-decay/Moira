@@ -41,6 +41,11 @@ fields:
     type: string
     required: false
     default: null
+  git.pre_task_head:
+    type: string
+    required: false
+    default: null
+    description: "Git HEAD SHA at task start, used for diff computation by checkpoint and tweak flows"
   classification.classifier_size:
     type: enum
     required: false

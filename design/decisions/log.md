@@ -901,3 +901,17 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 **Context:** Audit H-01 found that skills reference shell functions (moira_state_gate, moira_state_transition, etc.) as if the orchestrator calls them, but orchestrator.md Section 1 explicitly prohibits bash execution and allowed-tools excludes Bash.
 **Decision:** The orchestrator manages state by directly reading and writing YAML files using Read/Write tools. Shell functions in lib/ serve as canonical reference for the logic (which fields, which values, which files). Skills that reference shell functions mean "perform the equivalent YAML writes."
 **Consequences:** No new infrastructure needed. Shell functions remain single source of truth for state logic. Skills use consistent language pattern: "write the equivalent of function_name() updates."
+
+*(D-097 reserved)*
+
+## D-098: Version Snapshot for Upgrade Three-Way Comparison
+
+**Date:** 2026-03-16
+**Status:** Accepted
+**Context:** The upgrade system needs a way to perform three-way merge comparison between the user's current (possibly customized) files, the originally installed version, and the new version being upgraded to. Without a baseline snapshot of the installed version, there is no way to distinguish user customizations from original content.
+**Decision:** Store a version snapshot at `~/.claude/moira/.version-snapshot/` containing a copy of installed files at install time. This snapshot serves as the common ancestor in three-way comparison during upgrades: snapshot (base) vs current (user's version) vs new (upgrade target).
+**Alternatives rejected:**
+- Diff-only approach (store diffs from each version) — requires maintaining diff chains, complex to reconstruct base state
+- Git-based tracking — adds git dependency for global layer, overkill for simple version comparison
+- No snapshot (two-way merge only) — cannot distinguish user customizations from original content, risks overwriting intentional changes
+**Reasoning:** Three-way merge is the standard approach for upgrade systems that need to preserve user customizations. The snapshot is created once at install time and updated after each successful upgrade. Storage cost is minimal (copy of core files). Referenced in `design/architecture/overview.md` file structure.

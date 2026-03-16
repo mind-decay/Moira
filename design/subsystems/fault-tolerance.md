@@ -106,9 +106,9 @@ Need from you:
 
 ### E5-QUALITY: Quality Gate Failed
 
-**MAX RETRY: 2 attempts total**
+**MAX RETRY: max_attempts=3 for Standard/Full/Decomposition (1 original + 2 retries), max_attempts=2 for Quick (1 original + 1 retry). See D-095.**
 
-Note: Pipeline-specific retry limits may override this default. Quick Pipeline uses max 1 attempt total (D-071).
+Note: `max_attempts` means total executions including the original attempt (D-095).
 
 **Markov retry optimization:** Retry count may be reduced from the hard maximum by the Markov retry optimizer (`retry.sh`) when historical data shows low success probability. The optimizer uses exponential moving average of past retry outcomes per (error_type, agent_type) pair to estimate success probability. Hard limits (2 attempts total) remain as upper bounds — the optimizer can recommend fewer retries, never more. Report includes: "Retry recommended (estimated N% success probability based on M historical observations)" or "Escalating to user (estimated N% success probability — retry unlikely to help)."
 
@@ -119,7 +119,7 @@ Note: Pipeline-specific retry limits may override this default. Quick Pipeline u
 - New plan with different approach
 - New implementation
 
-**After 2 failures:** Escalate to user:
+**After max_attempts exhausted:** Escalate to user:
 ```
 🔴 QUALITY GATE FAILED (2 attempts)
 Step: Implement caching layer

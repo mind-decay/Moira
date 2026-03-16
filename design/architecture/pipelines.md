@@ -37,14 +37,14 @@ USER → task description
   │   (loads conventions L2, project context minimal)
   │
   ├─ Reviewer → quick review
-  │   └─ If CRITICAL → Implementer retry (max 2 attempts total)
+  │   └─ If CRITICAL → Implementer retry (max_attempts=2, D-095)
   │
   └─ [GATE: user final review]
       ├─ done   — accept
       ├─ tweak  — targeted modification
       ├─ redo   — rollback
       ├─ diff   — show changes
-      └─ test   — run additional tests
+      └─ test   — run additional tests (dispatches Aletheia ad-hoc, not a pipeline step)
 
   Post: Orchestrator writes structured reflection note to
         `.claude/moira/state/tasks/{id}/reflection-note.yaml`:
@@ -97,8 +97,8 @@ USER → task description
   │       └─ Implementer-E → Batch E (shared files)
   │
   ├─ Reviewer → reviews all changes (foreground)
-  │   └─ If CRITICAL → Implementer retry (max 3 attempts total)
-  │       After 3 failures → escalate to user
+  │   └─ If CRITICAL → Implementer retry (max_attempts=3, D-095)
+  │       After max_attempts exhausted → escalate to user
   │
   ├─ Tester → writes + runs tests (foreground)
   │
@@ -294,7 +294,8 @@ Summary of pipeline-level error handling:
 | Semantic error (wrong content) | Reviewer catches → retry with feedback, or gate modify |
 | Agent data conflict | Architect flags → present both versions at gate |
 | Context truncation | Budget pre-check → split; Reviewer post-check → retry reduced |
-| Orchestrator context >40% | Warning |
-| Orchestrator context >60% | Recommend checkpoint |
+| Orchestrator context >25% | Monitor (include in gate status) |
+| Orchestrator context >40% | Warning (offer checkpoint) |
+| Orchestrator context >60% | Mandatory checkpoint (D-094a) |
 
 See orchestrator.md Section 6 for the full 4-tier budget threshold specification.

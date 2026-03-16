@@ -51,7 +51,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Does NOT propose solutions or architecture
 - Does NOT change the task description
 - NEVER skip classification — always return a result
-- Does NOT select or specify the pipeline type (orchestrator responsibility per Art 2.1)
+- Does NOT select or specify the pipeline type (orchestrator responsibility per Art 2.1, D-062)
 - If user provides size hint, may agree or override with reasoning
 
 **Pipeline mapping (Art 2.1):**
@@ -82,6 +82,9 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Scans breadth-first, then depth on relevant areas
 - Always checks: shared/, utils/, types/, config/ (commonly missed)
 - Does NOT interpret or draw conclusions from findings (reports raw facts only)
+- Does NOT make architectural suggestions
+- Does NOT modify any files (read-only agent)
+- Does NOT silently expand exploration scope (reports E2-SCOPE)
 - Documents what it found AND what it looked for but didn't find
 
 **Monorepo mode:** When dispatched with package-scoped instructions, Explorer limits exploration to the specified packages and their direct dependencies. If Explorer discovers that additional packages are relevant (e.g., shared utilities not in scope), it reports E2-SCOPE (monorepo subtype, D-070) for scope expansion rather than silently expanding.
@@ -102,6 +105,9 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 **Rules:**
 - Does NOT propose technical implementation
+- Does NOT suggest specific technologies or patterns
+- Does NOT write code or pseudocode
+- Does NOT assume requirements — asks if unclear (STATUS: blocked)
 - Must complete Requirements Completeness Checklist:
   - [ ] Happy path defined
   - [ ] Error cases enumerated
@@ -128,6 +134,9 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 **Rules:**
 - Every decision must have: CONTEXT, DECISION, ALTERNATIVES REJECTED, REASONING
+- Does NOT write implementation code
+- Does NOT decompose into tasks (Planner's responsibility)
+- Does NOT make requirements decisions (Analyst's responsibility)
 - Must pass Architecture Soundness Checklist:
   - [ ] Follows existing patterns (or justifies deviation)
   - [ ] Single Responsibility per component
@@ -159,6 +168,8 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 **Rules:**
 - Does NOT make architectural decisions, only decomposes
+- Does NOT choose between technical alternatives (Architect's responsibility)
+- Does NOT write implementation code
 - Does NOT skip dependency analysis
 - Uses quality-map (full) to inject quality pattern context into agent instruction files and align plan steps with existing quality patterns
 - Must pass Plan Feasibility Checklist:

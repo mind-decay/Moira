@@ -32,6 +32,8 @@ Every knowledge document exists in three forms:
 
 **Authoritative source:** `src/global/core/knowledge-access-matrix.yaml`. This table is a summary. Write access is defined in the authoritative source.
 
+**Write access:** Hermes (project_model), Themis (quality_map), Mnemosyne (all knowledge areas). All other agents are read-only. See `src/global/core/knowledge-access-matrix.yaml` for the authoritative write access specification.
+
 **Note:** Package map access levels are a sub-dimension of project-model; see Package Map section below.
 
 Architect reads full decisions — needs ALL precedents.

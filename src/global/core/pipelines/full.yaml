@@ -93,6 +93,7 @@ steps:
     reads_from:
       - "tasks/{task_id}/integration-results.md"
 
+  # Dynamic checkpoint: Quality Checkpoint (see gates.md) — presented when quality-gate agent returns fail_warning
 gates:
   - id: classification_gate
     after_step: classification
@@ -211,6 +212,7 @@ error_handlers:
   E9-SEMANTIC:
     action: retry_with_feedback
     max_attempts: 2
+    # max_attempts capped by E5-QUALITY's shared retry counter
     note: "Reviewer-detected: E5-QUALITY retry path. Gate-detected: gate modify flow"
   E10-DIVERGE:
     action: escalate_to_user

@@ -187,7 +187,7 @@ quality:
     cooldown_remaining: 0
 
 knowledge:
-  freshness_days: 30
+  freshness_confidence_threshold: 30
   archival_max_entries: 100
 
 audit:

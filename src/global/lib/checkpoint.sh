@@ -292,12 +292,10 @@ moira_checkpoint_build_resume_context() {
     pipeline=${p:-unknown}
     s=$(moira_yaml_get "$current_file" "step" 2>/dev/null) || true
     current_step=${s:-unknown}
-    d=$(moira_yaml_get "$current_file" "description" 2>/dev/null) || true
-    description=${d:-}
   fi
 
-  # Read task description from status.yaml if not in current
-  if [[ -z "$description" && -f "$status_file" ]]; then
+  # Read task description from status.yaml
+  if [[ -f "$status_file" ]]; then
     local sd
     sd=$(moira_yaml_get "$status_file" "description" 2>/dev/null) || true
     description=${sd:-}

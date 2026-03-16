@@ -186,7 +186,7 @@ User → /moira <task>
 ├── config.yaml                    # Project configuration
 ├── core/
 │   └── rules/
-│       ├── base.yaml              # Layer 1: project-adapted copy (base from global, customizable by init)
+│       ├── base.yaml              # Layer 1: project-adapted base rules (copied from global, may diverge)
 │       ├── roles/                 # Layer 2: per-agent role rules (D-034 Greek names)
 │       │   ├── apollo.yaml        # Classifier
 │       │   ├── hermes.yaml        # Explorer

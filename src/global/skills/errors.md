@@ -267,14 +267,14 @@ Before retrying, consult retry optimizer: `moira_retry_should_retry E5_QUALITY {
 5. Re-dispatch Reviewer
 6. If passes → continue pipeline
 
-**After 3 failures → escalate:**
+**After 2 retries (3 total attempts) → escalate:**
 
 Present quality failure gate to user.
 
 ### Display — During Retry
 
 ```
-🔄 QUALITY RETRY (attempt {n}/3)
+🔄 QUALITY RETRY (attempt {n}/3, including original)
 Reviewer found {count} CRITICAL issue(s):
 {list of critical findings}
 
@@ -284,7 +284,7 @@ Re-dispatching Hephaestus (implementer) with feedback...
 ### Display — After Max Retries
 
 ```
-🔴 QUALITY GATE FAILED (3 attempts)
+🔴 QUALITY GATE FAILED (2 retries exhausted)
 Step: {step_description}
 
 Attempt 1: {attempt_1_issue}
@@ -307,7 +307,7 @@ Root cause analysis:
 
 ### Escalation
 
-After 3 failures → present quality failure gate. User decides next action.
+After 2 retries (3 total attempts) → present quality failure gate. User decides next action.
 
 **Pipeline-specific:** Quick Pipeline limits E5 retries to max_attempts=2 (single retry only).
 
@@ -506,6 +506,8 @@ Follow E5-QUALITY retry path:
 3. Re-dispatch Themis (reviewer) on updated code
 4. If still failing after max attempts → escalate per E5-QUALITY
 
+**Note:** E9-SEMANTIC shares E5-QUALITY's retry counter. The E9 max_attempts value is capped by E5-QUALITY's budget.
+
 **Gate-detected (user spots error at gate):**
 
 1. User selects `modify` at the gate
@@ -637,6 +639,8 @@ Re-dispatching Hephaestus (implementer) with reduced scope...
 
 - Pre-execution: follows E4-BUDGET escalation (double overflow → user gate)
 - Post-execution: follows E5-QUALITY escalation (max retries → user gate)
+
+**Pipeline-specific:** Quick Pipeline limits E11 post-exec retries to max_attempts=1 (zero retries) for lightweight execution.
 
 ---
 

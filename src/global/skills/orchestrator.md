@@ -65,7 +65,7 @@ Before starting the pipeline, check if a deep scan is pending:
      - Agent tool call 2: description "Hermes (explorer) — deep dependency scan", prompt from `~/.claude/moira/templates/scanners/deep/deep-dependency-scan.md`, run_in_background: true
      - Agent tool call 3: description "Hermes (explorer) — deep test coverage scan", prompt from `~/.claude/moira/templates/scanners/deep/deep-test-coverage-scan.md`, run_in_background: true
      - Agent tool call 4: description "Hermes (explorer) — deep security scan", prompt from `~/.claude/moira/templates/scanners/deep/deep-security-scan.md`, run_in_background: true
-   - After completion notifications arrive: call `moira_knowledge_update_quality_map` with deep scan results to enhance quality map
+   - After completion notifications arrive: call `moira_knowledge_update_quality_map <task_dir> <quality_map_dir>` (where task_dir = `.claude/moira/state/tasks/{task_id}`, quality_map_dir = `.claude/moira/knowledge/quality-map`) with deep scan results to enhance quality map
    - Update `.claude/moira/config.yaml`: set `bootstrap.deep_scan_completed` to `true`
    - Continue with pipeline — do NOT wait for deep scans to finish
 3. If `false` or field not present: continue silently
@@ -375,10 +375,10 @@ When the pipeline reaches the completion step:
   - `moira_yaml_set status.yaml completion.redo_count <count>` (number of redo iterations, 0 if none)
   - `moira_yaml_set status.yaml completion.final_review_passed <true|false>` (whether final review passed)
 - Write `quality.final_result` to `telemetry.yaml`: the final completion action that ended the pipeline (done/tweak/redo/abort — if the user used diff/test first, record the eventual terminal action)
-- Aggregate quality data: call `moira_quality_aggregate_task <task_id>` to compute aggregate quality metrics for the task
+- Aggregate quality data: call `moira_quality_aggregate_task <task_dir>` (where task_dir = `.claude/moira/state/tasks/{task_id}`) to compute aggregate quality metrics for the task
 - Tick evolution cooldown: call `moira_quality_tick_cooldown` on config.yaml
 - If quality mode was `evolve`: call `moira_quality_complete_evolve` on config.yaml
-- Call `moira_knowledge_update_quality_map` with task findings (if Themis Q4 findings exist)
+- Call `moira_knowledge_update_quality_map <task_dir> <quality_map_dir>` (where task_dir = `.claude/moira/state/tasks/{task_id}`, quality_map_dir = `.claude/moira/knowledge/quality-map`) with task findings (if Themis Q4 findings exist)
 - If MCP was enabled for this task: extract MCP call data from agent dispatches (Planner's instruction files list authorized MCP tools, Reviewer's MCP verification findings confirm actual usage). Write `mcp_calls[]` entries to `telemetry.yaml` with: server, tool, query_summary (sanitized per D-027), tokens_used, agent. If no MCP calls: omit `mcp_calls` section (field is `required: false` in schema).
 - Collect metrics: call `moira_metrics_collect_task <task_id>` to aggregate task data into monthly metrics and check for audit triggers.
 - Checkpoint cleanup: call `moira_checkpoint_cleanup <task_id>` — removes manifest.yaml if it exists (handles case where task was previously checkpointed)

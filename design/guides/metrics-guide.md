@@ -209,7 +209,7 @@ confidence(entry) = e^(-λ × tasks_since_verified)
 
 | Индикатор | Значение |
 |-----------|----------|
-| ↑ | Улучшение (разница ≥5 пунктов, D-093a) |
+| ↑ | Улучшение (разница ≥5 пунктов, D-093(a)) |
 | ↓ | Ухудшение (разница ≥5 пунктов) |
 | → | Стабильно (разница <5 пунктов) |
 
@@ -359,7 +359,7 @@ CUSUM drift_down detected: quality score (-1.2 avg shift over 5 runs)
 | Reviewer (Themis) | 100k | Код для ревью |
 | Tester (Aletheia) | 90k | Тесты |
 | Reflector (Mnemosyne) | 80k | Рефлексия |
-| Auditor (Dikē) | 140k | Кросс-ссылки между файлами |
+| Auditor (Argus) | 140k | Кросс-ссылки между файлами |
 
 ### 9.2 Adaptive Safety Margin
 

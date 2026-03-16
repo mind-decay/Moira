@@ -51,6 +51,7 @@ steps:
     writes_to: "tasks/{task_id}/telemetry.yaml"
     reads_from: "tasks/{task_id}/review.md"
 
+  # Dynamic checkpoint: Quality Checkpoint (see gates.md) — presented when quality-gate agent returns fail_warning
 gates:
   - id: classification_gate
     after_step: classification
@@ -126,11 +127,12 @@ error_handlers:
   E9-SEMANTIC:
     action: retry_with_feedback
     max_attempts: 1
+    # max_attempts capped by E5-QUALITY's shared retry counter
     note: "Reviewer-detected: E5-QUALITY retry path. Gate-detected: gate modify flow"
   E11-TRUNCATION:
     post_exec:
       action: retry_reduced_scope
-      max_attempts: 1
+      max_attempts: 1  # Quick Pipeline: no retry (max_attempts=1) — lightweight execution
 
 post:
   reflection: lightweight

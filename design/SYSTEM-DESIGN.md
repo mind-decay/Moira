@@ -32,7 +32,7 @@ Moira is a meta-orchestration framework for Claude Code that transforms Claude f
 - [Implementation Roadmap](IMPLEMENTATION-ROADMAP.md) — 12-phase build order with dependencies
 
 ### Reports
-- [Reports directory](reports/) — audit and analysis reports (historical, never modified after creation)
+- [Reports directory](reports/) — audit and analysis reports (historical, never modified after creation). Older reports are stored in `reports/archive/` by convention.
 
 ### Self-Protection
 - [Constitution](CONSTITUTION.md) — inviolable system invariants
@@ -41,9 +41,18 @@ Moira is a meta-orchestration framework for Claude Code that transforms Claude f
 ### Implementation Specs
 Active implementation specs live in `design/specs/` by convention. Completed specs are moved to `design/specs/archive/`.
 
+**Active specs:**
+- [Phase 12 — Advanced Features](specs/2026-03-16-phase12-advanced-features.md) — checkpoint/resume, epic decomposition, tweak/redo, upgrade
+- [Phase 12 — Implementation Plan](specs/2026-03-16-phase12-implementation-plan.md) — task breakdown for Phase 12
+- [Formal Methods Optimization](specs/2026-03-16-formal-methods-optimization.md) — formal methods for pipeline optimization
+- [Formal Methods — Implementation Plan](specs/2026-03-16-formal-methods-implementation-plan.md) — task breakdown for formal methods
+- [Post-v1 Backlog](specs/post-v1-backlog.md) — deferred features for after v1
+
+**Archived specs:**
+- [Blocker Resolution Design](specs/archive/2026-03-11-blocker-resolution-design.md) — pre-implementation review: Classifier, YAML schemas, distribution, guard mechanism, bootstrap scanners
+
 ### Decisions
 - [Decision Log](decisions/log.md) — all architectural decisions with reasoning
-- [Blocker Resolution Design](specs/archive/2026-03-11-blocker-resolution-design.md) — pre-implementation review: Classifier, YAML schemas, distribution, guard mechanism, bootstrap scanners
 
 ### Guides
 - [Metrics Guide](guides/metrics-guide.md) — what metrics exist, how to read them, when to react

@@ -289,10 +289,13 @@ After installation, `~/.claude/` contains:
 │   ├── status.md                         # /moira:status
 │   ├── metrics.md                        # /moira:metrics
 │   ├── audit.md                          # /moira:audit
+│   ├── bench.md                          # /moira:bench
+│   ├── health.md                         # /moira:health
 │   ├── knowledge.md                      # /moira:knowledge
 │   ├── bypass.md                         # /moira:bypass
 │   ├── resume.md                         # /moira:resume
 │   ├── refresh.md                        # /moira:refresh
+│   ├── upgrade.md                        # /moira:upgrade
 │   └── help.md                           # /moira:help
 │
 └── settings.json                         # Hooks + statusline registration (merge)

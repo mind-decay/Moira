@@ -22,11 +22,13 @@ fields:
     type: string
     required: true
     default: generic
+  # Reserved -- not yet read by orchestrator. Pipeline selection is a pure function of classifier output (Art 2.1). Target activation: Phase 12+.
   classification.default_pipeline:
     type: enum
     required: false
     enum: [quick, standard, full, decomposition]
     default: standard
+  # Reserved -- not yet read by orchestrator. Pipeline selection is a pure function of classifier output (Art 2.1). Target activation: Phase 12+.
   classification.size_hints_override:
     type: boolean
     required: false
@@ -124,6 +126,7 @@ fields:
     required: false
     default: 30
     description: "Minimum confidence percentage (exponential decay model). Entries below this are flagged stale."
+  # Reserved -- not yet enforced by knowledge archival system.
   knowledge.archival_max_entries:
     type: number
     required: false
@@ -136,6 +139,7 @@ fields:
     type: number
     required: false
     default: 20
+  # Reserved -- not yet read by audit system. Target activation: Phase 12+.
   audit.auto_batch_apply_risk:
     type: enum
     required: false

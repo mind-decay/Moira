@@ -246,6 +246,8 @@ Based on dependency analysis. Each phase builds on previous.
 - Tiered test execution by change risk (D-026)
 - Live telemetry privacy validation (D-027)
 
+**Key decisions:** D-095 (max_attempts semantics clarification), D-096 (orchestrator state management via YAML writes).
+
 **Why last:** Advanced workflows. Core system must be solid first.
 
 ---
