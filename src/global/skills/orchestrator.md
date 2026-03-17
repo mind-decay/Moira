@@ -105,6 +105,22 @@ Before entering the main loop:
    b. Construct agent prompt (per `dispatch.md` skill)
    c. Dispatch agent (foreground, background, or parallel per step `mode`)
    d. On agent return: parse response (per `dispatch.md`)
+   d1. **Post-agent guard check** (D-099): If the agent's role can modify files (implementer, explorer), verify no protected paths were touched:
+       1. Run `git diff --name-only` (unstaged) and `git diff --name-only --cached` (staged) to get files modified since step start
+       2. Check modified files against protected paths:
+          - `design/CONSTITUTION.md` — absolute prohibition (Art 6.1)
+          - `design/**` — design docs (Art 6.2)
+          - `.claude/moira/config/**` — system configuration
+          - `.claude/moira/core/**` — core rules and pipelines
+          - `src/global/**` — Moira source code
+          Allowed exceptions (not violations):
+          - `.claude/moira/state/tasks/{current_task_id}/**`
+          - `.claude/moira/knowledge/**`
+          - `.claude/moira/state/current.yaml`
+          - `.claude/moira/state/queue.yaml`
+          - All project source files
+       3. If violation found → log to `state/violations.log` (format: `timestamp AGENT_VIOLATION agent_role file_path`), then present Guard Violation Gate (per `gates.md`)
+       4. If clean → proceed to step (e)
    e. Check STATUS:
       - `success` → read SUMMARY, record completion, check quality gate then approval gate
       - `failure` → trigger E6 recovery (per `errors.md`)
@@ -334,11 +350,15 @@ After each agent returns:
 
 ### Violation Monitoring
 
-After each agent returns:
-1. Check for violation warnings in context (guard.sh injects via hookSpecificOutput)
-2. Read violation count: use Read tool on `.claude/moira/state/violations.log`, count lines (0 if file empty or missing). The orchestrator CAN read `.claude/moira/` files — this is within its allowed scope.
-3. Include violation count in health report at every gate
-4. If violation count > 0: add 🔴 indicator in health report
+Violations come from two sources (D-099):
+1. **Orchestrator violations** (prefix `VIOLATION`): guard.sh PostToolUse hook detects orchestrator touching project files. Injected as context warnings via hookSpecificOutput.
+2. **Agent violations** (prefix `AGENT_VIOLATION`): post-agent guard check (step d1) detects agents modifying protected paths. Blocks pipeline via Guard Violation Gate.
+
+Both write to `state/violations.log`. After each agent returns:
+1. Check for guard.sh violation warnings in context (hookSpecificOutput)
+2. Read `state/violations.log`, count lines by prefix: orchestrator violations = `VIOLATION` lines, agent violations = `AGENT_VIOLATION` lines. The orchestrator CAN read `.claude/moira/` files — this is within its allowed scope.
+3. Include violation counts in health report at every gate (show separate counts)
+4. If either count > 0: add 🔴 indicator in health report
 
 ### Budget Report at Completion
 
@@ -382,6 +402,7 @@ When the pipeline reaches the completion step:
 - If MCP was enabled for this task: extract MCP call data from agent dispatches (Planner's instruction files list authorized MCP tools, Reviewer's MCP verification findings confirm actual usage). Write `mcp_calls[]` entries to `telemetry.yaml` with: server, tool, query_summary (sanitized per D-027), tokens_used, agent. If no MCP calls: omit `mcp_calls` section (field is `required: false` in schema).
 - Collect metrics: call `moira_metrics_collect_task <task_id>` to aggregate task data into monthly metrics and check for audit triggers.
 - Checkpoint cleanup: call `moira_checkpoint_cleanup <task_id>` — removes manifest.yaml if it exists (handles case where task was previously checkpointed)
+- Reflection dispatch: Read the current pipeline's `post.reflection` value from the pipeline YAML. If `lightweight`: write reflection note directly to `state/tasks/{id}/reflection.md` using `templates/reflection/lightweight.md` (substitute placeholders: {task_id}, {pipeline_type}, {final_gate_action}, {retry_count}, {budget_pct}). For all other modes (`background`, `deep`, `epic`): invoke the `reflection.md` skill for Mnemosyne dispatch. Note: for `deep` and `epic` modes (foreground), the pipeline remains open during reflection — this is intentional. For `background`, Mnemosyne is dispatched non-blocking.
 - Set pipeline status to `completed`
 
 ### Xref Consistency Check (Pre-Final Gate)
@@ -403,21 +424,6 @@ After implementation completes and BEFORE presenting the final gate (D-094g):
 5. If no warnings: proceed to final gate silently
 
 **Scope:** Only applies to Moira system files (files listed in xref-manifest.yaml). Does not affect project source code.
-
-### Reflection Dispatch
-
-| Reflection Mode | Action |
-|-----------------|--------|
-| `lightweight`   | No Reflector dispatched. Write minimal reflection note to task manifest only. |
-| `background`    | Dispatch Mnemosyne (reflector) as background agent. Non-blocking. |
-| `deep`          | Dispatch Mnemosyne (reflector) as foreground agent. Wait for completion. |
-| `epic`          | Dispatch Mnemosyne (reflector) with epic-level scope (cross-subtask patterns). |
-
-Reflection modes are mapped from pipeline types: quick->lightweight, standard->background, full->deep, decomposition->epic.
-
-**Reference:** `reflection.md` skill for full dispatch instructions, prompt assembly,
-periodic escalation, and post-reflection processing (knowledge updates, rule proposals,
-MCP caching recommendations).
 
 **`tweak`** — Targeted modification:
 1. Ask user to describe what needs changing
