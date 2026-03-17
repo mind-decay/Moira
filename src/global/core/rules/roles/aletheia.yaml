@@ -21,6 +21,7 @@ never:
   - "Never skip running tests after writing them"
   - "Never write brittle tests (testing implementation details)"
   - "Never ignore test failures"
+  - "Never fix implementation bugs found through testing — report them instead"
 
 knowledge_access:
   project_model: L0

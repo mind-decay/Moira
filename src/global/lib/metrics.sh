@@ -590,6 +590,7 @@ tasks:
     medium: 0
     large: 0
     epic: 0
+  # NOT YET IMPLEMENTED — always 0. Needs bypass detection from current.yaml bypass.active
   bypassed: 0
   aborted: 0
 quality:
@@ -600,6 +601,7 @@ quality:
   reviewer_criticals: 0
 accuracy:
   classification_correct: 0
+  # NOT YET IMPLEMENTED — always 0. Needs gate history parsing from status.yaml
   architecture_first_try: 0
   plan_first_try: 0
 efficiency:

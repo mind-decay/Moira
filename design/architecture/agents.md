@@ -35,7 +35,7 @@ Orchestrator NEVER reads full artifact files. It reads only summaries and decide
 
 **Response format:**
 ```
-STATUS: success
+STATUS: success  # Example of success response; full options: success|failure|blocked|budget_exceeded
 SUMMARY: size=medium, confidence=high
 ARTIFACTS: [classification.md]
 NEXT: explore+analyze
@@ -85,6 +85,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Does NOT make architectural suggestions
 - Does NOT modify any files (read-only agent)
 - Does NOT silently expand exploration scope (reports E2-SCOPE)
+- Does NOT express opinions
 - Documents what it found AND what it looked for but didn't find
 
 **Monorepo mode:** When dispatched with package-scoped instructions, Explorer limits exploration to the specified packages and their direct dependencies. If Explorer discovers that additional packages are relevant (e.g., shared utilities not in scope), it reports E2-SCOPE (monorepo subtype, D-070) for scope expansion rather than silently expanding.

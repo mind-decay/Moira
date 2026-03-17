@@ -1,3 +1,4 @@
+# Field names using dot-notation (e.g., budgets.per_agent.classifier) represent YAML nested keys.
 _meta:
   name: config
   file: config.yaml
@@ -66,6 +67,7 @@ fields:
     type: number
     required: false
     default: 70
+  # These defaults must match budgets.schema.yaml agent_budgets.*. budget.sh reads budgets.yaml first with config.yaml as fallback.
   budgets.per_agent.classifier:
     type: number
     required: false

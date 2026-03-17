@@ -160,6 +160,7 @@ moira_state_agent_done() {
 
   # Append history entry
   local history_entry="  - step: ${step_name}
+    role: ${role}
     status: ${status}
     duration_sec: ${duration_sec}
     agent_tokens_used: ${tokens_used}
@@ -241,4 +242,71 @@ moira_state_write_warning() {
     distance: ${distance}"
 
   moira_yaml_block_append "$status_file" "warnings" "$warning_entry"
+}
+
+# ── moira_state_set_status <task_id> <status> [state_dir] ─────────────
+# Set task status in status.yaml. Validates status against enum.
+moira_state_set_status() {
+  local task_id="$1"
+  local status="$2"
+  local state_dir="${3:-.claude/moira/state}"
+  local status_file="${state_dir}/tasks/${task_id}/status.yaml"
+
+  # Validate status enum
+  local valid_statuses="pending in_progress completed failed aborted"
+  local status_valid=false
+  for vs in $valid_statuses; do
+    if [[ "$status" == "$vs" ]]; then
+      status_valid=true
+      break
+    fi
+  done
+  if ! $status_valid; then
+    echo "Error: invalid status '$status' (must be one of: ${valid_statuses})" >&2
+    return 1
+  fi
+
+  if [[ ! -f "$status_file" ]]; then
+    echo "Warning: status file not found: $status_file" >&2
+    return 0
+  fi
+
+  moira_yaml_set "$status_file" "status" "$status"
+}
+
+# ── moira_state_record_completion <task_id> <action> <tweak_count> <redo_count> <final_review_passed> [state_dir]
+# Record completion data in status.yaml. Validates action against enum.
+moira_state_record_completion() {
+  local task_id="$1"
+  local action="$2"
+  local tweak_count="$3"
+  local redo_count="$4"
+  local final_review_passed="$5"
+  local state_dir="${6:-.claude/moira/state}"
+  local status_file="${state_dir}/tasks/${task_id}/status.yaml"
+
+  # Validate action enum
+  local valid_actions="done tweak redo diff test abort"
+  local action_valid=false
+  for va in $valid_actions; do
+    if [[ "$action" == "$va" ]]; then
+      action_valid=true
+      break
+    fi
+  done
+  if ! $action_valid; then
+    echo "Error: invalid action '$action' (must be one of: ${valid_actions})" >&2
+    return 1
+  fi
+
+  if [[ ! -f "$status_file" ]]; then
+    echo "Warning: status file not found: $status_file" >&2
+    return 0
+  fi
+
+  moira_yaml_set "$status_file" "completion.action" "$action"
+  moira_yaml_set "$status_file" "completion.tweak_count" "$tweak_count"
+  moira_yaml_set "$status_file" "completion.redo_count" "$redo_count"
+  moira_yaml_set "$status_file" "completion.final_review_passed" "$final_review_passed"
+  moira_yaml_set "$status_file" "completed_at" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 }

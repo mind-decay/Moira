@@ -47,6 +47,15 @@ knowledge_access:
   failures: L2
   libraries: L2
 
+write_access:
+  project_model: false
+  conventions: false
+  decisions: false
+  patterns: false
+  quality_map: false
+  failures: false
+  libraries: false
+
 quality_checklist: null
 
 response_format: |

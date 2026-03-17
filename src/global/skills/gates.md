@@ -126,7 +126,7 @@ After Metis (architect) completes.
 - Show: impact on files and components
 - For Full Pipeline: present alternatives as choices (user CHOOSES, not just approves)
 
-**Note:** The Decomposition Pipeline uses the Standard variant (proceed/details/modify/abort).
+**Note:** The Decomposition Pipeline architecture gate uses the proceed/details/modify/abort option set (same as the Standard Pipeline variant above), not the alternatives-selection variant used by the Full Pipeline.
 
 **Options (Standard Pipeline):**
 ```
@@ -262,6 +262,8 @@ After each sub-task iteration in Decomposition Pipeline (after sub-pipeline comp
 2) checkpoint — Save progress and pause (resumable via /moira:resume)
 3) abort      — Stop execution
 ```
+
+> **Note:** No `modify` option — sub-task rework is handled within the sub-pipeline's own final gate (tweak/redo flows).
 
 **Gate state:** Record gate: write equivalent of `moira_state_gate("per_task_gate_{n}", decision)` to `current.yaml` and `status.yaml`
 

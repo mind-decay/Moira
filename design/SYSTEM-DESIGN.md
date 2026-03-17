@@ -42,13 +42,15 @@ Moira is a meta-orchestration framework for Claude Code that transforms Claude f
 Active implementation specs live in `design/specs/` by convention. Completed specs are moved to `design/specs/archive/`.
 
 **Active specs:**
-- [Phase 12 — Advanced Features](specs/2026-03-16-phase12-advanced-features.md) — checkpoint/resume, epic decomposition, tweak/redo, upgrade
-- [Phase 12 — Implementation Plan](specs/2026-03-16-phase12-implementation-plan.md) — task breakdown for Phase 12
 - [Formal Methods Optimization](specs/2026-03-16-formal-methods-optimization.md) — formal methods for pipeline optimization
 - [Formal Methods — Implementation Plan](specs/2026-03-16-formal-methods-implementation-plan.md) — task breakdown for formal methods
 - [Post-v1 Backlog](specs/post-v1-backlog.md) — deferred features for after v1
 
 **Archived specs:**
+- [Fix F-001/F-002 Spec](specs/archive/2026-03-17-fix-f001-f002.md) — post-testing pipeline fixes
+- [Fix F-001/F-002 — Implementation Plan](specs/archive/2026-03-17-fix-f001-f002-implementation-plan.md) — task breakdown
+- [Phase 12 — Advanced Features](specs/archive/2026-03-16-phase12-advanced-features.md) — checkpoint/resume, epic decomposition, tweak/redo, upgrade
+- [Phase 12 — Implementation Plan](specs/archive/2026-03-16-phase12-implementation-plan.md) — task breakdown for Phase 12
 - [Blocker Resolution Design](specs/archive/2026-03-11-blocker-resolution-design.md) — pre-implementation review: Classifier, YAML schemas, distribution, guard mechanism, bootstrap scanners
 
 ### Decisions

@@ -211,7 +211,7 @@ moira_checkpoint_validate() {
         hist_status="${line#*status: }"
         hist_status="${hist_status## }"
         if [[ "$hist_status" == "success" && -n "${hist_step:-}" ]]; then
-          local artifact_file="${task_dir}/artifacts/${hist_step}.md"
+          local artifact_file="${task_dir}/${hist_step}.md"
           if [[ ! -f "$artifact_file" ]]; then
             if [[ -z "$missing_artifacts" ]]; then
               missing_artifacts="${hist_step}"

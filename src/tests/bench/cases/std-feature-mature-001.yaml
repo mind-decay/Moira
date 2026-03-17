@@ -4,6 +4,7 @@ meta:
   type: feature
   pipeline: standard
   rubric: feature-implementation
+  tier: 2
 
 fixture: mature-webapp
 

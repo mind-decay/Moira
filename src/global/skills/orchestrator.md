@@ -106,6 +106,7 @@ Before entering the main loop:
    c. Dispatch agent (foreground, background, or parallel per step `mode`)
    d. On agent return: parse response (per `dispatch.md`)
    d1. **Post-agent guard check** (D-099): If the agent's role can modify files (implementer, explorer), verify no protected paths were touched:
+       > Scoped to implementer and explorer as the primary file-writing agents. Architect, Planner, Reviewer, Tester write only to task-scoped state paths. Expand this list if any of those agents acquire broader write scope.
        1. Run `git diff --name-only` (unstaged) and `git diff --name-only --cached` (staged) to get files modified since step start
        2. Check modified files against protected paths:
           - `design/CONSTITUTION.md` — absolute prohibition (Art 6.1)
@@ -388,8 +389,9 @@ When the pipeline reaches the completion step:
 - Write `compliance.agent_guard_violation_count` to `telemetry.yaml`: count of `AGENT_VIOLATION`-prefixed lines only.
 - Write `structural.constitutional_pass`: `true` if `violations.log` has zero `VIOLATION`-prefixed lines for the current task. `AGENT_VIOLATION` lines do NOT affect `constitutional_pass` — Art 1.1 is about orchestrator purity, not agent protected path violations.
 - Write `structural.violations`: array of `VIOLATION`-prefixed entries from `violations.log` for the current task (empty array if none). Does not include `AGENT_VIOLATION` entries.
+- Write `moira_version` to `telemetry.yaml`: read from `~/.claude/moira/.version` (empty string if missing).
 - Write budget data to telemetry: update `telemetry.yaml` with `execution.budget_total_tokens` from `status.yaml` `budget.actual_tokens`
-- For each agent dispatched during the pipeline, record in `telemetry.yaml` → `execution.agents_called[]`: `role`, `step`, `tokens_used`, `context_pct` (from `moira_state_agent_done` data), `duration_sec` (wall-clock time between dispatch and response).
+- For each agent dispatched during the pipeline, record in `telemetry.yaml` → `execution.agents_called[]`: `role`, `step`, `tokens_used`, `context_pct` (from `moira_state_agent_done` data), `duration_sec` (wall-clock time between dispatch and response), `status` (the agent's returned STATUS value: success/failure/blocked/budget_exceeded).
 - Write completion fields to status.yaml:
   - `moira_yaml_set status.yaml completion.action <action>` (done/tweak/redo/diff/test/abort)
   - `moira_yaml_set status.yaml completion.tweak_count <count>` (number of tweak iterations, 0 if none)
@@ -403,7 +405,11 @@ When the pipeline reaches the completion step:
 - If MCP was enabled for this task: extract MCP call data from agent dispatches (Planner's instruction files list authorized MCP tools, Reviewer's MCP verification findings confirm actual usage). Write `mcp_calls[]` entries to `telemetry.yaml` with: server, tool, query_summary (sanitized per D-027), tokens_used, agent. If no MCP calls: omit `mcp_calls` section (field is `required: false` in schema).
 - Collect metrics: call `moira_metrics_collect_task <task_id>` to aggregate task data into monthly metrics and check for audit triggers.
 - Checkpoint cleanup: call `moira_checkpoint_cleanup <task_id>` — removes manifest.yaml if it exists (handles case where task was previously checkpointed)
-- Reflection dispatch: Read the current pipeline's `post.reflection` value from the pipeline YAML. If `lightweight`: write reflection note directly to `state/tasks/{id}/reflection.md` using `templates/reflection/lightweight.md` (substitute placeholders: {task_id}, {pipeline_type}, {final_gate_action}, {retry_count}, {budget_pct}). For all other modes (`background`, `deep`, `epic`): invoke the `reflection.md` skill for Mnemosyne dispatch. Note: for `deep` and `epic` modes (foreground), the pipeline remains open during reflection — this is intentional. For `background`, Mnemosyne is dispatched non-blocking.
+- **Step: Reflection Dispatch**
+  - Read `post.reflection` from pipeline YAML.
+  - If `lightweight`: write reflection note to `state/tasks/{id}/reflection.md` using template (no agent dispatch).
+  - If `background`: dispatch Mnemosyne (reflector) non-blocking.
+  - If `deep` or `epic`: dispatch Mnemosyne (reflector), pipeline remains open.
 - Set pipeline status to `completed`
 
 ### Xref Consistency Check (Pre-Final Gate)

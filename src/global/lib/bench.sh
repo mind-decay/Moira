@@ -105,9 +105,9 @@ YAML
   # Judge integration (Phase 10)
   local rubric_dir
   rubric_dir="$(cd "$(dirname "$test_case_path")/.." && pwd)/rubrics"
-  local category
-  category=$(moira_yaml_get "$test_case_path" "meta.category" 2>/dev/null) || category="feature-implementation"
-  local rubric_file="${rubric_dir}/${category}.yaml"
+  local rubric_name
+  rubric_name=$(moira_yaml_get "$test_case_path" "meta.rubric" 2>/dev/null) || rubric_name="feature-implementation"
+  local rubric_file="${rubric_dir}/${rubric_name}.yaml"
   if [[ ! -f "$rubric_file" ]]; then
     rubric_file="${rubric_dir}/feature-implementation.yaml"
   fi
@@ -168,7 +168,17 @@ moira_bench_run_tier() {
       for case_file in "$cases_dir"/*.yaml; do
         [[ -f "$case_file" ]] || continue
 
-        # Apply filter if specified
+        # Skip config files (not test cases)
+        [[ "$(basename "$case_file")" == *-config.yaml ]] && continue
+
+        # Filter by tier: tier 2 runs only tier≤2, tier 3 runs all
+        local case_tier
+        case_tier=$(moira_yaml_get "$case_file" "meta.tier" 2>/dev/null) || case_tier="2"
+        if [[ "$tier" == "2" && "$case_tier" == "3" ]]; then
+          continue
+        fi
+
+        # Apply name filter if specified
         if [[ -n "$filter" ]] && ! echo "$case_file" | grep -q "$filter"; then
           continue
         fi

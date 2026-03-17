@@ -220,7 +220,7 @@ Based on dependency analysis. Each phase builds on previous.
 - 5-domain audit system
 - Batch recommendation approval
 - Tiered audit depth (light/standard/deep)
-- Cross-reference manifest (`src/global/core/xref-manifest.yaml`) — dependency map between files for consistency enforcement (D-077). Design doc for manifest schema TBD in phase spec
+- Cross-reference manifest (`src/global/core/xref-manifest.yaml`) — dependency map between files for consistency enforcement (D-077)
 - Tier 1 xref validation tests — verify manifest entries match actual file content
 - Agent pre-commit xref check — agents consult manifest before committing to find affected files
 

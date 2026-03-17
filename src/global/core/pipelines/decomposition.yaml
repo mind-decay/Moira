@@ -49,6 +49,7 @@ steps:
     reads_from:
       - "tasks/{task_id}/epic-architecture.md"
       - "tasks/{task_id}/epic-requirements.md"
+      - "tasks/{task_id}/classification.md"
 
   - id: implementation
     repeatable_group:
@@ -77,7 +78,7 @@ steps:
     mode: foreground
     writes_to: "tasks/{task_id}/telemetry.yaml"
     reads_from:
-      - "tasks/{task_id}/integration-results.md"
+      - "tasks/{task_id}/integration-results.md"  # Primary artifact; full completion data sourced from status.yaml per orchestrator.md Section 7
 
   # Dynamic checkpoint: Quality Checkpoint (see gates.md) — presented when quality-gate agent returns fail_warning
 gates:
@@ -134,7 +135,7 @@ gates:
         description: "Stop execution"
 
   - id: final_gate
-    after_step: integration
+    after_step: completion
     required: true
     # NOTE: These are completion actions, not gate decisions. Gate is always recorded as "proceed" (see gates.md).
     options:
@@ -194,8 +195,8 @@ error_handlers:
     blocking: false
   E9-SEMANTIC:
     action: retry_with_feedback
-    max_attempts: 2
-    # max_attempts capped by E5-QUALITY's shared retry counter
+    max_attempts: 3
+    # Shares retry counter with E5-QUALITY (max_attempts must match)
     note: "Reviewer-detected: E5-QUALITY retry path. Gate-detected: gate modify flow"
   E10-DIVERGE:
     action: escalate_to_user

@@ -49,7 +49,9 @@ steps:
     role: final-gate
     mode: foreground
     writes_to: "tasks/{task_id}/telemetry.yaml"
-    reads_from: "tasks/{task_id}/review.md"
+    reads_from:
+      - "tasks/{task_id}/review.md"
+      - "tasks/{task_id}/implementation.md"
 
   # Dynamic checkpoint: Quality Checkpoint (see gates.md) — presented when quality-gate agent returns fail_warning
 gates:
@@ -65,7 +67,7 @@ gates:
         description: "Cancel task"
 
   - id: final_gate
-    after_step: review
+    after_step: completion
     required: true
     # NOTE: These are completion actions, not gate decisions. Gate is always recorded as "proceed" (see gates.md).
     options:
@@ -129,6 +131,10 @@ error_handlers:
     max_attempts: 1
     # max_attempts capped by E5-QUALITY's shared retry counter
     note: "Reviewer-detected: E5-QUALITY retry path. Gate-detected: gate modify flow"
+  E10-DIVERGE:
+    action: escalate_to_user
+    display: diverge_gate
+    note: "Not applicable in Quick Pipeline (no Analyst) — present for completeness"
   E11-TRUNCATION:
     post_exec:
       action: retry_reduced_scope

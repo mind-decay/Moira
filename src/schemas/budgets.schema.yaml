@@ -6,6 +6,7 @@ _meta:
   description: Context budget allocations per agent role
 
 fields:
+  # These defaults must match config.schema.yaml budgets.per_agent.*. budget.sh reads budgets.yaml first with config.yaml as fallback.
   agent_budgets.classifier:
     type: number
     required: false

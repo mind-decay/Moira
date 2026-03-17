@@ -97,7 +97,7 @@ fi
 
 Protected paths (agents MUST NOT modify): `design/CONSTITUTION.md`, `design/**`, `.claude/moira/config/**`, `.claude/moira/core/**`, `src/global/**`. Allowed exceptions: `.claude/moira/state/tasks/{id}/**`, `.claude/moira/knowledge/**`, project source files.
 
-Violations are logged to `state/violations.log` with `AGENT_VIOLATION` prefix (distinct from orchestrator `VIOLATION` prefix). See orchestrator.md Section 2, step d1 for full implementation.
+Violations are logged to `state/violations.log` with `AGENT_VIOLATION` prefix (distinct from orchestrator `VIOLATION` prefix). Agent violations are distinguished from orchestrator violations by the `AGENT_VIOLATION` log prefix (vs `VIOLATION` prefix for orchestrator violations).
 
 ### Layer 3: CLAUDE.md prompt enforcement (GUIDANCE)
 
@@ -112,7 +112,7 @@ Moira section in project CLAUDE.md contains inviolable rules about orchestrator 
 | Healthy | < 25% | Normal operation |
 | Monitor | 25-40% | Include in status display |
 | Warning | 40-60% | Display alert to user |
-| Critical | > 60% | Recommend checkpoint |
+| Critical | > 60% | Recommend checkpoint + new session |
 
 ### Warning Display
 

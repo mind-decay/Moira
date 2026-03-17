@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # yaml-utils.sh — Pure bash YAML read/write/validate for Moira state files
 # Supports dot-path access up to 3 levels deep
+# Maximum supported nesting depth: 3 levels. Keys beyond depth 3 will silently fail to read/write.
 # No jq/python dependency — bash + awk + sed + grep only
 # Compatible with bash 3.2+ (macOS default)
 #
@@ -570,6 +571,9 @@ moira_yaml_init() {
 
 # ── moira_yaml_block_append <file> <parent_key> <yaml_text> ──────────
 # Append a YAML block under a parent key (for history, gates, etc.)
+# Supports single-level keys (e.g., "history") and 2-level dot-path keys
+# (e.g., "budget.by_agent"). For dot-path keys, finds the nested key under
+# its parent and appends the block there with appropriate indentation.
 moira_yaml_block_append() {
   local file="$1"
   local parent_key="$2"
@@ -586,26 +590,57 @@ moira_yaml_block_append() {
   local IFS='.'
   set -- $parent_key
   local p1="${1:-}"
+  local p2="${2:-}"
+  local depth=$#
 
-  awk -v p1="$p1" -v text="$yaml_text" '
-  BEGIN { in_section=0; last_line=0 }
-  {
-    lines[NR] = $0;
-    match($0, /^[[:space:]]*/);
-    indent = RLENGTH;
-    line = substr($0, indent + 1);
+  if [[ $depth -eq 1 ]]; then
+    awk -v p1="$p1" -v text="$yaml_text" '
+    BEGIN { in_section=0; last_line=0 }
+    {
+      lines[NR] = $0;
+      match($0, /^[[:space:]]*/);
+      indent = RLENGTH;
+      line = substr($0, indent + 1);
 
-    if (indent == 0 && line ~ "^" p1 ":") { in_section=1; last_line=NR }
-    if (in_section && indent == 0 && NR > 1 && !(line ~ "^" p1 ":") && !(line ~ /^[[:space:]]*$/)) { in_section=0 }
-    if (in_section && indent >= 2) { last_line=NR }
-  }
-  END {
-    for (i=1; i<=NR; i++) {
-      print lines[i];
-      if (i == last_line) {
-        print text;
-      }
+      if (indent == 0 && line ~ "^" p1 ":") { in_section=1; last_line=NR }
+      if (in_section && indent == 0 && NR > 1 && !(line ~ "^" p1 ":") && !(line ~ /^[[:space:]]*$/)) { in_section=0 }
+      if (in_section && indent >= 2) { last_line=NR }
     }
-  }' "$file" > "$tmpfile"
+    END {
+      for (i=1; i<=NR; i++) {
+        print lines[i];
+        if (i == last_line) {
+          print text;
+        }
+      }
+    }' "$file" > "$tmpfile"
+  elif [[ $depth -eq 2 ]]; then
+    awk -v p1="$p1" -v p2="$p2" -v text="$yaml_text" '
+    BEGIN { in_p1=0; in_p2=0; last_line=0 }
+    {
+      lines[NR] = $0;
+      match($0, /^[[:space:]]*/);
+      indent = RLENGTH;
+      line = substr($0, indent + 1);
+
+      if (indent == 0 && line ~ "^" p1 ":") { in_p1=1; in_p2=0 }
+      if (in_p1 && indent == 0 && NR > 1 && !(line ~ "^" p1 ":") && !(line ~ /^[[:space:]]*$/)) { in_p1=0; in_p2=0 }
+      if (in_p1 && indent == 2 && line ~ "^" p2 ":") { in_p2=1; last_line=NR }
+      if (in_p2 && indent == 2 && !(line ~ "^" p2 ":") && NR > 1) { in_p2=0 }
+      if (in_p2 && indent >= 4) { last_line=NR }
+    }
+    END {
+      for (i=1; i<=NR; i++) {
+        print lines[i];
+        if (i == last_line) {
+          print text;
+        }
+      }
+    }' "$file" > "$tmpfile"
+  else
+    echo "Error: moira_yaml_block_append supports max 2-level dot-path keys" >&2
+    rm -f "$tmpfile"
+    return 1
+  fi
   mv "$tmpfile" "$file"
 }

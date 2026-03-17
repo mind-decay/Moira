@@ -3,7 +3,8 @@ meta:
   name: Fix getById returning 200 on missing user
   type: bugfix
   pipeline: quick
-  rubric: bugfix-quality
+  rubric: bugfix
+  tier: 2
 
 fixture: legacy-webapp
 

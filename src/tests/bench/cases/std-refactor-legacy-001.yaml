@@ -3,7 +3,8 @@ meta:
   name: Extract inline route handler to service pattern
   type: refactor
   pipeline: standard
-  rubric: refactor-quality
+  rubric: refactor
+  tier: 2
 
 fixture: legacy-webapp
 

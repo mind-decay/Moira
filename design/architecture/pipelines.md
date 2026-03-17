@@ -10,6 +10,7 @@ First step of ANY task. Classifier agent determines size and pipeline.
 | **Medium** | 3-10 files, needs project context, no new entities | Standard | 4 (classify, arch, plan, final) |
 | **Large** | New entities, architecture changes, >10 files | Full | 5+ (classify, arch, plan, per-phase, final) |
 | **Epic** | Multiple related tasks, requires decomposition | Decomposition | Many (classify, arch, decomp, per-task, final) |
+| **Small (low confidence)** | 1-2 files, classification uncertain | Standard | 4 (classify, arch, plan, final) |
 
 Classifier also reports **confidence**: high or low.
 - High confidence + Small → Quick Pipeline
@@ -296,6 +297,6 @@ Summary of pipeline-level error handling:
 | Context truncation | Budget pre-check → split; Reviewer post-check → retry reduced |
 | Orchestrator context >25% | Monitor (include in gate status) |
 | Orchestrator context >40% | Warning (offer checkpoint) |
-| Orchestrator context >60% | Mandatory checkpoint (D-094a) |
+| Orchestrator context >60% | Mandatory checkpoint (D-064) |
 
-See orchestrator.md Section 6 for the full 4-tier budget threshold specification.
+See [context-budget.md](../subsystems/context-budget.md) for the full 4-tier budget threshold specification.

@@ -3,7 +3,8 @@ meta:
   name: Fix broken health endpoint response
   type: bugfix
   pipeline: quick
-  rubric: bugfix-quality
+  rubric: bugfix
+  tier: 2
 
 fixture: mature-webapp
 

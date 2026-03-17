@@ -232,19 +232,13 @@ moira_budget_record_agent() {
   fi
 
   # Append to budget.by_agent block
-  # Workaround: append target should be budget.by_agent but yaml_block_append
-  # only supports top-level keys. Using "by_agent" works because moira_yaml_init
-  # generates status.yaml with "by_agent:" as a child of "budget:", and
-  # yaml_block_append finds it by key name. Verified working with init-generated files.
-  # When yaml-utils gains nested-key support, change to:
-  # moira_yaml_block_append "$status_file" "budget.by_agent" "$budget_entry"
   local budget_entry="  - role: ${agent_role}
     estimated: ${estimated_tokens}
     actual: ${actual_tokens}
     budget: ${agent_budget}
     percentage: ${percentage}"
 
-  moira_yaml_block_append "$status_file" "by_agent" "$budget_entry"
+  moira_yaml_block_append "$status_file" "budget.by_agent" "$budget_entry"
 
   # Update cumulative fields
   local current_estimated
@@ -284,10 +278,8 @@ moira_budget_orchestrator_check() {
     history_count=$(grep -c "^  - step:" "$current_file" 2>/dev/null) || true
   fi
 
-  # Count gate interactions
+  # Count gate interactions from status.yaml gate entries
   local gate_count=0
-  gate_count=$(grep -c "awaiting_gate\|gate_pending" "$current_file" 2>/dev/null) || true
-  # Better: count from status.yaml gates block if available
   local task_id
   task_id=$(moira_yaml_get "$current_file" "task_id" 2>/dev/null) || true
   if [[ -n "$task_id" && -f "${state_dir}/tasks/${task_id}/status.yaml" ]]; then

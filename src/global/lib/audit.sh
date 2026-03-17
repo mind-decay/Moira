@@ -38,10 +38,18 @@ moira_audit_check_trigger() {
     return 0
   fi
 
+  local config_path="${state_dir}/config.yaml"
+  local light_n=10
+  local standard_n=20
+  if [[ -f "$config_path" ]]; then
+    light_n=$(moira_yaml_get "$config_path" "audit.light_every_n_tasks" 2>/dev/null) || light_n=10
+    standard_n=$(moira_yaml_get "$config_path" "audit.standard_every_n_tasks" 2>/dev/null) || standard_n=20
+  fi
+
   local depth="none"
-  if (( total % 20 == 0 )); then
+  if (( total % standard_n == 0 )); then
     depth="standard"
-  elif (( total % 10 == 0 )); then
+  elif (( total % light_n == 0 )); then
     depth="light"
   fi
 

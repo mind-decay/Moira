@@ -902,7 +902,7 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 **Decision:** The orchestrator manages state by directly reading and writing YAML files using Read/Write tools. Shell functions in lib/ serve as canonical reference for the logic (which fields, which values, which files). Skills that reference shell functions mean "perform the equivalent YAML writes."
 **Consequences:** No new infrastructure needed. Shell functions remain single source of truth for state logic. Skills use consistent language pattern: "write the equivalent of function_name() updates."
 
-*(D-097 reserved)*
+*(D-097 reserved — unused, number skipped during Phase 12 planning)*
 
 ## D-098: Version Snapshot for Upgrade Three-Way Comparison
 

@@ -1,0 +1,11 @@
+tier: 2
+budget:
+  max_tokens: 150000
+  max_tests: 5
+  warn_at: 100000
+trigger_matrix:
+  - prompt_change
+  - rubric_change
+  - pipeline_yaml_change
+  - agent_role_change
+  - quality_gate_change

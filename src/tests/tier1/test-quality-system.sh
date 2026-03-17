@@ -105,7 +105,15 @@ for case_file in "$SRC_DIR/tests/bench/cases/"*.yaml; do
   for field in meta fixture task expected_structural; do
     assert_file_contains "$case_file" "$field" "case $case_name has $field"
   done
+  # Every case must have meta.tier (2 or 3)
+  assert_file_contains "$case_file" "tier:" "case $case_name has meta.tier"
+  # Every case must have meta.rubric matching a rubric file
+  assert_file_contains "$case_file" "rubric:" "case $case_name has meta.rubric"
 done
+
+# Tier config files
+assert_file_exists "$SRC_DIR/tests/bench/tier2-config.yaml" "tier2-config.yaml exists"
+assert_file_exists "$SRC_DIR/tests/bench/tier3-config.yaml" "tier3-config.yaml exists"
 
 # Rubrics
 assert_dir_exists "$SRC_DIR/tests/bench/rubrics" "bench rubrics dir exists"
