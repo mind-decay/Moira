@@ -204,6 +204,7 @@ If the response does not contain a valid `STATUS:` line:
 
 1. Record agent completion:
    - Write the equivalent of `moira_state_agent_done()` updates to `current.yaml` and `status.yaml` (see `lib/state.sh` for field logic)
+1b. Post-agent guard check (D-099): If agent role is implementer or explorer, run guard verification against protected paths (see orchestrator.md Section 2, step d1). If violation → present Guard Violation Gate (per `gates.md`) before any approval gate.
 2. If a gate follows this step (per pipeline definition):
    - Set `gate_pending` in `current.yaml`
    - Present gate (per `gates.md`)

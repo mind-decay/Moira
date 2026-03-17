@@ -52,11 +52,11 @@ ORCHESTRATOR HEALTH:
 
 Status emoji rules:
 - Context: ✅ <25%, 📊 25-40%, ⚠ 40-60%, 🔴 >60%
-- Violations: ✅ if 0, 🔴 if >0
+- Violations: ✅ if both 0, 🔴 if either >0
 
 Data sources:
 - Context: from `current.yaml` → `context_budget.orchestrator_percent` (updated by moira_budget_orchestrator_check)
-- Violations: line count of `.claude/moira/state/violations.log` (0 if file doesn't exist or is empty)
+- Violations: count lines in `.claude/moira/state/violations.log` by prefix (D-099): `VIOLATION` = orchestrator violations, `AGENT_VIOLATION` = agent violations. Display as "{N} orchestrator, {M} agent" (or "0 ✅" if both are 0)
 - Agents dispatched: count of entries in `current.yaml` → `history[]`
 - Gates passed: count of entries in task's `status.yaml` → `gates[]`
 - Retries: sum of `status.yaml` → `retries.total`
@@ -335,6 +335,30 @@ Presented when xref cross-reference inconsistency detected at final gate.
 ```
 
 **Gate decision mapping:** `fix` → `modify`, `ignore` → `proceed`.
+
+---
+
+### Guard Violation Gate
+
+Presented when post-agent guard check (D-099) detects agent modification of protected paths. This is a conditional gate (like Xref Warning Gate), not a required pipeline gate (Art 2.2). Violations are logged to `state/violations.log` regardless of user choice.
+
+```
+═══════════════════════════════════════════
+ 🔴 GUARD VIOLATION
+═══════════════════════════════════════════
+ Agent: {agent_name} ({role})
+
+ Protected files modified:
+ {per-file block:}
+ • {file_path} — {protection_reason}
+
+ 1) revert  — revert protected file changes (git checkout), keep other changes
+ 2) accept  — accept changes (user override)
+ 3) abort   — abort pipeline
+═══════════════════════════════════════════
+```
+
+**Gate decision mapping:** `revert` → revert protected files via `git checkout -- <files>`, continue pipeline. `accept` → `proceed`. `abort` → `abort`.
 
 ---
 

@@ -386,12 +386,16 @@ After retry failure → present agent failure gate. User decides next action.
 
 ## E7-DRIFT: Orchestrator Rule Violation
 
+**Scope:** Orchestrator-level violations only. Agent-level violations are handled by the post-agent guard check (D-099) via the Guard Violation Gate in `gates.md`.
+
 ### Detection
 
 Guard hook (`guard.sh`) detects violations in real-time via PostToolUse:
 - Orchestrator uses Read/Write/Edit on files outside `.claude/moira/`
-- Violation logged to `state/violations.log`
+- Violation logged to `state/violations.log` with `VIOLATION` prefix
 - Warning injected into orchestrator context via hookSpecificOutput
+
+Note: guard.sh fires only in the orchestrator session. Agent tool calls are not covered by this hook (D-099). Agent violations are detected via post-agent git diff check in the pipeline execution loop (orchestrator.md Section 2, step d1).
 
 ### During Pipeline
 
@@ -403,9 +407,9 @@ On violation detection (guard hook fires):
 
 ### Post-Task Audit
 
-After pipeline completion, check violations:
-1. Count violations: `wc -l < state/violations.log`
-2. If violations > 0:
+After pipeline completion, check orchestrator violations:
+1. Count orchestrator violations: count lines with `VIOLATION` prefix in `state/violations.log` (exclude `AGENT_VIOLATION` lines)
+2. If orchestrator violations > 0:
    - Include in completion summary: "{N} orchestrator violations detected"
    - Log in telemetry: `compliance.orchestrator_violation_count` (integer)
    - Flag for Reflector analysis (Phase 10)
@@ -424,9 +428,9 @@ ORCHESTRATOR HEALTH:
 
 ### State Updates
 
-- `state/violations.log`: appended by guard.sh on each violation (ISO8601, tool_name, file_path)
-- `state/tool-usage.log`: appended by guard.sh on every tool call (audit trail)
-- `telemetry.yaml`: `compliance.orchestrator_violation_count` written at task completion
+- `state/violations.log`: appended by guard.sh on each orchestrator violation (`timestamp VIOLATION tool_name file_path`). Agent violations are appended by the post-agent guard check (`timestamp AGENT_VIOLATION agent_role file_path`) — see D-099.
+- `state/tool-usage.log`: appended by guard.sh on every orchestrator tool call (audit trail)
+- `telemetry.yaml`: `compliance.orchestrator_violation_count` written at task completion (orchestrator `VIOLATION` lines only)
 
 ### Recovery
 

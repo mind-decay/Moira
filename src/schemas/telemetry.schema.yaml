@@ -124,7 +124,12 @@ fields:
     type: number
     required: true
     default: 0
-    description: "Count of orchestrator tool-use violations detected by guard.sh"
+    description: "Count of orchestrator tool-use violations detected by guard.sh (VIOLATION prefix in violations.log)"
+  compliance.agent_guard_violation_count:
+    type: number
+    required: false
+    default: 0
+    description: "Count of agent-level protected path violations detected by post-agent guard check (D-099, AGENT_VIOLATION prefix in violations.log)"
 
   # --- Structural ---
   structural.constitutional_pass:
