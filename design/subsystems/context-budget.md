@@ -138,12 +138,11 @@ BUDGET STATUS: ✅ well within 60k limit
 
 If estimate exceeds budget → Planner splits step into sub-batches automatically.
 
-### Post-execution (by budget tracker hook)
+### Post-execution (budget tracking)
 
-After each agent completes, hook logs:
-- Input size (files + instructions + project context)
-- Output size (response length)
-- Estimated total usage
+**Orchestrator tool calls:** `budget-track.sh` PostToolUse hook logs `timestamp tool_name file_path file_size` for each tool call in the orchestrator session. Note: this hook fires only in the orchestrator session, not for agent tool calls (agents run as separate subprocesses — D-099).
+
+**Agent budget tracking:** Agent self-reporting via `moira_state_agent_done` is the authoritative source for agent budget data. After each agent returns, the orchestrator calls `moira_state_agent_done` which records `tokens_used`, `context_pct`, `duration_sec` per agent. This provides the budget-relevant data that hooks cannot capture from agent subprocesses.
 
 ### Measurement Approach
 

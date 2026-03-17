@@ -915,3 +915,16 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 - Git-based tracking — adds git dependency for global layer, overkill for simple version comparison
 - No snapshot (two-way merge only) — cannot distinguish user customizations from original content, risks overwriting intentional changes
 **Reasoning:** Three-way merge is the standard approach for upgrade systems that need to preserve user customizations. The snapshot is created once at install time and updated after each successful upgrade. Storage cost is minimal (copy of core files). Referenced in `design/architecture/overview.md` file structure.
+
+## D-099: Post-Agent Guard Verification
+
+**Date:** 2026-03-17
+**Status:** Accepted
+**Context:** F-002 from task pipeline testing revealed that PostToolUse hooks (`guard.sh`, `budget-track.sh`) fire only in the main orchestrator session. Agents dispatched via the Agent tool run as separate subprocesses that do not inherit parent hooks. This means Guard Layer 2 (D-031) is bypassed for all agent work — which is where ALL project file modifications happen. Budget tool-call tracking similarly has no data from agents.
+**Decision:** Replace hook-based Layer 2 for agents with post-agent git diff verification. After each file-modifying agent (implementer, explorer) returns, the orchestrator runs `git diff --name-only` and checks modified files against a protected paths list. Violations block the pipeline via a Guard Violation Gate (revert/accept/abort). Guard.sh stays as Layer 2 for orchestrator-level violations. Two sub-decisions: (1) protected paths are defined inline in orchestrator.md (single source of truth alongside the check logic, not in a separate config file), (2) agent self-reporting via `moira_state_agent_done` is authoritative for budget tracking (hooks only log tool_name + file_path + file_size, not token counts).
+**Alternatives rejected:**
+- Inject hooks into agent prompts — unreliable, violates separation of concerns
+- Agent worktree isolation — overhead on worktree create/cleanup, complex merge logic, breaks sequential agent visibility
+- Project-level hooks propagation — depends on undocumented Claude Code behavior, not architecturally sound
+- Accept limitation with no structural check — Art 6.3 (Invariant Verification) unsatisfied for agent work
+**Reasoning:** Post-agent diff is strictly stronger than hooks: it can block the pipeline (D-075 confirms PostToolUse hooks can only detect, not prevent). More efficient (one git diff per agent vs dozens of per-tool-call hook invocations). Independent of Claude Code subprocess architecture. Satisfies Art 6.3 "verification agent" interpretation.

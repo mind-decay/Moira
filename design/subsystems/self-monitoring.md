@@ -55,14 +55,18 @@ allowed-tools:
 
 The orchestrator physically cannot invoke Edit, Grep, Glob, or Bash because these tools are not in its allowed set. This is stronger than PreToolUse blocking — the tools don't exist in the orchestrator's context at all.
 
-### Layer 2: PostToolUse `guard.sh` hook (DETECTION + AUDIT)
+### Layer 2: Two-Tier Violation Detection (D-031, D-099)
 
-**Scope:** guard.sh runs as a PostToolUse hook in the orchestrator session. Claude Code hooks fire for ALL tool uses in the session, including those made by dispatched subagents. Since agents are expected to read/write project files (that's their job), guard.sh must distinguish orchestrator tool calls from agent tool calls. Platform constraint: Claude Code does not currently expose whether a tool call originates from the main session or a subagent. Guard.sh should log all tool calls but only flag violations from orchestrator-context operations (non-agent file operations targeting project paths).
+Layer 2 has two sub-mechanisms, because PostToolUse hooks fire only in the main orchestrator session — they do NOT fire for tool calls made by agents dispatched via the Agent tool (agents run as separate subprocesses that don't inherit parent hooks).
+
+#### Layer 2a: PostToolUse `guard.sh` hook — Orchestrator violations (DETECTION + AUDIT)
+
+**Scope:** guard.sh fires only in the orchestrator session. It detects orchestrator-level Art 1.1 violations (orchestrator touching project files). It cannot block — PostToolUse fires after the tool call (D-075). It logs violations and injects context warnings via hookSpecificOutput.
 
 ```bash
 #!/bin/bash
-# PostToolUse hook — fires AFTER every tool call
-# Logs all tool usage, detects and reports violations
+# PostToolUse hook — orchestrator session only
+# Logs all orchestrator tool usage, detects and reports violations
 
 input=$(cat)
 tool_name=$(echo "$input" | jq -r '.tool_name // empty')
@@ -86,6 +90,14 @@ if [[ "$tool_name" =~ ^(Read|Write|Edit)$ ]]; then
   fi
 fi
 ```
+
+#### Layer 2b: Post-agent git diff check — Agent violations (DETECTION + BLOCKING, D-099)
+
+**Scope:** After each file-modifying agent (implementer, explorer) returns, the orchestrator runs `git diff --name-only` and checks modified files against protected paths. Unlike guard.sh, this mechanism CAN block the pipeline — violations trigger a Guard Violation Gate (revert/accept/abort) defined in `gates.md`.
+
+Protected paths (agents MUST NOT modify): `design/CONSTITUTION.md`, `design/**`, `.claude/moira/config/**`, `.claude/moira/core/**`, `src/global/**`. Allowed exceptions: `.claude/moira/state/tasks/{id}/**`, `.claude/moira/knowledge/**`, project source files.
+
+Violations are logged to `state/violations.log` with `AGENT_VIOLATION` prefix (distinct from orchestrator `VIOLATION` prefix). See orchestrator.md Section 2, step d1 for full implementation.
 
 ### Layer 3: CLAUDE.md prompt enforcement (GUIDANCE)
 
