@@ -383,10 +383,11 @@ When the pipeline reaches the completion step:
 **`done`** — Accept all changes:
 - Display completion summary (files changed, tests passed, etc.)
 - Display full budget report: call `moira_budget_generate_report <task_id>` to generate the formatted budget report table (reads `status.yaml` budget data + `current.yaml` orchestrator data)
-- Check `state/violations.log` line count. If > 0: include violation count in completion summary ("{N} orchestrator violations detected").
-- Write violation count to `telemetry.yaml` `compliance.orchestrator_violation_count` field.
-- Write `structural.constitutional_pass`: `true` if `violations.log` has zero entries for the current task, `false` otherwise
-- Write `structural.violations`: array of violation entries from `violations.log` for the current task (empty array if none)
+- Check `state/violations.log` by prefix (D-099): count `VIOLATION` lines (orchestrator violations) and `AGENT_VIOLATION` lines (agent violations) separately. If orchestrator violations > 0: include in completion summary ("{N} orchestrator violations detected"). If agent violations > 0: include "{M} agent guard violations detected".
+- Write `compliance.orchestrator_violation_count` to `telemetry.yaml`: count of `VIOLATION`-prefixed lines only.
+- Write `compliance.agent_guard_violation_count` to `telemetry.yaml`: count of `AGENT_VIOLATION`-prefixed lines only.
+- Write `structural.constitutional_pass`: `true` if `violations.log` has zero `VIOLATION`-prefixed lines for the current task. `AGENT_VIOLATION` lines do NOT affect `constitutional_pass` — Art 1.1 is about orchestrator purity, not agent protected path violations.
+- Write `structural.violations`: array of `VIOLATION`-prefixed entries from `violations.log` for the current task (empty array if none). Does not include `AGENT_VIOLATION` entries.
 - Write budget data to telemetry: update `telemetry.yaml` with `execution.budget_total_tokens` from `status.yaml` `budget.actual_tokens`
 - For each agent dispatched during the pipeline, record in `telemetry.yaml` → `execution.agents_called[]`: `role`, `step`, `tokens_used`, `context_pct` (from `moira_state_agent_done` data), `duration_sec` (wall-clock time between dispatch and response).
 - Write completion fields to status.yaml:
