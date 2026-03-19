@@ -67,6 +67,13 @@ The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_in
    - **Daedalus (planner):** Pass graph directory paths in the Task section: graph data at `.ariadne/graph/`, views at `.ariadne/views/`. Daedalus queries graphs directly and assembles `## Project Graph` sections in instruction files.
    - **Post-planning agents (Hephaestus, Themis, Aletheia):** No change — graph data comes via pre-assembled instruction files (assembled by Daedalus).
    - If `graph_available` is `false` or not present: skip this step entirely (agents work without graph data, per D-102 graceful degradation).
+4c. **Infrastructure MCP injection (D-115):** If MCP is enabled (`.claude/moira/config.yaml` → `mcp.enabled` is `true`):
+   - Read `.claude/moira/config/mcp-registry.yaml`
+   - For each server with `infrastructure: true`: collect tool names and purposes
+   - Append `## Infrastructure Tools (Always Available)` section to the prompt (using template from "Infrastructure MCP — All Agents, All Pipelines" section below)
+   - This applies to ALL agents in ALL pipelines (pre-planning, planning, post-planning)
+   - Subagents inherit MCP servers from the parent session — infrastructure tools are callable
+   - If no infrastructure servers found or MCP disabled: skip this step
 5. **Quality checklist injection:** Check if this agent has a quality gate assignment (per Agent-to-Gate Mapping table in this document). If yes:
    - Read quality checklist from `~/.claude/moira/core/rules/quality/q{N}-*.yaml`
    - Append Quality Checklist section to prompt (using Checklist Prompt Appendix template from this document)
@@ -218,7 +225,7 @@ If the response does not contain a valid `STATUS:` line:
 
 1. Record agent completion:
    - Write the equivalent of `moira_state_agent_done()` updates to `current.yaml` and `status.yaml` (see `lib/state.sh` for field logic) (see orchestrator.md Section 4 — When to Write State table for field logic)
-1b. Post-agent guard check (D-099): If agent role is implementer or explorer, run guard verification against protected paths (see orchestrator.md Section 2, step d1). If violation → present Guard Violation Gate (per `gates.md`) before any approval gate.
+1b. Post-agent guard check (D-099, D-116): If agent role is implementer or explorer, run guard verification against protected paths (see orchestrator.md Section 2, step d1). If violation → present Guard Violation Gate (per `gates.md`) before any approval gate.
 2. If a gate follows this step (per pipeline definition):
    - Set `gate_pending` in `current.yaml`
    - Present gate (per `gates.md`)
@@ -396,35 +403,45 @@ Before injecting MCP context, check if MCP is enabled:
 - If `false` or not found: skip the entire MCP section
 - If `true`: read `.claude/moira/config/mcp-registry.yaml` and include MCP context
 
-### For Quick Pipeline — Simplified Assembly (D-109)
+### Infrastructure MCP — All Agents, All Pipelines (D-115)
 
-Quick Pipeline has no Daedalus, so MCP authorization is constructed directly by the dispatch module from the registry. When MCP is enabled and registry exists, append to ALL Quick Pipeline agent prompts (explorer, implementer, reviewer):
+Infrastructure MCP tools (D-108) are injected into ALL agent prompts regardless of pipeline type. This applies to both simplified assembly and pre-assembled instruction files. Subagents inherit MCP servers from the parent Claude Code session, so infrastructure tools like Ariadne are callable by all agents.
+
+When MCP is enabled and registry contains servers with `infrastructure: true`, append to EVERY agent prompt (pre-planning, planning, post-planning — all pipelines):
 
 ```
-## MCP Usage Rules
+## Infrastructure Tools (Always Available)
 
-{If registry contains servers with infrastructure: true:}
-### Always Available (Infrastructure)
+The following tools are always available — use them freely for structural queries:
+
 {For each infrastructure server and its tools:}
 - {server}:{tool} — {purpose}
+```
 
-{If registry contains non-infrastructure servers:}
-### Available with Justification
+Infrastructure MCP tools are always authorized — no justification check, no budget impact tracking. Example: Ariadne graph queries are always available because they are read-only structural data with near-zero cost.
+
+**Why this is separate from external MCP:** Infrastructure tools bypass Daedalus authorization because they meet strict criteria (D-108): read-only, zero external risk, near-zero token cost, Moira-owned. External MCP tools still require per-step authorization via Daedalus or registry-based guidelines.
+
+### External MCP — Quick Pipeline (D-109)
+
+Quick Pipeline has no Daedalus, so external MCP authorization is constructed directly by the dispatch module from the registry. When MCP is enabled and registry contains non-infrastructure servers, append to ALL Quick Pipeline agent prompts (explorer, implementer, reviewer):
+
+```
+## External MCP Usage Rules
+
 {For each external server and its tools:}
 - {server}:{tool} — {purpose}
   Use when: {when_to_use}
   Do NOT use when: {when_NOT_to_use}
   Budget: ~{token_estimate} tokens
 
-Before calling any non-infrastructure MCP tool, verify:
+Before calling any external MCP tool, verify:
 1. Do I actually need this to write correct code?
 2. Is this available in project files I was given?
 3. Will the response fit within my context budget?
 
 If (1) is no or (2) is yes → DO NOT call.
 ```
-
-Infrastructure MCP tools (D-108) are always authorized — no justification check required. Example: Ariadne graph queries are always available because they are read-only structural data with near-zero cost.
 
 ### For Daedalus (Planner) — Standard/Full/Decomposition Pipelines
 

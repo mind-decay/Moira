@@ -395,7 +395,7 @@ Guard hook (`guard.sh`) detects violations in real-time via PostToolUse:
 - Violation logged to `state/violations.log` with `VIOLATION` prefix
 - Warning injected into orchestrator context via hookSpecificOutput
 
-Note: guard.sh fires only in the orchestrator session. Agent tool calls are not covered by this hook (D-099). Agent violations are detected via post-agent git diff check in the pipeline execution loop (orchestrator.md Section 2, step d1).
+Note: guard.sh is registered in `settings.json` and fires only in the orchestrator session — `settings.json` hooks do not propagate to subagent sessions (D-099, D-116). Agent violations are detected via post-agent git diff check in the pipeline execution loop (orchestrator.md Section 2, step d1).
 
 ### During Pipeline
 
@@ -428,7 +428,7 @@ ORCHESTRATOR HEALTH:
 
 ### State Updates
 
-- `state/violations.log`: appended by guard.sh on each orchestrator violation (`timestamp VIOLATION tool_name file_path`). Agent violations are appended by the post-agent guard check (`timestamp AGENT_VIOLATION agent_role file_path`) — see D-099.
+- `state/violations.log`: appended by guard.sh on each orchestrator violation (`timestamp VIOLATION tool_name file_path`). Agent violations are appended by the post-agent guard check (`timestamp AGENT_VIOLATION agent_role file_path`) — see D-099, D-116.
 - `state/tool-usage.log`: appended by guard.sh on every orchestrator tool call (audit trail)
 - `telemetry.yaml`: `compliance.orchestrator_violation_count` written at task completion (orchestrator `VIOLATION` lines only)
 

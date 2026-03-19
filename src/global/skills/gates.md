@@ -56,7 +56,7 @@ Status emoji rules:
 
 Data sources:
 - Context: from `current.yaml` → `context_budget.orchestrator_percent` (updated by moira_budget_orchestrator_check)
-- Violations: count lines in `.claude/moira/state/violations.log` by prefix (D-099): `VIOLATION` = orchestrator violations, `AGENT_VIOLATION` = agent violations. Display as "{N} orchestrator, {M} agent" (or "0 ✅" if both are 0)
+- Violations: count lines in `.claude/moira/state/violations.log` by prefix (D-099, D-116): `VIOLATION` = orchestrator violations (from guard.sh hook in orchestrator session), `AGENT_VIOLATION` = agent violations (from post-agent git diff check). Display as "{N} orchestrator, {M} agent" (or "0 ✅" if both are 0)
 - Agents dispatched: count of entries in `current.yaml` → `history[]`
 - Gates passed: count of entries in task's `status.yaml` → `gates[]`
 - Retries: sum of `status.yaml` → `retries.total`
@@ -342,7 +342,7 @@ Presented when xref cross-reference inconsistency detected at final gate.
 
 ### Guard Violation Gate
 
-Presented when post-agent guard check (D-099) detects agent modification of protected paths. This is a conditional gate (like Xref Warning Gate), not a required pipeline gate (Art 2.2). Violations are logged to `state/violations.log` regardless of user choice.
+Presented when post-agent guard check (D-099, D-116) detects agent modification of protected paths. This is a conditional gate (like Xref Warning Gate), not a required pipeline gate (Art 2.2). Violations are logged to `state/violations.log` regardless of user choice.
 
 ```
 ═══════════════════════════════════════════

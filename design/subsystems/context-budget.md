@@ -142,9 +142,9 @@ If estimate exceeds budget → Planner splits step into sub-batches automaticall
 
 ### Post-execution (budget tracking)
 
-**Orchestrator tool calls:** `budget-track.sh` PostToolUse hook logs `timestamp tool_name file_path file_size` for each tool call in the orchestrator session. Note: this hook fires only in the orchestrator session, not for agent tool calls (agents run as separate subprocesses — D-099).
+**Orchestrator tool calls:** `budget-track.sh` PostToolUse hook logs `timestamp tool_name file_path file_size` for each tool call in the orchestrator session. This hook is registered in `settings.json` and does not propagate to subagent sessions (D-099, D-116). Subagent frontmatter hooks could provide per-tool-call tracking within agents, but Moira's dynamic dispatch model doesn't use static agent definitions with frontmatter — see D-116 for future migration path.
 
-**Agent budget tracking:** Agent self-reporting via `moira_state_agent_done` is the authoritative source for agent budget data. After each agent returns, the orchestrator calls `moira_state_agent_done` which records `tokens_used`, `context_pct`, `duration_sec` per agent. This provides the budget-relevant data that hooks cannot capture from agent subprocesses.
+**Agent budget tracking:** Agent self-reporting via `moira_state_agent_done` is the authoritative source for agent budget data. After each agent returns, the orchestrator calls `moira_state_agent_done` which records `tokens_used`, `context_pct`, `duration_sec` per agent. This is more useful than per-tool-call hook data for budget decisions (token counts vs file sizes).
 
 ### Measurement Approach
 

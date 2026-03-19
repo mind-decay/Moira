@@ -919,15 +919,14 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 ## D-099: Post-Agent Guard Verification
 
 **Date:** 2026-03-17
-**Status:** Accepted
-**Context:** F-002 from task pipeline testing revealed that PostToolUse hooks (`guard.sh`, `budget-track.sh`) fire only in the main orchestrator session. Agents dispatched via the Agent tool run as separate subprocesses that do not inherit parent hooks. This means Guard Layer 2 (D-031) is bypassed for all agent work — which is where ALL project file modifications happen. Budget tool-call tracking similarly has no data from agents.
-**Decision:** Replace hook-based Layer 2 for agents with post-agent git diff verification. After each file-modifying agent (implementer, explorer) returns, the orchestrator runs `git diff --name-only` and checks modified files against a protected paths list. Violations block the pipeline via a Guard Violation Gate (revert/accept/abort). Guard.sh stays as Layer 2 for orchestrator-level violations. Two sub-decisions: (1) protected paths are defined inline in orchestrator.md (single source of truth alongside the check logic, not in a separate config file), (2) agent self-reporting via `moira_state_agent_done` is authoritative for budget tracking (hooks only log tool_name + file_path + file_size, not token counts).
+**Status:** Accepted (reasoning corrected 2026-03-20, see D-116)
+**Context:** F-002 from task pipeline testing observed that `settings.json` PostToolUse hooks (`guard.sh`, `budget-track.sh`) do not propagate to subagent sessions. Claude Code does support hooks in subagent frontmatter (PreToolUse, PostToolUse, Stop) — these fire during the subagent's own execution. However, Moira agents are dispatched via the Agent tool with dynamically constructed prompts, not as static `.claude/agents/` definitions with frontmatter. Adding hooks via frontmatter would require restructuring agent dispatch architecture.
+**Decision:** Use post-agent git diff verification as the guard mechanism for agent work. After each file-modifying agent (implementer, explorer) returns, the orchestrator runs `git diff --name-only` and checks modified files against a protected paths list. Violations block the pipeline via a Guard Violation Gate (revert/accept/abort). Guard.sh stays as Layer 2 for orchestrator-level violations. Two sub-decisions: (1) protected paths are defined inline in orchestrator.md (single source of truth alongside the check logic, not in a separate config file), (2) agent self-reporting via `moira_state_agent_done` is authoritative for budget tracking (hooks only log tool_name + file_path + file_size, not token counts).
 **Alternatives rejected:**
-- Inject hooks into agent prompts — unreliable, violates separation of concerns
+- Subagent frontmatter hooks — would require migrating Moira agents to static `.claude/agents/` definitions; current dynamic prompt construction is incompatible (see D-116 for future consideration)
 - Agent worktree isolation — overhead on worktree create/cleanup, complex merge logic, breaks sequential agent visibility
-- Project-level hooks propagation — depends on undocumented Claude Code behavior, not architecturally sound
 - Accept limitation with no structural check — Art 6.3 (Invariant Verification) unsatisfied for agent work
-**Reasoning:** Post-agent diff is strictly stronger than hooks: it can block the pipeline (D-075 confirms PostToolUse hooks can only detect, not prevent). More efficient (one git diff per agent vs dozens of per-tool-call hook invocations). Independent of Claude Code subprocess architecture. Satisfies Art 6.3 "verification agent" interpretation.
+**Reasoning:** Post-agent diff has architectural advantages regardless of hook availability: one git diff per agent vs dozens of per-tool-call hook invocations; can block the pipeline (unlike PostToolUse which fires after the fact — D-075); works with Moira's dynamic dispatch model without requiring agent definition restructuring. PreToolUse hooks in subagent frontmatter could provide real-time blocking but would require migrating to static agent definitions — a larger architectural change deferred per D-116.
 
 ## D-100: Project Graph — Structural Topology via Rust CLI
 
@@ -1044,6 +1043,7 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - Add a lightweight planner step to Quick — adds latency and complexity, contradicts Quick Pipeline's purpose
 - Auto-authorize everything — violates managed-resource principle
 **Reasoning:** Quick Pipeline should be fast, not crippled. Infrastructure tools have near-zero risk. External tools need guardrails but not a full planning step — the registry's `when_to_use` / `when_NOT_to_use` guidelines provide sufficient guidance for agents.
+**Superseded (infrastructure part):** D-115 extends infrastructure MCP injection to ALL pipelines, not just Quick. D-109 still governs external MCP in Quick Pipeline.
 
 ## D-110: Orchestrator Complexity Governance
 
@@ -1101,3 +1101,26 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - Full file-system watchers — over-engineering for the actual risk level
 - Lock files during pipeline execution — prevents legitimate human edits
 **Reasoning:** Each mitigation is lightweight (git status, YAML lookup, temp-file rename) and addresses a distinct failure mode. Combined, they close the mid-pipeline state consistency gap without adding significant overhead.
+
+## D-115: Infrastructure MCP Universal Injection
+
+**Date:** 2026-03-20
+**Status:** Accepted
+**Context:** Ariadne MCP server was registered as infrastructure MCP (D-108) and marked "always available to graph-aware agents regardless of pipeline type." However, dispatch only injected MCP instructions for Quick Pipeline agents (D-109) and Daedalus. Pre-planning agents in Standard/Full/Decomposition pipelines received L0 graph data as static text but had no MCP instructions — meaning they didn't know they could call Ariadne tools interactively. In practice, this led to zero MCP calls across all agents: Hermes read 46 files sequentially instead of using `ariadne_file`/`ariadne_subgraph` for targeted navigation. Claude Code subagents inherit MCP servers from the parent session, so the tools were technically available but agents were never told about them.
+**Decision:** Infrastructure MCP tools are injected into ALL agent prompts in ALL pipelines via a new dispatch step 4c. Dispatch appends an `## Infrastructure Tools (Always Available)` section listing all infrastructure MCP tools from the registry. This applies to pre-planning agents, Daedalus, and post-planning agents equally. External MCP authorization remains unchanged (Quick Pipeline: registry-based guidelines; Standard/Full: Daedalus per-step authorization).
+**Alternatives rejected:**
+- CLI fallback (agents use `ariadne query` via Bash instead of MCP) — unnecessary indirection; subagents already inherit MCP servers
+- Orchestrator-mediated queries only (orchestrator pre-fetches and passes as context) — removes interactive capability; agents can't drill down on demand
+- Keep current design (static L0 only) — proven ineffective; zero MCP calls, 72k tokens wasted on sequential file reads
+**Reasoning:** The gap was between design intent (D-108: "always available") and dispatch implementation (MCP instructions only for Quick Pipeline). Subagents inherit MCP servers from the parent session — the infrastructure tools are callable, agents just need to be told about them. Universal injection closes this gap with minimal change: one new dispatch step, one new prompt section.
+
+## D-116: Subagent Frontmatter Hooks — Platform Capability Acknowledged
+
+**Date:** 2026-03-20
+**Status:** Accepted
+**Context:** F-002 (2026-03-17) concluded that "PostToolUse hooks don't fire for subagent tool calls — architectural limitation of Claude Code." This was factually incorrect. Claude Code supports hooks defined in subagent frontmatter (`PreToolUse`, `PostToolUse`, `Stop`) that fire during the subagent's own execution. What does NOT happen is automatic propagation of `settings.json` hooks to subagent sessions. Additionally, `SubagentStart`/`SubagentStop` events in `settings.json` fire in the main session when subagents start/stop. Plugin-provided subagents are the only exception — their `hooks`, `mcpServers`, and `permissionMode` fields are ignored for security.
+**Decision:** (1) Correct all design docs that claim hooks cannot fire for subagents. (2) Retain D-099 post-agent git diff as the chosen guard mechanism — it has architectural merits independent of hook availability. (3) Note subagent frontmatter hooks as a future migration path: if Moira agents are restructured as static `.claude/agents/` definitions (instead of dynamic prompt construction via dispatch.md), guard and budget hooks can be defined directly in agent frontmatter, enabling real-time PreToolUse blocking within agent sessions.
+**Alternatives rejected:**
+- Immediate migration to frontmatter hooks — requires restructuring agent dispatch architecture (dynamic prompts → static definitions), too large a change for a factual correction
+- Keep incorrect docs — factual errors in design docs violate knowledge integrity
+**Reasoning:** Design docs must be factually accurate about the platform they build on. The post-agent diff approach remains sound on its own merits (efficiency, blocking capability, compatibility with dynamic dispatch). Acknowledging the platform capability opens a future optimization path without forcing immediate architectural change.

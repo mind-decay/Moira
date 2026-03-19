@@ -55,13 +55,13 @@ allowed-tools:
 
 The orchestrator physically cannot invoke Edit, Grep, Glob, or Bash because these tools are not in its allowed set. This is stronger than PreToolUse blocking — the tools don't exist in the orchestrator's context at all.
 
-### Layer 2: Two-Tier Violation Detection (D-031, D-099)
+### Layer 2: Two-Tier Violation Detection (D-031, D-099, D-116)
 
-Layer 2 has two sub-mechanisms, because PostToolUse hooks fire only in the main orchestrator session — they do NOT fire for tool calls made by agents dispatched via the Agent tool (agents run as separate subprocesses that don't inherit parent hooks).
+Layer 2 has two sub-mechanisms. Claude Code supports hooks in subagent frontmatter, but Moira agents use dynamic prompt construction (not static `.claude/agents/` definitions with frontmatter), so `settings.json` hooks don't reach agent sessions. Post-agent git diff verification handles agent-level guard checks instead (D-099). See D-116 for future migration path to subagent frontmatter hooks.
 
 #### Layer 2a: PostToolUse `guard.sh` hook — Orchestrator violations (DETECTION + AUDIT)
 
-**Scope:** guard.sh fires only in the orchestrator session. It detects orchestrator-level Art 1.1 violations (orchestrator touching project files). It cannot block — PostToolUse fires after the tool call (D-075). It logs violations and injects context warnings via hookSpecificOutput.
+**Scope:** guard.sh is registered in `settings.json` and fires only in the orchestrator session (settings.json hooks do not propagate to subagent sessions). It detects orchestrator-level Art 1.1 violations (orchestrator touching project files). It cannot block — PostToolUse fires after the tool call (D-075). It logs violations and injects context warnings via hookSpecificOutput.
 
 ```bash
 #!/bin/bash

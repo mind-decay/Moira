@@ -389,8 +389,8 @@ After each agent returns:
 
 ### Violation Monitoring
 
-Violations come from two sources (D-099):
-1. **Orchestrator violations** (prefix `VIOLATION`): guard.sh PostToolUse hook detects orchestrator touching project files. Injected as context warnings via hookSpecificOutput.
+Violations come from two sources (D-099, D-116):
+1. **Orchestrator violations** (prefix `VIOLATION`): guard.sh PostToolUse hook (in `settings.json`) detects orchestrator touching project files. Injected as context warnings via hookSpecificOutput. This hook fires only in the orchestrator session — `settings.json` hooks do not propagate to subagent sessions.
 2. **Agent violations** (prefix `AGENT_VIOLATION`): post-agent guard check (step d1) detects agents modifying protected paths. Blocks pipeline via Guard Violation Gate.
 
 Both write to `state/violations.log`. After each agent returns:
