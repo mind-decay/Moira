@@ -63,8 +63,19 @@ echo "$timestamp $tool_name $file_path" >> "$state_dir/tool-usage.log" 2>/dev/nu
 # --- Violation detection ---
 # Only check Read/Write/Edit (D-072: Grep/Glob blocked by allowed-tools, unobservable here)
 case "$tool_name" in
-  Read|Write|Edit)
-    # file_path must be non-empty and must NOT be within .claude/moira
+  Read)
+    # .ariadne/ is Ariadne graph output — orchestrator may check existence (D-105)
+    # Read is allowed for both .claude/moira and .ariadne/ paths
+    if [[ -n "$file_path" && "$file_path" != *".claude/moira"* && "$file_path" != *".ariadne/"* ]]; then
+      # VIOLATION: orchestrator accessed project file directly
+      echo "$timestamp VIOLATION $tool_name $file_path" >> "$state_dir/violations.log" 2>/dev/null || true
+
+      # Inject warning into Claude context
+      echo "{\"hookSpecificOutput\":{\"additionalContext\":\"CONSTITUTIONAL VIOLATION (Art 1.1): Orchestrator used $tool_name on $file_path. Direct project file operations are prohibited.\"}}"
+    fi
+    ;;
+  Write|Edit)
+    # Write/Edit only allowed within .claude/moira — .ariadne/ is written by ariadne CLI only
     if [[ -n "$file_path" && "$file_path" != *".claude/moira"* ]]; then
       # VIOLATION: orchestrator accessed project file directly
       echo "$timestamp VIOLATION $tool_name $file_path" >> "$state_dir/violations.log" 2>/dev/null || true
