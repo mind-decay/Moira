@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <code>curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/install.sh | bash</code>
+  <code>curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/remote-install.sh | bash</code>
 </p>
 
 ---
@@ -56,7 +56,7 @@ Moira addresses each of these structurally, not with better prompting.
 
 **Install** (once per machine):
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/remote-install.sh | bash
 ```
 
 **Set up a project:**
@@ -249,13 +249,13 @@ This creates a feedback loop: tasks produce knowledge, knowledge improves agents
 
 ```bash
 # First developer
-curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/remote-install.sh | bash
 cd project && claude
 > /moira init                              # scan project, generate config
 git add .claude/moira/ && git commit       # share config + knowledge
 
 # Everyone else
-curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/remote-install.sh | bash
 git pull && cd project && claude
 > /moira init                              # detects existing config, ready
 ```

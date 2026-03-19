@@ -60,7 +60,7 @@ This means installation = putting the right files in the right places.
 ### Option A: curl (recommended for simplicity)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<org>/moira/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/<org>/moira/main/src/remote-install.sh | bash
 ```
 
 ### Option B: git clone (for contributors)
@@ -436,7 +436,7 @@ This means: when another developer clones the repo and runs `/moira init`, they 
 
 Or from terminal:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<org>/moira/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/<org>/moira/main/src/remote-install.sh | bash
 ```
 
 ### Upgrade process
