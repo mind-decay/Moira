@@ -66,6 +66,12 @@ fields:
     required: false
     enum: [normal, monitor, warning, critical]
     default: normal
+  graph_available:
+    type: boolean
+    required: false
+    default: false
+    description: "Whether Ariadne graph data is available for this pipeline run"
+    # Set by orchestrator during bootstrap checks
   bench_mode:
     type: boolean
     required: false

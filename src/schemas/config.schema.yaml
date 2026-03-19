@@ -186,3 +186,13 @@ fields:
     required: false
     default: false
     description: "Set to true by bootstrap; cleared by orchestrator at first pipeline run."
+  graph.enabled:
+    type: boolean
+    required: false
+    default: true
+    description: "Whether graph integration is active (true if ariadne found during init)"
+  graph.timeout:
+    type: number
+    required: false
+    default: 60
+    description: "ariadne build timeout in seconds"
