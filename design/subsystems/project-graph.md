@@ -529,28 +529,32 @@ The MCP server maintains two-level freshness confidence:
 
 The graph adds a new column to the Knowledge Access Matrix:
 
-| Agent | Graph access | Key capabilities used |
-|---|---|---|
-| Classifier (Apollo) | L0 | Complexity assessment via centrality + dependents |
-| Explorer (Hermes) | L0 | Cluster-targeted search instead of blind grep |
-| Analyst (Athena) | L1 + blast radius + smells | Impact analysis, architectural health |
-| Architect (Metis) | L1 + metrics + spectral | Design quality, coupling analysis, monolith detection |
-| Planner (Daedalus) | L1 + blast radius + importance | Complete file coverage, dependency-ordered tasks |
-| Implementer (Hephaestus) | L2 subgraph + compressed | Exact import paths, exports, test coverage |
-| Reviewer (Themis) | L1 + diff + smells + cycles | New cycles, layer violations, smell introduction |
-| Tester (Aletheia) | L1 (test mappings) | Test file discovery, coverage gaps |
-| Reflector (Mnemosyne) | L2 + metrics | Structural context for pattern detection |
-| Auditor (Argus) | L2 + stats + smells + spectral | Architecture degradation trends, health scoring |
+| Agent | Graph context (in prompt) | Ariadne MCP tools | Key capabilities used |
+|---|---|---|---|
+| Classifier (Apollo) | L0 | All (D-115) | Complexity assessment via centrality + dependents |
+| Explorer (Hermes) | L0 | All (D-115) | Cluster-targeted search, `ariadne_file`, `ariadne_subgraph` instead of blind grep |
+| Analyst (Athena) | L1 + blast radius + smells | All (D-115) | `ariadne_blast_radius`, `ariadne_smells` for impact analysis |
+| Architect (Metis) | L1 + metrics + spectral | All (D-115) | `ariadne_metrics`, `ariadne_spectral` for design quality |
+| Planner (Daedalus) | L1 + blast radius + importance | All (D-115) | `ariadne_blast_radius`, `ariadne_importance` for file coverage |
+| Implementer (Hephaestus) | L2 subgraph + compressed | All (D-115) | `ariadne_file`, `ariadne_dependencies` for exact imports |
+| Reviewer (Themis) | L1 + diff + smells + cycles | All (D-115) | `ariadne_diff`, `ariadne_cycles` for regression checks |
+| Tester (Aletheia) | L1 (test mappings) | All (D-115) | `ariadne_cluster` for test file discovery |
+| Reflector (Mnemosyne) | L2 + metrics | All (D-115) | `ariadne_metrics` for structural reflection |
+| Auditor (Argus) | L2 + stats + smells + spectral | All (D-115) | `ariadne_smells`, `ariadne_spectral` for health scoring |
+
+**Graph context vs MCP tools:** Graph context is static data pre-loaded into the agent prompt (L0/L1/L2 views). MCP tools provide interactive, on-demand queries — agents can call `ariadne_blast_radius`, `ariadne_file`, etc. during execution to get structural data they need. Both channels complement each other: context provides orientation, MCP provides depth.
 
 **No agent has write access to the graph.** The graph is updated only by `ariadne` CLI/MCP server (deterministic, from code).
 
+**MCP inheritance:** Subagents spawned via the Agent tool inherit MCP servers from the parent Claude Code session. Infrastructure MCP tools (Ariadne) are always available to all agents — dispatch injects instructions via the `## Infrastructure Tools (Always Available)` prompt section (D-115).
+
 ### How Each Agent Benefits
 
-**Classifier (Apollo):** Receives L0 index. Can assess true complexity by checking if affected files have high centrality or many dependents. "Rename a function" in a file with in-degree 47 → complex, not simple.
+**Classifier (Apollo):** Receives L0 index in prompt. Can call `ariadne_file` to assess true complexity by checking if affected files have high centrality or many dependents. "Rename a function" in a file with in-degree 47 → complex, not simple.
 
-**Explorer (Hermes):** Receives L0 index. Knows which cluster to search instead of blind grep. Reduces token usage by 50-70% on file discovery.
+**Explorer (Hermes):** Receives L0 index in prompt. Can call `ariadne_cluster`, `ariadne_file`, `ariadne_subgraph` to navigate precisely instead of reading files one by one. Knows which cluster to search instead of blind grep. Reduces token usage by 50-70% on file discovery.
 
-**Analyst (Athena):** Receives L1 clusters + blast radius + smells for affected files. Reports architectural impact: "This change affects 23 files across 3 layers. Circular dependency exists between auth and billing. Hub-and-spoke detected in api/router.ts."
+**Analyst (Athena):** Receives L1 clusters in prompt. Can call `ariadne_blast_radius`, `ariadne_smells`, `ariadne_dependencies` for affected files. Reports architectural impact: "This change affects 23 files across 3 layers. Circular dependency exists between auth and billing. Hub-and-spoke detected in api/router.ts."
 
 **Architect (Metis):** Receives L1 + Martin metrics + spectral analysis. Designs solutions that respect layer boundaries, avoid new cycles, don't increase coupling of bottleneck files, and consider monolith score. Can use compressed graph views for context-efficient design review.
 

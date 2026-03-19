@@ -244,7 +244,7 @@ Wire MCP allocation into the agent instruction assembly process.
 
 #### D5a: Update `dispatch.md` — MCP Section in Prompt Template
 
-Add an MCP section to the prompt template used by simplified assembly (pre-planning agents don't get MCP; post-planning agents get MCP from instruction files).
+Add an MCP section to the prompt template used by simplified assembly. **Update (D-115):** Infrastructure MCP (Ariadne) is now injected into ALL agent prompts in ALL pipelines via dispatch step 4c. Pre-planning agents DO get infrastructure MCP. External MCP: post-planning agents get it from instruction files; Quick Pipeline agents get it from registry-based guidelines.
 
 For Daedalus (planner), add MCP context to the simplified assembly prompt:
 

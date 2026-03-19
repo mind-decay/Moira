@@ -465,6 +465,14 @@ moira_rules_assemble_instruction() {
       echo "$quality_section"
     fi
 
+    # D-115: Infrastructure MCP injection — all agents, all pipelines
+    local infra_mcp_section
+    infra_mcp_section=$(moira_mcp_format_infrastructure_section "$project_root" 2>/dev/null)
+    if [[ -n "$infra_mcp_section" ]]; then
+      echo ""
+      echo "$infra_mcp_section"
+    fi
+
     echo ""
     echo "## Response Contract"
     echo ""

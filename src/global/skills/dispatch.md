@@ -53,6 +53,8 @@ Before dispatching any agent, estimate instruction size (assembled prompt byte c
 
 The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_instruction()`. For simplified assembly, the orchestrator applies the same reduction logic inline.
 
+**Implementation note:** Steps 4b (graph context) and 4c (infrastructure MCP) are both implemented in `lib/rules.sh` → `moira_rules_assemble_instruction()`. The function calls `moira_mcp_format_infrastructure_section()` from `lib/mcp.sh` to generate the infrastructure tools prompt section. This applies to both simplified assembly and pre-assembled instruction files.
+
 ### Steps
 
 1. **Read role definition:** `~/.claude/moira/core/rules/roles/{agent_name}.yaml`  <!-- Runtime path; installed by src/install.sh from src/global/core/rules/roles/ -->

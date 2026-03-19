@@ -150,7 +150,8 @@ MCP tools are split into two categories:
 **Infrastructure MCP** — tools that are part of Moira's own toolchain:
 - Ariadne (`ariadne serve`) — project graph queries
 - Always registered during init if binary supports `serve`
-- Always available to graph-aware agents regardless of pipeline type
+- **Always injected into ALL agent prompts regardless of pipeline type (D-115)** — dispatch injects an `## Infrastructure Tools (Always Available)` section during simplified assembly for every agent
+- Subagents inherit MCP servers from the parent Claude Code session, so infrastructure tools are directly callable by all agents (not just the orchestrator)
 - No per-step Daedalus authorization required
 - Marked with `infrastructure: true` in registry
 
@@ -198,31 +199,43 @@ servers:
         # ...
 ```
 
-## Quick Pipeline MCP (D-109)
+## Infrastructure MCP — Universal Injection (D-115)
 
-Quick Pipeline has no Daedalus, so MCP authorization uses a simplified model:
+Infrastructure MCP tools are injected into ALL agent prompts in ALL pipelines — not just Quick Pipeline. Subagents inherit MCP servers from the parent Claude Code session, making infrastructure tools directly callable.
 
-1. **Dispatch reads registry** during simplified assembly
-2. **Infrastructure MCP**: always injected as authorized
-3. **External MCP**: injected with registry-based guidelines and conservative guardrails
-
-Template injected into Quick Pipeline agent prompts:
+Dispatch injects during simplified assembly (step 4c):
 
 ```markdown
-## MCP Usage Rules
+## Infrastructure Tools (Always Available)
 
-### Always Available (Infrastructure)
+The following tools are always available — use them freely for structural queries:
+
 {For each server with infrastructure: true:}
 - {server}:{tool} — {purpose}
+```
 
-### Available with Justification
+This replaces the previous design where infrastructure MCP was only explicitly injected in Quick Pipeline prompts. Infrastructure tools are now available to pre-planning agents (Apollo, Hermes, Athena, Metis), Daedalus, and post-planning agents alike.
+
+## Quick Pipeline External MCP (D-109)
+
+Quick Pipeline has no Daedalus, so external MCP authorization uses a simplified model:
+
+1. **Dispatch reads registry** during simplified assembly
+2. **Infrastructure MCP**: injected via universal injection (D-115, above)
+3. **External MCP**: injected with registry-based guidelines and conservative guardrails
+
+Template injected into Quick Pipeline agent prompts for external tools:
+
+```markdown
+## External MCP Usage Rules
+
 {For each external server:}
 - {server}:{tool} — {purpose}
   Use when: {when_to_use}
   Do NOT use when: {when_NOT_to_use}
   Budget: ~{token_estimate} tokens
 
-Before calling any non-infrastructure MCP tool, verify:
+Before calling any external MCP tool, verify:
 1. Do I actually need this to write correct code?
 2. Is this available in project files I was given?
 3. Will the response fit within my context budget?

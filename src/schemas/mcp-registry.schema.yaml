@@ -9,9 +9,14 @@ servers:
   type: map
   description: "Map of MCP server names to their configuration"
   value_schema:
+    infrastructure:
+      type: boolean
+      required: false
+      default: false
+      description: "Whether this server is infrastructure MCP (D-108). Infrastructure tools are always available to all agents without per-step Daedalus authorization. Must meet ALL criteria: read-only, zero external API risk, near-zero token cost, Moira-owned or essential."
     type:
       type: enum
-      enum: [documentation, design, code, search, communication, other]
+      enum: [documentation, design, code, search, communication, graph, other]
       required: true
     tools:
       type: map

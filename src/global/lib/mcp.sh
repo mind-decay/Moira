@@ -382,3 +382,58 @@ moira_mcp_list_infrastructure() {
   }
   ' "$registry"
 }
+
+# ── moira_mcp_format_infrastructure_section <project_root> ──────────────
+# Format the "## Infrastructure Tools (Always Available)" prompt section
+# for injection into agent instructions (D-115).
+# Outputs the formatted markdown section to stdout.
+# Returns 1 if no infrastructure servers found or MCP disabled.
+moira_mcp_format_infrastructure_section() {
+  local project_root="$1"
+  local registry="${project_root}/.claude/moira/config/mcp-registry.yaml"
+
+  # Check MCP enabled
+  local config="${project_root}/.claude/moira/config.yaml"
+  if [[ -f "$config" ]]; then
+    local mcp_enabled
+    mcp_enabled=$(moira_yaml_get "$config" "mcp.enabled" 2>/dev/null || echo "false")
+    if [[ "$mcp_enabled" != "true" ]]; then
+      return 1
+    fi
+  else
+    return 1
+  fi
+
+  if ! moira_mcp_has_infrastructure "$project_root"; then
+    return 1
+  fi
+
+  echo "## Infrastructure Tools (Always Available)"
+  echo ""
+  echo "The following tools are always available — use them freely for structural queries:"
+  echo ""
+
+  # Parse infrastructure servers and their tools from registry
+  awk '
+  BEGIN { in_servers=0; in_infra=0; current_server=""; in_tools=0 }
+  /^servers:/ { in_servers=1; next }
+  in_servers && /^[^ ]/ { exit }
+  in_servers && /^  [a-zA-Z_]/ {
+    line = $0; gsub(/^  /, "", line); gsub(/:.*/, "", line)
+    current_server = line
+    in_infra = 0; in_tools = 0
+  }
+  in_servers && /^    infrastructure:[[:space:]]*true/ { in_infra = 1 }
+  in_servers && in_infra && /^    tools:/ { in_tools = 1; next }
+  in_servers && in_infra && in_tools && /^      [a-zA-Z_]/ {
+    tool = $0; gsub(/^      /, "", tool); gsub(/:.*/, "", tool)
+    current_tool = tool
+  }
+  in_servers && in_infra && in_tools && /purpose:/ {
+    purpose = $0; gsub(/.*purpose:[[:space:]]*"?/, "", purpose); gsub(/"[[:space:]]*$/, "", purpose)
+    printf "- %s:%s — %s\n", current_server, current_tool, purpose
+  }
+  ' "$registry"
+
+  echo ""
+}
