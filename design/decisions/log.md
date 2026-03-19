@@ -1018,3 +1018,86 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 - No graph data for pre-planning agents — loses the benefit of graph-informed classification and exploration
 - Full graph data in dispatch — too large, wastes context budget for agents that need minimal orientation
 **Reasoning:** L0 is small (~200-500 tokens) and provides cluster overview + critical files — sufficient for classification complexity assessment and exploration targeting. Daedalus needs the path to query deeper data. Post-planning agents get full graph sections via instruction files.
+
+## D-108: Ariadne MCP as Infrastructure Tool (Always Available)
+
+**Date:** 2026-03-19
+**Status:** Accepted
+**Context:** During the first real Moira session, Ariadne's `serve` command (MCP server mode) was not registered in Claude Code settings. Agents could only use static pre-generated views, missing the main value of Ariadne integration — interactive graph queries (blast-radius, cycles, centrality, smells). The MCP design (mcp.md) treats all MCP tools uniformly as "managed resources" allocated per-step by Daedalus. But Ariadne is fundamentally different: it's read-only structural data, zero external API risk, near-zero cost, and the graph engine Moira itself depends on.
+**Decision:** Ariadne MCP is classified as an **infrastructure MCP tool** — always registered during init (if binary supports `serve`), always available to graph-aware agents regardless of pipeline type. No per-step Daedalus authorization required. The orchestrator registers `ariadne serve` in Claude Code settings during `/moira:init` (Step 4b) and adds Ariadne to the MCP registry with `infrastructure: true` flag. Infrastructure MCP tools bypass the planner authorization gate — they are authorized by default for all agents whose role definition includes graph capabilities.
+**Alternatives rejected:**
+- Treat Ariadne like any external MCP — requires Daedalus, breaks Quick Pipeline, adds ceremony for zero-risk queries
+- Register manually (user responsibility) — defeats purpose of automated init, easy to forget
+**Reasoning:** Ariadne is Moira's own structural engine. Requiring Daedalus authorization for read-only graph queries is like requiring permission to read your own config files. Infrastructure classification preserves the managed-resource principle for external tools (context7, figma) while making graph queries frictionless.
+
+## D-109: Quick Pipeline Lightweight MCP Authorization
+
+**Date:** 2026-03-19
+**Status:** Accepted
+**Context:** Quick Pipeline has no Daedalus (planner) step, so MCP tools cannot be authorized via instruction files. This means Quick Pipeline agents have zero MCP access — even for infrastructure tools like Ariadne. For external MCP tools (context7, figma), this is acceptable for small tasks. But infrastructure MCP should always be available (D-108), and external MCP may occasionally be useful even in Quick Pipeline (e.g., looking up API docs for an unfamiliar library).
+**Decision:** The dispatch skill's simplified assembly path (used by Quick Pipeline) includes an `## MCP Usage Rules` section constructed directly from the registry:
+- **Infrastructure MCP** (e.g., Ariadne): always authorized, injected automatically
+- **External MCP**: authorized based on registry `when_to_use` guidelines, with conservative budget guardrails (agent must verify need before calling)
+The orchestrator constructs this section during dispatch — no Daedalus required. Reviewer (Themis) still checks MCP usage in Q4 review.
+**Alternatives rejected:**
+- No MCP in Quick Pipeline — loses Ariadne integration entirely for the most common pipeline type
+- Add a lightweight planner step to Quick — adds latency and complexity, contradicts Quick Pipeline's purpose
+- Auto-authorize everything — violates managed-resource principle
+**Reasoning:** Quick Pipeline should be fast, not crippled. Infrastructure tools have near-zero risk. External tools need guardrails but not a full planning step — the registry's `when_to_use` / `when_NOT_to_use` guidelines provide sufficient guidance for agents.
+
+## D-110: Orchestrator Complexity Governance
+
+**Date:** 2026-03-19
+**Status:** Accepted
+**Context:** Architecture review (2026-03-19) found the orchestrator skill accumulates 7+ responsibilities (pipeline logic, gate presentation, error routing, budget checking, state management, agent dispatch, MCP authorization, graph data injection), approaching Art 1.3 (No God Components) violation. No decision or design constraint limits orchestrator scope.
+**Decision:** Define governance metric for orchestrator complexity. The orchestrator skill's responsibility count is tracked. Current baseline: 7 core responsibilities. Threshold: if responsibilities exceed 10, a mandatory architectural review must determine whether to decompose or formally acknowledge the exception. Each phase that adds orchestrator responsibility must document which responsibility is added. Art 1.3's test for the orchestrator is: "orchestrator responsibilities are enumerated and bounded."
+**Alternatives rejected:**
+- Decompose now into multiple skills — coordination overhead between sub-skills outweighs current complexity
+- No governance — complexity grows unbounded, Art 1.3 becomes unenforceable for the most critical component
+**Reasoning:** The orchestrator is intentionally more complex than other components because it coordinates all pipeline flow. But "intentionally complex" still needs bounds. A governance metric with threshold creates a structural trigger for decomposition review without premature splitting.
+
+## D-111: Formal Methods Deferred to Post-v1
+
+**Date:** 2026-03-19
+**Status:** Accepted
+**Context:** Architecture review (2026-03-19) found D-094's formal methods suite (SPRT, CUSUM, BH correction, Markov retry, exponential decay) adds ~30% implementation surface to Phases 7, 10, and 11 for statistical techniques that require scale (hundreds of tasks, dozens of test cases) to provide value. Moira processes ~47 tasks/month. CPM (Critical Path Method) for batch scheduling is the exception — directly useful at any scale.
+**Decision:** Defer SPRT, CUSUM, Benjamini-Hochberg correction, Markov retry optimization, and exponential knowledge decay to post-v1. Keep CPM for batch scheduling. For v1: use fixed retry limits (per D-095), simple zone-based metric thresholds (NORMAL/WARN/ALERT without CUSUM), uncorrected p-values (acceptable with only 4 metrics), and task-count-based knowledge staleness (stale after N tasks since last verified, where N varies by knowledge type). D-094 design remains as the post-v1 specification.
+**Alternatives rejected:**
+- Keep all formal methods — implementation cost disproportionate to pre-scale benefit
+- Remove formal methods from design entirely — the techniques are sound and will be valuable at scale
+**Reasoning:** Simple thresholds and fixed limits achieve ~85-90% of the value at ~30% of the implementation cost. The formal methods become valuable once there are 100+ tasks of historical data. D-094 spec is preserved for when the system reaches that scale.
+
+## D-112: Plan Gate Backward Flow (Rearchitect Option)
+
+**Date:** 2026-03-19
+**Status:** Accepted
+**Context:** Architecture review (2026-03-13, finding S-9, still unresolved in 2026-03-19 review) found that when user feedback at the plan gate implies architectural disagreement, the only options are "modify" (sends to Planner, who can't change architecture) or "abort" (loses all work). No controlled backward path to the Architect exists.
+**Decision:** Add a "rearchitect" option at the plan gate (and decomposition gate) that routes the pipeline back to the Architecture step. The Architect receives the original architecture + user's feedback. After revised architecture, the architecture gate is re-presented. Then the Planner runs with the new architecture. Maximum 1 rearchitect per pipeline execution to prevent infinite loops.
+**Alternatives rejected:**
+- No backward path — forces abort on architectural disagreement, wastes all prior work
+- Let Planner handle architectural changes — violates Art 1.2 (Planner never makes architectural decisions)
+- Unlimited rearchitects — risk of infinite loop
+**Reasoning:** The plan gate is the first point where the user sees the concrete consequences of architectural decisions. Discovering architectural issues at this stage is common and legitimate. A single rearchitect is cheap (one Architect + one Planner dispatch) compared to full abort and restart.
+
+## D-113: Instruction Size Validation Before Agent Dispatch
+
+**Date:** 2026-03-19
+**Status:** Accepted
+**Context:** Architecture review (2026-03-19) found that assembled agent instructions (Layers 1-4 + knowledge + graph + MCP rules) have no size limit or validation. If the Agent tool platform has a message size limit, trailing instructions (Layer 4 task-specific — the most important part) could be silently truncated.
+**Decision:** Add instruction size estimation before dispatch. If total exceeds 50k tokens (estimated via byte count / 4), reduce knowledge and graph data to lower levels (L2→L1→L0) until instructions fit. Layer 4 (task-specific) instructions are never truncated — they are placed last in assembly but are the highest priority. The reduction order is: graph extras first, then knowledge L2→L1, then graph L1→L0.
+**Alternatives rejected:**
+- No validation — silent truncation of critical instructions
+- Hard fail on oversized instructions — blocks legitimate large-context agents like Explorer
+**Reasoning:** Graceful degradation (reduce context richness) is better than silent truncation or hard failure. Layer 4 priority ensures task-specific instructions are always preserved. The 50k threshold is conservative — it leaves room for the Agent tool's own overhead.
+
+## D-114: Mid-Pipeline State Protection
+
+**Date:** 2026-03-19
+**Status:** Accepted
+**Context:** Architecture review (2026-03-19) found three mid-pipeline state consistency gaps: (1) external file mutations during pipeline go undetected (S-4), (2) pipeline state transitions are behavioral, not validated (S-5), (3) state YAML writes are not atomic (S-6).
+**Decision:** Three mitigations: (a) At each pipeline step boundary, perform a quick `git status` check. If modified files overlap with the pipeline's working set, pause and present options (accept/re-explore/abort). (b) Validate each state transition against the pipeline YAML definition — check that step Y is a valid successor of step X. Invalid transitions are logged and blocked. (c) All state YAML writes use atomic write pattern (write to temp file, then rename). Manifest maintains a one-back backup (manifest.yaml.bak) for recovery.
+**Alternatives rejected:**
+- No mid-pipeline protection — compounds three low-probability risks into meaningful exposure
+- Full file-system watchers — over-engineering for the actual risk level
+- Lock files during pipeline execution — prevents legitimate human edits
+**Reasoning:** Each mitigation is lightweight (git status, YAML lookup, temp-file rename) and addresses a distinct failure mode. Combined, they close the mid-pipeline state consistency gap without adding significant overhead.
