@@ -36,6 +36,7 @@ Read the following files (skip any that don't exist):
 2. **Config:** `.claude/moira/config.yaml` — project name, stack, quality mode
 3. **Current task:** `.claude/moira/state/current.yaml` — active pipeline state
 4. **Locks:** `.claude/moira/config/locks.yaml` — active locks (if exists)
+5. **Graph:** `.ariadne/graph/graph.json` — graph existence check
 
 ## Step 3: Recent Tasks
 
@@ -97,6 +98,21 @@ Format output as follows:
 
   {For types that don't exist:}
   {type}: not initialized
+
+─── Project Graph ────────────────────────
+
+  {If .ariadne/graph/graph.json exists, run via Bash:}
+  {source ~/.claude/moira/lib/graph.sh && moira_graph_summary}
+  {source ~/.claude/moira/lib/graph.sh && moira_graph_is_fresh && echo "fresh" || echo "stale"}
+  {Check .ariadne/graph/.serve.pid for MCP server status}
+
+  Files: {node_count}  Edges: {edge_count}  Clusters: {cluster_count}
+  Cycles: {cycle_count}  Smells: {smell_count}
+  Monolith: {monolith_score}  Freshness: {fresh/stale}
+  MCP server: {running (PID {pid}) / stopped}
+
+  {If .ariadne/graph/graph.json does not exist:}
+  Project Graph: not available (ariadne not installed)
 
 ─── Locks ────────────────────────────────
 
