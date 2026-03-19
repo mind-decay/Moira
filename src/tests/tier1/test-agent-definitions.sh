@@ -108,15 +108,15 @@ fi
 
 # ── Knowledge access consistency: role files vs matrix ───────────────
 # Check each role file's knowledge_access matches the matrix row (all 4 dimensions)
-KNOWLEDGE_DIMS=(project_model conventions decisions patterns)
+KNOWLEDGE_DIMS=(project_model conventions decisions patterns graph)
 
 for agent in "${AGENTS[@]}"; do
   role_file="$ROLES_DIR/${agent}.yaml"
   [[ -f "$role_file" && -f "$matrix_file" ]] || continue
 
   for dim in "${KNOWLEDGE_DIMS[@]}"; do
-    # Extract value from role file (under knowledge_access: block)
-    role_val=$(sed -n '/^knowledge_access:/,/^[^ ]/{ /'"$dim"':/p; }' "$role_file" | sed 's/.*: *//' | tr -d ' ')
+    # Extract value from role file (under knowledge_access: block), strip YAML comments
+    role_val=$(sed -n '/^knowledge_access:/,/^[^ ]/{ /'"$dim"':/p; }' "$role_file" | sed 's/#.*//' | sed 's/.*'"$dim"': *//' | tr -d ' ')
     # Extract value from matrix (inline YAML format) — only from read_access section
     matrix_val=$(sed -n '/^read_access:/,/^[a-z]/{ /^  '"${agent}"':/p; }' "$matrix_file" | grep -o "${dim}: *[A-Za-z0-9]*" | sed 's/.*: *//' | tr -d ' ')
 
