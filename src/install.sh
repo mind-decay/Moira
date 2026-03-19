@@ -471,6 +471,16 @@ verify() {
     fi
     return 1
   fi
+
+  # Optional: check for ariadne binary (informational, never fails verification)
+  if command -v ariadne &>/dev/null; then
+    local ariadne_ver
+    ariadne_ver=$(ariadne info 2>/dev/null | head -1)
+    echo "[OK] Ariadne found: $ariadne_ver — Project Graph features available"
+  else
+    echo "[INFO] ariadne not found — Project Graph features unavailable"
+    echo "  Install: cargo install ariadne-graph"
+  fi
 }
 
 # ── Main ──────────────────────────────────────────────────────────────
