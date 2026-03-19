@@ -95,6 +95,44 @@ Wait for all 4 to complete. Check results:
 - If any agent fails: report which scanner failed and why. Offer: **retry** / **skip** (fields will be empty) / **abort**
 - If all succeed: proceed
 
+## Step 4b: Build Project Graph
+
+Check for the Ariadne binary and build the project graph if available.
+
+### 4b.1: Check Binary
+
+Run via Bash:
+```bash
+bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_check_binary'
+```
+
+### 4b.2: If Binary Found
+
+Run graph build and view generation via Bash (can run in parallel with Step 4 scanner agents):
+```bash
+bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_build "{project_root}" && moira_graph_views_generate'
+```
+
+After build completes, extract summary:
+```bash
+bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_summary'
+```
+
+Store the summary values (node_count, edge_count, cluster_count) for display in Step 11.
+
+Report: "Project Graph: {node_count} files, {edge_count} edges, {cluster_count} clusters"
+
+### 4b.3: If Binary Not Found
+
+Display:
+```
+⚠ ariadne not found — Project Graph features unavailable.
+  Install: cargo install ariadne-graph
+  Or: curl -sSL https://raw.githubusercontent.com/anthropics/ariadne/main/install.sh | bash
+```
+
+Continue without graph (graceful degradation per D-102).
+
 ## Step 5: Generate Config and Rules
 
 Run via Bash (always use `bash -c` — bootstrap.sh uses BASH_REMATCH which requires bash):
@@ -176,7 +214,8 @@ Read key fields from generated files to populate the summary, then display:
   ├─ Knowledge: .claude/moira/knowledge/ (3 types populated)
   ├─ CLAUDE.md: updated with Moira section
   ├─ Hooks: guard.sh + budget-track.sh registered
-  └─ MCP: {N} servers registered ({server1}, {server2}, ...) OR "no servers detected"
+  ├─ MCP: {N} servers registered ({server1}, {server2}, ...) OR "no servers detected"
+  └─ Graph: {node_count} files, {edge_count} edges, {cluster_count} clusters OR "not available (ariadne not installed)"
 
   1) review  — inspect generated files
   2) accept  — start using Moira
