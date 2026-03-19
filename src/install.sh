@@ -211,7 +211,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh reflection.sh judge.sh metrics.sh audit.sh retry.sh checkpoint.sh epic.sh upgrade.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh reflection.sh judge.sh metrics.sh audit.sh retry.sh checkpoint.sh epic.sh upgrade.sh graph.sh; do
     ((checks_total++)) || true
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then
@@ -226,7 +226,7 @@ verify() {
   done
 
   # Check 6: all 10 command stubs exist
-  local commands=(task init status resume knowledge metrics audit bypass refresh help bench health upgrade)
+  local commands=(task init status resume knowledge metrics audit bypass refresh help bench health upgrade graph)
   for cmd in "${commands[@]}"; do
     ((checks_total++)) || true
     local cmd_path="$HOME/.claude/commands/moira/${cmd}.md"
