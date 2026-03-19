@@ -20,7 +20,7 @@ When dispatching a post-planning agent (any agent after Daedalus has run), check
 3. If file does not exist:
    - Fall back to simplified assembly (below)
 
-Instruction files are written by Daedalus (planner) during the planning step. They contain L1-L4 merged rules, authorized knowledge, quality checklist, task context, and output path.
+Instruction files are written by Daedalus (planner) during the planning step. They contain L1-L4 merged rules, authorized knowledge, quality checklist, task context, and output path. When graph data is available, instruction files may also contain a `## Project Graph` section with cluster views, blast radius data, and structural context assembled by Daedalus from `.ariadne/views/`.
 
 ### Simplified Assembly (Fallback)
 
@@ -53,6 +53,11 @@ Used for:
 3. **Read response contract:** `~/.claude/moira/core/response-contract.yaml` (Note: `rules.sh` `moira_rules_assemble_instruction` embeds the response contract inline rather than reading this file. The file serves as the canonical reference.)
 4. **Read task context:** from state files in `.claude/moira/state/tasks/{task_id}/`
    - Input description, previous step artifacts (as specified by pipeline `reads_from`)
+4b. **Graph context loading (D-107):** If `graph_available` is `true` in `.claude/moira/state/current.yaml`:
+   - **Pre-planning agents (Apollo, Hermes, Athena, Metis):** Read the L0 graph index via Bash: `source ~/.claude/moira/lib/graph.sh && moira_graph_read_view L0`. If non-empty, append as a `## Project Graph (L0)` section to the prompt. Budget adjustment: add ~200-500 tokens to context estimate for L0 index.
+   - **Daedalus (planner):** Pass graph directory paths in the Task section: graph data at `.ariadne/graph/`, views at `.ariadne/views/`. Daedalus queries graphs directly and assembles `## Project Graph` sections in instruction files.
+   - **Post-planning agents (Hephaestus, Themis, Aletheia):** No change — graph data comes via pre-assembled instruction files (assembled by Daedalus).
+   - If `graph_available` is `false` or not present: skip this step entirely (agents work without graph data, per D-102 graceful degradation).
 5. **Quality checklist injection:** Check if this agent has a quality gate assignment (per Agent-to-Gate Mapping table in this document). If yes:
    - Read quality checklist from `~/.claude/moira/core/rules/quality/q{N}-*.yaml`
    - Append Quality Checklist section to prompt (using Checklist Prompt Appendix template from this document)
