@@ -30,6 +30,74 @@ bash ~/.claude/moira/tests/tier1/run-all.sh 2>&1
 ```
 Parse output for pass/fail counts. Score = (pass_count / total_count) * 100.
 
+### 1b. Graph Health (subsection of Structural Conformance)
+
+If `.ariadne/graph/graph.json` does not exist: skip this entire subsection (do not penalize the structural score — per D-106).
+
+If graph exists, run checks via Bash and collect results:
+
+```bash
+bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_summary'
+```
+
+```bash
+bash -c 'ariadne query cycles --format json 2>/dev/null'
+```
+
+```bash
+bash -c 'ariadne query smells --format json 2>/dev/null'
+```
+
+```bash
+bash -c 'ariadne query stats --format json 2>/dev/null'
+```
+
+```bash
+bash -c 'ariadne query spectral --format json 2>/dev/null'
+```
+
+Parse results and evaluate each check:
+
+1. **Graph freshness:** Run `moira_graph_is_fresh`. Pass if fresh, warning if stale.
+   - Pass: "Graph exists and is current"
+   - Warning: "Graph is stale (source files changed since last build)"
+
+2. **Circular dependencies:** Count SCCs with size > 1 from cycles query.
+   - Pass: "No circular dependencies"
+   - Warning: "{N} circular dependencies"
+
+3. **Bottleneck files:** Count files with centrality > 0.9 from stats (centrality field).
+   - Pass: "No high-centrality bottlenecks"
+   - Warning: "{N} files with centrality > 0.9 (bottlenecks)"
+
+4. **God files:** Check smells output for type "god_file".
+   - Pass: "No god files detected"
+   - Warning: "{N} god file(s) detected ({file list})"
+
+5. **Cluster sizes:** Check if any cluster has > 50 files from clusters.json.
+   - Pass: "All clusters < 50 files"
+   - Warning: "{N} oversized cluster(s) (> 50 files)"
+
+6. **Unstable foundations:** Check smells output for type "unstable_foundation".
+   - Pass: "No unstable foundations"
+   - Warning: "{N} unstable foundation(s)"
+
+7. **Monolith score:** Extract monolith_score from spectral query.
+   - Pass (score <= 0.5): "Monolith score: {score} (healthy)"
+   - Warning (score > 0.5): "Monolith score: {score} (high coupling)"
+
+Display format:
+```
+Graph Health:
+  {check_icon} {check_description}
+  {check_icon} {check_description}
+  ...
+```
+
+Where check_icon is: pass = checkmark, warning = warning symbol with details.
+
+Include graph check pass/fail counts in the structural conformance pass/fail ratio. If graph has 7 checks and 5 pass, add 5 passes and 2 failures to the structural total.
+
 ### 2. Result Quality (50% weight)
 
 Load live telemetry aggregate from `.claude/moira/testing/live/index.yaml` (if exists).
