@@ -42,7 +42,8 @@ if [[ -f "$MOIRA_HOME/lib/mcp.sh" ]]; then
   fi
 
   for func in moira_mcp_registry_exists moira_mcp_is_enabled moira_mcp_list_servers \
-              moira_mcp_get_tool_info moira_mcp_get_token_estimate moira_mcp_generate_registry; do
+              moira_mcp_get_tool_info moira_mcp_get_token_estimate moira_mcp_generate_registry \
+              moira_mcp_has_infrastructure moira_mcp_list_infrastructure; do
     if grep -q "$func" "$MOIRA_HOME/lib/mcp.sh" 2>/dev/null; then
       pass "mcp.sh: function $func declared"
     else

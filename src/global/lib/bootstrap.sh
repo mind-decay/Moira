@@ -908,26 +908,19 @@ moira_bootstrap_setup_gitignore() {
 
 # ── moira_bootstrap_scan_mcp <project_root> <scan_results_dir> ──────
 # Process MCP scan results and generate registry.
-# If scan results exist: generates mcp-registry.yaml and enables MCP.
-# If no scan results: sets mcp.enabled: false.
+# Always calls moira_mcp_generate_registry which handles both:
+#   - Infrastructure MCP (Ariadne, if binary available) — added automatically (D-108)
+#   - External MCP (from scanner output) — parsed from mcp-scan.md frontmatter
+# The generate_registry function sets mcp.enabled based on whether any servers exist.
 moira_bootstrap_scan_mcp() {
   local project_root="$1"
   local scan_results_dir="$2"
-  local moira_dir="${project_root}/.claude/moira"
-  local scan_file="${scan_results_dir}/mcp-scan.md"
 
-  if [[ -f "$scan_file" ]]; then
-    local result
-    result=$(moira_mcp_generate_registry "$project_root" "$scan_results_dir" 2>&1) || true
-    if [[ -n "$result" ]]; then
-      echo "$result"
-    fi
-  else
-    # No MCP scan results — disable MCP
-    local config="${moira_dir}/config.yaml"
-    if [[ -f "$config" ]]; then
-      moira_yaml_set "$config" "mcp.enabled" "false"
-    fi
-    echo "No MCP servers detected"
+  # Always generate registry — even without scan results, infrastructure MCP
+  # (e.g., Ariadne) may be available and should be registered
+  local result
+  result=$(moira_mcp_generate_registry "$project_root" "$scan_results_dir" 2>&1) || true
+  if [[ -n "$result" ]]; then
+    echo "$result"
   fi
 }

@@ -44,6 +44,15 @@ Used for:
 | Any | Mnemosyne (reflector) | Dedicated dispatch via `reflection.md` |
 | Any | Argus (auditor) | Dedicated dispatch via `/moira audit` templates |
 
+### Instruction Size Validation (D-113)
+
+Before dispatching any agent, estimate instruction size (assembled prompt byte count / 4 ≈ tokens). If estimated size exceeds 50k tokens:
+1. Reduce graph data: L2 → L1 → L0
+2. Reduce knowledge levels: L2 → L1 → L0 (lowest priority knowledge types first)
+3. Layer 4 (task-specific) instructions are NEVER truncated — they are the highest priority
+
+The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_instruction()`. For simplified assembly, the orchestrator applies the same reduction logic inline.
+
 ### Steps
 
 1. **Read role definition:** `~/.claude/moira/core/rules/roles/{agent_name}.yaml`  <!-- Runtime path; installed by src/install.sh from src/global/core/rules/roles/ -->
@@ -387,7 +396,37 @@ Before injecting MCP context, check if MCP is enabled:
 - If `false` or not found: skip the entire MCP section
 - If `true`: read `.claude/moira/config/mcp-registry.yaml` and include MCP context
 
-### For Daedalus (Planner) — Simplified Assembly
+### For Quick Pipeline — Simplified Assembly (D-109)
+
+Quick Pipeline has no Daedalus, so MCP authorization is constructed directly by the dispatch module from the registry. When MCP is enabled and registry exists, append to ALL Quick Pipeline agent prompts (explorer, implementer, reviewer):
+
+```
+## MCP Usage Rules
+
+{If registry contains servers with infrastructure: true:}
+### Always Available (Infrastructure)
+{For each infrastructure server and its tools:}
+- {server}:{tool} — {purpose}
+
+{If registry contains non-infrastructure servers:}
+### Available with Justification
+{For each external server and its tools:}
+- {server}:{tool} — {purpose}
+  Use when: {when_to_use}
+  Do NOT use when: {when_NOT_to_use}
+  Budget: ~{token_estimate} tokens
+
+Before calling any non-infrastructure MCP tool, verify:
+1. Do I actually need this to write correct code?
+2. Is this available in project files I was given?
+3. Will the response fit within my context budget?
+
+If (1) is no or (2) is yes → DO NOT call.
+```
+
+Infrastructure MCP tools (D-108) are always authorized — no justification check required. Example: Ariadne graph queries are always available because they are read-only structural data with near-zero cost.
+
+### For Daedalus (Planner) — Standard/Full/Decomposition Pipelines
 
 When MCP is enabled and registry exists, append to the Daedalus prompt:
 
@@ -397,7 +436,7 @@ When MCP is enabled and registry exists, append to the Daedalus prompt:
 The following MCP servers and tools are available for allocation to agents:
 
 {For each server in registry:}
-### {server_name} ({type})
+### {server_name} ({type}) {if infrastructure: true: "[INFRASTRUCTURE — always authorized]"}
 {For each tool:}
 - **{tool_name}**: {purpose}
   - Cost: {cost}, Reliability: {reliability}
@@ -405,7 +444,8 @@ The following MCP servers and tools are available for allocation to agents:
   - Do NOT use when: {when_NOT_to_use}
   - Token estimate: ~{token_estimate} tokens
 
-When creating plan steps, explicitly AUTHORIZE or PROHIBIT MCP tools per step:
+Infrastructure MCP tools (marked above) are always authorized for all agents — do NOT prohibit them.
+For external MCP tools, explicitly AUTHORIZE or PROHIBIT per step:
 - AUTHORIZE with justification and budget impact
 - PROHIBIT with reason (e.g., "design already extracted", "agent should know this")
 - Include MCP token estimates in step budget calculations
@@ -424,23 +464,28 @@ Daedalus MUST include an "MCP Usage Rules for This Step" section in instruction 
 ```
 ## MCP Usage Rules for This Step
 
-{If step has authorized MCP tools:}
+### Always Available (Infrastructure)
+{For each infrastructure server and its tools:}
+- {server}:{tool} — {purpose}
+
+{If step has authorized external MCP tools:}
+### Authorized for This Step
 You MAY use:
 - {server}:{tool} for "{specific query}" — {justification}
 
 You MUST NOT use:
-- Any other MCP tool
+- Any other non-infrastructure MCP tool
 - {server}:{tool} for {reason it's prohibited}
 
-Before calling any MCP tool, verify:
+Before calling any non-infrastructure MCP tool, verify:
 1. Do I actually need this to write correct code?
 2. Is this available in project files I was given?
 3. Will the response fit within my context budget?
 
 If (1) is no or (2) is yes → DO NOT call.
 
-{If step has no MCP authorization:}
-No MCP tools are authorized for this step. Do not use any MCP tools.
+{If step has no external MCP authorization:}
+No external MCP tools are authorized for this step. Infrastructure tools above are always available.
 ```
 
 This section is part of the Planner's output — Phase 9 provides the registry data that makes it actionable.

@@ -122,7 +122,39 @@ Store the summary values (node_count, edge_count, cluster_count) for display in 
 
 Report: "Project Graph: {node_count} files, {edge_count} edges, {cluster_count} clusters"
 
-### 4b.3: If Binary Not Found
+### 4b.3: Register Ariadne MCP (D-108)
+
+If binary found, check if `ariadne serve` is available and register as MCP server in Claude Code project settings.
+
+Run via Bash:
+```bash
+bash -c 'ariadne serve --help >/dev/null 2>&1 && echo "serve_available" || echo "serve_unavailable"'
+```
+
+If `serve_available`:
+1. Read `.claude/settings.json` (project-level). If it doesn't exist, check `.claude/settings.local.json`.
+2. Check if `ariadne` is already registered under `mcpServers`.
+3. If NOT registered, add it. Use the Write tool to update the settings file, adding to the `mcpServers` object:
+
+```json
+{
+  "mcpServers": {
+    "ariadne": {
+      "command": "ariadne",
+      "args": ["serve", "--project", "{project_root}"]
+    }
+  }
+}
+```
+
+Merge with existing settings — do NOT overwrite other `mcpServers` entries.
+
+Report: "Ariadne MCP server registered in project settings"
+
+If `serve_unavailable`:
+Report: "Ariadne binary found but `serve` subcommand not available — update ariadne for MCP support"
+
+### 4b.4: If Binary Not Found
 
 Display:
 ```
@@ -142,7 +174,7 @@ bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_generate_con
 
 ## Step 6: MCP Discovery
 
-Discover available MCP servers and generate the MCP registry.
+Discover available external MCP servers and generate the combined MCP registry (infrastructure + external).
 
 This step runs AFTER config generation (Step 5) because MCP classification benefits from knowing the project stack.
 
@@ -160,7 +192,9 @@ Wait for completion, then process results:
 bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_scan_mcp "{project_root}" ".claude/moira/state/init"'
 ```
 
-If no MCP servers are available in the environment (agent reports none): the bootstrap function sets `mcp.enabled: false` — this is normal and expected.
+This function (D-108) merges infrastructure MCP (Ariadne, if available) with external MCP servers discovered by the scanner into a single `mcp-registry.yaml`. Infrastructure entries are added automatically without scanner involvement.
+
+If no MCP servers are available at all (no Ariadne binary, no external servers found): the bootstrap function sets `mcp.enabled: false` — this is normal and expected.
 
 ## Step 7: Populate Knowledge
 
@@ -196,7 +230,13 @@ This registers guard and budget-track hooks in `.claude/settings.json` and creat
 
 This is an **APPROVAL GATE**. Do NOT proceed without explicit user action.
 
-Read key fields from generated files to populate the summary, then display:
+Read key fields from generated files to populate the summary. **IMPORTANT (F-003 fix):** MCP server count and names MUST come from the actual generated registry file (`.claude/moira/config/mcp-registry.yaml`), NOT from scanner agent output. Read the registry to get the actual server list:
+
+```bash
+bash -c 'source ~/.claude/moira/lib/mcp.sh && moira_mcp_list_servers "{project_root}"'
+```
+
+Then display:
 
 ```
 ═══════════════════════════════════════════
@@ -215,6 +255,7 @@ Read key fields from generated files to populate the summary, then display:
   ├─ CLAUDE.md: updated with Moira section
   ├─ Hooks: guard.sh + budget-track.sh registered
   ├─ MCP: {N} servers registered ({server1}, {server2}, ...) OR "no servers detected"
+  │   {if infrastructure servers: "  ├─ Infrastructure: {ariadne, ...}"}
   └─ Graph: {node_count} files, {edge_count} edges, {cluster_count} clusters OR "not available (ariadne not installed)"
 
   1) review  — inspect generated files
