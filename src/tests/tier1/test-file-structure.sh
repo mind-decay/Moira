@@ -10,11 +10,19 @@ source "$SCRIPT_DIR/test-helpers.sh"
 MOIRA_HOME="${MOIRA_HOME:-$HOME/.claude/moira}"
 COMMANDS_DIR="$HOME/.claude/commands/moira"
 
-# ── Version file ─────────────────────────────────────────────────────
-assert_file_exists "$MOIRA_HOME/.version" ".version exists"
+# Derive SRC_DIR: if MOIRA_HOME points to src/global, SRC_DIR is src/
+# This handles both source-tree and installed layouts
+if [[ -d "$MOIRA_HOME/lib" && ! -d "$MOIRA_HOME/schemas" && -d "$(dirname "$MOIRA_HOME")/schemas" ]]; then
+  SRC_DIR="$(dirname "$MOIRA_HOME")"
+else
+  SRC_DIR="$MOIRA_HOME"
+fi
 
-if [[ -f "$MOIRA_HOME/.version" ]]; then
-  ver=$(cat "$MOIRA_HOME/.version")
+# ── Version file ─────────────────────────────────────────────────────
+assert_file_exists "$SRC_DIR/.version" ".version exists"
+
+if [[ -f "$SRC_DIR/.version" ]]; then
+  ver=$(cat "$SRC_DIR/.version")
   if [[ "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     pass ".version contains valid semver ($ver)"
   else
@@ -40,7 +48,7 @@ assert_dir_exists "$MOIRA_HOME/core/rules/quality" "core/rules/quality/ exists"
 assert_dir_exists "$MOIRA_HOME/skills" "skills/ exists"
 assert_dir_exists "$MOIRA_HOME/hooks" "hooks/ exists"
 assert_dir_exists "$MOIRA_HOME/lib" "lib/ exists"
-assert_dir_exists "$MOIRA_HOME/schemas" "schemas/ exists"
+assert_dir_exists "$SRC_DIR/schemas" "schemas/ exists"
 assert_dir_exists "$MOIRA_HOME/core/pipelines" "core/pipelines/ exists"
 
 # ── Phase 4: knowledge + rules libs ────────────────────────────────
@@ -141,7 +149,7 @@ if [[ -f "$MOIRA_HOME/lib/bench.sh" ]]; then
   fi
 fi
 
-assert_file_exists "$MOIRA_HOME/schemas/findings.schema.yaml" "schemas/findings.schema.yaml exists"
+assert_file_exists "$SRC_DIR/schemas/findings.schema.yaml" "schemas/findings.schema.yaml exists"
 
 assert_dir_exists "$MOIRA_HOME/templates/scanners/deep" "templates/scanners/deep/ exists"
 deep_count=$(ls "$MOIRA_HOME/templates/scanners/deep/"*.md 2>/dev/null | wc -l | tr -d ' ')
@@ -151,9 +159,9 @@ else
   fail "deep scan templates: expected >=4, found $deep_count"
 fi
 
-assert_dir_exists "$MOIRA_HOME/tests/bench/fixtures" "tests/bench/fixtures/ exists"
-assert_dir_exists "$MOIRA_HOME/tests/bench/cases" "tests/bench/cases/ exists"
-assert_dir_exists "$MOIRA_HOME/tests/bench/rubrics" "tests/bench/rubrics/ exists"
+assert_dir_exists "$SRC_DIR/tests/bench/fixtures" "tests/bench/fixtures/ exists"
+assert_dir_exists "$SRC_DIR/tests/bench/cases" "tests/bench/cases/ exists"
+assert_dir_exists "$SRC_DIR/tests/bench/rubrics" "tests/bench/rubrics/ exists"
 
 # ── Phase 10: reflection + judge templates ────────────────────────
 assert_dir_exists "$MOIRA_HOME/templates/reflection" "templates/reflection/ exists"
@@ -223,8 +231,8 @@ else
 fi
 
 assert_file_exists "$MOIRA_HOME/core/xref-manifest.yaml" "core/xref-manifest.yaml exists"
-assert_file_exists "$MOIRA_HOME/schemas/metrics.schema.yaml" "schemas/metrics.schema.yaml exists"
-assert_file_exists "$MOIRA_HOME/schemas/audit.schema.yaml" "schemas/audit.schema.yaml exists"
+assert_file_exists "$SRC_DIR/schemas/metrics.schema.yaml" "schemas/metrics.schema.yaml exists"
+assert_file_exists "$SRC_DIR/schemas/audit.schema.yaml" "schemas/audit.schema.yaml exists"
 
 # ── Phase 12: checkpoint + epic + upgrade libs ──────────────────────
 for lib in checkpoint.sh epic.sh upgrade.sh; do
@@ -238,7 +246,12 @@ for lib in checkpoint.sh epic.sh upgrade.sh; do
   fi
 done
 
-assert_dir_exists "$MOIRA_HOME/.version-snapshot" ".version-snapshot/ exists"
+# .version-snapshot/ is created by install.sh — only test if it exists
+if [[ -d "$SRC_DIR/.version-snapshot" ]]; then
+  assert_dir_exists "$SRC_DIR/.version-snapshot" ".version-snapshot/ exists"
+else
+  pass ".version-snapshot/ skipped (source-tree layout, created by install.sh)"
+fi
 
 # ── Command stubs ────────────────────────────────────────────────────
 commands=(task init status resume knowledge metrics audit bypass refresh help bench health upgrade)

@@ -31,7 +31,7 @@ fi
 # ── queue.schema.yaml ────────────────────────────────────────────────
 queue_schema="$MOIRA_HOME/schemas/queue.schema.yaml"
 if [[ ! -f "$queue_schema" ]]; then
-  queue_schema="$SRC_DIR/global/schemas/queue.schema.yaml"
+  queue_schema="$SRC_DIR/schemas/queue.schema.yaml"
 fi
 assert_file_exists "$queue_schema" "queue.schema.yaml exists"
 assert_file_contains "$queue_schema" "epic_id" "queue schema has epic_id field"

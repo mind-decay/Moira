@@ -8,7 +8,13 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/test-helpers.sh"
 
 MOIRA_HOME="${MOIRA_HOME:-$HOME/.claude/moira}"
-export MOIRA_SCHEMA_DIR="$MOIRA_HOME/schemas"
+
+# Derive schema dir: schemas live alongside global/ in source tree
+if [[ -d "$MOIRA_HOME/lib" && ! -d "$MOIRA_HOME/schemas" && -d "$(dirname "$MOIRA_HOME")/schemas" ]]; then
+  export MOIRA_SCHEMA_DIR="$(dirname "$MOIRA_HOME")/schemas"
+else
+  export MOIRA_SCHEMA_DIR="$MOIRA_HOME/schemas"
+fi
 
 # Source yaml-utils from installed location
 source "$MOIRA_HOME/lib/yaml-utils.sh"

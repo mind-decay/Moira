@@ -11,14 +11,21 @@ source "$SCRIPT_DIR/test-helpers.sh"
 MOIRA_HOME="${MOIRA_HOME:-$HOME/.claude/moira}"
 SRC_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Derive SCHEMA_DIR: schemas live alongside global/ in source tree
+if [[ -d "$MOIRA_HOME/lib" && ! -d "$MOIRA_HOME/schemas" && -d "$SRC_DIR/schemas" ]]; then
+  SCHEMA_DIR="$SRC_DIR/schemas"
+else
+  SCHEMA_DIR="$MOIRA_HOME/schemas"
+fi
+
 # ═══════════════════════════════════════════════════════════════════════
 # Schema tests
 # ═══════════════════════════════════════════════════════════════════════
 
-assert_file_exists "$MOIRA_HOME/schemas/mcp-registry.schema.yaml" "mcp-registry.schema.yaml exists"
+assert_file_exists "$SCHEMA_DIR/mcp-registry.schema.yaml" "mcp-registry.schema.yaml exists"
 
-if [[ -f "$MOIRA_HOME/schemas/mcp-registry.schema.yaml" ]]; then
-  assert_file_contains "$MOIRA_HOME/schemas/mcp-registry.schema.yaml" "servers" "schema: has servers top-level key"
+if [[ -f "$SCHEMA_DIR/mcp-registry.schema.yaml" ]]; then
+  assert_file_contains "$SCHEMA_DIR/mcp-registry.schema.yaml" "servers" "schema: has servers top-level key"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -58,8 +65,8 @@ fi
 # Integration tests (verify existing files still have MCP references)
 # ═══════════════════════════════════════════════════════════════════════
 
-assert_file_contains "$MOIRA_HOME/schemas/config.schema.yaml" "mcp.enabled" "config.schema: has mcp.enabled"
-assert_file_contains "$MOIRA_HOME/schemas/config.schema.yaml" "mcp.registry_path" "config.schema: has mcp.registry_path"
+assert_file_contains "$SCHEMA_DIR/config.schema.yaml" "mcp.enabled" "config.schema: has mcp.enabled"
+assert_file_contains "$SCHEMA_DIR/config.schema.yaml" "mcp.registry_path" "config.schema: has mcp.registry_path"
 assert_file_contains "$MOIRA_HOME/templates/budgets.yaml.tmpl" "mcp_estimates" "budgets.yaml.tmpl: has mcp_estimates"
 assert_file_contains "$MOIRA_HOME/core/rules/roles/daedalus.yaml" "MCP" "daedalus.yaml: mentions MCP"
 assert_file_contains "$MOIRA_HOME/core/rules/roles/hephaestus.yaml" "MCP" "hephaestus.yaml: mentions MCP"

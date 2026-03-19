@@ -9,17 +9,24 @@ source "$SCRIPT_DIR/test-helpers.sh"
 
 MOIRA_HOME="${MOIRA_HOME:-$HOME/.claude/moira}"
 
+# Derive SRC_DIR: if MOIRA_HOME points to src/global, SRC_DIR is src/
+if [[ -d "$MOIRA_HOME/lib" && ! -d "$MOIRA_HOME/schemas" && -d "$(dirname "$MOIRA_HOME")/schemas" ]]; then
+  SRC_DIR="$(dirname "$MOIRA_HOME")"
+else
+  SRC_DIR="$MOIRA_HOME"
+fi
+
 echo "=== Metrics & Audit System ==="
 
 # ── Metrics schema ────────────────────────────────────────────────────
-assert_file_exists "$MOIRA_HOME/schemas/metrics.schema.yaml" "metrics.schema.yaml exists"
-assert_file_contains "$MOIRA_HOME/schemas/metrics.schema.yaml" "_meta:" "metrics schema has _meta block"
-assert_file_contains "$MOIRA_HOME/schemas/metrics.schema.yaml" "name: metrics" "metrics schema has correct name"
+assert_file_exists "$SRC_DIR/schemas/metrics.schema.yaml" "metrics.schema.yaml exists"
+assert_file_contains "$SRC_DIR/schemas/metrics.schema.yaml" "_meta:" "metrics schema has _meta block"
+assert_file_contains "$SRC_DIR/schemas/metrics.schema.yaml" "name: metrics" "metrics schema has correct name"
 
 # ── Audit schema ──────────────────────────────────────────────────────
-assert_file_exists "$MOIRA_HOME/schemas/audit.schema.yaml" "audit.schema.yaml exists"
-assert_file_contains "$MOIRA_HOME/schemas/audit.schema.yaml" "_meta:" "audit schema has _meta block"
-assert_file_contains "$MOIRA_HOME/schemas/audit.schema.yaml" "name: audit" "audit schema has correct name"
+assert_file_exists "$SRC_DIR/schemas/audit.schema.yaml" "audit.schema.yaml exists"
+assert_file_contains "$SRC_DIR/schemas/audit.schema.yaml" "_meta:" "audit schema has _meta block"
+assert_file_contains "$SRC_DIR/schemas/audit.schema.yaml" "name: audit" "audit schema has correct name"
 
 # ── Audit templates ───────────────────────────────────────────────────
 TEMPLATE_DIR="$MOIRA_HOME/templates/audit"

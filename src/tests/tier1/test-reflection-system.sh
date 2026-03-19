@@ -10,6 +10,13 @@ source "$SCRIPT_DIR/test-helpers.sh"
 MOIRA_HOME="${MOIRA_HOME:-$HOME/.claude/moira}"
 SRC_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Derive BENCH_DIR: bench files live alongside global/ in source tree
+if [[ -d "$MOIRA_HOME/lib" && ! -d "$MOIRA_HOME/tests/bench" && -d "$SRC_DIR/tests/bench" ]]; then
+  BENCH_DIR="$SRC_DIR/tests/bench"
+else
+  BENCH_DIR="$MOIRA_HOME/tests/bench"
+fi
+
 # ── Reflection library ──────────────────────────────────────────────
 assert_file_exists "$MOIRA_HOME/lib/reflection.sh" "lib/reflection.sh exists"
 if [[ -f "$MOIRA_HOME/lib/reflection.sh" ]]; then
@@ -78,13 +85,13 @@ assert_file_exists "$MOIRA_HOME/templates/judge/judge-prompt.md" "judge prompt t
 
 # ── Rubric files ────────────────────────────────────────────────────
 for rubric in feature-implementation bugfix refactor; do
-  assert_file_exists "$MOIRA_HOME/tests/bench/rubrics/${rubric}.yaml" "rubric ${rubric}.yaml exists"
+  assert_file_exists "$BENCH_DIR/rubrics/${rubric}.yaml" "rubric ${rubric}.yaml exists"
 done
 
 # ── Calibration examples ────────────────────────────────────────────
 for cal in good-implementation mediocre-implementation poor-implementation; do
-  assert_dir_exists "$MOIRA_HOME/tests/bench/calibration/${cal}" "calibration ${cal}/ exists"
-  assert_file_exists "$MOIRA_HOME/tests/bench/calibration/${cal}/expected.yaml" "calibration ${cal}/expected.yaml exists"
+  assert_dir_exists "$BENCH_DIR/calibration/${cal}" "calibration ${cal}/ exists"
+  assert_file_exists "$BENCH_DIR/calibration/${cal}/expected.yaml" "calibration ${cal}/expected.yaml exists"
 done
 
 # ── Reflection skill ────────────────────────────────────────────────
@@ -155,7 +162,7 @@ fi
 
 # dispatch.md has Mnemosyne alternative path note
 if [[ -f "$MOIRA_HOME/skills/dispatch.md" ]]; then
-  assert_file_contains "$MOIRA_HOME/skills/dispatch.md" "bypasses" "dispatch.md has Mnemosyne alternative path note"
+  assert_file_contains "$MOIRA_HOME/skills/dispatch.md" "Dedicated dispatch" "dispatch.md has Mnemosyne alternative path note"
 fi
 
 test_summary

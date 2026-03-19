@@ -31,7 +31,7 @@ fi
 # ── manifest.schema.yaml checkpoint fields ───────────────────────────
 manifest_schema="$MOIRA_HOME/schemas/manifest.schema.yaml"
 if [[ ! -f "$manifest_schema" ]]; then
-  manifest_schema="$SRC_DIR/global/schemas/manifest.schema.yaml"
+  manifest_schema="$SRC_DIR/schemas/manifest.schema.yaml"
 fi
 assert_file_exists "$manifest_schema" "manifest.schema.yaml exists"
 assert_file_contains "$manifest_schema" "checkpoint.step" "manifest schema has checkpoint.step"
@@ -58,7 +58,7 @@ assert_file_contains "$resume_cmd" "Write" "resume.md has Write in allowed-tools
 # ── current.schema.yaml step_status includes checkpointed ───────────
 current_schema="$MOIRA_HOME/schemas/current.schema.yaml"
 if [[ ! -f "$current_schema" ]]; then
-  current_schema="$SRC_DIR/global/schemas/current.schema.yaml"
+  current_schema="$SRC_DIR/schemas/current.schema.yaml"
 fi
 assert_file_exists "$current_schema" "current.schema.yaml exists"
 assert_file_contains "$current_schema" "checkpointed" "current.schema.yaml step_status includes checkpointed"
