@@ -189,6 +189,15 @@ assert_dir_exists "$MOIRA_HOME/.version-snapshot" "clean install: .version-snaps
 # Phase 12: upgrade command
 assert_file_exists "$TEST_HOME/.claude/commands/moira/upgrade.md" "clean install: upgrade.md command exists"
 
+# Phase 13: graph.sh and graph command
+assert_file_exists "$MOIRA_HOME/lib/graph.sh" "clean install: graph.sh exists"
+if bash -n "$MOIRA_HOME/lib/graph.sh" 2>/dev/null; then
+  pass "clean install: graph.sh syntax valid"
+else
+  fail "clean install: graph.sh has syntax errors"
+fi
+assert_file_exists "$TEST_HOME/.claude/commands/moira/graph.md" "clean install: graph.md command exists"
+
 # Pipeline definitions
 assert_dir_exists "$MOIRA_HOME/core/pipelines" "clean install: pipelines dir exists"
 for pipeline in quick standard full decomposition; do
@@ -217,7 +226,7 @@ assert_file_exists "$MOIRA_HOME/schemas/telemetry.schema.yaml" "clean install: t
 
 # Count command stubs
 cmd_count=$(ls "$TEST_HOME/.claude/commands/moira/"*.md 2>/dev/null | wc -l | tr -d ' ')
-assert_equals "$cmd_count" "13" "clean install: 13 command stubs installed"
+assert_equals "$cmd_count" "14" "clean install: 14 command stubs installed"
 
 # ── Test: idempotency (re-run) ────────────────────────────────────────
 output2=$(bash "$SRC_DIR/install.sh" 2>&1) || true
