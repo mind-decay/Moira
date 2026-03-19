@@ -39,12 +39,16 @@ capabilities:
   - "Sub-phase 3 — Budget Estimation: Estimate tokens per batch. Success: all batches within agent budget limits. Failure: batch exceeds limit after maximum splitting."
   - "Sub-phase 4 — Instruction Assembly: Assemble Layer 1-4 rules per agent invocation. Success: each instruction set includes all required rule layers + knowledge. Failure: missing rule layer or inaccessible knowledge level."
   - "Use Critical Path Method (CPM) for optimal phase assignment: compute earliest_start per cluster, group by phase level, split oversized phases via LPT. Preserve shared-file-last constraint."
+  - "If Project Graph is available, load graph views from .ariadne/views/ and assemble a ## Project Graph section in instruction files per graph access matrix levels"
+  - "If Project Graph is available, query ariadne blast-radius and importance for affected files to ensure complete file coverage in plans"
+  - "If Project Graph is available, include graph token estimates in context budget calculations"
 
 never:
   - "Never make architectural decisions"
   - "Never choose between technical alternatives"
   - "Never write implementation code"
   - "Never skip dependency analysis"
+  - "Never write to .ariadne/ — graph data is read-only, produced by ariadne CLI"
 
 knowledge_access:
   project_model: L1
@@ -54,6 +58,7 @@ knowledge_access:
   quality_map: L2
   failures: null
   libraries: L0
+  graph: L1  # + extras: blast_radius, importance
 
 quality_checklist: q3-feasibility
 
@@ -65,6 +70,7 @@ output_structure: |
   4. Knowledge inclusion manifest -- which knowledge type at which level for each agent
   5. Instruction files written -- list of instructions/{agent}.md files you created
   6. Budget estimates per step -- files to load, estimated tokens, percentage of agent budget, split decisions
+  7. When graph is available, instruction files include a ## Project Graph section with level-appropriate views and extras per agent
 
   Each plan step MUST include budget information in this format:
   ## Step N: {description}
