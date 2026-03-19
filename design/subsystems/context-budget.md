@@ -53,6 +53,8 @@ For each agent type a:
 
 **Transparency (Art 3.2):** Adaptive margins are reported in budget report with source data (N observations, computed margin). Not hidden.
 
+**E11-TRUNCATION risk acknowledgment (D-094c):** Reducing the safety margin below the 30% cold-start default accepts increased E11-TRUNCATION risk in exchange for improved context efficiency. The adaptive model mitigates this by requiring sufficient observations before narrowing margins (cold start holds at 30%, 5-20 observations use wider confidence intervals). Operators should be aware that tighter margins mean less buffer against silent context truncation — the telemetry-based approach is the mitigation, not a guarantee.
+
 ## Budget Allocations Per Agent
 
 ```yaml
@@ -152,6 +154,8 @@ We cannot precisely measure runtime token usage. We use:
 3. **Proxy metric**: file count × average file size
 
 This is approximate but sufficient for budget decisions.
+
+**Token estimation bias note:** The `file_size_bytes / 4` ratio assumes ~4 bytes per token, which is reasonable for natural language and typical code. However, code with short identifiers or dense syntax may tokenize at 2-3 bytes per token, causing underestimation. The cold-start 30% safety margin absorbs this bias in practice; once the adaptive model accumulates sufficient observations, it self-corrects based on actual telemetry data.
 
 ## Budget Report
 

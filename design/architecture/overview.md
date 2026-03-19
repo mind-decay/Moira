@@ -288,6 +288,18 @@ User → /moira <task>
 └── hooks/                        # Hook executables live at global layer; registered via settings.json
 ```
 
+### External Data Sources
+
+```
+.ariadne/                          # Project graph data (owned by Ariadne, D-105)
+├── graph.json                     # Dependency graph
+└── ...                            # Other Ariadne-generated artifacts
+```
+
+`.ariadne/` is owned and written by Ariadne (the standalone project graph engine). Moira reads it directly but never writes to it. This directory is committed to git. Per D-105, Ariadne is a separate project with its own repository; `.ariadne/` is its output artifact in the target project.
+
+This "external tool writes, Moira reads" pattern should not proliferate without architectural review — each new external data source introduces a coupling point and a trust boundary.
+
 ## Orchestrator Boundaries
 
 ### DOES:

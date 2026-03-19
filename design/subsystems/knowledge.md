@@ -17,20 +17,20 @@ Every knowledge document exists in three forms:
 ### Agent Knowledge Access Matrix
 
 <!-- Role names used for readability; Greek names (D-034) are canonical in implementation -->
-| Agent | project-model | conventions | decisions | patterns | quality-map | failures | libraries |
-|-------|--------------|-------------|-----------|----------|-------------|----------|-----------|
-| Classifier | L1 | — | — | — | — | — | — |
-| Explorer | L0 | — | — | — | — | — | — |
-| Analyst | L1 | — | L0 | — | — | L0 | — |
-| Architect | L1 | L0 | L2 (full!) | L1 | L1 | L0 | — |
-| Planner | L1 | L1 | L0 | L0 | L2 | — | L0 |
-| Implementer | L0 | L2 (full!) | — | L1 | — | — | L1 |
-| Reviewer | L1 | L2 (full!) | L1 | L1 | L1 | — | — |
-| Tester | L0 | L1 | — | L0 | — | — | — |
-| Reflector | L2 | L2 | L2 | L2 | L2 | L2 | L2 |
-| Auditor | L2 | L2 | L2 | L2 | L2 | L2 | L2 |
+| Agent | project-model | conventions | decisions | patterns | quality-map | failures | libraries | graph |
+|-------|--------------|-------------|-----------|----------|-------------|----------|-----------|-------|
+| Classifier | L1 | — | — | — | — | — | — | L0 |
+| Explorer | L0 | — | — | — | — | — | — | L0 |
+| Analyst | L1 | — | L0 | — | — | L0 | — | L1 |
+| Architect | L1 | L0 | L2 (full!) | L1 | L1 | L0 | — | L1 |
+| Planner | L1 | L1 | L0 | L0 | L2 | — | L0 | L1 |
+| Implementer | L0 | L2 (full!) | — | L1 | — | — | L1 | L2 |
+| Reviewer | L1 | L2 (full!) | L1 | L1 | L1 | — | — | L1 |
+| Tester | L0 | L1 | — | L0 | — | — | — | L1 |
+| Reflector | L2 | L2 | L2 | L2 | L2 | L2 | L2 | L2 |
+| Auditor | L2 | L2 | L2 | L2 | L2 | L2 | L2 | L2 |
 
-**Authoritative source:** `src/global/core/knowledge-access-matrix.yaml`. This table is a summary. Write access is defined in the authoritative source.
+**Authoritative source:** `src/global/core/knowledge-access-matrix.yaml`. This table is illustrative; the YAML is the authoritative source for all access levels including write access and graph extras.
 
 **Write access:** Hermes (project_model), Themis (quality_map), Mnemosyne (all knowledge areas). All other agents are read-only. See `src/global/core/knowledge-access-matrix.yaml` for the authoritative write access specification.
 

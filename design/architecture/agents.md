@@ -20,6 +20,8 @@ QUALITY: {gate}={verdict} ({critical}C/{warning}W/{suggestion}S)
 
 **Enforcement:** This is a behavioral contract enforced by prompting. The orchestrator MUST validate response format and treat malformed responses as E6-AGENT (see Enforcement Model in fault-tolerance.md).
 
+**Instruction size limits:** Assembled instructions (Layers 1-4 + knowledge + graph data + MCP rules) must be checked for total size before dispatch. If total instruction size exceeds 50k tokens (estimated), the dispatcher reduces knowledge/graph data to lower access levels (L2→L1→L0) until the instruction fits. Layer 4 (task-specific) instructions must never be truncated — they are the most critical part of the assembled instructions. This prevents silent truncation of trailing instructions by the Agent tool platform.
+
 Orchestrator NEVER reads full artifact files. It reads only summaries and decides next pipeline step. If orchestrator needs a detail — it spawns an agent to extract specific information.
 
 **Knowledge access authoritative source:** `src/global/core/knowledge-access-matrix.yaml`. Per-agent access levels below are summaries; the YAML file is the source of truth (D-039).
@@ -151,6 +153,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Checks quality-map for existing patterns (Strong → follow, Problematic → avoid)
 - Checks UI component constraints when task involves frontend
 - Defines contract interfaces for parallel implementation batches
+- Architecture document MUST include a `## Structural Analysis` section recording graph-derived conclusions (coupling analysis, dependency patterns, parallel implementation safety, import fan-in/fan-out). Daedalus consumes this section as authoritative rather than independently re-querying graph data (prevents E10-DIVERGE between Architect and Planner).
 - MUST compare Explorer and Analyst data for factual contradictions before making technical decisions. If disagreement found → report as E10-DIVERGE with both versions and analysis.
 - Does NOT proceed with technical decisions when Explorer and Analyst data conflict (reports E10-DIVERGE)
 

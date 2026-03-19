@@ -34,6 +34,9 @@ All items deferred from Phases 1-12. Organized by priority. To be addressed afte
 | 16 | ADWIN concept drift detection | Formal methods Tier C | High | Long observation series |
 | 17 | Thompson Sampling for rule variants | Formal methods Tier C | High | Controlled experimentation framework |
 | 18 | Adaptive budget allocation | Phase 7 | Medium | Usage data showing static budgets are insufficient |
+| 19 | Formal methods suite (SPRT, CUSUM, BH correction, Markov retry, exponential decay) | D-094, D-111 | High | 100+ tasks of historical data. Spec preserved at `specs/archive/2026-03-16-formal-methods-*.md`. CPM kept for v1; these techniques deferred. |
+| 20 | Art 5.3 constitutional language — "consistency check step" | Architecture review U-4 | Low | Consider softening to "structural consistency check step" to match D-042 implementation reality, or plan stronger semantic consistency checking |
+| 21 | Reviewer behavioral defense monitoring | Architecture review S-7 | Medium | Track whether Themis's dual mandate (Q4 code quality + behavioral defense) causes behavioral defense items to be skipped under budget pressure. If so, consider lightweight structural "contract verifier" step for mechanical behavioral checks. |
 
 ## Not Applicable (Architectural Constraints)
 

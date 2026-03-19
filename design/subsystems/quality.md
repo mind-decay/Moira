@@ -111,6 +111,8 @@ Issue severity:
 - **WARNING**: should fix, can proceed with user approval
 - **SUGGESTION**: logged for reflection, doesn't block
 
+**Cross-reference:** Q4 serves as the primary behavioral defense mechanism in the three-tier enforcement model (D-065). Behavioral constraints (NEVER rules, role boundaries, fabrication prohibition) cannot be structurally enforced — Reviewer's Q4 checklist is the primary per-task detection layer. See `fault-tolerance.md` § Enforcement Model for the full three-tier model.
+
 ### Q5: Test Coverage (Tester)
 
 ```

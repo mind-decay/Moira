@@ -86,6 +86,14 @@ USER → task description
   │
   ├─ Planner → creates plan + assembles agent instructions → plan.md
   │   └─ [GATE: user approves plan]
+  │       ├─ proceed  — continue
+  │       ├─ details  — show full plan
+  │       ├─ modify   — provide feedback for plan revision
+  │       ├─ rearchitect — route back to Architect with feedback (max 1x per pipeline)
+  │       │   └─ Metis receives original architecture + user's plan-gate feedback
+  │       │   └─ After revised architecture → architecture gate presented again
+  │       │   └─ Then Planner runs again with new architecture
+  │       └─ abort    — cancel
   │
   ├─ Implementation (batched):
   │   ├─ Phase 1 (parallel background):
@@ -129,6 +137,14 @@ USER → task description
   │
   ├─ Planner → phased plan with dependencies → plan.md
   │   └─ [GATE: user approves plan]
+  │       ├─ proceed  — continue
+  │       ├─ details  — show full plan
+  │       ├─ modify   — provide feedback for plan revision
+  │       ├─ rearchitect — route back to Architect with feedback (max 1x per pipeline)
+  │       │   └─ Metis receives original architecture + user's plan-gate feedback
+  │       │   └─ After revised architecture → architecture gate presented again
+  │       │   └─ Then Planner runs again with new architecture
+  │       └─ abort    — cancel
   │
   ├─ For each phase:
   │   ├─ Implementers (batched, parallel where possible)
@@ -167,6 +183,14 @@ USER → epic description (from YouTrack, Slack, etc.)
   │   └─ task-004.md (large, depends on 001 + 002)
   │
   │   └─ [GATE: user approves decomposition + dependency order]
+  │       ├─ proceed  — continue
+  │       ├─ details  — show full decomposition
+  │       ├─ modify   — provide feedback for decomposition revision
+  │       ├─ rearchitect — route back to Architect with feedback (max 1x per pipeline)
+  │       │   └─ Metis receives original architecture + user's decomposition-gate feedback
+  │       │   └─ After revised architecture → architecture gate presented again
+  │       │   └─ Then Planner re-decomposes with new architecture
+  │       └─ abort    — cancel
   │
   ├─ For each task (respecting dependencies):
   │   └─ Execute via appropriate pipeline (Standard/Full)
@@ -273,6 +297,41 @@ Standard gate format:
  ▸ abort     — cancel task
 ═══════════════════════════════════════════
 ```
+
+---
+
+## Mid-Pipeline Mutation Detection
+
+At each pipeline step boundary (before dispatching the next agent), the orchestrator performs a `git status` check to detect external modifications:
+
+1. Compare modified files from `git status` against the pipeline's known working set (files explored, files planned for modification, files already changed by previous steps)
+2. If overlap detected, the orchestrator pauses and presents options:
+
+```
+═══════════════════════════════════════════
+ ⚠ EXTERNAL CHANGES DETECTED (mid-pipeline)
+═══════════════════════════════════════════
+ Files modified externally during pipeline execution:
+ - src/api/users.ts (in working set — planned for modification)
+ - src/types/roles.ts (in working set — explored)
+
+ ▸ accept     — update working set, continue with current plan
+ ▸ re-explore — re-run Explorer on changed files, then resume
+ ▸ abort      — cancel pipeline
+═══════════════════════════════════════════
+```
+
+This catches human edits made during gate waits that would otherwise cause agents to work from stale data. Non-overlapping external changes (files outside the working set) are ignored.
+
+---
+
+## State Transition Validation
+
+Each pipeline state transition is validated against the pipeline YAML definition before execution:
+
+- Before transitioning from step X to step Y, the orchestrator checks that Y is a valid successor of X per the pipeline definition
+- Invalid transitions (e.g., skipping a required step, transitioning to a non-successor) are logged and blocked — treated as an orchestrator error (E6-ORCH)
+- This makes step-skipping structurally detectable even if the orchestrator's context degrades during long pipelines
 
 ---
 

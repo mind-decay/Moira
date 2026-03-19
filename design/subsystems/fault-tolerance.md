@@ -28,7 +28,7 @@ The system uses three tiers of enforcement. Understanding which tier a constrain
 |------|----------|-------------|---------------|
 | **Structural** (platform-guaranteed) | `allowed-tools` restriction, pipeline selection logic (deterministic code), gate presence in pipeline YAML definitions | Platform blocks violations | No recovery needed — structurally impossible to violate |
 | **Validated** (behavioral + verification) | Response contract format (orchestrator parser validates), quality findings (YAML schema validation), knowledge writes (consistency check against existing) | Agent produces output → orchestrator/system validates → fallback on failure | Parse failure → E6-AGENT. Schema failure → reject + retry. |
-| **Behavioral** (prompt-only, no automated verification) | NEVER constraints (Art 1.2), fabrication prohibition (Art 4.1), agent role boundaries, knowledge consistency execution (Art 5.3) | Enforced by prompt instructions only | Reviewer = primary per-task defense. Reflector = primary systemic defense. Auditor = periodic cross-validation. |
+| **Behavioral** (prompt-only, no automated verification) | NEVER constraints (Art 1.2), fabrication prohibition (Art 4.1), agent role boundaries, knowledge consistency execution (Art 5.3) | Enforced by prompt instructions only | Reviewer = primary per-task defense (see `quality.md` Q4 checklist for behavioral defense items). Reflector = primary systemic defense. Auditor = periodic cross-validation. |
 
 This model acknowledges that behavioral rules enforced by prompting are not equivalent to structural platform guarantees. Behavioral constraints WILL be violated occasionally — the defense strategy is layered detection and correction, not prevention.
 
@@ -280,6 +280,21 @@ Analysis: Explorer counted all route files including deprecated.
 **User presentation:** Same as E4-BUDGET if caught pre-execution. Same as E5-QUALITY if caught post-execution.
 
 **Note:** This failure mode is insidious because the agent itself cannot know it has lost context. The budget system's pre-execution estimation is the most reliable prevention mechanism. The 30% safety margin in budget allocation exists partly to mitigate this risk.
+
+## Error Precedence
+
+When multiple error types fire simultaneously (compound errors), handle in priority order:
+
+1. **Budget errors (E4)** — stop spending first; context overflow makes all other recovery unreliable
+2. **Structural errors (E1, E2, E3, E6)** — missing data, scope changes, conflicts, and agent failures block forward progress
+3. **Quality errors (E5, E9, E10)** — quality failures, semantic errors, and data disagreements require rework but don't threaten resource exhaustion
+4. **Informational (E7, E8, E11)** — drift, stale knowledge, and truncation are logged and addressed but don't block recovery of higher-priority errors
+
+When compound errors occur, handle the highest-priority error first. Lower-priority errors may resolve as a side effect of higher-priority recovery (e.g., fixing E4 by splitting work may also resolve an E5 quality failure caused by context pressure).
+
+## Gate Timeout and Abandonment
+
+Gate timeout/abandonment is an accepted limitation for v1. Claude Code sessions are interactive — if the user walks away while a gate is waiting for input, the session state persists until they return. No automated timeout mechanism exists or is planned. Gates wait indefinitely; the user resumes where they left off.
 
 ## Tweak & Redo System
 

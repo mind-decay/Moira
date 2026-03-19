@@ -85,6 +85,16 @@ resume_context: |
 - `resume_context` is a human-readable summary written specifically for a new orchestrator session
 - Orchestrator on resume loads ONLY: resume_context + plan.md + manifest.yaml
 
+## Atomic Writes and Manifest Backup
+
+All state YAML writes must be atomic to prevent partial-write corruption:
+
+1. **Atomic writes:** Write to a temporary file (e.g., `manifest.yaml.tmp`), then rename to the target path. Rename is atomic on POSIX filesystems, ensuring the file is either fully written or not written at all.
+2. **One-back backup:** Before each manifest write, copy the current `manifest.yaml` to `manifest.yaml.bak`.
+3. **Recovery on read failure:** If manifest read fails (YAML parse error or missing file), attempt recovery from `manifest.yaml.bak` before failing. If `.bak` recovery succeeds, log a warning that the primary manifest was corrupt.
+
+This applies to all state files written by the orchestrator: `manifest.yaml`, `queue.yaml`, and per-step result metadata.
+
 ## Checkpoint Triggers
 
 | Trigger | Action |
