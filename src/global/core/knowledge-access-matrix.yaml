@@ -7,18 +7,19 @@ _meta:
 
 # Levels: L0 (~100-200 tokens), L1 (~500-2k), L2 (~2-10k)
 # null = no access to this knowledge type
+# graph: project dependency graph (read-only for all agents; extras are on-demand query views)
 
 read_access:
-  apollo:      { project_model: L1, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null, libraries: null }
-  hermes:      { project_model: L0, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null, libraries: null }
-  athena:      { project_model: L1, conventions: null, decisions: L0,    patterns: null, quality_map: null, failures: L0,   libraries: null }
-  metis:       { project_model: L1, conventions: L0,   decisions: L2,    patterns: L1,   quality_map: L1,   failures: L0,   libraries: null }
-  daedalus:    { project_model: L1, conventions: L1,   decisions: L0,    patterns: L0,   quality_map: L2,   failures: null, libraries: L0 }
-  hephaestus:  { project_model: L0, conventions: L2,   decisions: null,  patterns: L1,   quality_map: null, failures: null, libraries: L1 }
-  themis:      { project_model: L1, conventions: L2,   decisions: L1,    patterns: L1,   quality_map: L1,   failures: null, libraries: null }
-  aletheia:    { project_model: L0, conventions: L1,   decisions: null,  patterns: L0,   quality_map: null, failures: null, libraries: null }
-  mnemosyne:   { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2,   quality_map: L2,   failures: L2,   libraries: L2 }
-  argus:       { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2,   quality_map: L2,   failures: L2,   libraries: L2 }
+  apollo:      { project_model: L1, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null, libraries: null, graph: L0 }
+  hermes:      { project_model: L0, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null, libraries: null, graph: L0 }
+  athena:      { project_model: L1, conventions: null, decisions: L0,    patterns: null, quality_map: null, failures: L0,   libraries: null, graph: L1 } # extras: blast_radius, smells
+  metis:       { project_model: L1, conventions: L0,   decisions: L2,    patterns: L1,   quality_map: L1,   failures: L0,   libraries: null, graph: L1 } # extras: metrics, spectral
+  daedalus:    { project_model: L1, conventions: L1,   decisions: L0,    patterns: L0,   quality_map: L2,   failures: null, libraries: L0,  graph: L1 } # extras: blast_radius, importance
+  hephaestus:  { project_model: L0, conventions: L2,   decisions: null,  patterns: L1,   quality_map: null, failures: null, libraries: L1,  graph: L2 } # extras: subgraph, compressed
+  themis:      { project_model: L1, conventions: L2,   decisions: L1,    patterns: L1,   quality_map: L1,   failures: null, libraries: null, graph: L1 } # extras: diff, smells, cycles
+  aletheia:    { project_model: L0, conventions: L1,   decisions: null,  patterns: L0,   quality_map: null, failures: null, libraries: null, graph: L1 } # extras: test mappings via L1 views
+  mnemosyne:   { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2,   quality_map: L2,   failures: L2,   libraries: L2,  graph: L2 } # extras: metrics
+  argus:       { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2,   quality_map: L2,   failures: L2,   libraries: L2,  graph: L2 } # extras: stats, smells, spectral
 
 # Write access: which knowledge types each agent can modify
 # Agents not listed have no write access (read-only or no access)
@@ -27,5 +28,21 @@ write_access:
   hermes:      { project_model: true, conventions: false, decisions: false, patterns: false, quality_map: false, failures: false, libraries: false }
   themis:      { project_model: false, conventions: false, decisions: false, patterns: false, quality_map: true, failures: false, libraries: false }
   # argus: READ-ONLY — never modifies any knowledge
+  # graph: READ-ONLY for ALL agents — no agent has write access to the project graph
 
 # Path resolution for access levels (L0/L1/L2) is defined in dispatch.md Section 5.
+
+# Graph extras reference (on-demand query views; included in instruction files by Daedalus as needed):
+# L0 view  — node list with file paths and node types (index only)
+# L1 view  — node list + edge list + basic metrics (degree, depth)
+# L2 view  — full adjacency, edge weights, cycle membership, all metrics
+#
+# extras by agent:
+#   athena      blast_radius (L1), smells (L1)
+#   metis       metrics (L1), spectral (L1)
+#   daedalus    blast_radius (L1), importance (L1)
+#   hephaestus  subgraph (L2), compressed (L2)
+#   themis      diff (L1), smells (L1), cycles (L1)
+#   aletheia    test mappings via L1 views
+#   mnemosyne   metrics (L2)
+#   argus       stats (L2), smells (L2), spectral (L2)
