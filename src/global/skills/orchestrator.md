@@ -119,6 +119,26 @@ Before entering the main loop:
 1. Read the pipeline definition YAML for the current pipeline type from `~/.claude/moira/core/pipelines/{type}.yaml` (global)
 2. For each step in the pipeline `steps[]` array (note: steps with `agent: null` are orchestrator-handled — e.g., the final gate completion step — and are not dispatched to an agent):
    a. Update state: set step and status to `in_progress` in `.claude/moira/state/current.yaml`
+   a2. **Mid-pipeline workspace check** (D-114a): Before dispatching an agent, verify the workspace hasn't been modified externally:
+       1. If this is NOT the first step in the pipeline (i.e., previous agent artifacts exist):
+          - Read `.claude/moira/state/current.yaml` → get the list of files from the previous agent's ARTIFACTS
+          - Run `git status --porcelain` and check if any files in the pipeline's working set have new modifications not from a Moira agent
+          - "Working set" = files listed in previous agent artifacts + files listed in the plan (if plan exists)
+       2. If overlap detected (files in working set have external modifications):
+          - Display:
+            ```
+            ⚠ WORKSPACE CHANGED
+            Files modified externally since last pipeline step:
+            • {file_list}
+
+            1) accept   — incorporate changes, continue
+            2) re-explore — re-run Hermes (explorer) on changed files
+            3) abort    — stop pipeline
+            ```
+          - On `accept`: update working set knowledge, continue
+          - On `re-explore`: dispatch Hermes with changed files, merge results, continue
+          - On `abort`: stop pipeline
+       3. If no overlap: continue silently (no output)
    b. Construct agent prompt (per `dispatch.md` skill)
    c. Dispatch agent (foreground, background, or parallel per step `mode`)
    d. On agent return: parse response (per `dispatch.md`)

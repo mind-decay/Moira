@@ -85,6 +85,49 @@ moira_state_transition() {
     return 1
   fi
 
+  # D-114b: Pipeline-aware transition validation
+  # Read current pipeline type and validate step ordering
+  local current_pipeline current_step
+  current_pipeline=$(moira_yaml_get "$current_file" "pipeline" 2>/dev/null) || true
+  current_step=$(moira_yaml_get "$current_file" "step" 2>/dev/null) || true
+
+  if [[ -n "$current_pipeline" && -n "$current_step" && "$current_step" != "null" ]]; then
+    local pipeline_file="${MOIRA_HOME:-$HOME/.claude/moira}/core/pipelines/${current_pipeline}.yaml"
+    if [[ -f "$pipeline_file" ]]; then
+      # Extract step IDs in order from pipeline definition
+      local pipeline_steps
+      pipeline_steps=$(awk '
+        /^steps:/ { in_steps=1; next }
+        /^[a-z]/ && !/^[[:space:]]/ && in_steps { in_steps=0 }
+        in_steps && /^[[:space:]]*- id:/ {
+          sub(/.*id:[[:space:]]*/, "")
+          gsub(/[[:space:]]*$/, "")
+          print
+        }
+      ' "$pipeline_file")
+
+      # Find indices of current and new steps
+      local current_idx=-1 new_idx=-1 idx=0
+      while IFS= read -r step_id; do
+        [[ -z "$step_id" ]] && continue
+        if [[ "$step_id" == "$current_step" ]]; then
+          current_idx=$idx
+        fi
+        if [[ "$step_id" == "$new_step" ]]; then
+          new_idx=$idx
+        fi
+        idx=$(( idx + 1 ))
+      done <<< "$pipeline_steps"
+
+      # Validate: new step must come after current step (or be the same for retries)
+      # Allow backward transitions for rearchitect flows (new_idx < current_idx)
+      # but log them for audit trail
+      if [[ $current_idx -ge 0 && $new_idx -ge 0 && $new_idx -lt $current_idx ]]; then
+        echo "Note: backward transition ${current_step} -> ${new_step} in ${current_pipeline} pipeline (rearchitect/retry flow)" >&2
+      fi
+    fi
+  fi
+
   moira_yaml_set "$current_file" "step" "$new_step"
   moira_yaml_set "$current_file" "step_status" "$new_status"
   moira_yaml_set "$current_file" "step_started_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"

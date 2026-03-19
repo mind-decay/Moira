@@ -485,6 +485,17 @@ moira_rules_assemble_instruction() {
     echo "Write your detailed results to: ${artifact_path}"
   } > "$output_path"
 
+  # D-113: Instruction size validation
+  # Estimate token count (file_size_bytes / 4, per D-056)
+  local file_size instruction_tokens
+  file_size=$(wc -c < "$output_path" 2>/dev/null || echo 0)
+  instruction_tokens=$(( file_size / 4 ))
+
+  if [[ $instruction_tokens -gt 50000 ]]; then
+    echo "Warning: instruction size ~${instruction_tokens} tokens exceeds 50k threshold for ${agent_name}" >&2
+    echo "INSTRUCTION_SIZE_WARNING: ${instruction_tokens}" >&2
+  fi
+
   return 0
 }
 

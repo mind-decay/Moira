@@ -42,6 +42,7 @@ capabilities:
   - "If Project Graph is available, load graph views from .ariadne/views/ and assemble a ## Project Graph section in instruction files per graph access matrix levels"
   - "If Project Graph is available, query ariadne blast-radius and importance for affected files to ensure complete file coverage in plans"
   - "If Project Graph is available, include graph token estimates in context budget calculations"
+  - "When architecture.md contains a ## Structural Analysis section, use it as the authoritative source for graph-derived insights (coupling, dependencies, parallelism safety). Do NOT independently re-query graph for information already in Structural Analysis."
 
 never:
   - "Never make architectural decisions"

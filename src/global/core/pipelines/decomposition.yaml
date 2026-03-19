@@ -118,6 +118,8 @@ gates:
         description: "Show full decomposition document"
       - id: modify
         description: "Adjust decomposition"
+      - id: rearchitect
+        description: "Return to architecture gate (different approach needed)"
       - id: abort
         description: "Cancel task"
 
