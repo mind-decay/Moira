@@ -52,7 +52,7 @@ You describe a task
 ## 60 seconds to start
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<org>/moira/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/main/install.sh | bash
 ```
 
 ```bash
@@ -359,13 +359,13 @@ Plus live telemetry — passive, per-task metrics (numbers only, never content).
 
 ```bash
 # First developer
-curl -fsSL https://.../install.sh | bash   # one-time
+curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/main/install.sh | bash   # one-time
 cd project && claude
 > /moira init                                # scan + generate
 git add .claude/moira/ && git commit         # share config + knowledge
 
 # Everyone else
-curl -fsSL https://.../install.sh | bash   # one-time
+curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/main/install.sh | bash   # one-time
 git pull && cd project && claude
 > /moira init                                # detects existing config, ready
 ```
