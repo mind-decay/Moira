@@ -28,7 +28,7 @@ moira_graph_views_dir() {
 }
 
 # ── moira_graph_check_binary ─────────────────────────────────────────────────
-# Run `ariadne info` and return the version string.
+# Run `ariadne info` and return the version string (first line only).
 # Returns empty string if ariadne is not available; never crashes.
 moira_graph_check_binary() {
   if ! command -v ariadne >/dev/null 2>&1; then
@@ -36,7 +36,7 @@ moira_graph_check_binary() {
   fi
 
   local version
-  version=$(ariadne info 2>/dev/null) || true
+  version=$(ariadne info 2>/dev/null | head -1) || true
   echo "$version"
 }
 
