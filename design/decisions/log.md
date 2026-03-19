@@ -928,3 +928,93 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 - Project-level hooks propagation — depends on undocumented Claude Code behavior, not architecturally sound
 - Accept limitation with no structural check — Art 6.3 (Invariant Verification) unsatisfied for agent work
 **Reasoning:** Post-agent diff is strictly stronger than hooks: it can block the pipeline (D-075 confirms PostToolUse hooks can only detect, not prevent). More efficient (one git diff per agent vs dozens of per-tool-call hook invocations). Independent of Claude Code subprocess architecture. Satisfies Art 6.3 "verification agent" interpretation.
+
+## D-100: Project Graph — Structural Topology via Rust CLI
+
+**Date:** 2026-03-17
+**Status:** Accepted
+**Context:** Agents (especially Explorer and Planner) spend significant tokens on blind file discovery — grep/glob searches that read many irrelevant files. There is no structural map of file dependencies, architectural layers, or module boundaries. Impact analysis (blast radius) requires reading and understanding code every time.
+**Decision:** Introduce Project Graph — a deterministic structural topology map built by a standalone Rust CLI (`moira-graph`) using tree-sitter for language-agnostic import parsing. Graph stored as JSON (source of truth) with markdown views (L0/L1/L2) for agent consumption. Algorithms: Reverse BFS (blast radius), Brandes (betweenness centrality), Tarjan (SCC/cycle detection), Louvain (clustering), Topological Sort (architectural layers). Incremental updates via content hash delta. Integrated into init/refresh/status/health commands. Available as `/moira:graph` skill and standalone CLI.
+**Alternatives rejected:**
+- Agent-driven parsing (Hermes reads files) — expensive in tokens, non-deterministic, slow on large projects
+- Regex-based parsing — fragile, doesn't scale across languages
+- Language-specific tools (tsc, go vet, etc.) — requires each tool installed, inconsistent output formats
+- SQLite storage (like Anamnesis) — unnecessary for deterministic data that doesn't need queries beyond what JSON provides
+**Reasoning:** Tree-sitter provides accurate AST-based parsing for 100+ languages with zero LLM token cost. Rust gives single-binary distribution with fastest execution (3000 files in 1-3s). Graph is structural data, not knowledge — it doesn't learn or decay, just reflects current code. Clear separation from Anamnesis (future): graph = topology, Anamnesis = semantics.
+
+## D-101: Project Graph Language Support via Tree-sitter Trait
+
+**Date:** 2026-03-17
+**Status:** Accepted
+**Context:** Project Graph must work across any tech stack (JS/TS, Go, Python, Rust, C#, Java, and more). Need extensible language support without per-language complexity explosion.
+**Decision:** Each language implements a `LanguageParser` trait (extensions, tree-sitter grammar, import/export extraction, path resolution). Tier 1 (initial): TypeScript/JavaScript, Go, Python, Rust, C#, Java. Tier 2 (future): Kotlin, Swift, C/C++, PHP, Ruby, Dart. Tier 3 (on demand): everything else. Adding a language = implementing one trait + adding grammar crate dependency.
+**Alternatives rejected:**
+- Universal regex parser — too fragile for edge cases (multi-line imports, string interpolation, comments)
+- Single monolithic parser — violates extensibility, hard to test per-language
+**Reasoning:** Trait-based design keeps each language isolated and testable. Tree-sitter grammars are maintained by language communities. 6 Tier 1 languages cover ~85% of projects.
+
+## D-102: Project Graph — Graceful Degradation Without Binary
+
+**Date:** 2026-03-17
+**Status:** Accepted
+**Context:** `ariadne` is an external Rust binary. Users may not have it installed. Moira should not break without it.
+**Decision:** Moira checks for `ariadne` at init and reports status. If absent, all graph features are unavailable but Moira operates normally (agents work without graph data, just less efficiently). Installation instructions shown. Graph features are additive enhancement, not hard dependency.
+**Alternatives rejected:**
+- Require ariadne as hard dependency — blocks adoption
+- Bundle ariadne with Moira — Moira is shell/markdown, can't bundle Rust binaries
+**Reasoning:** Graceful degradation matches Moira's philosophy: system works at any capability level, additional tools enhance quality. Users adopt graph when ready.
+
+## D-103: Project Graph — Future Anamnesis Integration Boundary
+
+**Date:** 2026-03-17
+**Status:** Accepted
+**Context:** Anamnesis (neural knowledge graph) will eventually replace Moira's Knowledge System. Project Graph must not overlap or conflict with Anamnesis.
+**Decision:** Clear boundary: Graph stores topology (files, imports, layers), Anamnesis stores semantics (patterns, decisions, failures). Graph domains/tags designed to be compatible with Anamnesis taxonomy format. Integration at query level only — each system maintains its own storage. Graph nodes can be referenced by Anamnesis engrams via file path.
+**Alternatives rejected:**
+- Merge graph into Anamnesis — mixes deterministic structure with probabilistic knowledge, violates single-responsibility
+- Independent with no compatibility — makes future integration costly
+**Reasoning:** Complementary layers with shared vocabulary enable future integration without coupling. Topology is deterministic (from code), knowledge is probabilistic (from experience) — fundamentally different update semantics.
+
+## D-104: Project Graph as Separate Project (Ariadne)
+
+**Date:** 2026-03-17
+**Status:** Accepted
+**Context:** `moira-graph` was originally designed as a subdirectory within the Moira repository. However, it's a standalone Rust binary with zero dependency on Moira's shell/markdown infrastructure. Different tech stack, different CI/CD, different release cycle.
+**Decision:** The project graph engine is extracted into a separate project called **Ariadne** (Greek mythology — the thread through the labyrinth). Ariadne has its own repository, CI/CD, versioning, and roadmap. Moira's Phases 13-14 (graph engine + algorithms) move to Ariadne's Phases 1-2. Moira's Phase 15 (integration) becomes Moira's Phase 13. Ariadne has no knowledge of Moira. All references in Moira change from `moira-graph` to `ariadne`.
+**Alternatives rejected:**
+- Subdirectory in Moira repo — GitHub Actions doesn't work from nested `.github/`, `cargo install` doesn't work from subdirectory, Rust toolchain not needed for core Moira
+- Git submodule — complexity without benefit
+**Reasoning:** Clean separation enables: standard `cargo install ariadne`, native CI/CD, independent releases. The tool is useful beyond Moira — any system that needs structural code analysis can use it. Moira consumes Ariadne as an external binary via PATH, same as any other CLI tool.
+
+## D-105: Moira Reads `.ariadne/` Directly (No Copy/Symlink)
+
+**Date:** 2026-03-19
+**Status:** Accepted
+**Context:** Ariadne writes output to `.ariadne/graph/` and `.ariadne/views/`. Moira needs to read this data. Two options: copy/symlink to `.claude/moira/graph/`, or read from `.ariadne/` directly.
+**Decision:** Moira reads from `.ariadne/` directly. No copying, no symlinking. The `.ariadne/` directory is committed to git (deterministic, reproducible output).
+**Alternatives rejected:**
+- Copy to `.claude/moira/graph/` — creates duplication, stale copy risk, adds a sync step to init/refresh
+- Symlink — adds complexity, may break on Windows, no benefit over direct reads
+**Reasoning:** Ariadne owns `.ariadne/`. Moira is a consumer. Direct reads are simplest, avoid sync issues, and maintain clear ownership boundaries. Committed to git because graph output is deterministic and reproducible (same code = same graph).
+
+## D-106: Graph Health as Subsection of Structural Score
+
+**Date:** 2026-03-19
+**Status:** Accepted
+**Context:** `/moira:health` uses a composite score: Structural (30%) + Quality (50%) + Efficiency (20%). Graph health checks (cycles, bottlenecks, smells, monolith score) need a home in this scoring model.
+**Decision:** Graph health is a subsection of Structural health (part of the 30% weight). If graph is unavailable, graph health items are skipped (not penalized). The structural score is computed from the remaining items.
+**Alternatives rejected:**
+- Separate top-level category — would require rebalancing all weights, over-engineering for an optional feature
+- Part of Quality — graph health is structural (code topology), not quality (agent output)
+**Reasoning:** Graph data is structural by nature (file dependencies, layers, coupling). Adding it to the structural category is semantically correct. Skipping when unavailable ensures users without Ariadne aren't penalized.
+
+## D-107: Pre-Planning Agents Receive L0 Graph via Dispatch
+
+**Date:** 2026-03-19
+**Status:** Accepted
+**Context:** Pre-planning agents (Apollo, Hermes, Athena, Metis) run before Daedalus, so they can't receive graph data through instruction files. How should they get graph context?
+**Decision:** Dispatch skill includes L0 graph index (`views/index.md`, ~200-500 tokens) in the dispatch context for pre-planning agents when `graph_available` is true. Daedalus receives the graph directory path instead, so it can run queries and build instruction files.
+**Alternatives rejected:**
+- No graph data for pre-planning agents — loses the benefit of graph-informed classification and exploration
+- Full graph data in dispatch — too large, wastes context budget for agents that need minimal orientation
+**Reasoning:** L0 is small (~200-500 tokens) and provides cluster overview + critical files — sufficient for classification complexity assessment and exploration targeting. Daedalus needs the path to query deeper data. Post-planning agents get full graph sections via instruction files.

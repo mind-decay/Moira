@@ -252,6 +252,45 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
+## Phase 13: Ariadne Integration — Project Graph in Moira Pipelines
+
+**Goal:** Ariadne (external project graph engine) fully integrated into Moira pipelines — agents use graph data (including architectural intelligence), commands available, MCP server optionally configured.
+
+**Depends on:** Core Moira (Phases 1-12), Ariadne Phases 1-3 (external project, developed independently).
+
+**Note:** The project graph engine is a separate project called **Ariadne** (D-104). Ariadne is a standalone Rust CLI + MCP server with its own repository and release cycle. Ariadne Phases 1-3 are complete, providing: core graph engine (build/update/query), algorithms (blast radius, centrality, PageRank, clustering, layers, cycles), view generation, MCP server (17 tools, file watcher, freshness tracking), and architectural intelligence (Martin metrics, 7 smell detectors, spectral analysis, hierarchical compression, structural diff).
+
+**Deliverables:**
+- `/moira:init` integration:
+  - Step 4b: `ariadne build` runs in parallel with scanner agents
+  - Step 7: views generated alongside knowledge base
+  - Binary check with graceful degradation message (D-102)
+  - Optional: start `ariadne serve` as background MCP server
+- `/moira:refresh` integration: `ariadne update` (delta) with structural diff report
+- `/moira:graph` skill: 12 subcommands — overview, blast-radius, cluster, file, cycles, layers, metrics, smells, importance, spectral, diff, compressed
+- `/moira:status` extension: graph summary section (files, edges, clusters, cycles, smells, monolith score, freshness)
+- `/moira:health` extension: graph health checks (cycles, bottlenecks, smells, cluster sizes, monolith score)
+- Knowledge Access Matrix extension: `graph` column (L0/L1/L2 per agent, read-only) with architectural intelligence data per agent role
+- Planner integration: load graph views + smells + metrics into agent instruction files per access matrix
+- Shell function wrappers for `ariadne` CLI calls
+- MCP server configuration: optional `ariadne serve` integration for real-time queries
+- Agent instruction templates: graph context injection points (including architectural intelligence)
+- Installation documentation: what Ariadne is, why it's needed, how to install
+
+**Testing:**
+- Init with/without `ariadne` binary → verify graceful degradation
+- Full pipeline run with graph → verify agents receive correct graph views
+- `/moira:graph` subcommands (all 12) → verify output format and accuracy
+- Status/health commands → verify graph + architectural intelligence sections appear
+- MCP server integration → verify tool responses match CLI output
+- Architectural intelligence → verify smells, metrics, spectral data flows to correct agents
+
+**Key decisions:** D-102 (graceful degradation), D-103 (Anamnesis integration boundary), D-104 (Ariadne as separate project).
+
+**Why Phase 13:** Integration requires both the graph engine (Ariadne) and core Moira infrastructure (Phases 1-12). This connects them. Ariadne is developed independently — this phase can begin once both Ariadne and core Moira are ready.
+
+---
+
 ## Testing Strategy
 
 Three-layer architecture woven across phases (D-023):
@@ -294,3 +333,6 @@ System is complete when:
 - [ ] Metrics show improvement trends over time
 - [ ] Resume works without quality degradation
 - [ ] Multiple developers can work concurrently
+- [ ] Ariadne (project graph) integration works with/without binary (graceful degradation)
+- [ ] Agents use graph data for navigation and impact analysis
+- [ ] Explorer token usage reduced by 50%+ with graph

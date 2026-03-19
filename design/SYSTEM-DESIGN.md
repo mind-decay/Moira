@@ -25,11 +25,12 @@ Moira is a meta-orchestration framework for Claude Code that transforms Claude f
 - [Multi-Developer](subsystems/multi-developer.md) — locks, branch-scoped state, knowledge merge
 - [Checkpoint & Resume](subsystems/checkpoint-resume.md) — state persistence, resume validation
 - [Orchestrator Self-Monitoring](subsystems/self-monitoring.md) — guard hooks, context tracking
+- [Project Graph](subsystems/project-graph.md) — structural topology via tree-sitter, blast radius, clustering (engine: [Ariadne](https://github.com/ariadne), separate project per D-104)
 - [Testing](subsystems/testing.md) — structural verification, behavioral bench, live telemetry
 
 ### Implementation
 - [Implementation Guide](IMPLEMENTATION-GUIDE.md) — full context for implementing agents (read BEFORE any work)
-- [Implementation Roadmap](IMPLEMENTATION-ROADMAP.md) — 12-phase build order with dependencies
+- [Implementation Roadmap](IMPLEMENTATION-ROADMAP.md) — 13-phase build order with dependencies
 
 ### Reports
 - [Reports directory](reports/) — audit and analysis reports (historical, never modified after creation). Older reports are stored in `reports/archive/` by convention.
@@ -51,6 +52,8 @@ Active implementation specs live in `design/specs/` by convention. Completed spe
 - [Fix F-001/F-002 — Implementation Plan](specs/archive/2026-03-17-fix-f001-f002-implementation-plan.md) — task breakdown
 - [Phase 12 — Advanced Features](specs/archive/2026-03-16-phase12-advanced-features.md) — checkpoint/resume, epic decomposition, tweak/redo, upgrade
 - [Phase 12 — Implementation Plan](specs/archive/2026-03-16-phase12-implementation-plan.md) — task breakdown for Phase 12
+- [Phase 13 — Project Graph Rust CLI](specs/archive/2026-03-17-phase13-project-graph-rust-cli.md) — moved to Ariadne project (D-104)
+- [Phase 13 — Implementation Plan](specs/archive/2026-03-17-phase13-implementation-plan.md) — moved to Ariadne project (D-104)
 - [Blocker Resolution Design](specs/archive/2026-03-11-blocker-resolution-design.md) — pre-implementation review: Classifier, YAML schemas, distribution, guard mechanism, bootstrap scanners
 
 ### Decisions
