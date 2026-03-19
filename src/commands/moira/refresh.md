@@ -40,6 +40,33 @@ Read the MCP scanner template and dispatch a single Explorer agent:
 
 Wait for completion.
 
+## Step 2b: Graph Update
+
+If the Ariadne binary is installed and a graph already exists, run an incremental update.
+
+Run via Bash:
+```bash
+bash -c 'source ~/.claude/moira/lib/graph.sh
+version=$(moira_graph_check_binary)
+if [[ -z "$version" ]]; then
+  exit 0
+fi
+if [[ ! -f ".ariadne/graph/graph.json" ]]; then
+  exit 0
+fi
+moira_graph_update "{project_root}" && moira_graph_views_generate'
+```
+
+- If binary not found: skip silently (exit 0, no message).
+- If no existing graph (`.ariadne/graph/graph.json` missing): skip silently.
+- If update succeeds: store result for display in Step 4.
+- If update fails: log warning but continue (graph is non-blocking).
+
+After update, extract summary for display:
+```bash
+bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_summary'
+```
+
 ## Step 3: Merge Registry
 
 After scanner returns, merge new results with existing registry per D-084:
@@ -62,5 +89,13 @@ After scanner returns, merge new results with existing registry per D-084:
   MCP Registry: updated
   ├─ Servers: {N} ({+added}, {-removed})
   └─ Tools: {M} total
+
+  {If graph update ran:}
+  Project Graph: updated
+  ├─ Files: {node_count} | Edges: {edge_count}
+  └─ Clusters: {cluster_count}
+
+  {If graph skipped (no binary or no existing graph):}
+  {omit graph section entirely}
 ═══════════════════════════════════════════
 ```
