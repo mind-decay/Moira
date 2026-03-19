@@ -32,7 +32,7 @@ write_access:
 
 # Path resolution for access levels (L0/L1/L2) is defined in dispatch.md Section 5.
 
-# Graph extras reference (on-demand query views; included in instruction files by Daedalus as needed):
+# graph_extras reference (on-demand query views; included in instruction files by Daedalus as needed):
 # L0 view  — node list with file paths and node types (index only)
 # L1 view  — node list + edge list + basic metrics (degree, depth)
 # L2 view  — full adjacency, edge weights, cycle membership, all metrics

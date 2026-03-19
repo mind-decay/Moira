@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # graph.sh — Shell library wrapping the Ariadne CLI for project graph operations.
-# References: D-105 (Ariadne integration), D-102 (project graph subsystem)
+# References: D-104 (Ariadne as separate project), D-102 (graceful degradation)
 # See: design/subsystems/project-graph.md § CLI Interface
 #
 # Responsibilities: wrapping ariadne binary commands, freshness checks, summary extraction
@@ -59,7 +59,7 @@ moira_graph_build() {
   fi
 
   if [[ -n "$output_dir" ]]; then
-    ariadne build "$project_root" --output-dir "$output_dir"
+    ariadne build "$project_root" --output "$output_dir"
   else
     ariadne build "$project_root"
   fi
@@ -84,7 +84,7 @@ moira_graph_update() {
   fi
 
   if [[ -n "$output_dir" ]]; then
-    ariadne update "$project_root" --output-dir "$output_dir"
+    ariadne update "$project_root" --output "$output_dir"
   else
     ariadne update "$project_root"
   fi
@@ -123,10 +123,10 @@ moira_graph_views_generate() {
 
   local args=()
   if [[ -n "$output_dir" ]]; then
-    args+=("--output-dir" "$output_dir")
+    args+=("--output" "$output_dir")
   fi
   if [[ -n "$graph_dir" ]]; then
-    args+=("--graph-dir" "$graph_dir")
+    args+=("--graph-dir" "$graph_dir")  # matches design doc CLI spec
   fi
 
   ariadne views generate "${args[@]+"${args[@]}"}"
@@ -166,19 +166,20 @@ moira_graph_serve_start() {
   mkdir -p "$(dirname "$pid_file")"
 
   # Start in background, redirect stdio to avoid blocking the caller
-  ariadne serve "$project_root" </dev/null >/dev/null 2>&1 &
+  ariadne serve --project "$project_root" </dev/null >/dev/null 2>&1 &
   local server_pid=$!
 
   echo "$server_pid" > "$pid_file"
   echo "$server_pid"
 }
 
-# ── moira_graph_serve_stop ───────────────────────────────────────────────────
+# ── moira_graph_serve_stop [project_root] ────────────────────────────────────
 # Stop the MCP server process if running.
-# Reads PID from .ariadne/graph/.serve.pid relative to cwd.
+# Reads PID from .ariadne/graph/.serve.pid relative to project_root (or cwd).
 # Silent no-op if no server is running.
 moira_graph_serve_stop() {
-  local pid_file="${_MOIRA_GRAPH_PID_FILE}"
+  local project_root="${1:-.}"
+  local pid_file="${project_root}/${_MOIRA_GRAPH_PID_FILE}"
 
   if [[ ! -f "$pid_file" ]]; then
     return 0
@@ -208,9 +209,9 @@ moira_graph_is_fresh() {
     return 1
   fi
 
-  # Find any source file newer than graph.json
+  # Find any source file newer than graph.json (heuristic — samples top 4 levels)
   local newer_files
-  newer_files=$(find . \
+  newer_files=$(find . -maxdepth 4 \
     \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" \
        -o -name "*.go" -o -name "*.py" -o -name "*.rs" \
        -o -name "*.cs" -o -name "*.java" \) \
@@ -247,6 +248,7 @@ moira_graph_summary() {
   local cluster_count=0
   local cycle_count=0
   local smell_count=0
+  local bottleneck_count=0
   local monolith_score=0
 
   if command -v jq >/dev/null 2>&1; then
@@ -283,14 +285,21 @@ moira_graph_summary() {
     fi
 
     if [[ -f "$stats_file" ]]; then
-      # Count SCC arrays — each SCC is a JSON array on its own line (approximate)
-      cycle_count=$(grep -c '^\s*\[' "$stats_file" 2>/dev/null) || cycle_count=0
+      # Count SCCs with >1 element — look for arrays with commas (multi-element)
+      # inside the "sccs" field. Best-effort without jq.
+      cycle_count=$(sed -n '/"sccs"/,/\]/p' "$stats_file" 2>/dev/null | \
+        grep -c '.*,.*' 2>/dev/null) || cycle_count=0
       # monolith_score: extract numeric value
       monolith_score=$(grep '"monolith_score"' "$stats_file" 2>/dev/null | \
         sed 's/.*"monolith_score"[[:space:]]*:[[:space:]]*\([0-9.]*\).*/\1/' | \
         head -1) || monolith_score=0
       monolith_score="${monolith_score:-0}"
     fi
+  fi
+
+  # bottleneck_count: files with centrality > 0.9 (from stats.json)
+  if command -v jq >/dev/null 2>&1 && [[ -f "$stats_file" ]]; then
+    bottleneck_count=$(jq '[(.centrality // {}) | to_entries[] | select(.value > 0.9)] | length' "$stats_file" 2>/dev/null) || bottleneck_count=0
   fi
 
   # smell_count: attempt a query; fall back to 0 if unavailable
@@ -306,6 +315,7 @@ moira_graph_summary() {
   echo "edge_count=${edge_count}"
   echo "cluster_count=${cluster_count}"
   echo "cycle_count=${cycle_count}"
+  echo "bottleneck_count=${bottleneck_count}"
   echo "smell_count=${smell_count}"
   echo "monolith_score=${monolith_score}"
 }

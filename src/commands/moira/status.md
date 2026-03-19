@@ -107,7 +107,7 @@ Format output as follows:
   {Check .ariadne/graph/.serve.pid for MCP server status}
 
   Files: {node_count}  Edges: {edge_count}  Clusters: {cluster_count}
-  Cycles: {cycle_count}  Smells: {smell_count}
+  Cycles: {cycle_count}  Bottlenecks: {bottleneck_count}  Smells: {smell_count}
   Monolith: {monolith_score}  Freshness: {fresh/stale}
   MCP server: {running (PID {pid}) / stopped}
 

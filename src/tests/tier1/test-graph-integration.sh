@@ -62,22 +62,22 @@ summary_output=$(
   moira_graph_summary "$TMPDIR_GRAPH/graph" 2>/dev/null
 ) || true
 
-if echo "$summary_output" | grep -q "node_count="; then
-  pass "moira_graph_summary returns node_count with mock data"
+if echo "$summary_output" | grep -q "node_count=3"; then
+  pass "moira_graph_summary returns node_count=3 with mock data"
 else
-  fail "moira_graph_summary missing node_count with mock data"
+  fail "moira_graph_summary expected node_count=3, got: $(echo "$summary_output" | grep node_count)"
 fi
 
-if echo "$summary_output" | grep -q "edge_count="; then
-  pass "moira_graph_summary returns edge_count with mock data"
+if echo "$summary_output" | grep -q "edge_count=2"; then
+  pass "moira_graph_summary returns edge_count=2 with mock data"
 else
-  fail "moira_graph_summary missing edge_count with mock data"
+  fail "moira_graph_summary expected edge_count=2, got: $(echo "$summary_output" | grep edge_count)"
 fi
 
-if echo "$summary_output" | grep -q "cluster_count="; then
-  pass "moira_graph_summary returns cluster_count with mock data"
+if echo "$summary_output" | grep -q "cluster_count=2"; then
+  pass "moira_graph_summary returns cluster_count=2 with mock data"
 else
-  fail "moira_graph_summary missing cluster_count with mock data"
+  fail "moira_graph_summary expected cluster_count=2, got: $(echo "$summary_output" | grep cluster_count)"
 fi
 
 # ── Test 3: moira_graph_summary with no graph.json ───────────────────

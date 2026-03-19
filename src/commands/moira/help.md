@@ -24,8 +24,8 @@ Then show this help card:
 | `/moira:metrics` | View performance metrics dashboard |
 | `/moira:audit` | Run system health audit |
 | `/moira:bypass <description>` | Execute task without pipeline (escape hatch) |
-| `/moira:refresh` | Update project model and knowledge base |
 | `/moira:graph` | Query project structure graph (blast-radius, clusters, metrics, smells) |
+| `/moira:refresh` | Update project model and knowledge base |
 | `/moira:help` | Show this help |
 
 ## Quick Start
