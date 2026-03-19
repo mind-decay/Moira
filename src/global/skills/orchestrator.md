@@ -70,6 +70,23 @@ Before starting the pipeline, check if a deep scan is pending:
    - Continue with pipeline — do NOT wait for deep scans to finish
 3. If `false` or field not present: continue silently
 
+### Graph Availability Check
+
+After the deep scan check, determine if Ariadne graph data is available for this pipeline run:
+
+1. Use Read tool to check if `.ariadne/graph/graph.json` exists
+   - This is a Moira infrastructure file, not project source — same pattern as checking `.claude/moira/config.yaml`
+   - The orchestrator does NOT read graph content (Art 1.1) — checking file existence is metadata
+2. Read `.claude/moira/config.yaml` → `graph.enabled`
+   - If `graph.enabled` is explicitly `false`: set `graph_available = false` regardless of file existence
+   - If `graph.enabled` is `true` or not present: use file existence result
+3. Set `graph_available` in `.claude/moira/state/current.yaml` (boolean, per D13 schema)
+4. If graph.json exists but is stale (older than project source files):
+   - Note staleness in `telemetry.yaml` under `graph.stale_at_start: true`
+   - Do NOT block the pipeline — stale graph data is still useful
+   - `graph_available` remains `true` (stale data is better than no data)
+5. If graph.json does not exist: set `graph_available = false`, continue silently
+
 ### Pre-Pipeline Setup
 
 Before entering the main loop:
@@ -114,6 +131,7 @@ Before entering the main loop:
           - `.claude/moira/config/**` — system configuration
           - `.claude/moira/core/**` — core rules and pipelines
           - `src/global/**` — Moira source code
+          - `.ariadne/**` — Graph data — only ariadne CLI writes here (Art 1.2)
           Allowed exceptions (not violations):
           - `.claude/moira/state/tasks/{current_task_id}/**`
           - `.claude/moira/knowledge/**`
