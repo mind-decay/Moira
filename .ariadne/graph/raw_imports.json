@@ -1,0 +1,216 @@
+{
+  "src/tests/bench/fixtures/greenfield-webapp/src/index.ts": [
+    {
+      "path": "express",
+      "symbols": [
+        "express"
+      ],
+      "is_type_only": false
+    },
+    {
+      "path": "./routes/health",
+      "symbols": [
+        "healthRouter"
+      ],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/greenfield-webapp/src/routes/health.ts": [
+    {
+      "path": "express",
+      "symbols": [
+        "Router",
+        "Request",
+        "Response"
+      ],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/greenfield-webapp/src/types/index.ts": [],
+  "src/tests/bench/fixtures/legacy-webapp/__tests__/health.test.js": [
+    {
+      "path": "supertest",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "../src/app",
+      "symbols": [],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/legacy-webapp/src/app.js": [
+    {
+      "path": "express",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "body-parser",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "./routes/health",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "./controllers/UserController",
+      "symbols": [],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/legacy-webapp/src/controllers/UserController.js": [],
+  "src/tests/bench/fixtures/legacy-webapp/src/routes/health.js": [],
+  "src/tests/bench/fixtures/mature-webapp/src/index.ts": [
+    {
+      "path": "express",
+      "symbols": [
+        "express"
+      ],
+      "is_type_only": false
+    },
+    {
+      "path": "./routes/health",
+      "symbols": [
+        "healthRouter"
+      ],
+      "is_type_only": false
+    },
+    {
+      "path": "./routes/users",
+      "symbols": [
+        "usersRouter"
+      ],
+      "is_type_only": false
+    },
+    {
+      "path": "./routes/products",
+      "symbols": [
+        "productsRouter"
+      ],
+      "is_type_only": false
+    },
+    {
+      "path": "./middleware/error-handler",
+      "symbols": [
+        "errorHandler"
+      ],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/mature-webapp/src/middleware/error-handler.ts": [
+    {
+      "path": "express",
+      "symbols": [
+        "Request",
+        "Response",
+        "NextFunction"
+      ],
+      "is_type_only": false
+    },
+    {
+      "path": "zod",
+      "symbols": [
+        "ZodError"
+      ],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/mature-webapp/src/routes/health.ts": [
+    {
+      "path": "express",
+      "symbols": [
+        "Router",
+        "Request",
+        "Response"
+      ],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/mature-webapp/src/routes/products.ts": [
+    {
+      "path": "express",
+      "symbols": [
+        "Router"
+      ],
+      "is_type_only": false
+    },
+    {
+      "path": "../services/product-service",
+      "symbols": [
+        "ProductService"
+      ],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/mature-webapp/src/routes/users.ts": [
+    {
+      "path": "express",
+      "symbols": [
+        "Router"
+      ],
+      "is_type_only": false
+    },
+    {
+      "path": "../services/user-service",
+      "symbols": [
+        "UserService"
+      ],
+      "is_type_only": false
+    },
+    {
+      "path": "../types/user",
+      "symbols": [
+        "CreateUserSchema"
+      ],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/mature-webapp/src/services/product-service.ts": [
+    {
+      "path": "../types/product",
+      "symbols": [
+        "Product"
+      ],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/mature-webapp/src/services/user-service.ts": [
+    {
+      "path": "../types/user",
+      "symbols": [
+        "CreateUser",
+        "User"
+      ],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/mature-webapp/src/types/product.ts": [],
+  "src/tests/bench/fixtures/mature-webapp/src/types/user.ts": [
+    {
+      "path": "zod",
+      "symbols": [
+        "z"
+      ],
+      "is_type_only": false
+    }
+  ],
+  "src/tests/bench/fixtures/mature-webapp/tests/health.test.ts": [
+    {
+      "path": "supertest",
+      "symbols": [
+        "request"
+      ],
+      "is_type_only": false
+    },
+    {
+      "path": "../src/index",
+      "symbols": [
+        "app"
+      ],
+      "is_type_only": false
+    }
+  ]
+}

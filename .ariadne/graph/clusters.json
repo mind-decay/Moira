@@ -1,0 +1,29 @@
+{
+  "clusters": {
+    "tests": {
+      "files": [
+        "src/tests/bench/fixtures/greenfield-webapp/src/index.ts",
+        "src/tests/bench/fixtures/greenfield-webapp/src/routes/health.ts",
+        "src/tests/bench/fixtures/greenfield-webapp/src/types/index.ts",
+        "src/tests/bench/fixtures/legacy-webapp/__tests__/health.test.js",
+        "src/tests/bench/fixtures/legacy-webapp/src/app.js",
+        "src/tests/bench/fixtures/legacy-webapp/src/controllers/UserController.js",
+        "src/tests/bench/fixtures/legacy-webapp/src/routes/health.js",
+        "src/tests/bench/fixtures/mature-webapp/src/index.ts",
+        "src/tests/bench/fixtures/mature-webapp/src/middleware/error-handler.ts",
+        "src/tests/bench/fixtures/mature-webapp/src/routes/health.ts",
+        "src/tests/bench/fixtures/mature-webapp/src/routes/products.ts",
+        "src/tests/bench/fixtures/mature-webapp/src/routes/users.ts",
+        "src/tests/bench/fixtures/mature-webapp/src/services/product-service.ts",
+        "src/tests/bench/fixtures/mature-webapp/src/services/user-service.ts",
+        "src/tests/bench/fixtures/mature-webapp/src/types/product.ts",
+        "src/tests/bench/fixtures/mature-webapp/src/types/user.ts",
+        "src/tests/bench/fixtures/mature-webapp/tests/health.test.ts"
+      ],
+      "file_count": 17,
+      "internal_edges": 14,
+      "external_edges": 0,
+      "cohesion": 1.0
+    }
+  }
+}

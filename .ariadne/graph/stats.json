@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "centrality": {
+    "src/tests/bench/fixtures/greenfield-webapp/src/index.ts": 0.0,
+    "src/tests/bench/fixtures/greenfield-webapp/src/routes/health.ts": 0.0,
+    "src/tests/bench/fixtures/greenfield-webapp/src/types/index.ts": 0.0,
+    "src/tests/bench/fixtures/legacy-webapp/__tests__/health.test.js": 0.0,
+    "src/tests/bench/fixtures/legacy-webapp/src/app.js": 0.0,
+    "src/tests/bench/fixtures/legacy-webapp/src/controllers/UserController.js": 0.0,
+    "src/tests/bench/fixtures/legacy-webapp/src/routes/health.js": 0.0,
+    "src/tests/bench/fixtures/mature-webapp/src/index.ts": 0.0,
+    "src/tests/bench/fixtures/mature-webapp/src/middleware/error-handler.ts": 0.0,
+    "src/tests/bench/fixtures/mature-webapp/src/routes/health.ts": 0.0,
+    "src/tests/bench/fixtures/mature-webapp/src/routes/products.ts": 0.0083,
+    "src/tests/bench/fixtures/mature-webapp/src/routes/users.ts": 0.0083,
+    "src/tests/bench/fixtures/mature-webapp/src/services/product-service.ts": 0.0083,
+    "src/tests/bench/fixtures/mature-webapp/src/services/user-service.ts": 0.0,
+    "src/tests/bench/fixtures/mature-webapp/src/types/product.ts": 0.0,
+    "src/tests/bench/fixtures/mature-webapp/src/types/user.ts": 0.0,
+    "src/tests/bench/fixtures/mature-webapp/tests/health.test.ts": 0.0
+  },
+  "sccs": [],
+  "layers": {
+    "00000": [
+      "src/tests/bench/fixtures/greenfield-webapp/src/routes/health.ts",
+      "src/tests/bench/fixtures/greenfield-webapp/src/types/index.ts",
+      "src/tests/bench/fixtures/legacy-webapp/__tests__/health.test.js",
+      "src/tests/bench/fixtures/legacy-webapp/src/controllers/UserController.js",
+      "src/tests/bench/fixtures/legacy-webapp/src/routes/health.js",
+      "src/tests/bench/fixtures/mature-webapp/src/middleware/error-handler.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/routes/health.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/types/product.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/types/user.ts",
+      "src/tests/bench/fixtures/mature-webapp/tests/health.test.ts"
+    ],
+    "00001": [
+      "src/tests/bench/fixtures/greenfield-webapp/src/index.ts",
+      "src/tests/bench/fixtures/legacy-webapp/src/app.js",
+      "src/tests/bench/fixtures/mature-webapp/src/services/product-service.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/services/user-service.ts"
+    ],
+    "00002": [
+      "src/tests/bench/fixtures/mature-webapp/src/routes/products.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/routes/users.ts"
+    ],
+    "00003": [
+      "src/tests/bench/fixtures/mature-webapp/src/index.ts"
+    ]
+  },
+  "summary": {
+    "max_depth": 3,
+    "avg_in_degree": 0.7059,
+    "avg_out_degree": 0.7059,
+    "bottleneck_files": [],
+    "orphan_files": [
+      "src/tests/bench/fixtures/greenfield-webapp/src/types/index.ts",
+      "src/tests/bench/fixtures/legacy-webapp/__tests__/health.test.js",
+      "src/tests/bench/fixtures/mature-webapp/tests/health.test.ts"
+    ]
+  }
+}

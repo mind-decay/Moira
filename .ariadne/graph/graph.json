@@ -1,0 +1,296 @@
+{
+  "version": 1,
+  "project_root": ".",
+  "node_count": 17,
+  "edge_count": 14,
+  "nodes": {
+    "src/tests/bench/fixtures/greenfield-webapp/src/index.ts": {
+      "type": "source",
+      "layer": "unknown",
+      "arch_depth": 1,
+      "lines": 11,
+      "hash": "02fc8176c109740a",
+      "exports": [
+        "default"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/greenfield-webapp/src/routes/health.ts": {
+      "type": "source",
+      "layer": "api",
+      "arch_depth": 0,
+      "lines": 7,
+      "hash": "bd3dbc7254d90272",
+      "exports": [
+        "healthRouter"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/greenfield-webapp/src/types/index.ts": {
+      "type": "source",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 4,
+      "hash": "da296d85cd45bbf8",
+      "exports": [
+        "HealthResponse"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/legacy-webapp/__tests__/health.test.js": {
+      "type": "test",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 7,
+      "hash": "15f959ef55ff5101",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/legacy-webapp/src/app.js": {
+      "type": "source",
+      "layer": "unknown",
+      "arch_depth": 1,
+      "lines": 24,
+      "hash": "f9d5322b277ff5a8",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/legacy-webapp/src/controllers/UserController.js": {
+      "type": "source",
+      "layer": "api",
+      "arch_depth": 0,
+      "lines": 21,
+      "hash": "eaa7dbeb5a458b8b",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/legacy-webapp/src/routes/health.js": {
+      "type": "source",
+      "layer": "api",
+      "arch_depth": 0,
+      "lines": 7,
+      "hash": "db549f583686ab6c",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/src/index.ts": {
+      "type": "source",
+      "layer": "unknown",
+      "arch_depth": 3,
+      "lines": 18,
+      "hash": "45f237b7f7c0e040",
+      "exports": [
+        "default"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/src/middleware/error-handler.ts": {
+      "type": "source",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 11,
+      "hash": "d219293c8368d64d",
+      "exports": [
+        "errorHandler"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/src/routes/health.ts": {
+      "type": "source",
+      "layer": "api",
+      "arch_depth": 0,
+      "lines": 7,
+      "hash": "bd3dbc7254d90272",
+      "exports": [
+        "healthRouter"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/src/routes/products.ts": {
+      "type": "source",
+      "layer": "api",
+      "arch_depth": 2,
+      "lines": 20,
+      "hash": "8b189d9f9c3315d0",
+      "exports": [
+        "productsRouter"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/src/routes/users.ts": {
+      "type": "source",
+      "layer": "api",
+      "arch_depth": 2,
+      "lines": 21,
+      "hash": "30104ab78396c1b9",
+      "exports": [
+        "usersRouter"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/src/services/product-service.ts": {
+      "type": "source",
+      "layer": "service",
+      "arch_depth": 1,
+      "lines": 11,
+      "hash": "9fe41274087bf37b",
+      "exports": [
+        "ProductService"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/src/services/user-service.ts": {
+      "type": "source",
+      "layer": "service",
+      "arch_depth": 1,
+      "lines": 13,
+      "hash": "5f97c07ff63ea449",
+      "exports": [
+        "UserService"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/src/types/product.ts": {
+      "type": "source",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 6,
+      "hash": "eb69db9aaa16690f",
+      "exports": [
+        "Product"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/src/types/user.ts": {
+      "type": "source",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 9,
+      "hash": "d4cecbd445000cab",
+      "exports": [
+        "CreateUser",
+        "CreateUserSchema",
+        "User"
+      ],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/tests/health.test.ts": {
+      "type": "test",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 10,
+      "hash": "fd05fef25df01534",
+      "exports": [],
+      "cluster": "tests"
+    }
+  },
+  "edges": [
+    [
+      "src/tests/bench/fixtures/greenfield-webapp/src/index.ts",
+      "src/tests/bench/fixtures/greenfield-webapp/src/routes/health.ts",
+      "imports",
+      [
+        "healthRouter"
+      ]
+    ],
+    [
+      "src/tests/bench/fixtures/legacy-webapp/__tests__/health.test.js",
+      "src/tests/bench/fixtures/legacy-webapp/src/app.js",
+      "tests",
+      []
+    ],
+    [
+      "src/tests/bench/fixtures/legacy-webapp/src/app.js",
+      "src/tests/bench/fixtures/legacy-webapp/src/controllers/UserController.js",
+      "imports",
+      []
+    ],
+    [
+      "src/tests/bench/fixtures/legacy-webapp/src/app.js",
+      "src/tests/bench/fixtures/legacy-webapp/src/routes/health.js",
+      "imports",
+      []
+    ],
+    [
+      "src/tests/bench/fixtures/mature-webapp/src/index.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/middleware/error-handler.ts",
+      "imports",
+      [
+        "errorHandler"
+      ]
+    ],
+    [
+      "src/tests/bench/fixtures/mature-webapp/src/index.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/routes/health.ts",
+      "imports",
+      [
+        "healthRouter"
+      ]
+    ],
+    [
+      "src/tests/bench/fixtures/mature-webapp/src/index.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/routes/products.ts",
+      "imports",
+      [
+        "productsRouter"
+      ]
+    ],
+    [
+      "src/tests/bench/fixtures/mature-webapp/src/index.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/routes/users.ts",
+      "imports",
+      [
+        "usersRouter"
+      ]
+    ],
+    [
+      "src/tests/bench/fixtures/mature-webapp/src/routes/products.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/services/product-service.ts",
+      "imports",
+      [
+        "ProductService"
+      ]
+    ],
+    [
+      "src/tests/bench/fixtures/mature-webapp/src/routes/users.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/services/user-service.ts",
+      "imports",
+      [
+        "UserService"
+      ]
+    ],
+    [
+      "src/tests/bench/fixtures/mature-webapp/src/routes/users.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/types/user.ts",
+      "imports",
+      [
+        "CreateUserSchema"
+      ]
+    ],
+    [
+      "src/tests/bench/fixtures/mature-webapp/src/services/product-service.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/types/product.ts",
+      "imports",
+      [
+        "Product"
+      ]
+    ],
+    [
+      "src/tests/bench/fixtures/mature-webapp/src/services/user-service.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/types/user.ts",
+      "imports",
+      [
+        "CreateUser",
+        "User"
+      ]
+    ],
+    [
+      "src/tests/bench/fixtures/mature-webapp/tests/health.test.ts",
+      "src/tests/bench/fixtures/mature-webapp/src/index.ts",
+      "tests",
+      [
+        "app"
+      ]
+    ]
+  ]
+}
