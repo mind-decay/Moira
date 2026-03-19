@@ -91,3 +91,60 @@ entries:
         field: "E5-QUALITY max retries, E6-AGENT retry count"
         sync_type: "value_must_match"
     values_tracked: "retry hard limits per error type (E5_QUALITY=2 attempts, E6_AGENT=1 retry)"
+
+  - id: xref-008
+    description: "Graph access levels"
+    canonical_source: "src/global/core/knowledge-access-matrix.yaml"
+    dependents:
+      - file: "src/global/core/rules/roles/*.yaml"
+        field: "knowledge_access.graph"
+        sync_type: "value_must_match"
+      - file: "src/global/skills/dispatch.md"
+        field: "graph context loading levels"
+        sync_type: "value_must_match"
+    values_tracked: "per-agent graph access levels (apollo=L0, hermes=L0, athena=L1, metis=L1, daedalus=L1, hephaestus=L2, themis=L1, aletheia=L1, mnemosyne=L2, argus=L2)"
+
+  - id: xref-009
+    description: "Graph shell functions"
+    canonical_source: "src/global/lib/graph.sh"
+    dependents:
+      - file: "src/commands/moira/init.md"
+        field: "moira_graph_* calls"
+        sync_type: "function_must_exist"
+      - file: "src/commands/moira/refresh.md"
+        field: "moira_graph_* calls"
+        sync_type: "function_must_exist"
+      - file: "src/commands/moira/status.md"
+        field: "moira_graph_* calls"
+        sync_type: "function_must_exist"
+      - file: "src/commands/moira/health.md"
+        field: "moira_graph_* calls"
+        sync_type: "function_must_exist"
+      - file: "src/commands/moira/graph.md"
+        field: "ariadne query calls"
+        sync_type: "function_must_exist"
+      - file: "src/global/skills/dispatch.md"
+        field: "moira_graph_read_view calls"
+        sync_type: "function_must_exist"
+    values_tracked: "graph.sh function names (moira_graph_check_binary, moira_graph_build, moira_graph_update, moira_graph_query, moira_graph_views_generate, moira_graph_serve_start, moira_graph_serve_stop, moira_graph_is_fresh, moira_graph_summary, moira_graph_read_view, moira_graph_output_dir, moira_graph_views_dir)"
+
+  - id: xref-010
+    description: "graph_available pipeline state field"
+    canonical_source: "src/schemas/current.schema.yaml"
+    dependents:
+      - file: "src/global/skills/orchestrator.md"
+        field: "graph_available bootstrap check"
+        sync_type: "field_must_exist"
+      - file: "src/global/skills/dispatch.md"
+        field: "graph_available context loading"
+        sync_type: "field_must_exist"
+    values_tracked: "graph_available boolean field (set by orchestrator, consumed by dispatch)"
+
+  - id: xref-011
+    description: "Graph config section"
+    canonical_source: "src/schemas/config.schema.yaml"
+    dependents:
+      - file: "src/global/skills/orchestrator.md"
+        field: "graph.enabled check"
+        sync_type: "field_must_exist"
+    values_tracked: "graph config fields (graph.enabled boolean, graph.timeout number)"
