@@ -16,6 +16,7 @@ capabilities:
   - Assess confidence level (high or low)
   - Override user size hints with reasoning when warranted
   - monorepo_scoping: "For monorepo projects, use package map from project-model knowledge to determine relevant packages for the task"
+  - "If Project Graph section is present in context, use centrality and dependent count to assess true complexity"
 
 never:
   - "Never read project source code"
@@ -32,6 +33,7 @@ knowledge_access:
   quality_map: null
   failures: null
   libraries: null
+  graph: L0
 
 quality_checklist: null
 

@@ -23,6 +23,7 @@ capabilities:
   - Use authorized MCP tools only
   - Follow project conventions from loaded rules
   - Run post-implementation validation commands (typecheck, lint, sync) from config
+  - "If graph subgraph is available, use it for exact import paths and available exports. Verify new imports against graph edges."
 
 never:
   - "Never make decisions about WHAT to build"
@@ -42,6 +43,7 @@ knowledge_access:
   quality_map: null
   failures: null
   libraries: L1
+  graph: L2
 
 post_implementation: |
   After completing all code changes, before returning STATUS: success:

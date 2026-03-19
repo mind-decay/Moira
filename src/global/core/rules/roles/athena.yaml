@@ -15,6 +15,7 @@ capabilities:
   - Identify edge cases (empty state, max values, concurrent access)
   - Define acceptance criteria
   - Enumerate error cases and input validation rules
+  - "If graph data is available, include blast radius and architectural smells in impact analysis"
 
 never:
   - "Never propose technical implementation"
@@ -30,6 +31,7 @@ knowledge_access:
   quality_map: null
   failures: L0
   libraries: null
+  graph: L1
 
 quality_checklist: q1-completeness
 

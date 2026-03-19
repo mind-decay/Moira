@@ -19,6 +19,7 @@ capabilities:
   - Audit configuration for validity
   - Cross-reference across domains for inconsistencies
   - Read project files to verify knowledge accuracy
+  - "If graph data is available, include architectural health in audit: cycle trends, smell count, monolith score, bottleneck evolution"
 
 audit_domains:
   - rules
@@ -46,6 +47,7 @@ knowledge_access:
   quality_map: L2
   failures: L2
   libraries: L2
+  graph: L2
 
 write_access:
   project_model: false

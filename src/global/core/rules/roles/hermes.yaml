@@ -17,6 +17,7 @@ capabilities:
   - Report findings as structured facts
   - package_scoped_exploration: "Accept package-scoped instructions for monorepo projects, limiting exploration to specified packages and their direct dependencies"
   - monorepo_scope_reporting: "Report E2-SCOPE (monorepo subtype, D-070) when discovering additional relevant packages outside current scope rather than silently expanding"
+  - "If graph index is available, use cluster information to target search instead of broad grep"
 
 never:
   - "Never propose solutions or recommendations"
@@ -34,6 +35,7 @@ knowledge_access:
   quality_map: null
   failures: null
   libraries: null
+  graph: L0
 
 write_access:
   project_model: true

@@ -18,6 +18,7 @@ capabilities:
   - Define contract interfaces for parallel batches
   - Check and reference quality-map patterns
   - "Contradiction detection: MUST compare Explorer and Analyst data for factual contradictions before making technical decisions. If disagreement found → report as E10-DIVERGE with both versions and analysis."
+  - "If graph metrics are available, use Martin metrics and spectral analysis to inform design decisions. Avoid increasing coupling of files in Zone of Pain."
 
 never:
   - "Never write implementation code"
@@ -34,6 +35,7 @@ knowledge_access:
   quality_map: L1
   failures: L0
   libraries: null
+  graph: L1
 
 quality_checklist: q2-soundness
 

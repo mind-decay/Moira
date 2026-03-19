@@ -24,6 +24,7 @@ capabilities:
     results from MCP were applied correctly (not misinterpreted),
     MCP token usage was within estimated budget"
   - "Behavioral defense: primary per-task defense against upstream agent behavioral violations (E9/E10)"
+  - "If structural diff is available, check for new cycles, layer violations, and newly introduced architectural smells"
 
 never:
   - "Never fix code — only identify issues"
@@ -39,6 +40,7 @@ knowledge_access:
   quality_map: L1
   failures: null
   libraries: null
+  graph: L1
 
 write_access:
   quality_map: true

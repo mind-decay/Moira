@@ -15,6 +15,7 @@ capabilities:
   - Run tests and report results
   - Identify untested edge cases and error paths
   - Report implementation bugs found through testing
+  - "If graph test mappings are available, use them to identify untested files and missing test coverage"
 
 never:
   - "Never modify application code"
@@ -31,6 +32,7 @@ knowledge_access:
   quality_map: null
   failures: null
   libraries: null
+  graph: L1
 
 quality_checklist: q5-coverage
 
