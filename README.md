@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  10 specialized agents. Deterministic pipelines. You approve at every gate.
+  11 specialized agents. 5 deterministic pipelines. You approve at every gate.
 </p>
 
 <p align="center">
@@ -15,7 +15,7 @@
 
 ## What is Moira
 
-Moira transforms Claude Code from a general-purpose assistant into a **structured engineering system**. Instead of Claude reading your codebase, making decisions, writing code, and reviewing its own work — all in one context window — Moira coordinates 10 specialized agents through deterministic pipelines with quality gates at every step.
+Moira transforms Claude Code from a general-purpose assistant into a **structured engineering system**. Instead of Claude reading your codebase, making decisions, writing code, and reviewing its own work — all in one context window — Moira coordinates 11 specialized agents through deterministic pipelines with quality gates at every step.
 
 You describe a task. Moira classifies it, selects the appropriate pipeline, and dispatches agents in sequence: exploration, analysis, architecture, planning, implementation, review, testing. Each agent has exactly one responsibility and explicit constraints on what it cannot do. You approve at numbered gates before the pipeline advances.
 
@@ -63,7 +63,7 @@ curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/remote-
 ```bash
 cd your-project && claude
 
-> /moira init
+> /moira:init
 # Moira scans your project: stack, structure, conventions, patterns.
 # Generates project-specific rules, knowledge base, and agent configuration.
 # You review and approve before anything is saved.
@@ -71,7 +71,7 @@ cd your-project && claude
 
 **Run a task:**
 ```bash
-> /moira Add pagination to the products API endpoint
+> /moira:task Add pagination to the products API endpoint
 # Apollo classifies → Hermes explores → Athena analyzes → Metis architects
 # → Daedalus plans → Hephaestus implements → Themis reviews → Aletheia tests
 # You approve at every gate.
@@ -81,14 +81,14 @@ cd your-project && claude
 
 ---
 
-## The Pantheon — 10 agents with strict boundaries
+## The Pantheon — 11 agents with strict boundaries
 
 Each agent has one job and explicit NEVER constraints that prevent role creep. An Explorer that cannot propose solutions actually explores. An Implementer that cannot make architectural decisions follows the plan. Boundaries create reliability.
 
 | Agent | Role | Responsibility | Never does |
 |---|---|---|---|
-| **Apollo** | Classifier | Determines task size and pipeline | Read source code, propose solutions |
-| **Hermes** | Explorer | Scouts codebase, reports facts only | Propose solutions, modify files |
+| **Apollo** | Classifier | Determines task mode, size, and pipeline | Read source code, propose solutions |
+| **Hermes** | Explorer | Scouts codebase and structural graph, reports facts only | Propose solutions, modify files |
 | **Athena** | Analyst | Formalizes requirements, finds edge cases | Propose technical implementation |
 | **Metis** | Architect | Makes technical decisions, chooses patterns | Write code |
 | **Daedalus** | Planner | Decomposes into executable steps with dependencies | Make architectural decisions |
@@ -97,6 +97,7 @@ Each agent has one job and explicit NEVER constraints that prevent role creep. A
 | **Aletheia** | Tester | Writes and runs tests | Modify application code |
 | **Mnemosyne** | Reflector | Analyzes outcomes, proposes rule improvements | Change rules directly |
 | **Argus** | Auditor | Independent system health verification | Modify system files |
+| **Calliope** | Scribe | Synthesizes analytical findings into documents | Write code, perform analysis |
 
 Agent names come from Greek mythology — each deity's mythological role mirrors the agent's function. Names always appear as **Name (role)** in output so the mapping is clear.
 
@@ -106,7 +107,7 @@ Every agent returns a structured response (status, summary, artifacts, quality f
 
 ## Pipelines — deterministic execution
 
-Apollo classifies the task. Classification determines the pipeline. Pipeline determines the process. No judgment calls, no heuristics, no "let me figure out the best approach."
+Apollo classifies the task on two dimensions: **mode** (implementation or analytical) and **size/subtype**. Classification determines the pipeline. Pipeline determines the process. No judgment calls, no heuristics, no "let me figure out the best approach."
 
 | Classification | Criteria | Pipeline | Gates |
 |---|---|---|---|
@@ -115,6 +116,7 @@ Apollo classifies the task. Classification determines the pipeline. Pipeline det
 | **Medium** | 3-10 files, project context needed | Standard | 4 |
 | **Large** | Architecture changes, >10 files | Full | 5+ |
 | **Epic** | Multiple related tasks | Decomposition | Per-task |
+| **Analytical** | Analysis, audit, documentation — no code | Analytical | 3-5+ |
 
 **Quick** — Classify → explore → implement → review. Done in minutes.
 
@@ -124,13 +126,17 @@ Apollo classifies the task. Classification determines the pipeline. Pipeline det
 
 **Decomposition** — Breaks an epic into independent tasks. Each task runs through its own pipeline (Quick, Standard, or Full). Dependency ordering ensures tasks execute in the right sequence. Cross-task integration verification at the end.
 
+**Analytical** — For tasks that produce analysis, not code: architecture reviews, audits, weakness analysis, decision comparison, documentation. Uses progressive depth — analysis runs in passes, and you decide at each depth checkpoint whether the findings are sufficient, need deepening, or need re-scoping. Calliope synthesizes findings into deliverable documents.
+
 This is a constitutional invariant: the same classification always triggers the same pipeline. No exceptions.
 
 ---
 
 ## Quality gates — problems caught before code is written
 
-Five gates are embedded in the pipeline. Each gate has a structured checklist. Critical issues block the pipeline. Gates cannot be skipped, reordered, or made optional by any configuration.
+### Implementation quality (Q1-Q5)
+
+Five gates are embedded in implementation pipelines. Each gate has a structured checklist. Critical issues block the pipeline. Gates cannot be skipped, reordered, or made optional by any configuration.
 
 | Gate | Checks | Agent |
 |---|---|---|
@@ -139,6 +145,17 @@ Five gates are embedded in the pipeline. Each gate has a structured checklist. C
 | **Q3: Feasibility** | Files exist, dependencies ordered, budget fits, rollback path defined, contract interfaces | Daedalus |
 | **Q4: Correctness** | Matches spec, standards compliance, security (injection, XSS, credentials), no fabrication | Themis |
 | **Q5: Coverage** | Happy path, error cases, edge cases, integration points, tests actually run and pass | Aletheia |
+
+### Analytical quality (QA1-QA4)
+
+Analytical pipeline uses four dedicated quality gates focused on analysis rigor rather than code correctness:
+
+| Gate | Checks | Agent |
+|---|---|---|
+| **QA1: Scope Completeness** | All questions answered, structural coverage, no high-centrality gaps left unexplored | Athena + Themis |
+| **QA2: Evidence Quality** | Hypothesis-evidence-verdict format, concrete citations, calibrated confidence | Themis |
+| **QA3: Actionability** | Concrete recommendations, justified priorities, effort/impact estimates | Themis |
+| **QA4: Analytical Rigor** | Competing explanations, no confirmation bias, cross-validated findings, convergence documented | Themis |
 
 Gates are presented as numbered prompts where you choose: **proceed**, **details** (see full reasoning), **modify** (provide feedback), or **abort**.
 
@@ -159,6 +176,22 @@ Gates are presented as numbered prompts where you choose: **proceed**, **details
 ```
 
 Critical findings trigger automatic retry (up to 3 attempts with feedback), then escalation to you. Nothing is silent or hidden.
+
+---
+
+## CS methods — formal rigor for analytical tasks
+
+The analytical pipeline embeds six computer science methods to ensure analysis quality. Methods are tiered by readiness:
+
+**Tier A (always active):**
+- **CS-3: Hypothesis-Driven Analysis** — every finding follows hypothesis → evidence → verdict format. No vague claims.
+- **CS-6: Lattice-Based Organization** — findings organized into a causal/containment hierarchy before synthesis. Documents have natural structure rather than flat lists.
+
+**Tier B (activate when [Ariadne](https://github.com/mind-decay/ariadne) is available):**
+- **CS-1: Fixpoint Convergence** — tracks finding delta between analysis passes. Formal termination criterion for depth.
+- **CS-2: Graph-Based Coverage** — uses Ariadne's dependency graph as the coverage space. Reports what percentage of relevant nodes have been analyzed.
+- **CS-4: Abductive Reasoning** — generates competing explanations for structural symptoms. No finding accepted without considering alternatives.
+- **CS-5: Information Gain** — prioritizes deepening direction by centrality, unexplored ratio, and smell density.
 
 ---
 
@@ -189,7 +222,7 @@ Knowledge entries have confidence scores that decay over time using an exponenti
 
 ### Bootstrapping
 
-When you run `/moira init`, four parallel scanners analyze your project in 2-3 minutes: technology stack, project structure, coding conventions, and established patterns. This gives Moira a working knowledge base from day one. Subsequent tasks refine and expand it organically.
+When you run `/moira:init`, four parallel scanners analyze your project in 2-3 minutes: technology stack, project structure, coding conventions, and established patterns. This gives Moira a working knowledge base from day one. Subsequent tasks refine and expand it organically.
 
 ---
 
@@ -203,15 +236,33 @@ Context overflow is the most common failure mode in AI-assisted coding. Moira pr
 
 **Pre-execution estimation.** Before a task runs, the Planner estimates token usage per step. If any step would exceed an agent's budget, it is automatically split into smaller units.
 
-**Adaptive safety margin.** Based on telemetry from previous tasks, the system calculates how much margin to reserve. Minimum 20% is always kept, with the actual margin adapting to observed estimation accuracy.
+**Adaptive safety margin.** Based on telemetry from previous tasks, the system calculates how much margin to reserve per agent type. Minimum 20% is always kept, with the actual margin adapting to observed estimation accuracy. Cold start uses a fixed 30% until enough data accumulates.
 
-**Auto-checkpoint at 60%.** If the orchestrator's context reaches 60%, work is automatically saved. You can resume in a new Claude session with `/moira resume` — no progress lost, no quality degradation.
-
-```
-⚡ context: 23k/1M ▓▓░░░░░░░░ 2%
-```
+**Auto-checkpoint at 60%.** If the orchestrator's context reaches 60%, work is automatically saved. You can resume in a new Claude session with `/moira:resume` — no progress lost, no quality degradation.
 
 Per-agent budget allocations range from 20k tokens (Classifier) to 140k tokens (Explorer, Auditor), tuned to each role's needs.
+
+---
+
+## Error handling — 11 error types with structured recovery
+
+Every failure mode is classified, detected, and recovered from through a defined path:
+
+| Code | Category | Recovery |
+|---|---|---|
+| E1-INPUT | Missing data | Agent stops, asks you for specific information |
+| E2-SCOPE | Scope change | Pipeline pauses, presents upgrade/split/reduce options |
+| E3-CONFLICT | Contradiction | Both sides documented, you decide |
+| E4-BUDGET | Context overflow | Auto-split into smaller batches |
+| E5-QUALITY | Quality failure | Retry with feedback (up to 3x), then escalate |
+| E6-AGENT | Agent failure | Retry 1x, diagnose, escalate with full report |
+| E7-DRIFT | Rule violation | Logged, flagged for audit, rules strengthened if recurring |
+| E8-STALE | Outdated knowledge | Flagged for refresh, verified by Explorer |
+| E9-SEMANTIC | Wrong content | Reviewer catches factual errors, architecture gate catches design errors |
+| E10-DIVERGE | Data disagreement | Architect cross-checks, presents contradiction to user |
+| E11-TRUNCATION | Context loss | Budget pre-check prevents, Reviewer catches post-hoc |
+
+Retry decisions are informed by a Markov optimizer that tracks success probability per error type and agent. When historical data shows low retry success probability, the system escalates to you instead of wasting tokens.
 
 ---
 
@@ -239,7 +290,7 @@ Enforcement operates on three tiers:
 
 After each task completes, Mnemosyne (Reflector) analyzes the execution: what worked, what didn't, what patterns are emerging. If the same issue appears across 3+ tasks, a rule change proposal is generated — but never applied automatically. You review and approve.
 
-Argus (Auditor) runs independently via `/moira audit`, checking five domains: rules consistency, knowledge integrity, agent configuration, system config, and cross-reference validity. Findings are classified by risk (low/medium/high) with specific fix recommendations.
+Argus (Auditor) runs independently via `/moira:audit`, checking five domains: rules consistency, knowledge integrity, agent configuration, system config, and cross-reference validity. Findings are classified by risk (low/medium/high) with specific fix recommendations.
 
 This creates a feedback loop: tasks produce knowledge, knowledge improves agents, better agents produce better tasks. But all changes go through you.
 
@@ -251,13 +302,13 @@ This creates a feedback loop: tasks produce knowledge, knowledge improves agents
 # First developer
 curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/remote-install.sh | bash
 cd project && claude
-> /moira init                              # scan project, generate config
+> /moira:init                              # scan project, generate config
 git add .claude/moira/ && git commit       # share config + knowledge
 
 # Everyone else
 curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/remote-install.sh | bash
 git pull && cd project && claude
-> /moira init                              # detects existing config, ready
+> /moira:init                              # detects existing config, ready
 ```
 
 Project configuration and knowledge travel with the repo (committed). Task state is per-developer (gitignored). New team members inherit all accumulated project knowledge — conventions, decisions, patterns, quality assessments — on their first session.
@@ -272,10 +323,10 @@ Project configuration and knowledge travel with the repo (committed). Task state
 │                                                   │
 │  Orchestrator logic, pipeline definitions,        │
 │  agent templates, quality criteria, hooks,         │
-│  20 shell libraries, 12 YAML schemas.             │
+│  21 shell libraries, 12 YAML schemas.             │
 │  Installed once. Shared across all projects.      │
 └────────────────────────┬──────────────────────────┘
-                         │  /moira init generates
+                         │  /moira:init generates
 ┌────────────────────────▼──────────────────────────┐
 │         PROJECT LAYER  (.claude/moira/)            │
 │                                                   │
@@ -325,19 +376,20 @@ Higher layers override lower ones (except inviolable rules from Layer 1, which c
 
 | Command | What it does |
 |---|---|
-| `/moira init` | Scan project, generate config and knowledge base |
-| `/moira <task>` | Execute task through the appropriate pipeline |
-| `/moira resume` | Resume interrupted task from last checkpoint |
-| `/moira status` | Current task, pipeline progress, system health |
-| `/moira knowledge` | Browse and manage accumulated knowledge |
-| `/moira metrics` | Performance dashboard and trends |
-| `/moira audit` | System health check across 5 domains |
-| `/moira bench` | Run behavioral test suite |
-| `/moira refresh` | Re-scan project, update knowledge |
-| `/moira upgrade` | Upgrade Moira to a newer version |
-| `/moira graph` | Query project structure graph (requires [Ariadne](https://github.com/mind-decay/ariadne)) |
+| `/moira:init` | Scan project, generate config and knowledge base |
+| `/moira:task <description>` | Execute task through the appropriate pipeline |
+| `/moira:resume` | Resume interrupted task from last checkpoint |
+| `/moira:status` | Current task, pipeline progress, system health |
+| `/moira:knowledge` | Browse and manage accumulated knowledge |
+| `/moira:metrics` | Performance dashboard and trends |
+| `/moira:audit` | System health check across 5 domains |
+| `/moira:bench` | Run behavioral test suite |
+| `/moira:health` | Quick system health overview |
+| `/moira:refresh` | Re-scan project, update knowledge and MCP registry |
+| `/moira:upgrade` | Upgrade Moira to a newer version |
+| `/moira:graph` | Query project structure graph (requires [Ariadne](https://github.com/mind-decay/ariadne)) |
 | `/moira bypass: <task>` | Skip the pipeline — logged, requires explicit confirmation |
-| `/moira help` | Documentation and command reference |
+| `/moira:help` | Documentation and command reference |
 
 After task completion:
 - **done** — accept changes
@@ -348,23 +400,25 @@ After task completion:
 
 ---
 
-## Testing
-
-| Tier | Method | Cost | When |
-|---|---|---|---|
-| **Structural** | Shell scripts + grep. Deterministic checks on YAML schemas, file structure, NEVER constraints, gate presence. | 0 tokens | Every change |
-| **Behavioral** | Full Moira runs on fixture projects (greenfield, mature, legacy). LLM-as-judge scoring with calibrated rubrics. | High | Prompt or rule changes |
-| **Full bench** | All tests + statistical confidence bands across multiple runs. | Very high | Pipeline, gate, or role changes |
-
-Live telemetry tracks per-task metrics passively — token usage, durations, gate pass rates, quality scores. Numbers only, never content.
-
----
-
 ## Project graph (optional)
 
 If [Ariadne](https://github.com/mind-decay/ariadne) is installed, Moira gains architectural intelligence: dependency graphs, blast radius analysis, cycle detection, coupling metrics, cluster identification, and code smell detection. Agents use this data for smarter exploration and more informed architectural decisions.
 
-Ariadne is optional. Moira works fully without it — graph features gracefully degrade when the binary is not present.
+In the analytical pipeline, Ariadne is the primary data source: Hermes runs baseline structural queries during gather, and Metis/Argus query interactively during analysis passes. CS methods (Tier B) use Ariadne metrics for coverage computation, convergence tracking, and deepening prioritization.
+
+Ariadne is optional. Moira works fully without it — graph features gracefully degrade when the binary is not present. The analytical pipeline runs with CS-3 and CS-6 (Tier A methods) regardless.
+
+---
+
+## Testing
+
+| Tier | Method | Cost | When |
+|---|---|---|---|
+| **Structural** | Shell scripts + grep. Deterministic checks on YAML schemas, file structure, NEVER constraints, gate presence. 1144 tests. | 0 tokens | Every change |
+| **Behavioral** | Full Moira runs on fixture projects (greenfield, mature, legacy). LLM-as-judge scoring with calibrated rubrics. | High | Prompt or rule changes |
+| **Full bench** | All tests + statistical confidence bands across multiple runs. | Very high | Pipeline, gate, or role changes |
+
+Live telemetry tracks per-task metrics passively — token usage, durations, gate pass rates, quality scores. Numbers only, never content.
 
 ---
 
@@ -377,20 +431,22 @@ The system is designed before it is built. All implementation conforms to design
 | [System Design](design/SYSTEM-DESIGN.md) | Index of all design documents |
 | [Constitution](design/CONSTITUTION.md) | Six inviolable articles |
 | [Architecture Overview](design/architecture/overview.md) | Layers, data flow, file structure |
-| [Agents](design/architecture/agents.md) | Types, contracts, boundaries, knowledge access |
-| [Pipelines](design/architecture/pipelines.md) | Execution flows, batching, CPM scheduling |
-| [Knowledge](design/architecture/knowledge.md) | Types, access levels, freshness, bootstrapping |
-| [Quality](design/architecture/quality.md) | Gates, checklists, severity, code evolution |
-| [Budget](design/architecture/budget.md) | Context management, estimation, adaptive margins |
+| [Agents](design/architecture/agents.md) | 11 agent types, contracts, boundaries, knowledge access |
+| [Pipelines](design/architecture/pipelines.md) | 5 execution flows, batching, CPM scheduling |
+| [Analytical Pipeline](design/architecture/analytical-pipeline.md) | Progressive depth, CS methods, QA gates |
+| [Knowledge](design/subsystems/knowledge.md) | Types, access levels, freshness, bootstrapping |
+| [Quality](design/subsystems/quality.md) | Gates Q1-Q5, QA1-QA4, severity, code evolution |
+| [Budget](design/subsystems/context-budget.md) | Context management, estimation, adaptive margins |
 | [Rules](design/architecture/rules.md) | Four-layer rule system |
-| [Decision Log](design/decisions/log.md) | 100+ architectural decisions with reasoning |
-| [Roadmap](design/IMPLEMENTATION-ROADMAP.md) | Implementation phases |
+| [Fault Tolerance](design/subsystems/fault-tolerance.md) | E1-E11 error taxonomy, recovery strategies |
+| [Decision Log](design/decisions/log.md) | 132 architectural decisions with reasoning |
+| [Roadmap](design/IMPLEMENTATION-ROADMAP.md) | 14 implementation phases |
 
 ---
 
 ## Status
 
-Phases 1-12 complete. Phase 13 (project graph integration) in progress. 30+ design documents. 100+ architectural decisions logged.
+All 14 phases complete. 132 architectural decisions logged. 1144 structural tests passing. Tested on real projects.
 
 ---
 
