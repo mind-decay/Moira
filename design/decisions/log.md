@@ -1323,3 +1323,20 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - Per-subtype organize agent — unnecessary complexity; lattice construction is structural reasoning regardless of analytical subtype
 - Athena as organizer — Athena's role is scope formalization, not structural organization of findings
 **Reasoning:** Lattice construction requires reasoning about causal relationships, scope containment, and dependency between findings — structural reasoning that is Metis's core competency. Using the same agent for all subtypes makes the organize step deterministic (Art 2.1) without needing agent_map lookup.
+
+## D-133: Hybrid Completion Processor (Shell + LLM Agent)
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** The orchestrator's Section 7 completion flow (~30 sub-steps in the `done` block) was never fully executing. By the time the orchestrator reached the final gate, LLM context pressure caused it to stop before executing telemetry writes, status finalization, and reflection dispatch. Evidence: task-2026-03-22-001 completed with `completion.action: done` but had no `telemetry.yaml`, no `status: completed`, and no `reflection.md`.
+**Decision:**
+- (a) Extract the completion flow from orchestrator Section 7 into a dedicated completion processor dispatched as a foreground agent. The orchestrator's `done` block shrinks from ~30 steps to 4 (record action, dispatch processor, handle result, cleanup).
+- (b) The completion processor uses a hybrid architecture: a shell script (`lib/completion.sh`) executes mechanical steps 1-17 (telemetry, status, quality aggregation, metrics, cleanup) in a single Bash call (~2 seconds), and the LLM agent handles only step 18 (reflection dispatch — requires Agent tool for Mnemosyne).
+- (c) Rename `templates/reflection/standard.md` to `background.md` to match pipeline YAML level names.
+**Alternatives rejected:**
+- Pure LLM completion agent (all 18 steps) — worked but consumed ~60k tokens and ~4.5 minutes for mechanical YAML operations
+- Prompt engineering (emphasize MUST in Section 7) — does not address structural root cause
+- Post-hook trigger — hooks cannot dispatch agents
+- Separate `/moira:complete` command — UX regression, manual step
+- Simplify Section 7 in-place — defers telemetry, loses data
+**Reasoning:** The hybrid approach gives structural reliability (fresh context window) with minimal cost (shell for mechanics, LLM only where needed). Expected cost: ~5-10k tokens and ~30 seconds vs 60k tokens and 4.5 minutes for the pure LLM approach. The shell script reuses all existing `moira_*` library functions — no new infrastructure needed.

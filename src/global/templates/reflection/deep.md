@@ -4,7 +4,7 @@ This is an extended reflection triggered periodically (every 5 tasks) or by expl
 
 ---
 
-{{INCLUDE: standard.md sections 1-8}}
+{{INCLUDE: background.md sections 1-8}}
 
 ---
 
