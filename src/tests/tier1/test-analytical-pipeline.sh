@@ -50,9 +50,8 @@ if [[ -f "$PIPELINES_DIR/analytical.yaml" ]]; then
     assert_file_contains "$PIPELINES_DIR/analytical.yaml" "^  ${subtype}:" "analytical.yaml agent_map has subtype: ${subtype}"
   done
 
-  # Organize map has default + documentation
+  # Organize map has default: metis (D-132: Metis is universal organizer for all subtypes)
   assert_file_contains "$PIPELINES_DIR/analytical.yaml" "default: metis" "analytical.yaml organize_map has default: metis"
-  assert_file_contains "$PIPELINES_DIR/analytical.yaml" "documentation: athena" "analytical.yaml organize_map has documentation: athena"
 fi
 
 # ── QA1-QA4 YAML files exist and have correct structure ──────────────
