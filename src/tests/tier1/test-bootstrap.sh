@@ -180,7 +180,7 @@ EOF
   TEST_SUB4="$TEST_DIR/sub4"
   mkdir -p "$TEST_SUB4"
   moira_bootstrap_setup_gitignore "$TEST_SUB4"
-  if [[ -f "$TEST_SUB4/.gitignore" ]] && grep -q ".claude/moira/state/tasks/" "$TEST_SUB4/.gitignore"; then
+  if [[ -f "$TEST_SUB4/.gitignore" ]] && grep -q ".claude/moira/state/" "$TEST_SUB4/.gitignore"; then
     pass "gitignore: creates .gitignore with moira entries"
   else
     fail "gitignore: failed to create with entries"
@@ -192,7 +192,7 @@ EOF
   echo "node_modules/" > "$TEST_SUB5/.gitignore"
   moira_bootstrap_setup_gitignore "$TEST_SUB5"
   if grep -q "node_modules/" "$TEST_SUB5/.gitignore" && \
-     grep -q ".claude/moira/state/tasks/" "$TEST_SUB5/.gitignore"; then
+     grep -q ".claude/moira/state/" "$TEST_SUB5/.gitignore"; then
     pass "gitignore: appends to existing, preserves content"
   else
     fail "gitignore: failed to append or lost existing content"
@@ -200,7 +200,7 @@ EOF
 
   # ── Gitignore: idempotent (no duplicates) ──
   moira_bootstrap_setup_gitignore "$TEST_SUB5"
-  dup_count=$(grep -c ".claude/moira/state/tasks/" "$TEST_SUB5/.gitignore" || true)
+  dup_count=$(grep -c ".claude/moira/state/" "$TEST_SUB5/.gitignore" || true)
   if [[ "$dup_count" -eq 1 ]]; then
     pass "gitignore: idempotent — no duplicates"
   else

@@ -856,13 +856,7 @@ moira_bootstrap_setup_gitignore() {
 
   local entries=(
     "# Moira orchestration state (per-developer)"
-    ".claude/moira/state/tasks/"
-    ".claude/moira/state/bypass-log.yaml"
-    ".claude/moira/state/current.yaml"
-    ".claude/moira/state/init/"
-    ".claude/moira/state/violations.log"
-    ".claude/moira/state/tool-usage.log"
-    ".claude/moira/state/budget-tool-usage.log"
+    ".claude/moira/state/"
   )
 
   # If .gitignore doesn't exist, create it
