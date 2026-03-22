@@ -76,7 +76,7 @@ if [[ -f "$MOIRA_HOME/lib/judge.sh" ]]; then
 fi
 
 # ── Reflection templates ────────────────────────────────────────────
-for tmpl in lightweight standard deep epic; do
+for tmpl in lightweight background deep epic; do
   assert_file_exists "$MOIRA_HOME/templates/reflection/${tmpl}.md" "reflection template ${tmpl}.md exists"
 done
 
@@ -155,9 +155,9 @@ if [[ -f "$MOIRA_HOME/lib/scaffold.sh" ]]; then
   assert_file_contains "$MOIRA_HOME/lib/scaffold.sh" "state/reflection" "scaffold.sh creates state/reflection"
 fi
 
-# orchestrator.md references reflection.md
+# orchestrator.md references completion processor (D-133: reflection dispatch moved to completion.md)
 if [[ -f "$MOIRA_HOME/skills/orchestrator.md" ]]; then
-  assert_file_contains "$MOIRA_HOME/skills/orchestrator.md" "reflection.md" "orchestrator.md references reflection.md skill"
+  assert_file_contains "$MOIRA_HOME/skills/orchestrator.md" "completion processor" "orchestrator.md references completion processor"
 fi
 
 # dispatch.md has Mnemosyne alternative path note
