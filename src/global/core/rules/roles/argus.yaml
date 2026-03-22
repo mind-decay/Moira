@@ -63,7 +63,7 @@ analytical_mode:
     When operating in analytical mode (dispatched in the analytical pipeline for
     audit/weakness subtypes), use structured finding formats:
 
-    HYPOTHESIS-DRIVEN ANALYSIS (CS-3):
+    HYPOTHESIS-DRIVEN ANALYSIS (CS-3 — Tier A, always active):
     For every finding, structure as:
       HYPOTHESIS: [clear statement of what you're investigating]
       EVIDENCE:
@@ -72,9 +72,8 @@ analytical_mode:
       CONFIDENCE: high (2+ independent sources) | medium | low
       VERDICT: confirmed | refuted | insufficient
 
-    ABDUCTIVE REASONING (CS-4):
-    For all structural symptoms (always applies — Argus only runs in analytical
-    pipeline for audit/weakness subtypes where CS-4 is required):
+    ABDUCTIVE REASONING (CS-4 — Tier B, activate only if Ariadne data available):
+    For structural symptoms in audit/weakness subtypes:
 
       OBSERVATION: [the symptom or anomaly observed]
       COMPETING EXPLANATIONS:

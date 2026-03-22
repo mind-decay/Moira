@@ -44,7 +44,7 @@ analytical_mode:
     When operating in analytical mode (dispatched in the analytical pipeline), use the
     hypothesis-evidence-verdict format (CS-3) for ALL findings:
 
-    HYPOTHESIS-DRIVEN ANALYSIS (CS-3):
+    HYPOTHESIS-DRIVEN ANALYSIS (CS-3 — Tier A, always active):
     For every finding, structure as:
       HYPOTHESIS: [clear statement of what you're investigating]
       EVIDENCE:
@@ -66,7 +66,7 @@ analytical_mode:
   subtypes:
     weakness:
       additional_instructions: |
-        Use ABDUCTIVE REASONING (CS-4) for all structural symptoms:
+        Use ABDUCTIVE REASONING (CS-4 — Tier B, activate only if Ariadne data available) for structural symptoms:
 
         OBSERVATION: [the symptom or anomaly observed]
         COMPETING EXPLANATIONS:
@@ -82,7 +82,7 @@ analytical_mode:
 
     audit:
       additional_instructions: |
-        Use ABDUCTIVE REASONING (CS-4) for all structural symptoms:
+        Use ABDUCTIVE REASONING (CS-4 — Tier B, activate only if Ariadne data available) for structural symptoms:
 
         OBSERVATION: [the symptom or anomaly observed]
         COMPETING EXPLANATIONS:

@@ -430,14 +430,15 @@ At the analysis step, the orchestrator resolves which agents to dispatch:
    - `agents` list → which agents to dispatch
    - `mode` → foreground (single agent) or parallel (multiple agents)
    - `support` → optional support agents dispatched after primary completes
-4. Dispatch agents using the resolved configuration
+   - `focus` → analytical focus directive to include in agent prompt (e.g., "Open-ended investigation. Follow leads, map unknowns.")
+   - `ariadne_focus` → Ariadne query guidance to include when graph is available (e.g., "targeted queries on area of interest")
+4. Dispatch agents using the resolved configuration. Include `focus` in the agent prompt's task context section. If `graph_available` is true, also include `ariadne_focus` as Ariadne query guidance.
 
 ### Organize Map Resolution (Organize Step)
 
 At the organize step:
 1. Read `organize_map` from the pipeline YAML
-2. If subtype is `documentation` → dispatch `athena`
-3. Otherwise → dispatch `metis` (the `default` entry)
+2. Dispatch the agent specified by `organize_map[subtype]`, falling back to `organize_map.default` (metis) if no subtype-specific entry exists (D-132: Metis is the universal organizer for all subtypes)
 
 ### Ariadne MCP Access (Tier 2)
 

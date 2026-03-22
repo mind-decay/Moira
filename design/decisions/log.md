@@ -1068,16 +1068,21 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - No governance — complexity grows unbounded, Art 1.3 becomes unenforceable for the most critical component
 **Reasoning:** The orchestrator is intentionally more complex than other components because it coordinates all pipeline flow. But "intentionally complex" still needs bounds. A governance metric with threshold creates a structural trigger for decomposition review without premature splitting.
 
-## D-111: Formal Methods Deferred to Post-v1
+## D-111: Formal Methods — Partially Implemented
 
 **Date:** 2026-03-19
-**Status:** Accepted
+**Status:** Accepted (updated 2026-03-22: implementation diverged — exponential decay and adaptive margin were implemented during Phases 7/10/11, Markov retry remains deferred)
 **Context:** Architecture review (2026-03-19) found D-094's formal methods suite (SPRT, CUSUM, BH correction, Markov retry, exponential decay) adds ~30% implementation surface to Phases 7, 10, and 11 for statistical techniques that require scale (hundreds of tasks, dozens of test cases) to provide value. Moira processes ~47 tasks/month. CPM (Critical Path Method) for batch scheduling is the exception — directly useful at any scale.
-**Decision:** Defer SPRT, CUSUM, Benjamini-Hochberg correction, Markov retry optimization, and exponential knowledge decay to post-v1. Keep CPM for batch scheduling. For v1: use fixed retry limits (per D-095), simple zone-based metric thresholds (NORMAL/WARN/ALERT without CUSUM), uncorrected p-values (acceptable with only 4 metrics), and task-count-based knowledge staleness (stale after N tasks since last verified, where N varies by knowledge type). D-094 design remains as the post-v1 specification.
-**Alternatives rejected:**
-- Keep all formal methods — implementation cost disproportionate to pre-scale benefit
-- Remove formal methods from design entirely — the techniques are sound and will be valuable at scale
-**Reasoning:** Simple thresholds and fixed limits achieve ~85-90% of the value at ~30% of the implementation cost. The formal methods become valuable once there are 100+ tasks of historical data. D-094 spec is preserved for when the system reaches that scale.
+**Decision (original):** Defer SPRT, CUSUM, Benjamini-Hochberg correction, Markov retry optimization, and exponential knowledge decay to post-v1. Keep CPM for batch scheduling.
+**Actual implementation:** During Phases 7, 10, and 11 implementation, exponential knowledge decay (`knowledge.sh`), adaptive budget margins (`budget.sh`), and Markov retry optimization (`retry.sh`) were all implemented with cold-start defaults that match simple behavior (30% margin, no decay with <5 observations, hard limits as upper bounds). These are now active subsystems.
+**Current status of each technique:**
+- CPM batch scheduling — implemented (as planned)
+- Exponential knowledge decay — implemented (cold-start safe)
+- Adaptive budget margin — implemented (cold-start safe)
+- Markov retry optimizer — implemented (hard limits as upper bounds, EMA-smoothed probabilities)
+- SPRT — deferred to post-v1
+- CUSUM — deferred to post-v1
+- Benjamini-Hochberg — deferred to post-v1
 
 ## D-112: Plan Gate Backward Flow (Rearchitect Option)
 

@@ -298,7 +298,7 @@ When starting the analytical pipeline:
 - If `mode: parallel` → dispatch agents in parallel (same pattern as existing parallel steps)
 - If `support` array present → dispatch support agents after primary completes
 - Agent writes to `analysis-pass-{N}.md` where N = `analytical.pass_number` from `current.yaml`
-- Include in task context: pipeline mode (analytical), subtype, pass number, previous pass summary (if N > 1)
+- Include in task context: pipeline mode (analytical), subtype, pass number, previous pass summary (if N > 1), `focus` directive from agent_map (analytical focus for this subtype), and `ariadne_focus` guidance if graph is available
 
 **Depth checkpoint step:** Dispatch Themis (reviewer) for convergence computation. Themis reads current and previous pass files, computes delta/coverage/findings, writes `review-pass-{N}.md`. After Themis returns, present the **depth_checkpoint_gate** (per `gates.md`).
 

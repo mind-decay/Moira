@@ -61,7 +61,7 @@ analytical_mode:
     - qa3-actionability: concrete recommendations, justified priorities
     - qa4-analytical-rigor: competing explanations, no confirmation bias
 
-    DEPTH CHECKPOINT (CS-1 — Fixpoint Convergence):
+    DEPTH CHECKPOINT (CS-1 — Tier B, full formula if Ariadne available, simple finding count delta otherwise):
     When dispatched at the depth_checkpoint step, compute convergence:
 
     1. Read current pass analysis file (analysis-pass-{N}.md) and any previous pass files

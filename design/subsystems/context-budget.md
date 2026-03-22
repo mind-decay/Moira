@@ -16,20 +16,15 @@ Context is the only non-renewable resource. An agent with a full context halluci
 │ Working data (code, files)     ~20-80k  │ ← MANAGED
 │ Agent reasoning                ~30-50k  │ ← uncontrolled
 │ ─────────────────────────────────────── │
-│ SAFETY MARGIN                fixed 30%  │ ← v1 default
+│ SAFETY MARGIN           adaptive 20-50% │ ← data-driven
 └─────────────────────────────────────────┘
 ```
 
-**Hard rule: Never load an agent beyond 70% of its budget. Fixed 30% safety margin always reserved.**
+**Hard rule: Never load an agent beyond its adaptive capacity limit. Minimum 20% safety margin always reserved. Maximum 50% margin cap. Default 30% during cold start (<5 observations).**
 
 Note: With 1M context (D-064), agent budgets remain at pre-1M allocations — they define maximum useful work, not context limits. Orchestrator has significant headroom.
 
-### Adaptive Margin Model (Post-v1, per D-111)
-
-> **Deferred to post-v1.** The adaptive margin system described below is designed but not active in v1. V1 uses a fixed 30% safety margin for all agents. The adaptive model will activate once the system has sufficient telemetry history (100+ tasks) to provide meaningful per-agent estimation accuracy statistics. See D-094 and D-111 for full rationale.
-
-<details>
-<summary>Post-v1 adaptive margin design</summary>
+### Adaptive Margin Model
 
 The safety margin is adaptive per agent type, computed from telemetry history:
 
@@ -49,16 +44,16 @@ For each agent type a:
     - Default (cold start, <5 observations): 30% (current value)
 ```
 
-Cold start behavior:
+**Cold start behavior:**
 - <5 observations for an agent type → fixed 30% margin (identical to pre-adaptive behavior)
 - 5-20 observations → wider confidence: max(0.20, μ + 3σ) instead of μ + 2σ
 - 20+ observations → standard formula: max(0.20, min(0.50, μ + 2σ))
 
-Data source: `telemetry.yaml` records `context_pct` per agent. Budget library reads monthly aggregate to compute per-agent estimation accuracy statistics.
+**Data source:** `telemetry.yaml` records `context_pct` per agent. Budget library reads monthly aggregate to compute per-agent estimation accuracy statistics.
 
-E11-TRUNCATION risk acknowledgment (D-094c): Reducing the safety margin below the 30% cold-start default accepts increased E11-TRUNCATION risk in exchange for improved context efficiency.
+**Transparency (Art 3.2):** Adaptive margins are reported in budget report with source data (N observations, computed margin). Not hidden.
 
-</details>
+**E11-TRUNCATION risk acknowledgment (D-094c):** Reducing the safety margin below the 30% cold-start default accepts increased E11-TRUNCATION risk in exchange for improved context efficiency. The adaptive model mitigates this by requiring sufficient observations before narrowing margins (cold start holds at 30%, 5-20 observations use wider confidence intervals). Operators should be aware that tighter margins mean less buffer against silent context truncation — the telemetry-based approach is the mitigation, not a guarantee.
 
 ## Budget Allocations Per Agent
 

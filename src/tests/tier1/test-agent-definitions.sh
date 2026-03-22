@@ -10,7 +10,7 @@ source "$SCRIPT_DIR/test-helpers.sh"
 MOIRA_HOME="${MOIRA_HOME:-$HOME/.claude/moira}"
 ROLES_DIR="$MOIRA_HOME/core/rules/roles"
 QUALITY_DIR="$MOIRA_HOME/core/rules/quality"
-AGENTS=(apollo hermes athena metis daedalus hephaestus themis aletheia mnemosyne argus)
+AGENTS=(apollo hermes athena metis daedalus hephaestus themis aletheia mnemosyne argus calliope)
 
 # ── Base rules ───────────────────────────────────────────────────────
 assert_file_exists "$MOIRA_HOME/core/rules/base.yaml" "base.yaml exists"

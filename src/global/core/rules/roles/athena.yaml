@@ -44,7 +44,7 @@ analytical_mode:
        - Recommend analysis depth: light (surface-level), standard (thorough), deep (exhaustive)
        - Depth recommendation must be justified by task complexity and scope breadth
 
-    2. GRAPH-BASED COVERAGE (CS-2):
+    2. GRAPH-BASED COVERAGE (CS-2 — Tier B, activate only if Ariadne data available):
        If Ariadne data is available:
        - Identify relevant_nodes: files/modules within the analysis scope
        - Track analyzed_nodes: files/modules actually examined
@@ -54,7 +54,7 @@ analytical_mode:
        - Estimate coverage qualitatively based on directory/file enumeration
        - Note: "Structural coverage computed without graph data — estimates only"
 
-    3. INFORMATION GAIN (CS-5):
+    3. INFORMATION GAIN (CS-5 — Tier B, activate only if Ariadne data available):
        For recommending where to deepen analysis:
        IG(area) is proportional to: centrality × unexplored_ratio × smell_density
        Prioritize areas with highest IG for deepening recommendations.
