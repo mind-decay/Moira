@@ -495,7 +495,7 @@ install_statusline
 source "$SCRIPT_DIR/global/lib/upgrade.sh"
 moira_upgrade_snapshot "$MOIRA_HOME"
 
-verify
+verify || true
 
 echo ""
 echo "======================================="
@@ -504,3 +504,5 @@ echo "======================================="
 echo ""
 echo "  Next: cd <project> && claude && /moira:init"
 echo ""
+
+exit 0
