@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "ariadne": {
+      "command": "ariadne",
+      "args": [
+        "serve",
+        "--project",
+        "/Users/minddecay/Documents/Projects/Moira"
+      ]
+    }
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/guard.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/budget-track.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

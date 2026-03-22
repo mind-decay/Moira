@@ -29,3 +29,9 @@ node_modules/
 tmp/
 *.tmp
 *.log
+
+# Moira orchestration state (per-developer)
+.claude/moira/state/init/
+.claude/moira/state/violations.log
+.claude/moira/state/tool-usage.log
+.claude/moira/state/budget-tool-usage.log
