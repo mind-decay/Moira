@@ -117,7 +117,18 @@ moira_metrics_collect_task() {
   current_by_size=${current_by_size:-0}
   moira_yaml_set "$monthly_file" "tasks.by_size.${size}" "$(( current_by_size + 1 ))"
 
-  # Check if bypassed or aborted
+  # Check if bypassed — read from current.yaml bypass.active field
+  local current_file="${state_dir}/current.yaml"
+  local bypass_active="false"
+  if [[ -f "$current_file" ]]; then
+    bypass_active=$(moira_yaml_get "$current_file" "bypass.active" 2>/dev/null) || true
+    bypass_active=${bypass_active:-false}
+  fi
+  if [[ "$bypass_active" == "true" ]]; then
+    _moira_metrics_increment "$monthly_file" "tasks.bypassed" 1
+  fi
+
+  # Check if aborted
   if [[ "$completion_action" == "abort" ]]; then
     _moira_metrics_increment "$monthly_file" "tasks.aborted" 1
   fi
@@ -138,6 +149,29 @@ moira_metrics_collect_task() {
   # Accuracy: classification correctness
   if [[ "$overridden" == "false" ]]; then
     _moira_metrics_increment "$monthly_file" "accuracy.classification_correct" 1
+  fi
+
+  # Accuracy: architecture and plan first-try acceptance
+  # Parse gate decisions from status.yaml — if architecture_gate decision was "proceed"
+  # on first presentation (no "modify" before it), that's a first-try acceptance.
+  if [[ -f "$status_file" ]]; then
+    local gates_block
+    gates_block=$(moira_yaml_get_block "$status_file" "gates" 2>/dev/null) || true
+    if [[ -n "$gates_block" ]]; then
+      # Check architecture gate: if first architecture_gate decision is "proceed", it's first-try
+      local arch_first_decision
+      arch_first_decision=$(echo "$gates_block" | awk '/architecture_gate/{found=1} found && /decision:/{print $NF; exit}')
+      if [[ "$arch_first_decision" == "proceed" ]]; then
+        _moira_metrics_increment "$monthly_file" "accuracy.architecture_first_try" 1
+      fi
+
+      # Check plan gate: if first plan_gate decision is "proceed", it's first-try
+      local plan_first_decision
+      plan_first_decision=$(echo "$gates_block" | awk '/plan_gate/{found=1} found && /decision:/{print $NF; exit}')
+      if [[ "$plan_first_decision" == "proceed" ]]; then
+        _moira_metrics_increment "$monthly_file" "accuracy.plan_first_try" 1
+      fi
+    fi
   fi
 
   # Call audit trigger check (cross-lib sourcing with existence guard)
@@ -590,7 +624,6 @@ tasks:
     medium: 0
     large: 0
     epic: 0
-  # NOT YET IMPLEMENTED — always 0. Needs bypass detection from current.yaml bypass.active
   bypassed: 0
   aborted: 0
 quality:
@@ -601,7 +634,6 @@ quality:
   reviewer_criticals: 0
 accuracy:
   classification_correct: 0
-  # NOT YET IMPLEMENTED — always 0. Needs gate history parsing from status.yaml
   architecture_first_try: 0
   plan_first_try: 0
 efficiency:

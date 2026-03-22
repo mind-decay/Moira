@@ -10,9 +10,7 @@ allowed-tools:
 
 # Moira — Refresh
 
-This command updates the project's MCP registry by re-scanning available MCP servers.
-
-> Full project re-scan (all scanners, knowledge, rules) is NOT yet implemented. This command currently handles MCP re-scan only.
+This command re-scans the project to update knowledge, MCP registry, and graph data.
 
 ---
 
@@ -26,7 +24,33 @@ Read `.claude/moira/config.yaml`.
   Run /moira:init first.
   ```
 
-## Step 2: MCP Re-scan
+## Step 2: Project Re-scan
+
+Dispatch 4 parallel Explorer agents with Layer 4 scanner instructions (same as init quick scan, D-032):
+
+**Agent 1 — Tech Re-scan:**
+- description: "Hermes — tech re-scan"
+- prompt: Combine Hermes identity + base rules + `~/.claude/moira/templates/scanners/tech-scan.md`
+- run_in_background: true
+
+**Agent 2 — Structure Re-scan:**
+- description: "Hermes — structure re-scan"
+- prompt: Combine Hermes identity + base rules + `~/.claude/moira/templates/scanners/structure-scan.md`
+- run_in_background: true
+
+**Agent 3 — Convention Re-scan:**
+- description: "Hermes — convention re-scan"
+- prompt: Combine Hermes identity + base rules + `~/.claude/moira/templates/scanners/convention-scan.md`
+- run_in_background: true
+
+**Agent 4 — Pattern Re-scan:**
+- description: "Hermes — pattern re-scan"
+- prompt: Combine Hermes identity + base rules + `~/.claude/moira/templates/scanners/pattern-scan.md`
+- run_in_background: true
+
+Wait for all 4 agents to complete. Process results using the same bootstrap scan processing as init: update `config.yaml` stack fields, merge knowledge files (additive — preserve user edits, add new findings, flag conflicts).
+
+## Step 2a: MCP Re-scan
 
 Read the MCP scanner template and dispatch a single Explorer agent:
 - `~/.claude/moira/templates/scanners/mcp-scan.md`
@@ -40,7 +64,7 @@ Read the MCP scanner template and dispatch a single Explorer agent:
 
 Wait for completion.
 
-## Step 2b: Graph Update
+## Step 2b: Graph Update (unchanged)
 
 If the Ariadne binary is installed and a graph already exists, run an incremental update.
 
@@ -67,7 +91,7 @@ After update, extract summary for display:
 bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_summary'
 ```
 
-## Step 3: Merge Registry
+## Step 3: Merge MCP Registry
 
 After scanner returns, merge new results with existing registry per D-084:
 
@@ -86,6 +110,11 @@ After scanner returns, merge new results with existing registry per D-084:
 ═══════════════════════════════════════════
   MOIRA — Refresh Complete
 ═══════════════════════════════════════════
+  Project Model: updated
+  ├─ Stack: {stack}
+  ├─ Conventions: {N} patterns refreshed
+  └─ Knowledge: {M} entries updated
+
   MCP Registry: updated
   ├─ Servers: {N} ({+added}, {-removed})
   └─ Tools: {M} total

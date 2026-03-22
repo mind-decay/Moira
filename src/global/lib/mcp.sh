@@ -289,6 +289,13 @@ ARIADNE_EOF
     in_fm { print }
     ' "$scan_file")
 
+    if [[ -z "$frontmatter" ]]; then
+      echo "Warning: MCP scan file exists but contains no YAML frontmatter. Scanner may have produced malformed output." >&2
+      echo "  Expected: file starting with --- delimiter, YAML block, --- delimiter" >&2
+      echo "  Got: no frontmatter detected in $scan_file" >&2
+      echo "  Skipping external MCP server registration." >&2
+    fi
+
     if [[ -n "$frontmatter" ]]; then
       # Extract the mcp_servers block content (everything under mcp_servers:)
       # Handles variable indentation: detects indent of first child and normalizes

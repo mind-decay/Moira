@@ -482,10 +482,17 @@ The user can choose to refresh or proceed.
 
 Log stale entries to `status.yaml` under `warnings:` block.
 
-### NOT YET IMPLEMENTED
+### Automatic Knowledge Freshness During Pipeline
 
-- Automatic knowledge refresh during pipeline (Phase 10)
-- Impact assessment of stale knowledge on task quality (via `/moira audit knowledge`)
+When an Explorer dispatched during pipeline execution discovers that a knowledge entry contradicts current code state:
+
+1. Explorer reports the contradiction in its output (standard E8-STALE behavior)
+2. The orchestrator flags the stale entry in the current task's `status.yaml` under `warnings:` block
+3. At the next gate presentation, the orchestrator includes a note: "⚠ Stale knowledge detected: {entry} — flagged for refresh"
+4. After pipeline completion, Mnemosyne's reflection includes the stale entry in its knowledge update observations
+5. The stale entry is prioritized for verification at the next `/moira refresh`
+
+This is passive detection — the pipeline does not stop for stale knowledge unless it directly blocks an agent (E1-INPUT). Active refresh of stale entries happens through `/moira refresh` or `/moira audit knowledge`.
 
 ---
 

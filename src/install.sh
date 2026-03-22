@@ -258,8 +258,8 @@ verify() {
     errors+="  core/rules/base.yaml not found\n"
   fi
 
-  # Check: 10 role files exist
-  local role_agents=(apollo hermes athena metis daedalus hephaestus themis aletheia mnemosyne argus)
+  # Check: 11 role files exist (D-118: calliope added for analytical pipeline)
+  local role_agents=(apollo hermes athena metis daedalus hephaestus themis aletheia mnemosyne argus calliope)
   for agent in "${role_agents[@]}"; do
     ((checks_total++)) || true
     if [[ -f "$MOIRA_HOME/core/rules/roles/${agent}.yaml" ]]; then
@@ -269,8 +269,8 @@ verify() {
     fi
   done
 
-  # Check: 5 quality files exist
-  local quality_files=(q1-completeness q2-soundness q3-feasibility q4-correctness q5-coverage)
+  # Check: 9 quality files exist (Q1-Q5 for implementation, QA1-QA4 for analytical pipeline)
+  local quality_files=(q1-completeness q2-soundness q3-feasibility q4-correctness q5-coverage qa1-scope-completeness qa2-evidence-quality qa3-actionability qa4-analytical-rigor)
   for qfile in "${quality_files[@]}"; do
     ((checks_total++)) || true
     if [[ -f "$MOIRA_HOME/core/rules/quality/${qfile}.yaml" ]]; then

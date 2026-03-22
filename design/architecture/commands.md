@@ -98,7 +98,7 @@ Update project model and knowledge base without full re-init.
 - Does NOT regenerate agents or rules (use `/moira init --refresh` for that)
 
 ### `/moira upgrade`
-Upgrade Global Layer to latest version. (Phase 12 deliverable — not yet implemented)
+Upgrade Global Layer to latest version.
 
 - Shows what changed in core
 - Runs compatibility check against project config

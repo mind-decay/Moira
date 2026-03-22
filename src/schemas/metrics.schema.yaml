@@ -43,7 +43,7 @@ fields:
     type: number
     required: false
     default: 0
-    description: "Tasks completed via escape hatch (NOT YET IMPLEMENTED — always 0)"
+    description: "Tasks completed via escape hatch"
   tasks.aborted:
     type: number
     required: false
@@ -87,12 +87,12 @@ fields:
     type: number
     required: false
     default: 0
-    description: "Tasks where architecture was approved first try (NOT YET IMPLEMENTED — always 0)"
+    description: "Tasks where architecture was approved first try"
   accuracy.plan_first_try:
     type: number
     required: false
     default: 0
-    description: "Tasks where plan was approved first try (NOT YET IMPLEMENTED — always 0)"
+    description: "Tasks where plan was approved first try"
 
   # --- Efficiency Metrics ---
   efficiency.avg_orchestrator_context_pct:
