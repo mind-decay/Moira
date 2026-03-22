@@ -214,3 +214,16 @@ Discovery → Documentation → Accumulation → Proposal → Approval → Execu
 2. **Scope lock** — no "while we're at it" expansions
 3. **Regression detection** — full test suite after evolution, rollback if breaks
 4. **Cooldown period** — 5 tasks in CONFORM mode after evolution, monitor results
+
+---
+
+## Analytical Quality Gates (QA1-QA4)
+
+For analytical tasks (Analytical Pipeline, D-119), code-oriented Q1-Q5 gates are replaced by QA1-QA4. Full specification in [analytical-pipeline.md](../architecture/analytical-pipeline.md#analytical-quality-gates).
+
+| Gate | Focus | CS Methods Referenced |
+|------|-------|---------------------|
+| **QA1: Scope Completeness** | All questions answered, structural coverage, no blind spots | CS-2 (graph coverage) |
+| **QA2: Evidence Quality** | Hypothesis-evidence-verdict format, concrete citations, calibrated confidence | CS-3 (hypothesis-driven) |
+| **QA3: Actionability** | Concrete recommendations, justified priorities, effort/impact estimates | — |
+| **QA4: Analytical Rigor** | Competing explanations, no confirmation bias, cross-validation, convergence | CS-1 (fixpoint), CS-4 (abduction) |

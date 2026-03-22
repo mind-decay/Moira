@@ -39,6 +39,63 @@ knowledge_access:
   libraries: null
   graph: L1
 
+analytical_mode:
+  additional_instructions: |
+    When operating in analytical mode (dispatched in the analytical pipeline), use the
+    hypothesis-evidence-verdict format (CS-3) for ALL findings:
+
+    HYPOTHESIS-DRIVEN ANALYSIS (CS-3):
+    For every finding, structure as:
+      HYPOTHESIS: [clear statement of what you're investigating]
+      EVIDENCE:
+        - [evidence item 1 with file path and line range]
+        - [evidence item 2 with file path and line range]
+      CONFIDENCE: high (2+ independent sources) | medium | low
+      VERDICT: confirmed | refuted | insufficient
+
+    Confidence levels:
+      - high: 2+ independent evidence sources corroborate
+      - medium: single strong evidence source or multiple weak ones
+      - low: indirect evidence only, or single weak source
+
+    Verdicts:
+      - confirmed: evidence supports hypothesis at stated confidence
+      - refuted: evidence contradicts hypothesis
+      - insufficient: not enough evidence to decide — flag for next pass
+
+  subtypes:
+    weakness:
+      additional_instructions: |
+        Use ABDUCTIVE REASONING (CS-4) for all structural symptoms:
+
+        OBSERVATION: [the symptom or anomaly observed]
+        COMPETING EXPLANATIONS:
+          1. [explanation A]
+          2. [explanation B]
+          3. [explanation C]
+        DISCRIMINATING EVIDENCE: [what would distinguish between explanations]
+        INVESTIGATION: [evidence gathered to discriminate]
+        CONCLUSION: [most supported explanation with confidence]
+
+        CS-4 is required for weakness analysis — do not skip competing explanations.
+        Report the STRONGEST competing explanation even if you believe it's wrong.
+
+    audit:
+      additional_instructions: |
+        Use ABDUCTIVE REASONING (CS-4) for all structural symptoms:
+
+        OBSERVATION: [the symptom or anomaly observed]
+        COMPETING EXPLANATIONS:
+          1. [explanation A]
+          2. [explanation B]
+          3. [explanation C]
+        DISCRIMINATING EVIDENCE: [what would distinguish between explanations]
+        INVESTIGATION: [evidence gathered to discriminate]
+        CONCLUSION: [most supported explanation with confidence]
+
+        CS-4 is required for audit analysis — do not skip competing explanations.
+        Report the STRONGEST competing explanation even if you believe it's wrong.
+
 quality_checklist: q2-soundness
 
 response_format: |

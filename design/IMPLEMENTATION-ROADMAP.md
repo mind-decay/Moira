@@ -291,6 +291,47 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
+## Phase 14: Analytical Pipeline
+
+**Goal:** Analytical tasks (architecture review, audits, weakness analysis, documentation, research, decision analysis) execute through a dedicated pipeline with progressive depth, CS-based rigor methods, and Ariadne as primary analytical tool.
+
+**Depends on:** Phase 3 (pipeline engine), Phase 13 (Ariadne integration), Phase 2 (agent definitions — Calliope extends agent set).
+
+**Deliverables:**
+- Apollo classification extension: two-dimensional (mode + size/subtype) (D-117)
+- Calliope (scribe) agent definition: role rules, NEVER constraints, response contract (D-118)
+- Analytical Pipeline YAML definition (`core/pipelines/analytical.yaml`) (D-119)
+- Progressive depth mechanism: depth checkpoint gates, convergence tracking
+- Ariadne Level C integration: baseline queries (Tier 1) + agent MCP access (Tier 2) (D-120)
+- CS methods implementation in agent instructions (D-121):
+  - CS-1: Fixpoint convergence (delta tracking between passes)
+  - CS-2: Graph-based coverage (Ariadne as coverage space)
+  - CS-3: Hypothesis-driven analysis (finding format enforcement)
+  - CS-4: Abductive reasoning (competing explanations template)
+  - CS-5: Information gain (Ariadne-based prioritization)
+  - CS-6: Lattice-based finding organization (hierarchical structure)
+- Analytical quality gates QA1-QA4 in Themis instructions (D-122)
+- Depth checkpoint gate UX template
+- Analytical-specific state files (analysis-pass-N.md, finding-lattice.md, etc.)
+- Knowledge access matrix update for Calliope
+- Calliope role rules (`calliope.yaml`)
+
+**Testing:**
+- Classification correctly identifies analytical vs implementation tasks
+- Pipeline executes all subtypes (research, design, audit, weakness, decision, documentation)
+- Progressive depth: single-pass and multi-pass scenarios
+- Convergence metrics computed correctly
+- Coverage metrics use Ariadne data
+- QA1-QA4 gates catch real analytical weaknesses
+- Calliope writes/updates documents without modifying code
+- Graceful degradation without Ariadne (reduced coverage metrics, no structural queries)
+
+**Key decisions:** D-117 (two-dimensional classification), D-118 (Calliope agent), D-119 (progressive depth), D-120 (Ariadne Level C), D-121 (CS methods), D-122 (analytical quality gates).
+
+**Why Phase 14:** Requires working pipeline engine (Phase 3) and Ariadne integration (Phase 13). Analytical pipeline is an extension of core Moira, not a prerequisite for code-producing workflows.
+
+---
+
 ## Testing Strategy
 
 Three-layer architecture woven across phases (D-023):
@@ -336,3 +377,7 @@ System is complete when:
 - [ ] Ariadne (project graph) integration works with/without binary (graceful degradation)
 - [ ] Agents use graph data for navigation and impact analysis
 - [ ] Explorer token usage reduced by 50%+ with graph
+- [ ] Analytical tasks execute through Analytical Pipeline with correct subtype routing
+- [ ] Progressive depth produces convergence metrics that inform user decisions
+- [ ] Calliope writes/updates documents without touching source code
+- [ ] QA1-QA4 gates catch substantive analytical weaknesses (not just cosmetic issues)

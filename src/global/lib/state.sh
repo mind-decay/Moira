@@ -58,7 +58,7 @@ moira_state_transition() {
   fi
 
   # Validate step name
-  local valid_steps="classification exploration analysis architecture plan implementation review testing reflection decomposition integration completion"
+  local valid_steps="classification exploration analysis architecture plan implementation review testing reflection decomposition integration completion gather scope depth_checkpoint organize synthesis"
   local step_valid=false
   for vs in $valid_steps; do
     if [[ "$new_step" == "$vs" ]]; then
@@ -146,7 +146,7 @@ moira_state_gate() {
 
   # Validate decision
   case "$decision" in
-    proceed|modify|abort) ;;
+    proceed|modify|abort|sufficient|deepen|redirect|done) ;;
     *)
       echo "Error: invalid gate decision '$decision' (must be proceed/modify/abort)" >&2
       return 1

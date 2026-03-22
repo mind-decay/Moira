@@ -35,10 +35,45 @@ knowledge_access:
   libraries: null
   graph: L0
 
+analytical_signals:
+  keywords:
+    - "analyze"
+    - "review"
+    - "audit"
+    - "compare"
+    - "document"
+    - "design"
+    - "investigate"
+    - "find weaknesses"
+    - "assess"
+    - "evaluate"
+  subtype_mapping:
+    audit: audit
+    "find weaknesses": weakness
+    weakness: weakness
+    document: documentation
+    documentation: documentation
+    design: design
+    compare: decision
+    decide: decision
+    analyze: research
+    review: research
+    investigate: research
+    assess: research
+    evaluate: research
+  mode_detection: |
+    1. Check task description for analytical signals (keywords above)
+    2. Check for implementation signals: "implement", "fix", "add feature", "write code", "create", "build", "refactor code"
+    3. If ONLY analytical signals → mode=analytical, determine subtype from keyword mapping
+    4. If ONLY implementation signals → mode=implementation, determine size as before
+    5. If BOTH analytical AND implementation signals → STATUS: blocked (ambiguous mode, Art 2.3)
+    6. If NEITHER → mode=implementation (default), determine size as before
+    7. For analytical mode: subtype is determined by the strongest matching keyword. "review" in isolation is analytical, but "review my PR" with implementation context may be ambiguous — weigh signals in context.
+
 quality_checklist: null
 
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded
-  SUMMARY: size=<size>, confidence=<high|low>
+  SUMMARY: mode=<implementation|analytical>, size=<size>|subtype=<subtype>, confidence=<high|low>
   ARTIFACTS: [classification.md]
   NEXT: <recommended next pipeline step>

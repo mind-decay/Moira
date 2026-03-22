@@ -13,7 +13,7 @@ fields:
   pipeline:
     type: enum
     required: true
-    enum: [quick, standard, full, decomposition]
+    enum: [quick, standard, full, decomposition, analytical]
     default: null
   started_at:
     type: string
@@ -26,7 +26,7 @@ fields:
   step:
     type: string
     required: false
-    enum: [classification, exploration, analysis, architecture, plan, implementation, review, testing, reflection, decomposition, integration, completion]
+    enum: [classification, exploration, analysis, architecture, plan, implementation, review, testing, reflection, decomposition, integration, completion, gather, scope, depth_checkpoint, organize, synthesis]
     default: null
   step_status:
     type: enum
@@ -81,6 +81,26 @@ fields:
     required: false
     default: ""
   # Managed by /moira:bypass command — not referenced by skills/shell libs directly
+  # Analytical pipeline state (optional, only present during analytical pipeline execution)
+  analytical.pass_number:
+    type: number
+    required: false
+    default: 1
+    description: "Current analysis pass number (starts at 1, incremented on deepen)"
+  analytical.convergence.previous_finding_count:
+    type: number
+    required: false
+    default: 0
+  analytical.convergence.previous_delta:
+    type: number
+    required: false
+    default: null
+  analytical.convergence.trend:
+    type: enum
+    required: false
+    enum: [decreasing, stable, increasing, null]
+    default: null
+    description: "Convergence trend across analysis passes"
   bypass.active:
     type: boolean
     required: false

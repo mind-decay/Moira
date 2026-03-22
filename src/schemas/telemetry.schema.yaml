@@ -30,7 +30,7 @@ fields:
   # --- Pipeline ---
   pipeline.type:
     type: enum
-    enum: [quick, standard, full, decomposition]
+    enum: [quick, standard, full, decomposition, analytical]
     required: true
     description: "Pipeline type used"
   pipeline.classification_confidence:
@@ -52,7 +52,7 @@ fields:
     item_fields:
       role:
         type: enum
-        enum: [classifier, explorer, analyst, architect, planner, implementer, reviewer, tester, reflector, auditor]
+        enum: [classifier, explorer, analyst, architect, planner, implementer, reviewer, tester, reflector, auditor, scribe]
         required: true
       status:
         type: enum
@@ -77,9 +77,9 @@ fields:
         description: "Gate name — base names (classification_gate, architecture_gate, etc.) may have numeric suffixes for repeating gates"
       result:
         type: enum
-        enum: [proceed, modify, abort]
+        enum: [proceed, modify, abort, sufficient, deepen, redirect, done]
         required: true
-        description: "Gate decision"
+        description: "Gate decision (includes analytical pipeline gate options)"
       retry_count:
         type: number
         required: false
@@ -143,6 +143,35 @@ fields:
     description: "List of constitutional violation codes (if any)"
     item_type: string
     item_pattern: "Art-[0-9]+\\.[0-9]+"
+
+  # --- Analytical Pipeline (optional, only present for analytical pipeline tasks) ---
+  analytical.passes:
+    type: number
+    required: false
+    description: "Number of analysis passes completed"
+  analytical.convergence_at_completion:
+    type: number
+    required: false
+    description: "Final convergence delta at pipeline completion"
+  analytical.coverage_at_completion:
+    type: number
+    required: false
+    description: "Final coverage percentage at pipeline completion"
+  analytical.findings.confirmed:
+    type: number
+    required: false
+    default: 0
+    description: "Number of confirmed findings"
+  analytical.findings.refuted:
+    type: number
+    required: false
+    default: 0
+    description: "Number of refuted findings"
+  analytical.findings.insufficient:
+    type: number
+    required: false
+    default: 0
+    description: "Number of findings with insufficient evidence"
 
   # --- Budget Accuracy ---
   # Dynamic keys: agent role names (explorer, implementer, etc.)

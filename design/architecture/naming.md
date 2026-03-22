@@ -44,6 +44,7 @@ Each agent is named after a deity whose mythological role mirrors the agent's fu
 | Tester | **Aletheia** (Ἀλήθεια) | Spirit of truth and disclosure | Reveals what is true and what fails — tests expose reality |
 | Reflector | **Mnemosyne** (Μνημοσύνη) | Titaness of memory, mother of Muses | Preserves learnings, turns experience into wisdom |
 | Auditor | **Argus** (Ἄργος) | The hundred-eyed giant | Sees everything at once — independent, comprehensive oversight |
+| Scribe | **Calliope** (Καλλιόπη) | Muse of epic poetry, eldest of the Muses | Transforms raw knowledge into structured narrative — synthesizes findings into documents |
 
 ## System Components — Cosmological Forces
 
@@ -127,6 +128,7 @@ moira help agents
   Aletheia      tester         Writes and runs tests
   Mnemosyne     reflector      Analyzes tasks for learning
   Argus         auditor        Independent system health checks
+  Calliope      scribe         Synthesizes findings into documents
 
 moira help system
 

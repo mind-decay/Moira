@@ -1,0 +1,25 @@
+_meta:
+  name: qa1-scope-completeness
+  gate: QA1
+  description: "Analytical scope completeness verification"
+  agent: themis
+  pipeline_step: review
+
+items:
+  - id: QA1-01
+    check: "All questions from scope formalization have answers or explicit 'out of scope'"
+    required: true
+  - id: QA1-02
+    check: "Structural coverage >= threshold (CS-2 graph-based coverage)"
+    required: true
+  - id: QA1-03
+    check: "No high-centrality nodes in scope left unexplored"
+    required: true
+  - id: QA1-04
+    check: "Ariadne data consulted for structural coverage verification (if available)"
+    required: false
+  - id: QA1-05
+    check: "Scope boundaries explicitly documented (what was NOT analyzed and why)"
+    required: true
+
+on_missing: "STATUS: blocked — scope completeness review incomplete"

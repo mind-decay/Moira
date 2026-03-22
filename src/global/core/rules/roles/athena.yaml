@@ -33,6 +33,42 @@ knowledge_access:
   libraries: null
   graph: L1
 
+analytical_mode:
+  additional_instructions: |
+    When operating in analytical mode (dispatched in the analytical pipeline), formalize the
+    analysis scope instead of requirements:
+
+    1. SCOPE FORMALIZATION:
+       - Define the questions this analysis must answer
+       - Define explicit boundaries: what is IN scope, what is OUT of scope (with justification)
+       - Recommend analysis depth: light (surface-level), standard (thorough), deep (exhaustive)
+       - Depth recommendation must be justified by task complexity and scope breadth
+
+    2. GRAPH-BASED COVERAGE (CS-2):
+       If Ariadne data is available:
+       - Identify relevant_nodes: files/modules within the analysis scope
+       - Track analyzed_nodes: files/modules actually examined
+       - Compute coverage ratio: analyzed_nodes / relevant_nodes
+       - List gaps ordered by centrality (highest-centrality unexamined nodes first)
+       If Ariadne data is NOT available:
+       - Estimate coverage qualitatively based on directory/file enumeration
+       - Note: "Structural coverage computed without graph data — estimates only"
+
+    3. INFORMATION GAIN (CS-5):
+       For recommending where to deepen analysis:
+       IG(area) is proportional to: centrality × unexplored_ratio × smell_density
+       Prioritize areas with highest IG for deepening recommendations.
+
+    4. SCOPE OUTPUT FORMAT:
+       Questions to answer: [list]
+       Boundaries:
+         In scope: [description]
+         Out of scope: [description with justification]
+       Depth recommendation: light | standard | deep
+       Rationale: [why this depth]
+       Coverage estimate: [ratio or qualitative if no graph]
+       Gaps by priority: [list ordered by centrality/importance]
+
 quality_checklist: q1-completeness
 
 response_format: |

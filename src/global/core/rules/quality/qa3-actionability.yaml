@@ -1,0 +1,25 @@
+_meta:
+  name: qa3-actionability
+  gate: QA3
+  description: "Actionability and practical value of findings"
+  agent: themis
+  pipeline_step: review
+
+items:
+  - id: QA3-01
+    check: "Each finding has concrete recommended action or explicit 'informational only' label"
+    required: true
+  - id: QA3-02
+    check: "Priority justified — not everything marked 'critical'"
+    required: true
+  - id: QA3-03
+    check: "Recommendations account for project constraints (budget, timeline, team)"
+    required: true
+  - id: QA3-04
+    check: "Dependencies between recommendations made explicit"
+    required: true
+  - id: QA3-05
+    check: "Estimated effort/impact for actionable findings"
+    required: false
+
+on_missing: "STATUS: blocked — actionability review incomplete"

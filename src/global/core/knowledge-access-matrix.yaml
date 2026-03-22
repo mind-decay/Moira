@@ -20,6 +20,7 @@ read_access:
   aletheia:    { project_model: L0, conventions: L1,   decisions: null,  patterns: L0,   quality_map: null, failures: null, libraries: null, graph: L1 } # extras: test mappings via L1 views
   mnemosyne:   { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2,   quality_map: L2,   failures: L2,   libraries: L2,  graph: L2 } # extras: metrics
   argus:       { project_model: L2, conventions: L2,   decisions: L2,    patterns: L2,   quality_map: L2,   failures: L2,   libraries: L2,  graph: L2 } # extras: stats, smells, spectral
+  calliope:    { project_model: L1, conventions: L1,   decisions: L0,    patterns: L0,   quality_map: null,  failures: null,  libraries: null, graph: L0 }
 
 # Write access: which knowledge types each agent can modify
 # Agents not listed have no write access (read-only or no access)

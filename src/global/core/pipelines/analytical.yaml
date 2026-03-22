@@ -1,0 +1,250 @@
+# Analytical Pipeline Definition
+# Source: design/architecture/analytical-pipeline.md
+# Trigger: mode=analytical (any subtype)
+
+_meta:
+  name: analytical
+  description: "Analysis, audit, and documentation tasks — no code output"
+  trigger:
+    mode: analytical
+    subtype: any
+
+# Quality gates for this pipeline (Themis uses these instead of Q1-Q5)
+quality_gates: [qa1, qa2, qa3, qa4]
+
+steps:
+  - id: classification
+    agent: apollo
+    role: classifier
+    mode: foreground
+    writes_to: "tasks/{task_id}/classification.md"
+    reads_from: "tasks/{task_id}/input.md"
+
+  - id: gather
+    agent: hermes
+    role: explorer
+    mode: foreground
+    writes_to:
+      - "tasks/{task_id}/exploration.md"
+      - "tasks/{task_id}/ariadne-baseline.md"
+    reads_from:
+      - "tasks/{task_id}/classification.md"
+      - "tasks/{task_id}/input.md"
+    analytical_mode: true
+
+  - id: scope
+    agent: athena
+    role: analyst
+    mode: foreground
+    writes_to: "tasks/{task_id}/scope.md"
+    reads_from:
+      - "tasks/{task_id}/exploration.md"
+      - "tasks/{task_id}/ariadne-baseline.md"
+      - "tasks/{task_id}/classification.md"
+
+  - id: analysis
+    # Agent determined by agent_map[subtype] at runtime
+    role: analytical_primary
+    mode: dynamic  # foreground or parallel per agent_map
+    writes_to: "tasks/{task_id}/analysis-pass-{N}.md"
+    reads_from:
+      - "tasks/{task_id}/scope.md"
+      - "tasks/{task_id}/exploration.md"
+      - "tasks/{task_id}/ariadne-baseline.md"
+    ariadne_mcp: true
+
+  - id: depth_checkpoint
+    agent: themis
+    role: reviewer
+    mode: foreground
+    writes_to: "tasks/{task_id}/review-pass-{N}.md"
+    reads_from:
+      - "tasks/{task_id}/analysis-pass-{N}.md"
+      - "tasks/{task_id}/scope.md"
+
+  - id: organize
+    # Agent determined by organize_map[subtype] at runtime
+    role: analytical_organizer
+    mode: foreground
+    writes_to:
+      - "tasks/{task_id}/finding-lattice.md"
+      - "tasks/{task_id}/synthesis-plan.md"
+    reads_from:
+      - "tasks/{task_id}/analysis-pass-*.md"
+      - "tasks/{task_id}/scope.md"
+
+  - id: synthesis
+    agent: calliope
+    role: scribe
+    mode: foreground
+    writes_to: "tasks/{task_id}/deliverables.md"
+    reads_from:
+      - "tasks/{task_id}/finding-lattice.md"
+      - "tasks/{task_id}/synthesis-plan.md"
+
+  - id: review
+    agent: themis
+    role: reviewer
+    mode: foreground
+    writes_to: "tasks/{task_id}/review.md"
+    reads_from:
+      - "tasks/{task_id}/deliverables.md"
+      - "tasks/{task_id}/finding-lattice.md"
+      - "tasks/{task_id}/scope.md"
+
+  - id: completion
+    agent: null
+    role: final-gate
+    mode: foreground
+    writes_to: "tasks/{task_id}/telemetry.yaml"
+    reads_from:
+      - "tasks/{task_id}/review.md"
+      - "tasks/{task_id}/deliverables.md"
+
+# Subtype -> agent mapping for analysis step
+agent_map:
+  research:
+    agents: [metis]
+    mode: foreground
+  design:
+    agents: [metis]
+    mode: foreground
+  audit:
+    agents: [argus, metis]
+    mode: parallel
+  weakness:
+    agents: [argus, metis]
+    mode: parallel
+  decision:
+    agents: [metis]
+    mode: foreground
+  documentation:
+    agents: [athena]
+    mode: foreground
+    support: [calliope]
+
+# Subtype -> agent mapping for organize step
+organize_map:
+  default: metis
+  documentation: athena
+
+gates:
+  - id: classification_gate
+    after_step: classification
+    required: true
+    options:
+      - id: proceed
+        description: "Classification correct, continue to gather"
+      - id: modify
+        description: "Provide different classification"
+      - id: abort
+        description: "Cancel task"
+
+  - id: scope_gate
+    after_step: scope
+    required: true
+    options:
+      - id: proceed
+        description: "Scope confirmed, begin analysis"
+      - id: modify
+        description: "Adjust scope"
+      - id: abort
+        description: "Cancel task"
+
+  - id: depth_checkpoint_gate
+    after_step: depth_checkpoint
+    required: true
+    branching: true
+    repeating: true
+    options:
+      - id: sufficient
+        description: "Findings sufficient, proceed to synthesis"
+        next_step: organize
+      - id: deepen
+        description: "Deepen analysis (next pass)"
+        next_step: analysis
+      - id: redirect
+        description: "Re-scope analysis (back to Athena)"
+        next_step: scope
+      - id: details
+        description: "Show all findings"
+        action: display_only
+      - id: abort
+        description: "Cancel task"
+
+  - id: final_gate
+    after_step: completion
+    required: true
+    branching: true
+    options:
+      - id: done
+        description: "Accept deliverables"
+      - id: details
+        description: "Show full analysis"
+        action: display_only
+      - id: modify
+        description: "Provide feedback for re-synthesis"
+        next_step: synthesis
+      - id: abort
+        description: "Cancel task"
+
+# Standard error handlers (same as standard/full pipelines)
+error_handlers:
+  E1-INPUT:
+    action: pause
+    display: blocked_gate
+    escalation: ask_user
+  E2-SCOPE:
+    action: stop
+    display: scope_change_gate
+    options:
+      - upgrade
+      - split
+      - reduce
+      - continue
+  E3-CONFLICT:
+    action: stop
+    display: conflict_gate
+    escalation: user_chooses
+  E4-BUDGET:
+    pre_exec:
+      action: auto_split
+    mid_exec:
+      action: save_partial
+      then: spawn_new_agent
+  E5-QUALITY:
+    action: retry
+    max_attempts: 3
+    on_max: escalate
+    display: quality_failure_gate
+  E6-AGENT:
+    action: retry
+    max_attempts: 2
+    on_max: diagnose_and_escalate
+    display: agent_failure_gate
+  E7-DRIFT:
+    action: log
+    blocking: false
+    note: "Non-blocking — detection via guard.sh PostToolUse hook"
+  E8-STALE:
+    action: warn
+    display: stale_knowledge_warning
+    blocking: false
+  E9-SEMANTIC:
+    action: retry_with_feedback
+    max_attempts: 3
+    note: "Reviewer-detected: E5-QUALITY retry path. Gate-detected: gate modify flow"
+  E10-DIVERGE:
+    action: escalate_to_user
+    display: diverge_gate
+    note: "Present contradiction at scope gate"
+  E11-TRUNCATION:
+    pre_exec:
+      action: split_and_retry
+    post_exec:
+      action: retry_reduced_scope
+      max_attempts: 2
+
+post:
+  reflection: background
+  budget_report: true

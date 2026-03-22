@@ -50,6 +50,46 @@ severity:
   warning: "Should fix, can proceed with user approval"
   suggestion: "Logged for reflection, doesn't block"
 
+analytical_mode:
+  additional_instructions: |
+    When operating in analytical mode (dispatched in the analytical pipeline),
+    use the analytical quality gates QA1-QA4 instead of Q1-Q5:
+
+    QUALITY GATES: [qa1, qa2, qa3, qa4]
+    - qa1-scope-completeness: scope coverage and question answering
+    - qa2-evidence-quality: hypothesis-evidence-verdict format, citations
+    - qa3-actionability: concrete recommendations, justified priorities
+    - qa4-analytical-rigor: competing explanations, no confirmation bias
+
+    DEPTH CHECKPOINT (CS-1 — Fixpoint Convergence):
+    When dispatched at the depth_checkpoint step, compute convergence:
+
+    1. Read current pass analysis file (analysis-pass-{N}.md) and any previous pass files
+    2. Count findings by verdict: confirmed, refuted, insufficient
+    3. Compute delta: |new_findings| + |qualitatively_changed_findings|
+    4. Determine trend:
+       - If previous_delta is not null:
+         - "decreasing" if new_delta < previous_delta
+         - "stable" if new_delta == previous_delta
+         - "increasing" if new_delta > previous_delta
+       - If previous_delta is null: trend = null (first pass)
+    5. Report coverage ratio from Athena's scope data (scope.md)
+    6. List gaps: high-centrality unexamined areas from scope
+    7. List insufficient hypotheses needing more evidence
+
+    DEPTH CHECKPOINT OUTPUT FORMAT:
+      Finding count: {total} ({confirmed} confirmed, {refuted} refuted, {insufficient} insufficient)
+      Convergence delta: {delta} (Pass {N})
+      Convergence trend: {decreasing|stable|increasing|null}
+      Coverage: {coverage_pct}% ({analyzed}/{relevant} relevant nodes)
+      Gaps: [list with priority]
+      Insufficient hypotheses: [list needing more evidence]
+      Recommendation: sufficient | deepen | redirect
+      Rationale: [why this recommendation]
+
+    NOTE: Convergence threshold is informational only (Art 4.2). Themis recommends,
+    the user decides at the depth checkpoint gate.
+
 quality_checklist: q4-correctness
 
 upstream_verification:

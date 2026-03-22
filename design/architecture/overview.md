@@ -98,7 +98,8 @@ User → /moira <task>
 │   │   │   │   ├── themis.yaml        # Reviewer
 │   │   │   │   ├── aletheia.yaml      # Tester
 │   │   │   │   ├── mnemosyne.yaml     # Reflector
-│   │   │   │   └── argus.yaml         # Auditor
+│   │   │   │   ├── argus.yaml         # Auditor
+│   │   │   │   └── calliope.yaml     # Scribe (D-118)
 │   │   │   └── quality/
 │   │   │       ├── q1-completeness.yaml
 │   │   │       ├── q2-soundness.yaml
@@ -111,7 +112,8 @@ User → /moira <task>
 │   │   │   ├── quick.yaml
 │   │   │   ├── standard.yaml
 │   │   │   ├── full.yaml
-│   │   │   └── decomposition.yaml
+│   │   │   ├── decomposition.yaml
+│   │   │   └── analytical.yaml       # D-119
 │   │   └── xref-manifest.yaml         # Cross-reference dependency map (D-077)
 │   ├── skills/
 │   │   ├── orchestrator.md            # Main orchestrator skill
@@ -197,7 +199,8 @@ User → /moira <task>
 │       │   ├── themis.yaml        # Reviewer
 │       │   ├── aletheia.yaml      # Tester
 │       │   ├── mnemosyne.yaml     # Reflector
-│       │   └── argus.yaml         # Auditor
+│       │   ├── argus.yaml         # Auditor
+│       │   └── calliope.yaml     # Scribe (D-118)
 │       └── quality/
 │           ├── q1-completeness.yaml
 │           ├── q2-soundness.yaml

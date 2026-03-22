@@ -58,6 +58,36 @@ write_access:
   failures: false
   libraries: false
 
+analytical_mode:
+  additional_instructions: |
+    When operating in analytical mode (dispatched in the analytical pipeline for
+    audit/weakness subtypes), use structured finding formats:
+
+    HYPOTHESIS-DRIVEN ANALYSIS (CS-3):
+    For every finding, structure as:
+      HYPOTHESIS: [clear statement of what you're investigating]
+      EVIDENCE:
+        - [evidence item 1 with file path and line range]
+        - [evidence item 2 with file path and line range]
+      CONFIDENCE: high (2+ independent sources) | medium | low
+      VERDICT: confirmed | refuted | insufficient
+
+    ABDUCTIVE REASONING (CS-4):
+    For all structural symptoms (always applies — Argus only runs in analytical
+    pipeline for audit/weakness subtypes where CS-4 is required):
+
+      OBSERVATION: [the symptom or anomaly observed]
+      COMPETING EXPLANATIONS:
+        1. [explanation A]
+        2. [explanation B]
+        3. [explanation C]
+      DISCRIMINATING EVIDENCE: [what would distinguish between explanations]
+      INVESTIGATION: [evidence gathered to discriminate]
+      CONCLUSION: [most supported explanation with confidence]
+
+    Do not skip competing explanations. Report the STRONGEST competing
+    explanation even if you believe it's wrong.
+
 quality_checklist: null
 
 response_format: |

@@ -412,6 +412,86 @@ After pipeline completion (after review/testing in Quick/Standard, after integra
 
 ---
 
+### Scope Gate (Analytical Pipeline)
+
+After Athena (analyst) completes scope formalization in the analytical pipeline.
+
+**Summary source:** scope artifact — questions, boundaries, depth recommendation.
+
+**Template:**
+
+```
+═══════════════════════════════════════════
+ GATE: Analytical Scope
+═══════════════════════════════════════════
+
+ Questions to answer:
+ • {question_list from Athena scope}
+
+ Scope boundaries:
+ • In scope: {in_scope_description}
+ • Out of scope: {out_of_scope_description}
+
+ Depth recommendation: {light | standard | deep}
+ Rationale: {why this depth}
+
+ {HEALTH REPORT}
+
+ ▸ proceed — scope confirmed, begin analysis
+ ▸ modify  — adjust scope
+ ▸ abort   — cancel
+═══════════════════════════════════════════
+```
+
+**Gate state:** Record gate: write equivalent of `moira_state_gate("scope_gate", decision)` to `current.yaml` and `status.yaml`
+
+---
+
+### Depth Checkpoint Gate (Analytical Pipeline)
+
+After Themis (reviewer) completes convergence computation at depth checkpoint in the analytical pipeline.
+
+**Summary source:** depth checkpoint artifact — finding count, convergence delta/trend, coverage, gaps, insufficient hypotheses.
+
+**Template:**
+
+```
+═══════════════════════════════════════════
+ GATE: Depth Checkpoint (Pass {N})
+═══════════════════════════════════════════
+
+ Findings: {total} total ({confirmed} confirmed, {refuted} refuted, {insufficient} insufficient)
+
+ Convergence: delta = {delta} (Pass {N})
+              {trend_description}
+
+ Coverage: {coverage_pct}% ({analyzed}/{relevant} relevant nodes)
+   Gaps: {gap_list with priority}
+
+ Insufficient hypotheses:
+   • {list of insufficient findings needing more evidence}
+
+ {HEALTH REPORT}
+
+ ▸ sufficient — proceed to synthesis with current findings
+ ▸ deepen    — investigate gaps + insufficient hypotheses (Pass {N+1})
+ ▸ redirect  — re-scope analysis (back to Athena)
+ ▸ details   — show all findings
+ ▸ abort     — cancel
+═══════════════════════════════════════════
+```
+
+**Option handling:**
+- `sufficient` → record gate, advance to `organize` step
+- `deepen` → record gate, increment pass number, jump to `analysis` step
+- `redirect` → record gate, reset pass number to 1, jump to `scope` step
+- `details` → display all findings from all passes (display only — same pattern as "diff" in implementation final gate). Re-present the gate after display. Do NOT record as gate decision.
+- `abort` → record gate as abort, stop pipeline
+
+**Gate state:** Record gate: write equivalent of `moira_state_gate("depth_checkpoint_gate", decision)` to `current.yaml` and `status.yaml`
+
+---
+
 ## Quality Checkpoint
 
 <!-- Quality Checkpoint is a conditional gate defined here, not in pipeline YAML step sequences. It is triggered dynamically when a quality-gate agent returns fail_warning. -->

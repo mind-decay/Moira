@@ -2,7 +2,7 @@
 
 ## Core Agents
 
-10 agents, each with strict responsibility boundaries (D-028: Classifier added as 10th agent).
+11 agents, each with strict responsibility boundaries (D-028: Classifier added as 10th agent, D-118: Calliope added as 11th agent for analytical pipeline).
 
 ## Agent Response Contract
 
@@ -358,6 +358,55 @@ RULE_PROPOSALS: [{proposal with 3+ evidence citations}] (if any)
 **Knowledge access:** L2 (all knowledge types, including libraries — read-only)
 
 **Budget:** 140k (needs to cross-reference many files)
+
+---
+
+## Agent Spawning Strategy
+
+```
+Sequential pipeline steps → FOREGROUND (orchestrator waits for result)
+Parallel batches          → BACKGROUND (concurrent execution)
+Post-task reflection      → BACKGROUND (non-blocking)
+Audit                     → FOREGROUND (user requested, awaits results)
+```
+
+Rationale:
+- Foreground for sequential: orchestrator MUST see previous step summary to decide next step
+- Background for parallel: batches are independent by design (Planner guarantees this)
+- Background for reflection: doesn't block user from starting next task
+
+---
+
+## Calliope (scribe)
+
+**Purpose:** Synthesizes analytical findings into deliverable markdown documents. Participates only in the Analytical Pipeline (D-118).
+
+**Input:** Structured findings (lattice-organized) from analysis phase + existing documents to update
+**Output:** New and/or updated markdown documentation in project
+
+**Response format:**
+```
+STATUS: success|failure|blocked
+SUMMARY: <documents written/updated>
+ARTIFACTS: [list of created/modified file paths]
+NEXT: review
+```
+
+**Rules:**
+- Writes ONLY markdown documentation — NEVER source code
+- Does NOT perform analysis — synthesizes findings produced by other agents
+- Does NOT decide what to include/exclude — follows the synthesis plan from findings
+- Does NOT add conclusions beyond what findings support
+- Does NOT fabricate references, metrics, or evidence
+- Preserves existing document structure when updating (targeted edits, not rewrites)
+- When updating: reads current version, identifies sections to modify, applies changes
+- Must cite evidence source for every claim (file path, Ariadne metric, agent finding)
+
+**Knowledge access:** L1 (project-model), L1 (conventions), L0 (decisions)
+
+**Capability profile:** Read + Edit + Write (markdown only, scoped to documentation paths)
+
+**Budget:** 80k
 
 ---
 

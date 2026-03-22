@@ -261,9 +261,86 @@ When a `repeatable_group` has `role: sub-pipeline` (from decomposition.yaml):
 
 ---
 
+## Section 2a — Analytical Pipeline Execution
+
+If the pipeline type is `analytical`, follow this section instead of the standard step iteration in Section 2.
+
+### Analytical Pipeline Initialization
+
+When starting the analytical pipeline:
+1. Initialize `analytical` section in `current.yaml`:
+   - `analytical.pass_number: 1`
+   - `analytical.convergence.previous_finding_count: 0`
+   - `analytical.convergence.previous_delta: null`
+   - `analytical.convergence.trend: null`
+2. Read `classification.md` to extract the `subtype` (research, design, audit, weakness, decision, documentation)
+
+### Step-by-Step Handling
+
+**Gather step:** Dispatch Hermes (explorer) with `analytical_mode: true` flag in the task context. Hermes explores the codebase AND executes Ariadne baseline queries (if graph available). Hermes writes both `exploration.md` and `ariadne-baseline.md`. If Ariadne is not available, Hermes notes this in `ariadne-baseline.md` and continues with code-only exploration.
+
+**Scope step:** Dispatch Athena (analyst) for scope formalization. Athena reads exploration and ariadne-baseline data, produces `scope.md` with: questions to answer, boundaries (in/out of scope), depth recommendation (light/standard/deep), and coverage estimate. After Athena returns, present the **scope_gate** (per `gates.md`). Options: proceed, modify, abort.
+
+**Analysis step:** Read `agent_map` from the pipeline YAML (`~/.claude/moira/core/pipelines/analytical.yaml`). Look up the subtype from `classification.md`. Dispatch agents per the map:
+- If `mode: foreground` → dispatch single agent
+- If `mode: parallel` → dispatch agents in parallel (same pattern as existing parallel steps)
+- If `support` array present → dispatch support agents after primary completes
+- Agent writes to `analysis-pass-{N}.md` where N = `analytical.pass_number` from `current.yaml`
+- Include in task context: pipeline mode (analytical), subtype, pass number, previous pass summary (if N > 1)
+
+**Depth checkpoint step:** Dispatch Themis (reviewer) for convergence computation. Themis reads current and previous pass files, computes delta/coverage/findings, writes `review-pass-{N}.md`. After Themis returns, present the **depth_checkpoint_gate** (per `gates.md`).
+
+**Depth checkpoint gate branching:**
+- `sufficient` → proceed to `organize` step (linear advance)
+- `deepen` → increment `analytical.pass_number` in `current.yaml`, update convergence fields (`previous_finding_count`, `previous_delta`, `trend`), jump back to `analysis` step
+- `redirect` → reset `analytical.pass_number` to 1, reset convergence fields, jump back to `scope` step (Athena re-formalizes scope)
+- `details` → display all findings from all passes (display only, re-present the gate afterward — NOT a state transition)
+- `abort` → cancel pipeline
+
+**Organize step:** Read `organize_map` from pipeline YAML. Look up subtype: use `documentation` entry if subtype is documentation, otherwise use `default`. Dispatch the resolved agent. Agent writes `finding-lattice.md` and `synthesis-plan.md`.
+
+**Synthesis step:** Dispatch Calliope (scribe) with `finding-lattice.md` and `synthesis-plan.md`. Calliope writes `deliverables.md`.
+
+**Review step:** Dispatch Themis (reviewer) with quality gates QA1-QA4 (NOT Q1-Q5). Read the `quality_gates` field from the pipeline YAML to determine which checklist set to use. Themis writes `review.md`.
+
+**Completion step:** Standard final_gate pattern. Present the **final_gate** with branching:
+- `done` → accept deliverables, proceed to completion
+- `details` → show full analysis (display only, re-present gate)
+- `modify` → jump back to `synthesis` step (Calliope re-synthesizes with feedback)
+- `abort` → cancel pipeline
+
+### Convergence State Updates
+
+At each depth checkpoint, after Themis reports findings:
+1. Read current convergence from `current.yaml`
+2. Compute `new_delta = |new_findings| + |changed_findings|` from Themis's report
+3. If `previous_delta` is not null:
+   - `trend = "decreasing"` if new_delta < previous_delta
+   - `trend = "stable"` if new_delta == previous_delta
+   - `trend = "increasing"` if new_delta > previous_delta
+4. Update `current.yaml`:
+   - `analytical.convergence.previous_finding_count = total_findings`
+   - `analytical.convergence.previous_delta = new_delta`
+   - `analytical.convergence.trend = trend`
+
+### Main Loop Conditional
+
+In Section 2's Main Loop: if the pipeline type read from `current.yaml` is `analytical`, execute the analytical pipeline steps per this section (Section 2a) instead of the standard linear step iteration.
+
+---
+
 ## Section 3 — Pipeline Selection
 
-After Apollo (classifier) returns, determine pipeline type. This is a PURE FUNCTION — no exceptions, no judgment calls:
+After Apollo (classifier) returns, determine pipeline type. This is a PURE FUNCTION — no exceptions, no judgment calls.
+
+### Step 1: Mode Detection
+
+Parse the classifier's SUMMARY for the `mode=` field:
+
+- If `mode=analytical` → pipeline = `analytical` (regardless of subtype). Skip the size table below.
+- If `mode=implementation` OR no `mode=` prefix (backward compatibility) → proceed to Step 2.
+
+### Step 2: Size-Based Selection (Implementation Mode Only)
 
 | Size | Confidence | Pipeline |
 |------|-----------|----------|
@@ -273,7 +350,9 @@ After Apollo (classifier) returns, determine pipeline type. This is a PURE FUNCT
 | large | any | full |
 | epic | any | decomposition |
 
-Parse the classifier's SUMMARY for `size=` and `confidence=` values. Map directly to pipeline type. Present at classification gate for user confirmation.
+Parse `size=` and `confidence=` values from SUMMARY. Map directly to pipeline type.
+
+Present at classification gate for user confirmation.
 
 ---
 

@@ -1,0 +1,29 @@
+_meta:
+  name: qa4-analytical-rigor
+  gate: QA4
+  description: "Analytical rigor and reasoning quality"
+  agent: themis
+  pipeline_step: review
+
+items:
+  - id: QA4-01
+    check: "For weakness/audit subtypes: competing explanations considered (CS-4 abductive reasoning)"
+    applies_to: [weakness, audit]
+    required: true
+  - id: QA4-02
+    check: "No confirmation bias — contradicting evidence reported alongside supporting evidence"
+    required: true
+  - id: QA4-03
+    check: "Structural (Ariadne) and code-level data cross-validated where both available"
+    required: false
+  - id: QA4-04
+    check: "No circular findings (conclusion does not appear in its own evidence chain)"
+    required: true
+  - id: QA4-05
+    check: "Convergence trend documented (CS-1 fixpoint convergence)"
+    required: true
+  - id: QA4-06
+    check: "Analysis limitations explicitly stated"
+    required: true
+
+on_missing: "STATUS: blocked — analytical rigor review incomplete"

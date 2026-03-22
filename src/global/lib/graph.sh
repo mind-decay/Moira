@@ -360,3 +360,70 @@ moira_graph_read_view() {
 
   return 0
 }
+
+# ── moira_graph_analytical_baseline [scope_path] ─────────────────────────────
+# Run the 6 baseline Ariadne queries for the analytical pipeline gather step.
+# Returns output suitable for writing to ariadne-baseline.md.
+# For scoped analysis, also runs blast-radius and file-detail queries.
+# If Ariadne binary not found, returns a degradation message (D-102).
+moira_graph_analytical_baseline() {
+  local scope_path="${1:-}"
+
+  if ! command -v ariadne >/dev/null 2>&1; then
+    echo "# Ariadne Baseline"
+    echo ""
+    echo "Ariadne not available. Structural analysis skipped."
+    echo "Analysis proceeds with code-level data only."
+    return 0
+  fi
+
+  echo "# Ariadne Baseline"
+  echo ""
+  echo "Generated at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo ""
+
+  echo "## Overview"
+  echo ""
+  ariadne query overview 2>/dev/null || echo "(query failed)"
+  echo ""
+
+  echo "## Smells"
+  echo ""
+  ariadne query smells 2>/dev/null || echo "(query failed)"
+  echo ""
+
+  echo "## Metrics"
+  echo ""
+  ariadne query metrics 2>/dev/null || echo "(query failed)"
+  echo ""
+
+  echo "## Layers"
+  echo ""
+  ariadne query layers 2>/dev/null || echo "(query failed)"
+  echo ""
+
+  echo "## Cycles"
+  echo ""
+  ariadne query cycles 2>/dev/null || echo "(query failed)"
+  echo ""
+
+  echo "## Clusters"
+  echo ""
+  ariadne query clusters 2>/dev/null || echo "(query failed)"
+  echo ""
+
+  # Scoped queries (if scope path provided)
+  if [[ -n "$scope_path" ]]; then
+    echo "## Blast Radius (Scoped)"
+    echo ""
+    ariadne query blast-radius "$scope_path" 2>/dev/null || echo "(query failed)"
+    echo ""
+
+    echo "## File Detail (Scoped)"
+    echo ""
+    ariadne query file "$scope_path" 2>/dev/null || echo "(query failed)"
+    echo ""
+  fi
+
+  return 0
+}

@@ -1124,3 +1124,119 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - Immediate migration to frontmatter hooks — requires restructuring agent dispatch architecture (dynamic prompts → static definitions), too large a change for a factual correction
 - Keep incorrect docs — factual errors in design docs violate knowledge integrity
 **Reasoning:** Design docs must be factually accurate about the platform they build on. The post-agent diff approach remains sound on its own merits (efficiency, blocking capability, compatibility with dynamic dispatch). Acknowledging the platform capability opens a future optimization path without forcing immediate architectural change.
+
+## D-117: Two-Dimensional Classification (Mode + Size)
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Moira's classification is one-dimensional (size: small/medium/large/epic), forcing all tasks through code-producing pipelines. Analytical tasks (architecture review, audits, documentation, weakness analysis) don't produce code and need a different pipeline structure.
+**Decision:** Apollo classifies on two dimensions: `mode` (implementation | analytical) and `size`/`subtype`. Implementation mode uses existing size-based pipeline selection. Analytical mode routes to a new Analytical Pipeline regardless of task complexity — depth is handled dynamically within the pipeline via progressive depth gates rather than upfront sizing.
+**Alternatives rejected:**
+- Separate classifier for analytical tasks — violates D-028 (Classifier as single agent), adds complexity
+- Size-based analytical pipelines (quick-analytical, full-analytical) — analytical task complexity is hard to estimate upfront; progressive depth handles this better
+- Mode as a pipeline modifier on existing pipelines — too many code-oriented steps would need conditional skipping, resulting in messy conditionals rather than clean design
+**Reasoning:** Two-dimensional classification is the minimal extension that supports analytical tasks without disrupting existing implementation pipelines. Art 2.1 determinism preserved: same classification → same pipeline.
+
+## D-118: Calliope (Scribe) as 11th Agent
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Analytical pipelines produce markdown documents, not code. Someone needs to synthesize analysis findings into coherent deliverables. Hephaestus (implementer) writes code — using it for document synthesis would violate Art 1.2 (single responsibility) or require a fuzzy dual-role definition.
+**Decision:** New agent Calliope (Καλλιόπη, Muse of epic poetry). Single responsibility: synthesize structured findings into markdown documents. Reads existing docs + findings, writes/updates markdown. Never analyzes, never decides what to include, never writes code.
+**Alternatives rejected:**
+- Hephaestus with analytical mode — blurs "writes code" responsibility, two fundamentally different skill profiles in one agent
+- Analysis agents write their own documents — merges analysis and synthesis responsibilities, producing either shallow analysis or poorly structured documents
+- No dedicated writer (orchestrator presents findings directly) — loses the synthesis step that turns raw findings into actionable, well-structured documents
+**Reasoning:** Art 1.2 requires single responsibility per agent. Writing code and writing analytical documents are different skills requiring different instructions, different quality criteria, and different tool access. A dedicated scribe agent maintains clean separation.
+
+## D-119: Analytical Pipeline with Progressive Depth
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Unlike code tasks where size is estimable upfront (file count, scope), analytical task depth is unknown until investigation begins. A fixed-size pipeline either over-engineers simple research questions or under-serves deep audits.
+**Decision:** Single Analytical Pipeline with progressive depth controlled by depth checkpoint gates. Analysis runs in passes; after each pass, user decides: sufficient (proceed to synthesis), deepen (another pass with expanded scope), or redirect (re-scope). Convergence metrics (CS-1: fixpoint, CS-2: coverage) inform the decision but don't control it.
+**Alternatives rejected:**
+- Multiple analytical pipeline sizes (light/standard/deep) — requires upfront estimation of analytical depth, which is the exact problem we're solving
+- Automatic deepening without gates — violates Art 4.2 (user authority)
+- Single-pass only with optional re-run — loses continuity between passes, each pass starts from scratch
+**Reasoning:** Progressive depth turns "we don't know how deep to go" from a problem into a feature. Each pass builds on previous findings. Convergence metrics give the user data to make informed depth decisions. Art 2.2 compliance: gates are structurally fixed (classify, scope, depth checkpoints, final) even though depth checkpoints may repeat.
+
+## D-120: Ariadne Level C Integration for Analytical Pipeline
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Ariadne provides structural analysis data (smells, coupling, metrics, cycles, layers, spectral analysis). For analytical tasks, this data is primary input rather than supplementary context. Need to decide integration depth.
+**Decision:** Two-tier integration. Tier 1 (Gather phase): fixed baseline queries run automatically — overview, smells, metrics, layers, cycles, clusters. Results written to state file, available to all subsequent agents. Tier 2 (Analysis phase): Metis/Argus have direct access to Ariadne MCP tools for targeted, hypothesis-driven queries during their analysis passes.
+**Alternatives rejected:**
+- Tier 1 only (fixed queries) — too rigid, agents can't follow investigation threads
+- Tier 2 only (agent-driven) — agents might miss important data they didn't think to query; baseline ensures consistent foundation
+- Ariadne as separate pipeline step with dedicated agent — over-engineering; Ariadne is a tool, not an analytical actor
+**Reasoning:** Baseline queries ensure every analysis starts with the same structural foundation (deterministic). Agent-driven queries enable hypothesis-testing and deep investigation (flexible). The combination maximizes Ariadne's value without making the pipeline Ariadne-dependent (graceful degradation per D-102 still applies).
+
+## D-121: Six CS Methods for Analytical Rigor
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Analytical quality is harder to assess than code quality. Code either compiles or doesn't, tests pass or fail. Analysis can be superficial, biased, incomplete, or poorly structured without any obvious "failure" signal. Need formal methods to ensure analytical rigor.
+**Decision:** Six CS methods embedded in the analytical pipeline: (1) Fixpoint convergence — formal termination criterion for depth, (2) Graph-based coverage — completeness metric using Ariadne as coverage space, (3) Hypothesis-driven analysis — scientific method structure for findings, (4) Abductive reasoning — competing explanations for architectural symptoms, (5) Information gain — prioritization for deepening direction, (6) Lattice-based organization — partial order on findings for document structure.
+**Alternatives rejected:**
+- Informal quality criteria only ("be thorough", "check alternatives") — unenforceable, degrades over time
+- Subset of methods (e.g., only convergence + coverage) — each method addresses a distinct failure mode; removing any leaves a gap
+- Additional methods (e.g., formal model checking) — over-engineering for LLM-based analysis; these six cover the practical failure modes
+**Reasoning:** Each method solves a specific analytical failure mode: convergence prevents endless deepening, coverage prevents blind spots, hypothesis-driven prevents unsupported claims, abduction prevents shallow analysis, information gain prevents wasted effort, lattice prevents disorganized output. Together they make analytical quality as measurable as code quality (through QA1-QA4 checklists).
+
+## D-122: Analytical Quality Gates QA1-QA4
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Code pipelines use Q1-Q5 quality gates (completeness, soundness, feasibility, correctness, coverage). These don't apply to analytical tasks — there's no code correctness to check, no test coverage to measure.
+**Decision:** Four analytical quality gates: QA1 (Scope Completeness — structural coverage, all questions answered), QA2 (Evidence Quality — hypothesis-evidence-verdict format, concrete citations), QA3 (Actionability — concrete recommendations, justified priorities), QA4 (Analytical Rigor — competing explanations, no confirmation bias, cross-validation). Severity classification same as code review: critical/warning/suggestion.
+**Alternatives rejected:**
+- Reuse Q1-Q5 with modifications — too much doesn't apply; forced mapping produces meaningless checks
+- Single quality gate ("is the analysis good?") — too vague, no actionable feedback on what's wrong
+- Six gates (one per CS method) — methods overlap with gates; four gates that reference multiple methods is cleaner
+**Reasoning:** QA1-QA4 are designed to catch real analytical weaknesses: incomplete scope, unsupported claims, impractical recommendations, shallow reasoning. Each gate is actionable — a QA2 failure tells Metis/Argus exactly what needs more evidence. The gates reference CS methods (QA1→CS-2, QA2→CS-3, QA4→CS-4) but aren't 1:1 with them.
+
+## D-123: Conditional Branching via Gate next_step Fields
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** The analytical pipeline's depth checkpoint can loop back to analysis or scope, unlike linear existing pipelines. Need a branching mechanism.
+**Decision:** Gates with `branching: true` flag carry `next_step` fields on their options. The orchestrator reads the user's chosen option and jumps to the specified step. This is a targeted extension to the gate system, not a pipeline engine refactor.
+**Alternatives rejected:**
+- Step-level `next` field map — breaks pattern of flow control on gates, not steps
+- Generic pipeline engine refactor — over-engineering, high risk, violates scope discipline
+**Reasoning:** Gate decisions already determine what happens next. Adding `next_step` to gate options is the minimal extension that enables non-linear flow while keeping the gate as the decision point.
+
+## D-124: Apollo SUMMARY Format Extension with Mode Prefix
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Apollo needs to output both mode (implementation/analytical) and size/subtype dimensions.
+**Decision:** Extend SUMMARY format: `mode=implementation, size=X, confidence=Y` for implementation; `mode=analytical, subtype=X, confidence=Y` for analytical. Backward compatible — missing `mode=` prefix treated as implementation.
+**Alternatives rejected:**
+- Separate mode field outside SUMMARY — breaks response contract
+- Separate classifier for analytical — violates D-028 (single classifier)
+**Reasoning:** Extending the existing SUMMARY line preserves the response contract while adding the mode dimension. Backward compatibility ensures existing pipelines continue to work.
+
+## D-125: Ariadne Baseline via Hermes (Not Separate Action Step)
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Design doc shows Ariadne baseline as a parallel `action` step alongside Hermes in gather. But the orchestrator cannot run Bash, and all pipeline steps are agent dispatches.
+**Decision:** Hermes executes Ariadne baseline queries as part of the gather step. Hermes writes both `exploration.md` and `ariadne-baseline.md`. If Ariadne unavailable, Hermes notes it and continues.
+**Alternatives rejected:**
+- New "action" step type — introduces new execution concept not present in existing pipelines
+- Separate lightweight agent for Ariadne queries — unnecessary agent for 6 CLI calls
+**Reasoning:** Hermes already runs CLI commands during exploration. Adding 6 Ariadne queries is a natural extension of the explorer role. Single agent writing two artifacts is simpler than inventing a new step type.
+
+## D-126: Simplified Assembly for All Analytical Pipeline Agents
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Implementation pipelines use Daedalus to assemble instructions. Analytical pipeline has no planner step.
+**Decision:** All analytical pipeline agents use simplified assembly (the fallback path already used for pre-planning agents and Quick pipeline). CS method instructions are embedded in agent role YAMLs under `analytical_mode` sections.
+**Alternatives rejected:**
+- Add a planning step to analytical pipeline — unnecessary, analytical tasks don't need implementation plans
+- Have scope step assemble instructions — scope is about analysis scope, not instruction assembly; violates single responsibility
+**Reasoning:** Simplified assembly already works for all pre-planning agents in all pipelines. The analytical pipeline doesn't generate code, so there's no implementation plan to assemble from. CS method templates in role YAMLs are activated conditionally by the orchestrator when pipeline=analytical.

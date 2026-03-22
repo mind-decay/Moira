@@ -47,6 +47,10 @@ fields:
     type: number
     required: false
     default: 140000
+  agent_budgets.scribe:
+    type: number
+    required: false
+    default: 80000
   max_load_percent:
     type: number
     required: false

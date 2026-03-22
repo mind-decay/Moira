@@ -37,6 +37,7 @@ Used for:
 | Standard | Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Metis, Daedalus |
 | Full | Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Metis, Daedalus |
 | Decomposition | Hephaestus, Themis, Aletheia | Apollo, Hermes, Athena, Metis, Daedalus |
+| Analytical | none | all agents (D-126) |
 
 **Special Dispatch Cases** (not part of standard assembly paths):
 | Pipeline | Agent | Dispatch Method |
@@ -257,6 +258,7 @@ ALWAYS refer to agents as `Name (role)` in all orchestrator output (D-034):
 | aletheia.yaml | Aletheia (tester) |
 | mnemosyne.yaml | Mnemosyne (reflector) |
 | argus.yaml | Argus (auditor) |
+| calliope.yaml | Calliope (scribe) |
 
 ---
 
@@ -303,7 +305,16 @@ For agents with quality gate assignments, append the quality checklist to their 
 | Themis (reviewer) | Q4 | q4-correctness.yaml |
 | Aletheia (tester) | Q5 | q5-coverage.yaml |
 
-Agents not listed (Apollo, Hermes, Hephaestus, Mnemosyne, Argus) have no quality gate assignment.
+**Analytical Pipeline Quality Gates** (used instead of Q1-Q5 when pipeline=analytical):
+
+| Agent | Gate | Checklist File |
+|-------|------|---------------|
+| Themis (reviewer) | QA1 | qa1-scope-completeness.yaml |
+| Themis (reviewer) | QA2 | qa2-evidence-quality.yaml |
+| Themis (reviewer) | QA3 | qa3-actionability.yaml |
+| Themis (reviewer) | QA4 | qa4-analytical-rigor.yaml |
+
+Agents not listed (Apollo, Hermes, Hephaestus, Mnemosyne, Argus, Calliope) have no quality gate assignment.
 
 ### Injection Path
 
@@ -391,6 +402,46 @@ Quality Map Summary:
 
 Read the mode from `.claude/moira/config.yaml` → `quality.mode` (default: conform).
 Read the evolution target from `.claude/moira/config.yaml` → `quality.evolution.current_target` (if in EVOLVE mode).
+
+---
+
+## Analytical Pipeline Dispatch
+
+When dispatching agents in the analytical pipeline, include additional mode context in the Task section of the prompt.
+
+### Mode Context Injection
+
+For ALL agents dispatched during the analytical pipeline, add to the Task section:
+
+```
+Pipeline mode: analytical
+Subtype: {subtype from classification.md}
+Pass number: {N from current.yaml analytical.pass_number}  [for analysis agents only]
+Previous pass summary: {summary from previous analysis-pass files}  [if N > 1]
+```
+
+### Agent Map Resolution (Analysis Step)
+
+At the analysis step, the orchestrator resolves which agents to dispatch:
+
+1. Read `agent_map` from `~/.claude/moira/core/pipelines/analytical.yaml`
+2. Read subtype from `.claude/moira/state/tasks/{task_id}/classification.md`
+3. Look up `agent_map[subtype]`:
+   - `agents` list → which agents to dispatch
+   - `mode` → foreground (single agent) or parallel (multiple agents)
+   - `support` → optional support agents dispatched after primary completes
+4. Dispatch agents using the resolved configuration
+
+### Organize Map Resolution (Organize Step)
+
+At the organize step:
+1. Read `organize_map` from the pipeline YAML
+2. If subtype is `documentation` → dispatch `athena`
+3. Otherwise → dispatch `metis` (the `default` entry)
+
+### Ariadne MCP Access (Tier 2)
+
+During analytical analysis passes, Metis and Argus have access to Ariadne MCP tools (if Ariadne MCP server is running and within budget). Available queries: blast-radius, importance, spectral, coupling, compressed, diff.
 
 ---
 

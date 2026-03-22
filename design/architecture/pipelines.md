@@ -11,6 +11,7 @@ First step of ANY task. Classifier agent determines size and pipeline.
 | **Large** | New entities, architecture changes, >10 files | Full | 5+ (classify, arch, plan, per-phase, final) |
 | **Epic** | Multiple related tasks, requires decomposition | Decomposition | Many (classify, arch, decomp, per-task, final) |
 | **Small (low confidence)** | 1-2 files, classification uncertain | Standard | 4 (classify, arch, plan, final) |
+| **Analytical** | Analysis, audit, documentation — no code output (D-117) | [Analytical](analytical-pipeline.md) | 3-5+ (classify, scope, depth checkpoint(s), final) |
 
 Classifier also reports **confidence**: high or low.
 - High confidence + Small → Quick Pipeline

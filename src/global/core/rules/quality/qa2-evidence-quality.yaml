@@ -1,0 +1,28 @@
+_meta:
+  name: qa2-evidence-quality
+  gate: QA2
+  description: "Evidence quality and citation verification"
+  agent: themis
+  pipeline_step: review
+
+items:
+  - id: QA2-01
+    check: "Every finding follows hypothesis-evidence-verdict format (CS-3)"
+    required: true
+  - id: QA2-02
+    check: "No 'probably'/'likely' without supporting evidence"
+    required: true
+  - id: QA2-03
+    check: "Ariadne metrics cited with concrete numbers (if available)"
+    required: false
+  - id: QA2-04
+    check: "Code references include file paths and line ranges"
+    required: true
+  - id: QA2-05
+    check: "Confidence calibrated to evidence strength (high=2+ independent sources, medium, low)"
+    required: true
+  - id: QA2-06
+    check: "No unverified out-of-scope evidence"
+    required: true
+
+on_missing: "STATUS: blocked — evidence quality review incomplete"

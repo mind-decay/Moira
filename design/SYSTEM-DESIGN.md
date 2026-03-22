@@ -10,6 +10,7 @@ Moira is a meta-orchestration framework for Claude Code that transforms Claude f
 - [Architecture Overview](architecture/overview.md) — layers, components, data flow
 - [Agent Architecture](architecture/agents.md) — agent types, responsibilities, contracts
 - [Pipeline Architecture](architecture/pipelines.md) — execution flows per task size
+- [Analytical Pipeline](architecture/analytical-pipeline.md) — analysis, audit, and documentation tasks (D-117 through D-122)
 - [Rules Architecture](architecture/rules.md) — modular rule system, layers, assembly
 - [Distribution & Installation](architecture/distribution.md) — install, setup, update, team adoption
 - [Naming & Identity](architecture/naming.md) — mythology-based naming system, display conventions
