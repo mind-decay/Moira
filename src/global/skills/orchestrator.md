@@ -52,6 +52,16 @@ ANY violation is logged and reported.
 
 ## Section 2 — Pipeline Execution Loop
 
+### Session Lock Check
+
+Before starting the pipeline, check for concurrent sessions:
+
+1. Read `.claude/moira/state/.session-lock` (if exists)
+2. If lock exists and PID is alive and TTL hasn't expired → warn user: "Another Moira session is active (task {task_id}, started {started}). Running concurrent sessions on the same branch can corrupt state. Proceed anyway? (y/n)". If user declines → abort pipeline.
+3. If lock exists but PID is dead or TTL expired → stale lock, continue
+4. Create/overwrite `.session-lock` with: `{ pid: "session", started: "<current_timestamp>", task_id: "<task_id>", ttl: 3600 }`
+5. At pipeline completion or abort → delete `.session-lock`
+
 ### Bootstrap Deep Scan Check
 
 Before starting the pipeline, check if a deep scan is pending:
@@ -142,8 +152,8 @@ Before entering the main loop:
    b. Construct agent prompt (per `dispatch.md` skill)
    c. Dispatch agent (foreground, background, or parallel per step `mode`)
    d. On agent return: parse response (per `dispatch.md`)
-   d1. **Post-agent guard check** (D-099): If the agent's role can modify files (implementer, explorer), verify no protected paths were touched:
-       > Scoped to implementer and explorer as the primary file-writing agents. Architect, Planner, Reviewer, Tester write only to task-scoped state paths. Expand this list if any of those agents acquire broader write scope.
+   d1. **Post-agent guard check** (D-099): If the agent's role can modify files (implementer, explorer, calliope), verify no protected paths were touched:
+       > Scoped to implementer, explorer, and calliope as the file-writing agents. Calliope writes markdown documentation to project paths — verify writes are within the authorized file list from its instructions. Architect, Planner, Reviewer, Tester write only to task-scoped state paths. Expand this list if any of those agents acquire broader write scope.
        1. Run `git diff --name-only` (unstaged) and `git diff --name-only --cached` (staged) to get files modified since step start
        2. Check modified files against protected paths:
           - `design/CONSTITUTION.md` — absolute prohibition (Art 6.1)
@@ -277,7 +287,9 @@ When starting the analytical pipeline:
 
 ### Step-by-Step Handling
 
-**Gather step:** Dispatch Hermes (explorer) with `analytical_mode: true` flag in the task context. Hermes explores the codebase AND executes Ariadne baseline queries (if graph available). Hermes writes both `exploration.md` and `ariadne-baseline.md`. If Ariadne is not available, Hermes notes this in `ariadne-baseline.md` and continues with code-only exploration.
+**Gather step — Ariadne freshness check (D-129, E8 extension):** Before dispatching Hermes, if Ariadne is available, check `.ariadne/graph/meta.json` for last-index timestamp and compare against latest git commit. If gap exceeds 50 commits or 7 days, present a staleness warning at the scope gate with options: `reindex` (run `ariadne update`), `continue` (annotate findings with staleness), `skip-ariadne` (analyze without structural data).
+
+**Gather step — dispatch:** Dispatch Hermes (explorer) with `analytical_mode: true` flag in the task context. Hermes explores the codebase AND executes Ariadne baseline queries (if graph available). Hermes writes both `exploration.md` and `ariadne-baseline.md`. If Ariadne is not available, Hermes notes this in `ariadne-baseline.md` and continues with code-only exploration.
 
 **Scope step:** Dispatch Athena (analyst) for scope formalization. Athena reads exploration and ariadne-baseline data, produces `scope.md` with: questions to answer, boundaries (in/out of scope), depth recommendation (light/standard/deep), and coverage estimate. After Athena returns, present the **scope_gate** (per `gates.md`). Options: proceed, modify, abort.
 
@@ -339,6 +351,7 @@ Parse the classifier's SUMMARY for the `mode=` field:
 
 - If `mode=analytical` → pipeline = `analytical` (regardless of subtype). Skip the size table below.
 - If `mode=implementation` OR no `mode=` prefix (backward compatibility) → proceed to Step 2.
+- If SUMMARY cannot be parsed at all (malformed response) → E6-AGENT (retry 1x). If retry also fails to parse → treat as `mode=implementation` and proceed to Step 2 with a WARNING logged (D-124 parse failure fallback).
 
 ### Step 2: Size-Based Selection (Implementation Mode Only)
 

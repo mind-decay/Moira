@@ -299,6 +299,8 @@ Standard gate format:
 ═══════════════════════════════════════════
 ```
 
+**Gate format extensibility:** The standard format above is the minimum required for all gates. Pipeline-specific gates may add sections above the options list (e.g., the Analytical Pipeline's depth checkpoint gate adds Convergence and Coverage sections — see `analytical-pipeline.md`). Standard fields must always be present; additional sections are optional extensions.
+
 ---
 
 ## Mid-Pipeline Mutation Detection

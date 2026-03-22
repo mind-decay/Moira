@@ -73,7 +73,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 ## Hermes (explorer)
 
-**Purpose:** The only agent that reads project source code.
+**Purpose:** The only agent that gathers facts about the project — source code, structural graph data, and system state.
 
 **Input:** Question or area to investigate
 **Output:** Structured report with facts only
@@ -89,6 +89,8 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Does NOT silently expand exploration scope (reports E2-SCOPE)
 - Does NOT express opinions
 - Documents what it found AND what it looked for but didn't find
+
+**Analytical pipeline mode (D-125):** In the Analytical Pipeline gather step, Hermes also executes Ariadne baseline queries (overview, smells, metrics, layers, cycles, clusters) and writes results to `ariadne-baseline.md` alongside `exploration.md`. This is fact-gathering from a structural analysis tool — consistent with Hermes's core responsibility. If Ariadne is unavailable, Hermes notes it and continues with code-only exploration.
 
 **Monorepo mode:** When dispatched with package-scoped instructions, Explorer limits exploration to the specified packages and their direct dependencies. If Explorer discovers that additional packages are relevant (e.g., shared utilities not in scope), it reports E2-SCOPE (monorepo subtype, D-070) for scope expansion rather than silently expanding.
 
@@ -134,6 +136,8 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 **Input:** Requirements (from Analyst) + Exploration data (from Explorer)
 **Output:** Architecture decision document with alternatives considered
+
+**Analytical pipeline mode (D-126):** In the Analytical Pipeline, Metis role rules include an `analytical_mode` section with CS method templates (CS-3 hypothesis-driven, CS-4 abductive reasoning, CS-5 information gain). Activated by orchestrator when pipeline=analytical.
 
 **Rules:**
 - Every decision must have: CONTEXT, DECISION, ALTERNATIVES REJECTED, REASONING
@@ -345,6 +349,8 @@ RULE_PROPOSALS: [{proposal with 3+ evidence citations}] (if any)
 **Input:** All moira files (rules, knowledge, config, state, metrics)
 **Output:** Audit report with findings and recommendations
 
+**Analytical pipeline mode (D-126):** In the Analytical Pipeline, Argus role rules include an `analytical_mode` section with CS method templates (CS-3 hypothesis-driven, CS-4 abductive reasoning). Activated by orchestrator when pipeline=analytical and subtype is `audit` or `weakness`.
+
 **Rules:**
 - Independent from pipeline (not part of task execution)
 - READ-ONLY — never modifies moira or project files
@@ -409,19 +415,5 @@ NEXT: review
 **Budget:** 80k
 
 ---
-
-## Agent Spawning Strategy
-
-```
-Sequential pipeline steps → FOREGROUND (orchestrator waits for result)
-Parallel batches          → BACKGROUND (concurrent execution)
-Post-task reflection      → BACKGROUND (non-blocking)
-Audit                     → FOREGROUND (user requested, awaits results)
-```
-
-Rationale:
-- Foreground for sequential: orchestrator MUST see previous step summary to decide next step
-- Background for parallel: batches are independent by design (Planner guarantees this)
-- Background for reflection: doesn't block user from starting next task
 
 Note: Bootstrap scanners (Tech/Structure/Convention/Pattern) are Explorer invocations with Layer 4 task-specific instructions, not separate agents (D-032).

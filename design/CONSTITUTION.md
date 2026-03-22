@@ -50,6 +50,7 @@ The same task classification MUST always trigger the same pipeline type. Pipelin
 - Medium → Standard Pipeline
 - Large → Full Pipeline
 - Epic → Decomposition Pipeline
+- Analytical (any subtype) → Analytical Pipeline
 
 **Test:** Pipeline selection logic contains no conditional branches beyond classification result.
 
@@ -60,6 +61,9 @@ Every pipeline has a fixed set of approval gates. Gates MUST NOT be skipped, reo
 - Standard: classification + architecture + plan + final
 - Full: classification + architecture + plan + per-phase + final
 - Decomposition: classification + architecture + decomposition + per-task + final
+- Analytical: classification + scope + depth checkpoint(s) + final
+
+Note: Analytical Pipeline depth checkpoints may repeat (progressive depth per D-119) but MUST NOT be skipped. Each depth checkpoint requires user decision (Art 4.2).
 
 **Test:** Pipeline definitions contain all required gates. No conditional skip logic exists for gates.
 
@@ -162,8 +166,8 @@ ARTICLE 1: Separation of Concerns
 [ ] 1.3 No component handles multiple responsibilities
 
 ARTICLE 2: Determinism
-[ ] 2.1 Pipeline selection is a pure function of classification
-[ ] 2.2 All required gates present in each pipeline definition
+[ ] 2.1 Pipeline selection is a pure function of classification (including mode dimension)
+[ ] 2.2 All required gates present in each pipeline definition (including Analytical)
 [ ] 2.3 All agent rules contain anti-assumption directives
 
 ARTICLE 3: Transparency

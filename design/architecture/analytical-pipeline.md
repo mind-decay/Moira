@@ -77,7 +77,7 @@ ANALYSIS PASS 1:
   └─ GATE #3: depth checkpoint
       ├─ sufficient → proceed to synthesis
       ├─ deepen    → expand scope, run Pass 2
-      ├─ redirect  → re-scope (back to Athena, then re-analyze)
+      ├─ redirect  → re-scope (back to Athena with prior findings as context, max 1x per pipeline)
       └─ abort
 
 ANALYSIS PASS 2 (if deepened):
@@ -96,9 +96,10 @@ SYNTHESIS:
 REVIEW:
   Themis (reviewer) → analytical quality review (QA1-QA4)
   └─ GATE #5: final review
-      ├─ done     — accept deliverables
-      ├─ details  — show full analysis
-      ├─ modify   — provide feedback (→ re-synthesis or re-analysis)
+      ├─ done       — accept deliverables
+      ├─ details    — show full analysis
+      ├─ modify     — provide feedback (→ re-synthesis by Calliope)
+      ├─ re-analyze — evidence gap (→ back to analysis with QA feedback)
       └─ abort
 
 Chat summary presented to user.
@@ -115,6 +116,8 @@ Budget report displayed.
 | Deep (multi-pass) | 4+ (classify, scope, N depth checkpoints, final) |
 
 Minimum gates: 3. Depth checkpoints add gates dynamically but each one requires user decision — Art 4.2 preserved.
+
+**Cost unpredictability note:** Unlike implementation pipelines where scope (and therefore cost) is estimable upfront, analytical task depth is fundamentally open-ended. Each analysis pass costs 100k-240k tokens. The scope gate should inform the user that analytical depth is progressive and budget usage depends on how many passes are needed. Convergence metrics at each depth checkpoint help the user make informed decisions about whether to continue.
 
 ---
 
@@ -189,15 +192,27 @@ Agents decide which queries to run based on their analysis needs. This is less d
 
 ### Ariadne Budget
 
-Ariadne queries are lightweight (CLI calls, not LLM tokens), but MCP tool calls during analysis do consume agent context. Budget tracking accounts for Ariadne MCP usage within agent budgets (Chronos tracks normally — no special treatment needed).
+Ariadne queries are lightweight (CLI calls, not LLM tokens), but MCP tool calls during analysis do consume agent context. Budget tracking accounts for Ariadne MCP usage within agent budgets (budget-track.sh hook tracks normally — no special treatment needed).
 
 ---
 
 ## CS Methods Integration
 
-Six formal CS methods are embedded in the pipeline to ensure analytical rigor.
+Six formal CS methods support analytical rigor. They are tiered by readiness:
 
-### CS-1: Fixpoint Convergence (Depth Control)
+**Tier A — v1 operational (no Ariadne dependency):**
+- CS-3: Hypothesis-Driven Analysis — structures findings as hypothesis → evidence → verdict
+- CS-6: Lattice-Based Organization — organizes findings into hierarchical document structure
+
+**Tier B — activate when Ariadne analytical integration is validated (D-127):**
+- CS-1: Fixpoint Convergence — formal depth termination via delta tracking
+- CS-2: Graph-Based Coverage — completeness metric using Ariadne as coverage space
+- CS-4: Abductive Reasoning — competing explanations using Ariadne structural data
+- CS-5: Information Gain — deepening prioritization using Ariadne centrality/smell metrics
+
+Tier B methods are fully designed below but are included in agent instructions conditionally: they activate only when Ariadne is available and has been indexed for the current project. Without Ariadne, agents use CS-3 and CS-6 only. Depth checkpoint convergence is reported as simple finding count delta (without the formal Δ formula).
+
+### CS-1: Fixpoint Convergence (Depth Control) — Tier B
 
 **Problem:** When to stop deepening?
 **Method:** Track delta findings between analysis passes.
@@ -219,7 +234,7 @@ Pass 3: 1 new finding, 1 refinement
 
 **Threshold ε:** Not a hard cutoff — Themis reports the convergence trend, user decides. The metric informs the gate, doesn't control it (Art 4.2).
 
-### CS-2: Graph-Based Coverage (Completeness)
+### CS-2: Graph-Based Coverage (Completeness) — Tier B
 
 **Problem:** How to know if analysis is complete?
 **Method:** Use Ariadne graph as coverage space.
@@ -239,7 +254,7 @@ Uncovered: src/auth/session.ts (centrality: high), src/middleware/cors.ts (centr
 
 Coverage gaps with high centrality or high coupling to scope → deepen candidates.
 
-### CS-3: Hypothesis-Driven Analysis (Scientific Method)
+### CS-3: Hypothesis-Driven Analysis (Scientific Method) — Tier A
 
 **Problem:** How to ensure analytical rigor vs surface-level observation?
 **Method:** Structure analysis as hypothesis → evidence → verdict.
@@ -261,7 +276,7 @@ VERDICT: confirmed | refuted | insufficient
 
 Count of `insufficient` hypotheses is a deepen signal: "3 hypotheses still lack sufficient evidence."
 
-### CS-4: Abductive Reasoning (Root Cause Analysis)
+### CS-4: Abductive Reasoning (Root Cause Analysis) — Tier B
 
 **Problem:** Architectural symptoms (smells, high coupling) have multiple possible causes. Surface-level analysis just reports the symptom.
 **Method:** Generate competing explanations, find discriminating evidence.
@@ -288,7 +303,7 @@ CONCLUSION: H2 confirmed — X handles auth, session management, AND user
 
 **Implementation:** Argus and Metis instructions for `weakness`/`audit` subtypes include the abductive reasoning template. Findings without competing explanations considered → QA4 violation ("alternative explanations not considered").
 
-### CS-5: Information Gain (Deepening Prioritization)
+### CS-5: Information Gain (Deepening Prioritization) — Tier B
 
 **Problem:** When deepening, where to focus limited analytical budget?
 **Method:** Prioritize areas with highest expected information gain.
@@ -309,7 +324,7 @@ Deepening recommendation:
   Skip: src/utils/format.ts (centrality: 0.12, isolated, no smells)
 ```
 
-### CS-6: Lattice-Based Finding Organization (Structure)
+### CS-6: Lattice-Based Finding Organization (Structure) — Tier A
 
 **Problem:** Flat finding lists produce disorganized documents.
 **Method:** Organize findings into a partial order (lattice) before synthesis.
@@ -344,9 +359,9 @@ Replace Q1-Q5 (code-oriented) with QA1-QA4 for analytical tasks.
 
 ```
 - [ ] All questions from scope formalization have answers (or explicit "out of scope")
-- [ ] Structural coverage ≥ threshold (CS-2: graph-based coverage)
-- [ ] No high-centrality nodes in scope left unexplored
-- [ ] Ariadne data consulted for structural coverage verification
+- [ ] Structural coverage ≥ threshold (CS-2: graph-based coverage, if Ariadne available)
+- [ ] No high-centrality nodes in scope left unexplored (if Ariadne available; otherwise: no obvious scope areas left unexplored based on Hermes exploration)
+- [ ] Ariadne data consulted for structural coverage verification (if available; without Ariadne: coverage assessed from explored file set)
 - [ ] Scope boundaries explicitly documented (what was NOT analyzed and why)
 ```
 
@@ -355,7 +370,7 @@ Replace Q1-Q5 (code-oriented) with QA1-QA4 for analytical tasks.
 ```
 - [ ] Every finding follows hypothesis-evidence-verdict format (CS-3)
 - [ ] No "probably" / "likely" without supporting evidence
-- [ ] Ariadne metrics cited with concrete numbers (not "high coupling" but "fan-in: 47")
+- [ ] Ariadne metrics cited with concrete numbers when available (not "high coupling" but "fan-in: 47"); without Ariadne: code-level evidence with file paths suffices
 - [ ] Code references include file paths and line ranges
 - [ ] Each finding's confidence level matches its evidence strength
       (high confidence requires 2+ independent evidence points)
@@ -378,7 +393,7 @@ Replace Q1-Q5 (code-oriented) with QA1-QA4 for analytical tasks.
 ```
 - [ ] For weakness/audit: competing explanations considered (CS-4: abductive reasoning)
 - [ ] No confirmation bias — evidence that contradicts hypotheses is reported
-- [ ] Structural data (Ariadne) and code-level data (Hermes) are cross-validated
+- [ ] Structural data (Ariadne) and code-level data (Hermes) are cross-validated when both available
       (structural smell confirmed by code-level evidence, or discrepancy explained)
 - [ ] Findings are not circular (finding A's evidence is not finding B, whose evidence is A)
 - [ ] Convergence trend documented (CS-1: are we at fixpoint?)
@@ -422,6 +437,24 @@ Issue severity for analytical review:
 ```
 
 ---
+
+## Redirect State Management
+
+When the user chooses `redirect` at a depth checkpoint:
+
+1. **Prior findings are preserved.** All `analysis-pass-{N}.md` and `review-pass-{N}.md` files remain in state directory. They are NOT deleted or overwritten.
+2. **Athena receives prior findings as context.** When re-scoping, Athena reads the existing findings to understand what was already discovered and why the scope needs adjustment.
+3. **Maximum 1 redirect per pipeline execution.** Prevents infinite redirect loops. If the user needs a second re-scope, they must `abort` and start a new analytical task. This matches the `rearchitect` limit in implementation pipelines (D-112).
+4. **Post-redirect analysis starts a new pass counter.** If redirect happens after Pass 2, the next analysis starts as Pass 3 (continuous numbering, not reset to 1).
+
+## Themis Dual-Role in Analytical Pipeline
+
+**Acknowledged design exception:** Themis performs two structurally different tasks in the Analytical Pipeline:
+
+- **At depth checkpoint:** Convergence analysis — computes finding delta (CS-1), reports coverage (CS-2), assesses whether analysis is sufficient. This is meta-analytical quality review.
+- **At final review:** QA1-QA4 quality assurance on Calliope's synthesized document. This is document quality review.
+
+**Justification:** Both tasks are quality review with different focus — analytical output quality vs document output quality. Creating a separate agent for convergence analysis would be over-engineering: the convergence computation is a subset of Themis's existing quality assessment capability, not a distinct skill requiring separate role boundaries. The two invocations use different instructions (depth checkpoint template vs QA1-QA4 template) and produce different output files (`review-pass-{N}.md` vs `review.md`), maintaining clear separation within the same agent role.
 
 ## State Files
 
@@ -472,6 +505,9 @@ Analytical tasks use the same state directory structure with analytical-specific
 | **4.3 Rollback Capability** | Document changes are git-backed. Calliope writes through standard file operations. |
 | **5.1 Knowledge Evidence-Based** | Analytical findings become knowledge only through standard reflection (Mnemosyne). |
 | **5.2 Rule Changes Require Threshold** | Standard 3-confirmation threshold. Analytical pipeline doesn't bypass this. |
+| **6.1 Constitutional Immutability** | No pipeline step writes to CONSTITUTION.md. Calliope is scoped to project documentation paths. |
+| **6.2 Design Document Authority** | Analytical Pipeline conforms to design documents. Implementation follows analytical-pipeline.md specification. |
+| **6.3 Invariant Verification** | Argus audits analytical pipeline behavior as part of standard system health. Post-agent diff check applies to Calliope writes. |
 
 ---
 
@@ -496,11 +532,10 @@ steps:
       options: [proceed, modify, abort]
 
   gather:
-    parallel:
-      - agent: hermes
-        writes: [exploration.md]
-      - action: ariadne-baseline
-        writes: [ariadne-baseline.md]
+    agent: hermes
+    writes: [exploration.md, ariadne-baseline.md]
+    # D-125: Hermes handles both code exploration and Ariadne baseline queries
+    # in a single foreground dispatch. No separate "action" type needed.
     next: scope
 
   scope:
@@ -524,14 +559,15 @@ steps:
     gate:
       type: depth
       options: [sufficient, deepen, redirect, abort]
+      redirect_max: 1  # max 1 redirect per pipeline execution (same as rearchitect limit)
     next:
       sufficient: organize
       deepen: analysis  # loop back
-      redirect: scope   # re-scope
+      redirect: scope   # re-scope — prior analysis-pass-{N}.md files preserved, Athena receives them as context
 
   organize:
     # CS-6: lattice organization of findings
-    agent: metis  # or athena depending on subtype
+    agent: metis  # universal organizer for all subtypes — lattice construction is structural reasoning
     writes: [finding-lattice.md, synthesis-plan.md]
     next: synthesis
 
@@ -548,7 +584,8 @@ steps:
       options: [done, details, modify, abort]
     next:
       done: complete
-      modify: synthesis  # re-synthesize with feedback
+      modify: synthesis    # re-synthesize with feedback (QA3/QA1 failures)
+      re-analyze: analysis # re-analyze with QA feedback (QA2/QA4 failures — evidence gap)
 
   complete:
     action: finalize

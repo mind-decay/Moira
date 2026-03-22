@@ -1050,7 +1050,19 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 **Date:** 2026-03-19
 **Status:** Accepted
 **Context:** Architecture review (2026-03-19) found the orchestrator skill accumulates 7+ responsibilities (pipeline logic, gate presentation, error routing, budget checking, state management, agent dispatch, MCP authorization, graph data injection), approaching Art 1.3 (No God Components) violation. No decision or design constraint limits orchestrator scope.
-**Decision:** Define governance metric for orchestrator complexity. The orchestrator skill's responsibility count is tracked. Current baseline: 7 core responsibilities. Threshold: if responsibilities exceed 10, a mandatory architectural review must determine whether to decompose or formally acknowledge the exception. Each phase that adds orchestrator responsibility must document which responsibility is added. Art 1.3's test for the orchestrator is: "orchestrator responsibilities are enumerated and bounded."
+**Decision:** Define governance metric for orchestrator complexity. The orchestrator skill's responsibility count is tracked. Current baseline: 8 core responsibilities (enumerated below). Threshold: if responsibilities exceed 10, a mandatory architectural review must determine whether to decompose or formally acknowledge the exception. Each phase that adds orchestrator responsibility must document which responsibility is added. Art 1.3's test for the orchestrator is: "orchestrator responsibilities are enumerated and bounded."
+
+**Enumerated baseline responsibilities (8):**
+1. **Pipeline logic** — reading pipeline YAML, executing steps in order, handling branching
+2. **Gate presentation** — formatting and displaying approval gates, processing user decisions
+3. **Error routing** — detecting error conditions, selecting recovery strategy per E1-E11
+4. **Budget checking** — pre-execution estimation, orchestrator context threshold monitoring
+5. **State management** — reading/writing current.yaml, status.yaml, manifest.yaml
+6. **Agent dispatch** — constructing prompts, invoking Agent tool, parsing responses
+7. **Post-agent verification** — git diff guard check, violation logging
+8. **Analytical pipeline flow** — depth checkpoint looping, redirect handling, convergence tracking (added Phase 14)
+
+**Threshold rationale:** 10 is chosen as ~25% growth from baseline 8. Below 10, the orchestrator remains a coordinator with bounded scope. Above 10, coordination overhead suggests some responsibilities should be factored into sub-skills or utility agents.
 **Alternatives rejected:**
 - Decompose now into multiple skills — coordination overhead between sub-skills outweighs current complexity
 - No governance — complexity grows unbounded, Art 1.3 becomes unenforceable for the most critical component
@@ -1240,3 +1252,69 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - Add a planning step to analytical pipeline — unnecessary, analytical tasks don't need implementation plans
 - Have scope step assemble instructions — scope is about analysis scope, not instruction assembly; violates single responsibility
 **Reasoning:** Simplified assembly already works for all pre-planning agents in all pipelines. The analytical pipeline doesn't generate code, so there's no implementation plan to assemble from. CS method templates in role YAMLs are activated conditionally by the orchestrator when pipeline=analytical.
+
+## D-127: CS Method Tiering (Tier A/B)
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Architecture review (2026-03-22) found that 4 of 6 CS methods (CS-1, CS-2, CS-4, CS-5) depend on Ariadne for their primary value, while CS-3 (hypothesis-driven) and CS-6 (lattice organization) work without Ariadne. Implementing all six adds prompt complexity with uncertain v1 value for the Ariadne-dependent methods.
+**Decision:** Two tiers: Tier A (v1 operational, no Ariadne dependency) = CS-3 and CS-6. Tier B (activate when Ariadne analytical integration is validated) = CS-1, CS-2, CS-4, CS-5. Tier B methods are fully designed but included in agent instructions conditionally — they activate only when Ariadne is available and indexed. Without Ariadne, depth checkpoint convergence uses simple finding count delta.
+**Alternatives rejected:**
+- Implement all six unconditionally — CS-1/2/4/5 without Ariadne degrade to prompt decoration (vague guidance without concrete metrics)
+- Defer Tier B design entirely — the methods are sound and will be needed once Ariadne analytical integration matures
+**Reasoning:** CS-3 and CS-6 change agent behavior in directly verifiable ways (structured finding format, hierarchical document structure) without any external dependency. CS-1/2/4/5 are formal methods that require concrete data (centrality, coverage, smell density) to be meaningful. Conditional activation avoids dead prompt complexity while preserving the design for when Ariadne provides that data.
+
+## D-128: Art 2.2 Amendment — Analytical Pipeline Gates
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Architecture review (2026-03-22) found that CONSTITUTION.md Art 2.2 enumerated gates for only four pipeline types. The Analytical Pipeline's variable-count depth checkpoints didn't fit the enumeration, causing constitutional verification to produce false results.
+**Decision:** Amend Art 2.2 to add: "Analytical: classification + scope + depth checkpoint(s) + final." Note that depth checkpoints may repeat (progressive depth per D-119) but MUST NOT be skipped. Also amend Art 2.1 to add: "Analytical (any subtype) → Analytical Pipeline." Update the Invariant Verification Checklist accordingly.
+**Alternatives rejected:**
+- Annotate gate enumeration as implementation-pipeline-specific — creates a class of pipelines exempt from constitutional verification, undermining Art 2.2's purpose
+**Reasoning:** The Constitution should be honest about what the system actually does. The Analytical Pipeline has deterministic gates — the gate types are fixed, only the depth checkpoint count varies by user decision (Art 4.2). This is consistent with Art 2.2's intent: gates are structural and cannot be skipped.
+
+## D-129: QA1-QA4 Ariadne Items Conditional on Availability
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Architecture review (2026-03-22) found that QA1 and QA2 checklist items explicitly required Ariadne data ("Ariadne data consulted for structural coverage verification", "Ariadne metrics cited with concrete numbers"). Without Ariadne, these items would produce systematic CRITICAL failures, making the analytical pipeline unusable — contradicting D-102 (graceful degradation).
+**Decision:** Mark Ariadne-dependent QA items as conditional: "if Ariadne available." Without Ariadne, coverage is assessed from explored file set, and evidence uses code-level references instead of structural metrics.
+**Alternatives rejected:**
+- Keep items unconditional — makes analytical pipeline a hard Ariadne dependency, contradicts D-102
+- Remove Ariadne items entirely — loses the structural coverage value when Ariadne IS available
+**Reasoning:** The analytical pipeline should work at any capability level, consistent with Moira's philosophy (D-102). Ariadne enhances analytical quality but shouldn't be a gate blocker. Conditional items preserve the value when available without creating false failures when absent.
+
+## D-130: Redirect Limit and State Preservation
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Architecture review (2026-03-22) found that the depth checkpoint `redirect → scope` path had no specification of finding preservation, no redirect limit, and no definition of what context Athena receives when re-scoping.
+**Decision:** (a) Prior analysis-pass-N.md files are preserved on redirect — NOT deleted. (b) Maximum 1 redirect per pipeline execution (matches rearchitect limit in D-112). (c) Athena receives prior findings as context when re-scoping. (d) Post-redirect analysis continues pass numbering (no reset).
+**Alternatives rejected:**
+- Unlimited redirects — risk of infinite loops between scope and analysis
+- Discard prior findings on redirect — loses valid analysis work, wastes tokens
+- Fresh pass numbering after redirect — breaks convergence tracking continuity
+**Reasoning:** Findings from prior passes are valid data regardless of scope change. Preserving them gives Athena context for better re-scoping and maintains convergence tracking. The 1-redirect limit mirrors the rearchitect pattern — a single controlled backward step, not unlimited looping.
+
+## D-131: Themis Dual-Role in Analytical Pipeline — Acknowledged Exception
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Architecture review (2026-03-22) found that Themis performs two structurally different tasks in the Analytical Pipeline: convergence analysis at depth checkpoints and QA1-QA4 document review at the final gate. This stretches Art 1.2 (single responsibility).
+**Decision:** Acknowledge as a documented design exception. Both tasks are quality review with different focus (analytical output quality vs document output quality). A separate agent for convergence analysis is not warranted.
+**Alternatives rejected:**
+- Separate convergence agent — over-engineering; convergence computation is a subset of Themis's quality assessment, not a distinct skill
+- Assign convergence to Athena — Athena formalized the scope but shouldn't judge whether the analysis of that scope is sufficient (conflict of interest)
+**Reasoning:** Themis reviews quality. Convergence assessment is "is the analytical quality sufficient to stop?" — a quality judgment. Document review is "does the synthesized document meet quality standards?" — also a quality judgment. Different templates and output files maintain clear separation within the same agent role. The alternative of a 12th agent adds coordination overhead for a task that fits naturally within Themis's existing expertise.
+
+## D-132: Metis as Universal Organizer for CS-6 Lattice
+
+**Date:** 2026-03-22
+**Status:** Accepted
+**Context:** Architecture review (2026-03-22) found the organize step's agent assignment was ambiguous ("metis or athena depending on subtype") and not specified in the agent_map, forcing an implicit orchestrator decision (Art 2.3 violation).
+**Decision:** Metis is the universal organizer for all analytical subtypes. The agent_map is not extended with an organize field — instead, the organize step always dispatches Metis regardless of subtype.
+**Alternatives rejected:**
+- Per-subtype organize agent — unnecessary complexity; lattice construction is structural reasoning regardless of analytical subtype
+- Athena as organizer — Athena's role is scope formalization, not structural organization of findings
+**Reasoning:** Lattice construction requires reasoning about causal relationships, scope containment, and dependency between findings — structural reasoning that is Metis's core competency. Using the same agent for all subtypes makes the organize step deterministic (Art 2.1) without needing agent_map lookup.

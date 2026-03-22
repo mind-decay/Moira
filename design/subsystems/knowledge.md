@@ -29,6 +29,7 @@ Every knowledge document exists in three forms:
 | Tester | L0 | L1 | — | L0 | — | — | — | L1 |
 | Reflector | L2 | L2 | L2 | L2 | L2 | L2 | L2 | L2 |
 | Auditor | L2 | L2 | L2 | L2 | L2 | L2 | L2 | L2 |
+| Calliope | L1 | L1 | L0 | L0 | — | — | — | L0 |
 
 **Authoritative source:** `src/global/core/knowledge-access-matrix.yaml`. This table is illustrative; the YAML is the authoritative source for all access levels including write access and graph extras.
 
@@ -180,38 +181,43 @@ Every fact is tagged with a freshness marker:
 
 Legacy format (without λ) is also supported — parser uses default λ for the knowledge type.
 
-### Exponential Decay Model
+### Task-Count Staleness Model (v1)
 
-Confidence decays continuously based on tasks elapsed since last verification:
+Knowledge freshness is tracked by counting tasks elapsed since each entry was last verified:
 
 ```
-confidence(entry) = e^(-λ × tasks_since_verified)
+freshness marker: <!-- moira:freshness task-078 2024-01-20 -->
+staleness = current_task_count - last_verified_task_count
 ```
 
-Per-knowledge-type decay rates (initial estimates, tunable):
+Per-knowledge-type staleness thresholds:
 
-| Knowledge Type | λ | Rationale |
-|---------------|-----|-----------|
-| conventions | 0.02 | Slow decay — conventions rarely change |
-| patterns | 0.05 | Moderate — patterns evolve |
-| project_model | 0.08 | Faster — project structure changes with development |
-| decisions | 0.01 | Very slow — architectural decisions are stable |
-| failures | 0.03 | Moderate — failure lessons remain relevant |
-| quality_map | 0.07 | Faster — code quality evolves |
+| Knowledge Type | Stale After N Tasks | Rationale |
+|---------------|---------------------|-----------|
+| conventions | 50 tasks | Conventions rarely change |
+| patterns | 20 tasks | Patterns evolve moderately |
+| project_model | 10 tasks | Project structure changes with development |
+| decisions | 100 tasks | Architectural decisions are stable |
+| failures | 30 tasks | Failure lessons remain relevant |
+| quality_map | 15 tasks | Code quality evolves |
 
-### Confidence Thresholds
+### Freshness Categories
 
-| Confidence | Category | Behavior |
-|-----------|----------|----------|
-| > 0.7 | Trusted | Equivalent to "fresh" — used without question |
-| 0.3 – 0.7 | Usable | Verification welcome but not required |
-| ≤ 0.3 | Needs verification | Must be verified before use |
+| Category | Behavior |
+|----------|----------|
+| Fresh (< 50% of threshold) | Used without question |
+| Aging (50-100% of threshold) | Verification welcome but not required |
+| Stale (> threshold) | Must be verified before use |
 
-### Verification Priority Queue
+### Verification Priority
 
-Instead of binary "stale → verify", entries are sorted by confidence score ascending (lowest confidence first = highest priority). `/moira refresh` verifies lowest-confidence entries first — more efficient than verifying everything past a fixed threshold.
+Stale entries are sorted by how far past their threshold (most overdue first). `/moira refresh` verifies the most overdue entries first.
 
-Low-confidence entries are flagged by Audit and verified by Explorer at next `/moira refresh`.
+Low-freshness entries are flagged by Audit and verified by Explorer at next `/moira refresh`.
+
+### Exponential Decay Model (Post-v1, per D-111)
+
+> **Deferred to post-v1.** An exponential decay model with per-type λ values (D-094) will replace task-count staleness once sufficient telemetry history exists. See D-094 and D-111 for the full design.
 
 ## Size Management — Archival Rotation
 

@@ -63,6 +63,8 @@ Layer 2 has two sub-mechanisms. Claude Code supports hooks in subagent frontmatt
 
 **Scope:** guard.sh is registered in `settings.json` and fires only in the orchestrator session (settings.json hooks do not propagate to subagent sessions). It detects orchestrator-level Art 1.1 violations (orchestrator touching project files). It cannot block — PostToolUse fires after the tool call (D-075). It logs violations and injects context warnings via hookSpecificOutput.
 
+**Activation:** Guard enforcement requires a `.guard-active` marker file in the state directory. The orchestrator creates this marker at pipeline start (Pre-Pipeline Setup, step 0) and deletes it on pipeline end (completion, abort, or failure). Without the marker, guard.sh exits silently — preventing false positives in normal Claude Code sessions and when a pipeline is interrupted awaiting `/moira:resume`.
+
 ```bash
 #!/bin/bash
 # PostToolUse hook — orchestrator session only
@@ -75,6 +77,11 @@ state_dir="$HOME/.claude/moira/state"
 
 # Only monitor moira sessions
 if [ ! -f "$state_dir/current.yaml" ]; then
+  exit 0
+fi
+
+# Only enforce during active pipeline (marker created by orchestrator)
+if [ ! -f "$state_dir/.guard-active" ]; then
   exit 0
 fi
 

@@ -53,9 +53,11 @@ REGRESSION CHECKS:
 │   Standard pipeline still has all required steps?
 │   Full pipeline still has all required steps?
 │   Decomposition pipeline still has all required steps?
+│   Analytical pipeline still has all required steps?
 │
 ├─ Agent completeness
-│   All 10 agents still defined?
+│   All agents defined in agents.md are present in role files?
+│   (currently 11: Apollo, Hermes, Athena, Metis, Daedalus, Hephaestus, Themis, Aletheia, Mnemosyne, Argus, Calliope)
 │   Each agent still has: identity, capabilities, constraints, output contract?
 │   No agent lost its "NEVER" constraints?
 │
@@ -240,6 +242,7 @@ article_1_2:
     - Tester contains "NEVER modifies application code"
     - Reflector contains "NEVER changes rules directly"
     - Auditor contains "NEVER modifies system files"
+    - Calliope contains "NEVER source code" (writes only markdown)
   severity: "CONSTITUTIONAL_VIOLATION"
 
 article_2_2:
@@ -251,6 +254,8 @@ article_2_2:
     standard_pipeline_gates: ["classification", "architecture", "plan", "final"]
     full_pipeline_gates: ["classification", "architecture", "plan", "phase", "final"]
     decomposition_gates: ["classification", "architecture", "decomposition", "per_task", "final"]
+    analytical_gates: ["classification", "scope", "depth_checkpoint", "final"]
+    # Analytical pipeline depth_checkpoint may repeat (progressive depth) but never skip.
   # Gate names here are short identifiers; YAML implementations use `_gate` suffix
   # (e.g., 'classification' → `classification_gate`).
   severity: "CONSTITUTIONAL_VIOLATION"

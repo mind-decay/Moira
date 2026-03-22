@@ -110,7 +110,7 @@ Need from you:
 
 Note: `max_attempts` means total executions including the original attempt (D-095).
 
-**Markov retry optimization:** Retry count may be reduced from the hard maximum by the Markov retry optimizer (`retry.sh`) when historical data shows low success probability. The optimizer uses exponential moving average of past retry outcomes per (error_type, agent_type) pair to estimate success probability. Hard limits (2 attempts total) remain as upper bounds — the optimizer can recommend fewer retries, never more. Report includes: "Retry recommended (estimated N% success probability based on M historical observations)" or "Escalating to user (estimated N% success probability — retry unlikely to help)."
+**Markov retry optimization (post-v1, per D-111):** V1 uses fixed retry limits (max_attempts per pipeline, see D-095). Post-v1, a Markov retry optimizer may reduce retry count based on historical success probability. See D-094 and D-111 for the deferred design.
 
 **Attempt 1:** Implementer gets review feedback, fixes issues → re-review
 
@@ -140,7 +140,7 @@ may not be suitable. Consider alternatives.
 
 ### E6-AGENT: Agent Failure
 
-**Markov retry optimization:** Same as E5 — retry optimizer (`retry.sh`) may recommend skipping the retry if historical success probability is low. Hard limit (1 retry) remains as upper bound.
+**Markov retry optimization (post-v1, per D-111):** V1 uses fixed retry limit (1 retry). Post-v1, a Markov retry optimizer may recommend skipping the retry based on historical success probability.
 
 **Recovery:**
 1. Retry 1x with same input (may be transient)
@@ -281,6 +281,59 @@ Analysis: Explorer counted all route files including deprecated.
 
 **Note:** This failure mode is insidious because the agent itself cannot know it has lost context. The budget system's pre-execution estimation is the most reliable prevention mechanism. The 30% safety margin in budget allocation exists partly to mitigate this risk.
 
+## Analytical Pipeline Error Extensions
+
+The Analytical Pipeline uses the same E1-E11 taxonomy with the following extensions:
+
+### E5-QUALITY in Analytical Pipeline: Re-Analyze vs Re-Synthesize
+
+At the analytical final gate, E5-QUALITY has two distinct recovery paths depending on which QA gate failed:
+
+- **QA3 (actionability) or QA1 partial (document structure):** → `modify` at final gate → re-synthesis by Calliope with Themis feedback. Same as implementation pipeline's E5 path.
+- **QA2 (evidence quality) or QA4 (analytical rigor):** → `re-analyze` at final gate → route back to analysis step with specific QA failure feedback injected into agent instructions. Re-synthesis alone cannot fix an evidence gap — the analysis phase must produce better evidence first.
+
+The `re-analyze` branch counts toward the E5 max_attempts (3 total). After exhaustion, escalate to user with the specific QA failures that could not be resolved.
+
+### E10-DIVERGE in Analytical Pipeline: Parallel Agent Cross-Check
+
+For `audit` and `weakness` subtypes, Metis and Argus analyze in parallel. The organize step (CS-6 lattice construction) includes an explicit E10-DIVERGE check: before building the lattice, Metis compares findings from both agents on overlapping nodes/modules. Contradictions become first-class nodes in the lattice with type `disputed_finding` — both versions preserved, contradiction flagged for user visibility at depth checkpoint. Contradictions are NOT silently resolved by choosing one agent's version.
+
+### E8-STALE: Ariadne Data Freshness
+
+Ariadne graph data can become stale if the codebase has changed since the last `ariadne build/update`. Before Tier 1 baseline queries in the Gather phase, the orchestrator checks Ariadne's last-index timestamp (from `.ariadne/graph/meta.json`) against the last git commit timestamp. If the gap exceeds a configurable threshold (default: 50 commits or 7 days), the orchestrator warns the user at the scope gate:
+
+```
+⚠ Ariadne graph may be stale
+Last indexed: 2026-03-15 (42 commits ago)
+Structural metrics may not reflect recent changes.
+
+▸ reindex — run `ariadne update` before analysis
+▸ continue — proceed with current data (findings will note staleness)
+▸ skip-ariadne — analyze without structural data
+```
+
+If the user chooses `continue`, all Ariadne-derived evidence in findings carries a staleness annotation.
+
+### Mid-Analysis Ariadne Unavailability
+
+If Ariadne MCP becomes unavailable during an analysis pass (Tier 2 agent-driven queries fail):
+
+1. Agent notes the failure and continues with code-level analysis only
+2. CS-2 coverage is computed from explored files, not Ariadne graph
+3. Tier B CS methods (CS-1/CS-2/CS-4/CS-5 per D-127) deactivate for the remainder of the pass
+4. Themis reports at depth checkpoint: "Ariadne unavailable during pass N — structural coverage not computed"
+5. No automatic retry — the user decides at the depth checkpoint whether to deepen (hoping Ariadne recovers) or proceed with code-level findings
+
+### Calliope Conflict Resolution
+
+When Calliope's findings contradict existing document content:
+
+1. **Supersession:** If a finding explicitly refutes a previous claim (e.g., "Module X was documented as low-coupling but analysis shows fan-in: 47"), Calliope updates the document section with the new finding AND notes the change: `[Updated: previous assessment superseded by analysis task-{id}]`.
+2. **Qualification:** If a finding adds nuance without fully refuting (e.g., "coupling is high but intentional"), Calliope adds the qualification alongside the existing content rather than replacing it.
+3. **Blocked:** If Calliope cannot determine whether to supersede or qualify (e.g., the existing document uses different terminology or scope), Calliope returns `STATUS: blocked` with the specific conflict for user resolution.
+
+Calliope NEVER silently overwrites existing content. Every change to existing text is traceable via the `[Updated]` annotation.
+
 ## Error Precedence
 
 When multiple error types fire simultaneously (compound errors), handle in priority order:
@@ -291,6 +344,19 @@ When multiple error types fire simultaneously (compound errors), handle in prior
 4. **Informational (E7, E8, E11)** — drift, stale knowledge, and truncation are logged and addressed but don't block recovery of higher-priority errors
 
 When compound errors occur, handle the highest-priority error first. Lower-priority errors may resolve as a side effect of higher-priority recovery (e.g., fixing E4 by splitting work may also resolve an E5 quality failure caused by context pressure).
+
+## Session Concurrency Protection
+
+A session lock file (`.claude/moira/state/.session-lock`) prevents concurrent Moira pipeline executions on the same branch:
+
+1. **At pipeline start:** Create `.session-lock` containing `{ pid: <process_id>, started: <timestamp>, task_id: <id>, ttl: 3600 }`.
+2. **If lock exists:** Check if the PID is still alive and the TTL hasn't expired.
+   - PID alive + TTL valid → warn: "Another Moira session is active (task {task_id}, started {timestamp}). Running concurrent sessions on the same branch can corrupt state. Proceed anyway? (y/n)"
+   - PID dead OR TTL expired → stale lock, remove and proceed
+3. **At pipeline completion (or abort):** Delete `.session-lock`.
+4. **On unexpected session termination:** The TTL (default: 1 hour) ensures stale locks are auto-detected by the next session.
+
+This protects against accidental concurrent sessions writing to the same `manifest.yaml` and `current.yaml`. It is advisory — the user can force past it — but prevents silent state corruption.
 
 ## Gate Timeout and Abandonment
 
