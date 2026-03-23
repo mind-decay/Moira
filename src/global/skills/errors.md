@@ -26,19 +26,23 @@ Agent returns `STATUS: blocked` with `REASON` and `NEED` fields.
 ### Display
 
 ```
-⏸ BLOCKED: Missing Information
-Agent: {Name} ({role})
-Step: {step_number}/{total_steps} — {step_description}
+═══════════════════════════════════════════
+ ⏸ BLOCKED: Missing Information
+═══════════════════════════════════════════
 
-Problem: {agent REASON}
+ Agent: {Name} ({role})
+ Step: {step_number}/{total_steps} — {step_description}
 
-Need from you:
-→ {agent NEED}
+ Problem: {agent REASON}
 
-1) answer — provide the information
-2) point  — point to a file/doc with the answer
-3) skip   — mark as TODO in code
-4) abort  — stop task
+ Need from you:
+ → {agent NEED}
+
+ 1) answer — provide the information
+ 2) point  — point to a file/doc with the answer
+ 3) skip   — mark as TODO in code
+ 4) abort  — stop task
+═══════════════════════════════════════════
 ```
 
 ### State Updates
@@ -74,22 +78,26 @@ Explorer or Architect signals that the task is larger/more complex than classifi
 ### Display
 
 ```
-⚠ SCOPE CHANGE DETECTED
-Agent: {Name} ({role})
-Step: {step_number}/{total_steps}
+═══════════════════════════════════════════
+ ⚠ SCOPE CHANGE DETECTED
+═══════════════════════════════════════════
 
-Original classification: {original_size} → {original_pipeline}
-Detected scope: {detected_size}
+ Agent: {Name} ({role})
+ Step: {step_number}/{total_steps}
 
-Reason: {agent's scope change reasoning}
+ Original classification: {original_size} → {original_pipeline}
+ Detected scope: {detected_size}
 
-Existing work preserved:
-{list of valid artifacts from completed steps}
+ Reason: {agent's scope change reasoning}
 
-1) upgrade  — re-plan at {detected_size} size (recommended)
-2) split    — break into separate tasks
-3) reduce   — simplify scope (you decide what to cut)
-4) continue — proceed as-is (⚠ quality risk)
+ Existing work preserved:
+ {list of valid artifacts from completed steps}
+
+ 1) upgrade  — re-plan at {detected_size} size (recommended)
+ 2) split    — break into separate tasks
+ 3) reduce   — simplify scope (you decide what to cut)
+ 4) continue — proceed as-is (⚠ quality risk)
+═══════════════════════════════════════════
 ```
 
 ### State Updates
@@ -121,25 +129,29 @@ Agent documents conflicting requirements, code patterns, or conventions in its o
 ### Display
 
 ```
-⚡ CONFLICT DETECTED
-Agent: {Name} ({role})
-Step: {step_number}/{total_steps}
+═══════════════════════════════════════════
+ ⚡ CONFLICT DETECTED
+═══════════════════════════════════════════
 
-What conflicts:
-{conflict description}
+ Agent: {Name} ({role})
+ Step: {step_number}/{total_steps}
 
-Option A: {option_a_description}
-  ✓ {pro_1}
-  ✗ {con_1}
+ What conflicts:
+ {conflict description}
 
-Option B: {option_b_description}
-  ✓ {pro_1}
-  ✗ {con_1}
+ Option A: {option_a_description}
+   ✓ {pro_1}
+   ✗ {con_1}
 
-Agent recommendation: {agent's recommendation} (informational)
+ Option B: {option_b_description}
+   ✓ {pro_1}
+   ✗ {con_1}
 
-1) a — choose Option A
-2) b — choose Option B
+ Agent recommendation: {agent's recommendation} (informational)
+
+ 1) a — choose Option A
+ 2) b — choose Option B
+═══════════════════════════════════════════
 ```
 
 ### State Updates
@@ -183,13 +195,17 @@ When agent returns `STATUS: budget_exceeded` with `COMPLETED` and `REMAINING` fi
 ### Display — Mid-execution
 
 ```
-⚠ BUDGET OVERFLOW
-Agent: {Name} ({role})
+═══════════════════════════════════════════
+ ⚠ BUDGET OVERFLOW
+═══════════════════════════════════════════
 
-Completed: {completed_items}
-Remaining: {remaining_items}
+ Agent: {Name} ({role})
 
-Spawning continuation agent for remaining work...
+ Completed: {completed_items}
+ Remaining: {remaining_items}
+
+ Spawning continuation agent for remaining work...
+═══════════════════════════════════════════
 ```
 
 ### State Updates
@@ -202,18 +218,22 @@ Spawning continuation agent for remaining work...
 If continuation agent ALSO returns `budget_exceeded` (budget_splits >= 2):
 
 ```
-🔴 REPEATED BUDGET OVERFLOW
-Agent: {Name} ({role})
+═══════════════════════════════════════════
+ 🔴 REPEATED BUDGET OVERFLOW
+═══════════════════════════════════════════
 
-This step has overflowed twice.
-Original estimate may be significantly wrong.
+ Agent: {Name} ({role})
 
-Completed so far: {all completed items}
-Still remaining: {remaining items}
+ This step has overflowed twice.
+ Original estimate may be significantly wrong.
 
-1) split   — manually split remaining work
-2) retry   — try again with larger budget (not recommended)
-3) abort   — stop task, keep partial results
+ Completed so far: {all completed items}
+ Still remaining: {remaining items}
+
+ 1) split   — manually split remaining work
+ 2) retry   — try again with larger budget (not recommended)
+ 3) abort   — stop task, keep partial results
+═══════════════════════════════════════════
 ```
 
 State: record gate as `moira_state_gate("budget_overflow_e4", decision)`
@@ -227,12 +247,16 @@ When `context_budget.warning_level` is `critical` (>60%), E4-BUDGET mid-executio
 3. Display context warning with mandatory checkpoint message:
 
 ```
-🔴 CONTEXT BUDGET CRITICAL (>60%)
-Orchestrator context usage has reached critical level.
-Mandatory checkpoint — cannot continue in this session.
+═══════════════════════════════════════════
+ 🔴 CONTEXT BUDGET CRITICAL (>60%)
+═══════════════════════════════════════════
 
-Progress saved. Resume in a new session:
-→ /moira resume
+ Orchestrator context usage has reached critical level.
+ Mandatory checkpoint — cannot continue in this session.
+
+ Progress saved. Resume in a new session:
+ → /moira resume
+═══════════════════════════════════════════
 ```
 
 4. Stop pipeline — user must resume in new session via `/moira resume`
@@ -274,30 +298,38 @@ Present quality failure gate to user.
 ### Display — During Retry
 
 ```
-🔄 QUALITY RETRY (attempt {n}/3, including original)
-Reviewer found {count} CRITICAL issue(s):
-{list of critical findings}
+═══════════════════════════════════════════
+ 🔄 QUALITY RETRY (attempt {n}/3, including original)
+═══════════════════════════════════════════
 
-Re-dispatching Hephaestus (implementer) with feedback...
+ Reviewer found {count} CRITICAL issue(s):
+ {list of critical findings}
+
+ Re-dispatching Hephaestus (implementer) with feedback...
+═══════════════════════════════════════════
 ```
 
 ### Display — After Max Retries
 
 ```
-🔴 QUALITY GATE FAILED (2 retries exhausted)
-Step: {step_description}
+═══════════════════════════════════════════
+ 🔴 QUALITY GATE FAILED (2 retries exhausted)
+═══════════════════════════════════════════
 
-Attempt 1: {attempt_1_issue}
-Fix applied: {attempt_1_fix}
+ Step: {step_description}
 
-Attempt 2: {attempt_2_issue}
+ Attempt 1: {attempt_1_issue}
+ Fix applied: {attempt_1_fix}
 
-Root cause analysis:
-{analysis of why both attempts failed}
+ Attempt 2: {attempt_2_issue}
 
-1) redesign — send back to Metis (architect)
-2) manual   — you'll handle this part
-3) simplify — remove feature, find simpler approach
+ Root cause analysis:
+ {analysis of why both attempts failed}
+
+ 1) redesign — send back to Metis (architect)
+ 2) manual   — you'll handle this part
+ 3) simplify — remove feature, find simpler approach
+═══════════════════════════════════════════
 ```
 
 ### State Updates
@@ -342,33 +374,41 @@ Before retrying, consult retry optimizer: `moira_retry_should_retry E6_AGENT {ag
 ### Display — During Retry
 
 ```
-🔄 AGENT RETRY
-{Name} ({role}) failed. Retrying (attempt 2/2)...
+═══════════════════════════════════════════
+ 🔄 AGENT RETRY
+═══════════════════════════════════════════
+
+ {Name} ({role}) failed. Retrying (attempt 2/2)...
+═══════════════════════════════════════════
 ```
 
 ### Display — After Failure
 
 ```
-🔴 AGENT FAILURE
-Agent: {Name} ({role})
+═══════════════════════════════════════════
+ 🔴 AGENT FAILURE
+═══════════════════════════════════════════
 
-Failure: {description of failure}
-Retry: Same result.
+ Agent: {Name} ({role})
 
-Diagnosis:
-- Input valid: {yes/no}
-- Instructions clear: {yes/no}
-- Context budget: {percentage}% {status_emoji}
-- Likely cause: {diagnosis}
+ Failure: {description of failure}
+ Retry: Same result.
 
-Other agents: {status of other agents in pipeline}
+ Diagnosis:
+ - Input valid: {yes/no}
+ - Instructions clear: {yes/no}
+ - Context budget: {percentage}% {status_emoji}
+ - Likely cause: {diagnosis}
 
-Recommendation: {recommendation}
+ Other agents: {status of other agents in pipeline}
 
-1) retry-split — split work and retry (recommended if budget issue)
-2) retry-as-is — retry same task
-3) manual      — handle manually
-4) rollback    — undo all, re-plan
+ Recommendation: {recommendation}
+
+ 1) retry-split — split work and retry (recommended if budget issue)
+ 2) retry-as-is — retry same task
+ 3) manual      — handle manually
+ 4) rollback    — undo all, re-plan
+═══════════════════════════════════════════
 ```
 
 ### State Updates
@@ -462,15 +502,21 @@ At pipeline start (after classification, before dispatching exploration agents),
 ### Display
 
 ```
-Warning: STALE KNOWLEDGE WARNING
-The following knowledge entries have confidence below 30% (exponential decay):
-  - {type}: last confirmed at task {task_id} ({distance} tasks ago)
-  ...
+═══════════════════════════════════════════
+ ⚠ STALE KNOWLEDGE WARNING
+═══════════════════════════════════════════
 
-Stale knowledge may lead to incorrect agent decisions.
+ The following knowledge entries have confidence
+ below 30% (exponential decay):
+   - {type}: last confirmed at task {task_id}
+     ({distance} tasks ago)
+   ...
 
-1) proceed — continue (agents may use outdated information)
-2) refresh — run /moira:refresh to update knowledge base first
+ Stale knowledge may lead to incorrect agent decisions.
+
+ 1) proceed — continue (agents may use outdated info)
+ 2) refresh — run /moira:refresh to update first
+═══════════════════════════════════════════
 ```
 
 ### Non-blocking
@@ -528,11 +574,15 @@ Follow E5-QUALITY retry path:
 ### Display — Reviewer-detected
 
 ```
-🔄 QUALITY RETRY — FACTUAL ERROR (attempt {n}/{max})
-Themis (reviewer) found factual errors:
-{list of factual findings}
+═══════════════════════════════════════════
+ 🔄 QUALITY RETRY — FACTUAL ERROR (attempt {n}/{max})
+═══════════════════════════════════════════
 
-Re-dispatching Hephaestus (implementer) with corrections...
+ Themis (reviewer) found factual errors:
+ {list of factual findings}
+
+ Re-dispatching Hephaestus (implementer) with corrections...
+═══════════════════════════════════════════
 ```
 
 ### State Updates
@@ -569,21 +619,26 @@ Look for:
 ### Display
 
 ```
-⚡ AGENT DATA CONFLICT
-Metis (architect) found contradictory data from upstream agents:
+═══════════════════════════════════════════
+ ⚡ AGENT DATA CONFLICT
+═══════════════════════════════════════════
 
-Source A — Hermes (explorer):
-{explorer's claim}
+ Metis (architect) found contradictory data
+ from upstream agents:
 
-Source B — Athena (analyst):
-{analyst's claim}
+ Source A — Hermes (explorer):
+ {explorer's claim}
 
-Discrepancy: {description of contradiction}
+ Source B — Athena (analyst):
+ {analyst's claim}
 
-1) use-explorer — trust Hermes (explorer) data
-2) use-analyst  — trust Athena (analyst) data
-3) clarify      — provide additional context to resolve
-4) abort        — cancel task
+ Discrepancy: {description of contradiction}
+
+ 1) use-explorer — trust Hermes (explorer) data
+ 2) use-analyst  — trust Athena (analyst) data
+ 3) clarify      — provide additional context
+ 4) abort        — cancel task
+═══════════════════════════════════════════
 ```
 
 ### State Updates
@@ -623,22 +678,33 @@ Follow E5-QUALITY retry with reduced scope:
 ### Display — Pre-execution
 
 ```
-⚠ BUDGET PRE-CHECK: TRUNCATION RISK
-Daedalus (planner) estimates step {step} may exceed context limits.
+═══════════════════════════════════════════
+ ⚠ BUDGET PRE-CHECK: TRUNCATION RISK
+═══════════════════════════════════════════
 
-Estimated usage: ~{est}k/{limit}k ({pct}%)
+ Daedalus (planner) estimates step {step} may
+ exceed context limits.
 
-Auto-splitting into sub-steps with independent file sets...
+ Estimated usage: ~{est}k/{limit}k ({pct}%)
+
+ Auto-splitting into sub-steps with independent
+ file sets...
+═══════════════════════════════════════════
 ```
 
 ### Display — Post-execution
 
 ```
-🔄 QUALITY RETRY — TRUNCATION DETECTED (attempt {n}/{max})
-Themis (reviewer) found signs of context truncation:
-{list of truncation indicators}
+═══════════════════════════════════════════
+ 🔄 QUALITY RETRY — TRUNCATION DETECTED (attempt {n}/{max})
+═══════════════════════════════════════════
 
-Re-dispatching Hephaestus (implementer) with reduced scope...
+ Themis (reviewer) found signs of context truncation:
+ {list of truncation indicators}
+
+ Re-dispatching Hephaestus (implementer)
+ with reduced scope...
+═══════════════════════════════════════════
 ```
 
 ### State Updates
@@ -666,11 +732,17 @@ When `moira_epic_validate_dag` returns `cycle_detected` during Decomposition Pip
 ### Display
 
 ```
-🔴 EPIC DECOMPOSITION: CIRCULAR DEPENDENCIES
-Epic decomposition contains circular dependencies: {cycle_path}
+═══════════════════════════════════════════
+ 🔴 EPIC DECOMPOSITION: CIRCULAR DEPENDENCIES
+═══════════════════════════════════════════
 
-1) modify — send back to Daedalus (planner) with cycle feedback
-2) abort  — cancel task
+ Epic decomposition contains circular
+ dependencies: {cycle_path}
+
+ 1) modify — send back to Daedalus (planner)
+    with cycle feedback
+ 2) abort  — cancel task
+═══════════════════════════════════════════
 ```
 
 ### Recovery

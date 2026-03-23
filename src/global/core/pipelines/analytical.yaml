@@ -204,7 +204,7 @@ gates:
         description: "Provide feedback for re-synthesis (QA3/QA1 issues)"
         next_step: synthesis
       - id: re-analyze
-        description: "Evidence gap — re-analyze with QA feedback (QA2/QA4 issues)"
+        description: "Adjust scope and re-analyze with QA feedback (QA2/QA4 issues)"
         next_step: analysis
       - id: abort
         description: "Cancel task"

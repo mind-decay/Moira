@@ -89,7 +89,7 @@ Format output as follows:
   {task_id}  {status_icon} {status}  {pipeline}  {size}
   {description (truncated to 60 chars)}
 
-  Status icons: completed=done, failed=FAIL, aborted=STOP, in_progress=..., pending=wait
+  Status icons: completed=✅, failed=🔴, aborted=⏸, in_progress=🔄, pending=⬜
 
 ─── Knowledge ────────────────────────────
 

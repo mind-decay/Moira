@@ -127,8 +127,8 @@ Ask user for confirmation:
 ```
 Checkpoint is valid. Resume task {task_id} at step "{checkpoint.step}"?
 
- ▸ resume  — continue from checkpoint
- ▸ abort   — cancel resume
+ 1) resume  — continue from checkpoint
+ 2) abort   — cancel resume
 ```
 
 On `resume` → proceed to Step 5.
@@ -148,9 +148,9 @@ Display the inconsistency details:
  - Manual changes between sessions
  - Git operations (stash, checkout, reset)
 
- ▸ re-explore — rescan and update manifest
- ▸ re-plan    — go back to planning
- ▸ explain    — tell system what happened
+ 1) re-explore — rescan and update manifest
+ 2) re-plan    — go back to planning
+ 3) explain    — tell system what happened
 ═══════════════════════════════════════════
 ```
 
@@ -171,8 +171,8 @@ Display branch mismatch:
 
  The git branch has changed since the checkpoint.
 
- ▸ switch  — switch to {expected_branch} and resume
- ▸ abort   — cancel resume
+ 1) switch  — switch to {expected_branch} and resume
+ 2) abort   — cancel resume
 ═══════════════════════════════════════════
 ```
 
@@ -190,9 +190,9 @@ Display changed files:
  Files modified since last session:
  {list of changed files, one per line with - prefix}
 
- ▸ accept   — incorporate changes, continue
- ▸ revert   — undo external changes, continue as planned
- ▸ re-plan  — re-plan remaining work with new state
+ 1) accept   — incorporate changes, continue
+ 2) revert   — undo external changes, continue as planned
+ 3) re-plan  — re-plan remaining work with new state
 ═══════════════════════════════════════════
 ```
 
@@ -268,8 +268,8 @@ Parse the reviewer's response:
   ═══════════════════════════════════════════
    {issues found by reviewer}
 
-   ▸ proceed — continue despite issues
-   ▸ address — fix issues before continuing
+   1) proceed — continue despite issues
+   2) address — fix issues before continuing
   ═══════════════════════════════════════════
   ```
 

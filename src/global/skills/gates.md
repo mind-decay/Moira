@@ -412,6 +412,60 @@ After pipeline completion (after review/testing in Quick/Standard, after integra
 
 ---
 
+### Analytical Final Gate
+
+After analytical pipeline completion (after review step, at completion step).
+
+**Summary source:** analytical deliverables — synthesis of all findings.
+
+**Field sources:**
+- summary_source: deliverables.md → first 1-3 sentences
+- summary_fallback: "No summary available."
+- keypoints_source: deliverables.md → key findings (confirmed/refuted)
+- keypoints_max: 5
+- impact_source: scope.md → coverage percentage + finding count
+- impact_fallback: "N/A"
+- artifact_path: state/tasks/{task_id}/deliverables.md
+
+**Template:**
+
+```
+═══════════════════════════════════════════
+ GATE: Analytical — Final Review
+═══════════════════════════════════════════
+
+ Summary:
+ {1-3 sentences from deliverables.md}
+
+ Key points:
+ • {key finding 1}
+ • {key finding 2}
+ ...
+
+ Impact: {coverage}% coverage, {finding_count} findings
+
+ Details:
+ → {path to deliverables.md}
+
+ {HEALTH REPORT with progress tree}
+
+ 1) done    — Accept findings
+ 2) details — Show all findings in full
+ 3) modify  — Adjust scope and re-analyze
+ 4) abort   — Discard analysis
+═══════════════════════════════════════════
+```
+
+**Option handling:**
+- `done` → record gate as `proceed`, proceed to completion
+- `details` → display full deliverables.md content (display only, re-present gate — NOT a gate decision)
+- `modify` → jump back to `synthesis` step with user feedback
+- `abort` → record gate as `abort`, stop pipeline
+
+**Gate state:** Record gate: write equivalent of `moira_state_gate("analytical_final_gate", decision)` to `current.yaml` and `status.yaml`
+
+---
+
 ### Scope Gate (Analytical Pipeline)
 
 After Athena (analyst) completes scope formalization in the analytical pipeline.
@@ -437,9 +491,9 @@ After Athena (analyst) completes scope formalization in the analytical pipeline.
 
  {HEALTH REPORT}
 
- ▸ proceed — scope confirmed, begin analysis
- ▸ modify  — adjust scope
- ▸ abort   — cancel
+ 1) proceed — scope confirmed, begin analysis
+ 2) modify  — adjust scope
+ 3) abort   — cancel
 ═══════════════════════════════════════════
 ```
 
@@ -473,11 +527,11 @@ After Themis (reviewer) completes convergence computation at depth checkpoint in
 
  {HEALTH REPORT}
 
- ▸ sufficient — proceed to synthesis with current findings
- ▸ deepen    — investigate gaps + insufficient hypotheses (Pass {N+1})
- ▸ redirect  — re-scope analysis (back to Athena)
- ▸ details   — show all findings
- ▸ abort     — cancel
+ 1) sufficient — proceed to synthesis with current findings
+ 2) deepen    — investigate gaps + insufficient hypotheses (Pass {N+1})
+ 3) redirect  — re-scope analysis (back to Athena)
+ 4) details   — show all findings
+ 5) abort     — cancel
 ═══════════════════════════════════════════
 ```
 
