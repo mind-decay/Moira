@@ -3,51 +3,128 @@
 
 servers:
   ariadne:
-    type: graph
+    type: structural
     infrastructure: true
     tools:
-      blast-radius:
-        purpose: "Find files affected by changing a given file"
-        cost: low
+      ariadne_overview:
+        purpose: "Project summary: node/edge counts, language breakdown, layer distribution, critical files, cycles count, max depth"
+        cost: medium
         reliability: high
-        when_to_use: "Before modifying a file to understand impact"
-        when_NOT_to_use: "Never — always useful for impact analysis"
-        token_estimate: 500
-      dependencies:
-        purpose: "List direct dependencies of a file"
-        cost: low
+        when_to_use: "When you need a high-level structural overview of the entire project"
+        when_NOT_to_use: "When you need details about a specific file or cluster"
+        token_estimate: 3000
+      ariadne_file:
+        purpose: "File detail: type, layer, arch_depth, exports, cluster, centrality, incoming/outgoing edges"
+        cost: medium
         reliability: high
-        when_to_use: "When exploring what a file imports/depends on"
-        when_NOT_to_use: "When you already have the file open and can see imports"
-        token_estimate: 300
-      dependents:
-        purpose: "List files that depend on a given file"
-        cost: low
+        when_to_use: "When you need structural details about a specific file — its role, dependencies, and position in the architecture"
+        when_NOT_to_use: "When you need to read the file contents (use Read instead)"
+        token_estimate: 3000
+      ariadne_dependencies:
+        purpose: "Direct dependencies of a file. Direction: in, out, or both"
+        cost: medium
         reliability: high
-        when_to_use: "When assessing who uses a module before changing its API"
-        when_NOT_to_use: "For broad exploration — use blast-radius instead"
-        token_estimate: 300
-      cycles:
-        purpose: "Detect circular dependencies involving a file or cluster"
-        cost: low
+        when_to_use: "When you need to know what a file depends on or what depends on it"
+        when_NOT_to_use: "When you need transitive dependencies (use ariadne_blast_radius or ariadne_subgraph instead)"
+        token_estimate: 3000
+      ariadne_blast_radius:
+        purpose: "Reverse BFS: map of affected files with distances from the given file"
+        cost: medium
         reliability: high
-        when_to_use: "When reviewing architecture or checking for circular imports"
-        when_NOT_to_use: "For unrelated tasks — cycles are a structural concern"
-        token_estimate: 400
-      cluster:
-        purpose: "Get files and metrics for a specific cluster"
-        cost: low
+        when_to_use: "Before modifying a file to understand impact — which files would be affected and how far the ripple extends"
+        when_NOT_to_use: "When you only need direct dependencies (use ariadne_dependencies instead)"
+        token_estimate: 3500
+      ariadne_centrality:
+        purpose: "Bottleneck files sorted by betweenness centrality score"
+        cost: medium
         reliability: high
-        when_to_use: "When exploring a module/domain to understand its scope"
-        when_NOT_to_use: "When you already have the cluster view from static views"
-        token_estimate: 500
-      smells:
-        purpose: "Detect architectural anti-patterns (god files, bottlenecks)"
-        cost: low
+        when_to_use: "When identifying architectural bottlenecks — files that many paths flow through"
+        when_NOT_to_use: "When you need overall importance ranking (use ariadne_importance instead)"
+        token_estimate: 3000
+      ariadne_importance:
+        purpose: "Files ranked by combined importance score (betweenness centrality + PageRank). Returns top N files."
+        cost: medium
+        reliability: high
+        when_to_use: "When identifying the most architecturally important files in the project"
+        when_NOT_to_use: "When you need details about a specific file (use ariadne_file instead)"
+        token_estimate: 3000
+      ariadne_cluster:
+        purpose: "Cluster detail: files, internal/external deps, cohesion"
+        cost: medium
+        reliability: high
+        when_to_use: "When examining a specific module/cluster — its files, cohesion, and coupling"
+        when_NOT_to_use: "When you need an overview of all clusters (use ariadne_compressed level 0 instead)"
+        token_estimate: 3500
+      ariadne_compressed:
+        purpose: "Hierarchical graph compression. Level 0: project overview (clusters). Level 1: cluster detail (files). Level 2: file neighborhood."
+        cost: medium
+        reliability: high
+        when_to_use: "When navigating the project hierarchy — start at level 0, drill into clusters at level 1, then files at level 2"
+        when_NOT_to_use: "When you already know the specific file or cluster you want (use ariadne_file or ariadne_cluster directly)"
+        token_estimate: 3500
+      ariadne_cycles:
+        purpose: "All strongly connected components (circular dependencies)"
+        cost: medium
+        reliability: high
+        when_to_use: "When checking for circular dependency problems in the project"
+        when_NOT_to_use: "When you need general architectural smells (use ariadne_smells instead)"
+        token_estimate: 3000
+      ariadne_smells:
+        purpose: "Detect architectural smells: god files, circular dependencies, layer violations, hub-and-spoke, unstable foundations, dead clusters, shotgun surgery"
+        cost: medium
         reliability: high
         when_to_use: "During architecture review or when reviewing large changes"
         when_NOT_to_use: "For small, localized changes"
-        token_estimate: 400
+        token_estimate: 3500
+      ariadne_layers:
+        purpose: "Topological layers: files grouped by architectural depth level"
+        cost: medium
+        reliability: high
+        when_to_use: "When understanding the layered architecture — which files are foundational vs. high-level"
+        when_NOT_to_use: "When you need details about a specific layer file (use ariadne_file instead)"
+        token_estimate: 3000
+      ariadne_metrics:
+        purpose: "Martin metrics per cluster: instability, abstractness, distance from main sequence, zone classification"
+        cost: medium
+        reliability: high
+        when_to_use: "When evaluating module quality using Robert C. Martin's package metrics"
+        when_NOT_to_use: "When you need file-level rather than cluster-level metrics"
+        token_estimate: 3000
+      ariadne_spectral:
+        purpose: "Spectral analysis: algebraic connectivity, monolith score, natural graph bisection via Fiedler vector"
+        cost: medium
+        reliability: high
+        when_to_use: "When assessing overall project modularity and whether the codebase is a monolith"
+        when_NOT_to_use: "When you need actionable file-level information"
+        token_estimate: 3000
+      ariadne_subgraph:
+        purpose: "Extract filtered subgraph: nodes + edges + clusters in the neighborhood of given files"
+        cost: medium
+        reliability: high
+        when_to_use: "When you need the local dependency graph around one or more files"
+        when_NOT_to_use: "When you need the full project graph (use ariadne_overview or ariadne_compressed level 0)"
+        token_estimate: 3500
+      ariadne_diff:
+        purpose: "Structural diff since last auto-update: added/removed nodes and edges, new/resolved cycles, new/resolved smells"
+        cost: medium
+        reliability: high
+        when_to_use: "When checking what structural changes have occurred since the last graph update"
+        when_NOT_to_use: "When you need current state rather than changes (use ariadne_overview or ariadne_smells)"
+        token_estimate: 3000
+      ariadne_freshness:
+        purpose: "Graph freshness: overall confidence, stale files list, last update time"
+        cost: low
+        reliability: high
+        when_to_use: "When checking if the dependency graph is up to date before relying on its data"
+        when_NOT_to_use: "When you do not need to validate graph currency"
+        token_estimate: 1500
+      ariadne_views_export:
+        purpose: "Pre-generated markdown views from .ariadne/views/. Generic markdown for any consumer."
+        cost: medium
+        reliability: high
+        when_to_use: "When you need pre-rendered human-readable views of the project structure"
+        when_NOT_to_use: "When you need raw data for programmatic analysis"
+        token_estimate: 3500
   claude.ai_Context7:
     type: documentation
     tools:
@@ -166,10 +243,7 @@ servers:
         when_NOT_to_use: "When design system rules already exist and are sufficient"
         budget_impact: "~3-5k tokens per call"
         token_estimate: 4000
-  ariadne:
-    type: other
-    status: configured_but_unavailable
-    tools: {}
+  # ariadne duplicate removed — merged into main entry above
   claude.ai_Gmail:
     type: communication
     status: available_no_tools

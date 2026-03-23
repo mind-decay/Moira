@@ -1,4 +1,4 @@
-<!-- moira:freshness init 2026-03-22 -->
+<!-- moira:freshness refresh 2026-03-23 -->
 <!-- moira:knowledge project-model L2 -->
 
 ---
@@ -48,14 +48,16 @@ dir_state: .claude/moira/state/
   AGENTS.md          # Agent definitions for Claude Code
   CLAUDE.md          # Claude Code project instructions
   README.md          # Project readme
-  design/            # Design documents (source of truth) — ~87 files
-  src/               # Implementation source — ~215 files
+  .mcp.json          # MCP server configuration (ariadne)
+  design/            # Design documents (source of truth) — ~88 files
+  src/               # Implementation source — ~225 files
 ```
 
 ## Source Layout (`src/`)
 
 ```
 src/
+  .version                    # Version file (contents: version string)
   .version                    # Version file (contents: version string)
   install.sh                  # Main installer script (18KB, executable)
   remote-install.sh           # Remote/curl-based installer (1.3KB)
@@ -69,25 +71,27 @@ src/
       knowledge-access-matrix.yaml
       response-contract.yaml
       xref-manifest.yaml
-      pipelines/              # Pipeline definitions (4 YAML files)
-        decomposition.yaml, full.yaml, quick.yaml, standard.yaml
+      pipelines/              # Pipeline definitions (5 YAML files)
+        analytical.yaml, decomposition.yaml, full.yaml, quick.yaml, standard.yaml
       rules/
         base.yaml
-        quality/              # Quality rule definitions (5 YAML files)
-          q1-completeness.yaml .. q5-coverage.yaml
-        roles/                # Agent role definitions (10 YAML files)
+        quality/              # Quality rule definitions (9 YAML files: q1-q5, qa1-qa4)
+          q1-completeness.yaml .. q5-coverage.yaml, qa1-audit.yaml .. qa4-audit.yaml
+        roles/                # Agent role definitions (11 YAML files)
           aletheia.yaml, apollo.yaml, argus.yaml, athena.yaml,
-          daedalus.yaml, hephaestus.yaml, hermes.yaml, metis.yaml,
-          mnemosyne.yaml, themis.yaml
+          calliope.yaml, daedalus.yaml, hephaestus.yaml, hermes.yaml,
+          metis.yaml, mnemosyne.yaml, themis.yaml
     hooks/                    # Runtime hooks (2 shell scripts)
       budget-track.sh, guard.sh
-    lib/                      # Shell library functions (21 shell scripts)
+    lib/                      # Shell library functions (22 shell scripts)
       audit.sh, bench.sh, bootstrap.sh, budget.sh, checkpoint.sh,
-      epic.sh, graph.sh, judge.sh, knowledge.sh, mcp.sh, metrics.sh,
-      quality.sh, reflection.sh, retry.sh, rules.sh, scaffold.sh,
-      settings-merge.sh, state.sh, task-id.sh, upgrade.sh, yaml-utils.sh
-    skills/                   # Skill definitions (4 markdown files + .gitkeep)
-      dispatch.md, errors.md, gates.md, orchestrator.md, reflection.md
+      completion.sh, epic.sh, graph.sh, judge.sh, knowledge.sh, mcp.sh,
+      metrics.sh, quality.sh, reflection.sh, retry.sh, rules.sh,
+      scaffold.sh, settings-merge.sh, state.sh, task-id.sh, upgrade.sh,
+      yaml-utils.sh
+    skills/                   # Skill definitions (6 markdown files)
+      completion.md, dispatch.md, errors.md, gates.md, orchestrator.md,
+      reflection.md
     statusline/
       context-status.sh
     templates/                # Templates for scaffolding
@@ -160,14 +164,18 @@ design/
         quality/              # (empty — populated at runtime)
         roles/                # (empty — populated at runtime)
     hooks/                    # (empty — populated at runtime)
-    knowledge/                # Knowledge base (7 categories)
+    knowledge/                # Knowledge base (10 categories)
+      architecture/           # full.md
       conventions/            # full.md, index.md, summary.md
       decisions/              # full.md, index.md, summary.md, archive/
+      dependencies/           # full.md
       failures/               # full.md, index.md, summary.md
       libraries/              # index.md, summary.md
       patterns/               # full.md, index.md, summary.md, archive/
       project-model/          # full.md, index.md, summary.md
       quality-map/            # full.md, summary.md
+      security/               # full.md
+      testing/                # full.md
     project/
       rules/                  # (empty — project-specific rules)
     state/

@@ -72,7 +72,7 @@
       "layer": "unknown",
       "arch_depth": 0,
       "lines": 257,
-      "hash": "c9cda30cdb798731",
+      "hash": "282e4a472e27579b",
       "exports": [],
       "cluster": ".claude"
     },
@@ -180,7 +180,7 @@
       "layer": "unknown",
       "arch_depth": 0,
       "lines": 309,
-      "hash": "2f90120f977321b3",
+      "hash": "f1e8fe355bba9f43",
       "exports": [],
       "cluster": ".claude"
     },
@@ -206,8 +206,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 236,
-      "hash": "874a8457d6bb2ccf",
+      "lines": 244,
+      "hash": "af50b5a280fcf70d",
       "exports": [],
       "cluster": ".claude"
     },
@@ -1179,7 +1179,7 @@
       "layer": "service",
       "arch_depth": 0,
       "lines": 289,
-      "hash": "ad3b951363083ba4",
+      "hash": "7557dc4a4dcddfb4",
       "exports": [],
       "cluster": "commands"
     },
@@ -1188,7 +1188,7 @@
       "layer": "service",
       "arch_depth": 0,
       "lines": 133,
-      "hash": "70efae5d84176e4a",
+      "hash": "b680841875a65546",
       "exports": [],
       "cluster": "commands"
     },
@@ -1232,8 +1232,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 708,
-      "hash": "4b9ca7844ad0a8ae",
+      "lines": 780,
+      "hash": "ab9750449e398970",
       "exports": [],
       "cluster": "global"
     },
@@ -1241,8 +1241,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 630,
-      "hash": "af47aa381b60e4db",
+      "lines": 684,
+      "hash": "dfab7acc60a513a4",
       "exports": [],
       "cluster": "global"
     },
@@ -1250,8 +1250,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 685,
-      "hash": "56f63f4fe37c8f2a",
+      "lines": 756,
+      "hash": "25b3f657328989fb",
       "exports": [],
       "cluster": "global"
     },
