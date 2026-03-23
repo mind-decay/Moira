@@ -107,6 +107,15 @@ When Mnemosyne returns:
 
 4. **Auto-defer:** Run `moira_reflection_auto_defer_stale .claude/moira/state`
 
+### Phase 3: Actionable Findings Recommendation (Analytical Pipeline Only)
+
+If pipeline_type == "analytical":
+1. Check if deliverables.md exists and contains actionable findings
+   (heuristic: presence of sections titled "Recommendations", "Fixes", "Action Items", "Changes Needed", or similar)
+2. If actionable findings detected, append to completion output:
+   "Analytical task complete. Deliverables contain actionable findings.\n\nTo implement these findings, create a new task:\n  /moira:task <implementation description referencing this task's deliverables>\n\nTask ID for reference: {task_id}"
+3. If no actionable findings or pipeline is not analytical: skip
+
 ---
 
 ## Output Contract

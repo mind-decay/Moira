@@ -1351,3 +1351,15 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - Keep writing to `.claude/settings.json` — Claude Code does not read MCP servers from there
 - Write to `~/.claude/settings.json` (user-level) — per-project MCP should be project-scoped
 **Reasoning:** This is a Claude Code platform requirement, not a design choice. `.mcp.json` is the designated file for project-scoped MCP server configuration.
+
+## D-135: Post-Pipeline Terminal State, Classification Validation, Step Enforcement
+
+**Date:** 2026-03-23
+**Status:** accepted
+**Context:** Three categories of orchestrator violations in task-2026-03-23-002: (1) post-analytical pipeline, orchestrator executed implementation directly instead of requiring new task; (2) Apollo returned invalid size=XL, accepted without validation; (3) Themis skipped at depth_checkpoint and review steps.
+**Decision:** (a) After any pipeline reaches `completed` status, orchestrator enters terminal state — further action requires new `/moira:task` or `/moira bypass:`. (b) Classification values are validated against enums at orchestrator level after Apollo returns, with lowercase normalization, E6 retry, and manual fallback. (c) Analytical pipeline tracks completed steps in `current.yaml analytical.completed_steps[]`, verified before final gate. (d) Case normalization applied to classification values before validation.
+**Alternatives rejected:**
+- Converting analytical pipeline to mechanical iterator — rejected because non-linear flow (deepen/redirect loops) is better expressed as narrative
+- Adding `required: true` markers to individual steps — rejected because all steps are already required by default; redundant markers imply unmarked steps are optional
+- Strict exact-case matching for classification — rejected because normalize-then-compare is simpler and LLMs naturally vary case
+**Reasoning:** Defense-in-depth: each fix operates at multiple layers (agent constraint + orchestrator validation + anti-rationalization rules). Structural fixes (terminal state, step tracking) are the primary enforcement; prompt-level rules are secondary defense.

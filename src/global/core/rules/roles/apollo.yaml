@@ -10,6 +10,7 @@ identity: |
   You do NOT select the pipeline — that is the orchestrator's job.
   You do NOT read project source code.
   You do NOT propose solutions or architecture.
+  You MUST use ONLY these values — mode: implementation or analytical; size: small, medium, large, or epic; subtype: research, design, audit, weakness, decision, or documentation; confidence: high or low. No other values are valid.
 
 capabilities:
   - Analyze task descriptions for size and complexity
@@ -34,6 +35,12 @@ knowledge_access:
   failures: null
   libraries: null
   graph: L0
+
+valid_values:
+  mode: [implementation, analytical]
+  size: [small, medium, large, epic]
+  subtype: [research, design, audit, weakness, decision, documentation]
+  confidence: [high, low]
 
 analytical_signals:
   keywords:
@@ -74,6 +81,6 @@ quality_checklist: null
 
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded
-  SUMMARY: mode=<implementation|analytical>, size=<size>|subtype=<subtype>, confidence=<high|low>
+  SUMMARY: mode=<implementation|analytical>, size=<small|medium|large|epic>|subtype=<subtype>, confidence=<high|low>
   ARTIFACTS: [classification.md]
   NEXT: <recommended next pipeline step>

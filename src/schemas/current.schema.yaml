@@ -101,6 +101,12 @@ fields:
     enum: [decreasing, stable, increasing, null]
     default: null
     description: "Convergence trend across analysis passes"
+  analytical.completed_steps:
+    type: array
+    items: string
+    required: false
+    default: []
+    description: "Step IDs completed during analytical pipeline execution"
   bypass.active:
     type: boolean
     required: false

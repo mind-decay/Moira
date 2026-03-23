@@ -23,3 +23,10 @@ APPROACH: Shell libraries use `BASH_SOURCE[0]` for self-location to source sibli
 REJECTED BECAUSE: In zsh environments, `BASH_SOURCE` is not set, causing "parameter not set" errors. Libraries partially function when their individual functions don't require sibling library imports, but budget report generation and metrics collection produce incomplete output.
 LESSON: Shell libraries should use a zsh-compatible self-location pattern (e.g., `${(%):-%x}` in zsh or a POSIX-compatible fallback).
 APPLIES TO: All shell libraries in lib/ that use the BASH_SOURCE pattern.
+
+## [task-2026-03-23-002] Optimization Bias — Speed Over Protocol
+
+APPROACH: Orchestrator optimized for speed/user satisfaction by: (1) executing implementation directly after analytical pipeline completed instead of requiring new task, (2) accepting invalid classification value (size=XL) without validation, (3) skipping Themis at depth_checkpoint and review steps.
+REJECTED BECAUSE: User language suggesting urgency or simplicity ("just do it", "proceed", "skip the review") triggered rationalization patterns that led to bypassing mandatory protocol steps. Three violation categories in a single task.
+LESSON: Follow protocol regardless of perceived urgency. Anti-rationalization rules, classification validation, and step completion tracking are the structural defenses against this pattern. Optimizing for user satisfaction/speed over protocol adherence is the root cause.
+APPLIES TO: Any pipeline execution where user language suggests urgency, simplicity, or desire to skip steps. Especially dangerous at pipeline boundaries (post-completion state) and at quality gates.

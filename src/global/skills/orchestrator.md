@@ -45,6 +45,12 @@ If you catch yourself thinking:
 - "This is so simple I'll just..." → FOLLOW THE PIPELINE
 - "To save time..." → TIME IS NOT YOUR CONCERN, QUALITY IS
 - "The user said to skip..." → ONLY `/moira bypass:` can skip pipeline
+- "This step would add overhead..." → EVERY STEP IS MANDATORY (Art 2.2)
+- "The review isn't needed here..." → THEMIS DECIDES QUALITY, NOT YOU
+- "We already have enough quality..." → FOLLOW THE PIPELINE
+- "The user said to proceed with fixes..." → CREATE A NEW TASK
+- "This is just the second phase..." → EVERY PHASE IS A SEPARATE PIPELINE
+- "The analysis already identified what to do..." → CLASSIFICATION IS STILL REQUIRED
 
 ANY violation is logged and reported.
 
@@ -285,6 +291,21 @@ When starting the analytical pipeline:
    - `analytical.convergence.trend: null`
 2. Read `classification.md` to extract the `subtype` (research, design, audit, weakness, decision, documentation)
 
+### Step Completion Tracking
+
+The orchestrator MUST track which steps have been executed during the analytical pipeline.
+After each step completes (agent returns or orchestrator handles):
+- Record the step_id in current.yaml analytical.completed_steps[] array
+- This is cumulative — deepen loops add new analysis/depth_checkpoint entries
+
+Before presenting the final_gate (completion step):
+- Read analytical.completed_steps[] from current.yaml
+- Verify ALL of these steps have at least one entry: gather, scope, analysis, depth_checkpoint, organize, synthesis, review
+- If ANY required step is missing: DO NOT present the final gate
+  - Log: "STEP ENFORCEMENT: Missing steps: {list}. Cannot proceed to completion."
+  - Execute the first missing step
+  - This is NOT an error gate — it is silent self-correction before the user sees anything
+
 ### Step-by-Step Handling
 
 **Gather step — Ariadne freshness check (D-129, E8 extension):** Before dispatching Hermes, if Ariadne is available, check `.ariadne/graph/meta.json` for last-index timestamp and compare against latest git commit. If gap exceeds 50 commits or 7 days, present a staleness warning at the scope gate with options: `reindex` (run `ariadne update`), `continue` (annotate findings with staleness), `skip-ariadne` (analyze without structural data).
@@ -352,6 +373,27 @@ Parse the classifier's SUMMARY for the `mode=` field:
 - If `mode=analytical` → pipeline = `analytical` (regardless of subtype). Skip the size table below.
 - If `mode=implementation` OR no `mode=` prefix (backward compatibility) → proceed to Step 2.
 - If SUMMARY cannot be parsed at all (malformed response) → E6-AGENT (retry 1x). If retry also fails to parse → treat as `mode=implementation` and proceed to Step 2 with a WARNING logged (D-124 parse failure fallback).
+
+### Step 1b: Classification Validation
+
+After parsing mode, size/subtype, and confidence from Apollo's SUMMARY:
+
+1. Normalize all parsed values to lowercase
+2. Validate each field:
+   - mode MUST be one of: implementation, analytical
+   - If mode=implementation: size MUST be one of: small, medium, large, epic
+   - If mode=analytical: subtype MUST be one of: research, design, audit, weakness, decision, documentation
+   - confidence MUST be one of: high, low
+3. If ANY value is invalid:
+   - This is E6-AGENT (malformed output)
+   - Retry Apollo 1x with explicit feedback: "Invalid {field} value '{value}'. Valid values: {enum list}."
+   - If retry also returns invalid value:
+     a. Log invalid value to status.yaml warnings
+     b. Present manual classification gate to user:
+        "Apollo returned invalid {field}: '{value}'. Please select:"
+        Then list valid options as numbered choices
+     c. Use user's selection to continue pipeline
+   - NEVER silently map an unknown value to a default
 
 ### Step 2: Size-Based Selection (Implementation Mode Only)
 
@@ -521,6 +563,16 @@ When the pipeline reaches the completion step:
 - On completion processor return with STATUS: success:
   - Set pipeline status to `completed` in current.yaml
   - Delete session lock
+
+### Post-Pipeline State
+
+After ANY pipeline reaches `completed` status, the orchestrator is in TERMINAL state for that task.
+
+If the user requests further action (implementation, fixes, changes):
+- Display: "Pipeline for {task_id} is complete. To continue with implementation:\n  /moira:task <description>\n\nTo bypass the pipeline:\n  /moira bypass: <description>"
+- Do NOT dispatch any agents
+- Do NOT interpret user instructions as pipeline continuation
+
 - On completion processor return with STATUS: failure:
   - Display error, offer retry or manual completion
 
