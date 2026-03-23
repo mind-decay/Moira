@@ -1363,3 +1363,48 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - Adding `required: true` markers to individual steps — rejected because all steps are already required by default; redundant markers imply unmarked steps are optional
 - Strict exact-case matching for classification — rejected because normalize-then-compare is simpler and LLMs naturally vary case
 **Reasoning:** Defense-in-depth: each fix operates at multiple layers (agent constraint + orchestrator validation + anti-rationalization rules). Structural fixes (terminal state, step tracking) are the primary enforcement; prompt-level rules are secondary defense.
+
+## D-136: Gate Input Classification — 5-Category Taxonomy
+
+**Date:** 2026-03-24
+**Status:** accepted
+**Context:** Users provide diverse input at gates — not just menu selections but feedback, questions, instructions, and typos. The orchestrator needs a classification layer to handle all input types.
+**Decision:** Classify all gate input into exactly 5 categories: menu selection, feedback-as-selection, question, contextual instruction, ambiguous/typo. Classification is uniform across all gate types using a single gate-aware classifier.
+**Alternatives rejected:** Per-gate classifiers (13+ classifiers, unmaintainable). Single classifier without gate awareness (cannot handle variable option lists in selection gates).
+**Reasoning:** One classifier to maintain. Gate-aware design requires passing option list to classifier. All non-menu categories route through store-and-reprompt.
+
+## D-137: Gate Routing — Store-and-Reprompt Pattern
+
+**Date:** 2026-03-24
+**Status:** accepted
+**Context:** When users provide non-menu input at gates, the system must handle it without making implicit gate decisions.
+**Decision:** All non-menu input is stored as context and the gate menu is re-presented. Gate decisions result ONLY from explicit menu selection. Re-presentation follows the existing `details` display-only precedent.
+**Alternatives rejected:** Classify-then-confirm (Art 2.3 risk — system proposes decision). Auto-classify (violates Art 2.3 directly). Ignore non-menu input (poor UX, discards feedback).
+**Reasoning:** Users must always make an explicit menu selection. Feedback and instructions are preserved for the modify flow. No implicit decisions.
+
+## D-138: Gate Recording — Two-Layer (State Content, Telemetry Enums)
+
+**Date:** 2026-03-24
+**Status:** accepted
+**Context:** Gate input classification and routing events need recording for traceability (Art 3.1) without putting content strings in telemetry (D-027).
+**Decision:** Two-layer recording. State (status.yaml) stores full content — input text, feedback, notes. Telemetry (telemetry.yaml) stores only enums (`input_category`) and integers (`reprompt_count`).
+**Alternatives rejected:** Single-layer in state only (loses aggregate metrics). Single-layer in telemetry (violates D-027).
+**Reasoning:** Two files updated per gate interaction. Telemetry remains aggregatable without content leakage.
+
+## D-139: Gate Re-prompt — Soft Bound of 3
+
+**Date:** 2026-03-24
+**Status:** accepted
+**Context:** Users might repeatedly provide non-menu input, creating indefinite re-prompt loops. A bound is needed, but forcing a decision would violate Art 4.2 (user authority).
+**Decision:** Soft bound of 3 re-prompts. After 3 non-menu inputs, present explicit numbered options. Counter resets on menu selection or `details` display. Bound is soft — user is not forced to select.
+**Alternatives rejected:** Hard bound (forces decision, violates Art 4.2). No bound (infinite re-prompt loops). Higher bound (delays helpful guidance).
+**Reasoning:** Users receive clear guidance after 3 attempts. No forced decisions. Counter reset prevents accumulation across distinct interaction phases.
+
+## D-140: Feedback Buffer — Accumulated Free-Form Input Enriches Modify Flow
+
+**Date:** 2026-03-24
+**Status:** accepted
+**Context:** Users often provide feedback at gates before selecting `modify`. This feedback should not be lost — it should inform the modification.
+**Decision:** Maintain a transient, in-memory feedback buffer during gate interaction. Feedback-as-selection and contextual instruction inputs are accumulated. When user selects `modify`, buffer contents become the feedback payload. Buffer cleared on: modify dispatch, task completion, explicit user clear.
+**Alternatives rejected:** Discard non-menu input (loses valuable context). Immediately trigger modify on feedback (violates Art 2.3). Persist buffer across gates (scope creep, unclear semantics).
+**Reasoning:** Modify flow receives richer context. No new gate structures required. Buffer is transient — no persistence complexity.
