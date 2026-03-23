@@ -1,4 +1,442 @@
 {
+  ".claude/CLAUDE.md": [],
+  ".claude/commands/fix-audit.md": [],
+  ".claude/commands/review-architecture.md": [],
+  ".claude/commands/review-plan.md": [],
+  ".claude/commands/review-spec.md": [],
+  ".claude/commands/system-audit.md": [],
+  ".claude/moira/knowledge/architecture/full.md": [],
+  ".claude/moira/knowledge/conventions/full.md": [],
+  ".claude/moira/knowledge/conventions/index.md": [],
+  ".claude/moira/knowledge/conventions/summary.md": [],
+  ".claude/moira/knowledge/decisions/full.md": [],
+  ".claude/moira/knowledge/decisions/index.md": [],
+  ".claude/moira/knowledge/decisions/summary.md": [],
+  ".claude/moira/knowledge/dependencies/full.md": [],
+  ".claude/moira/knowledge/failures/full.md": [],
+  ".claude/moira/knowledge/failures/index.md": [],
+  ".claude/moira/knowledge/failures/summary.md": [],
+  ".claude/moira/knowledge/libraries/index.md": [],
+  ".claude/moira/knowledge/libraries/summary.md": [],
+  ".claude/moira/knowledge/patterns/full.md": [],
+  ".claude/moira/knowledge/patterns/index.md": [],
+  ".claude/moira/knowledge/patterns/summary.md": [],
+  ".claude/moira/knowledge/project-model/full.md": [],
+  ".claude/moira/knowledge/project-model/index.md": [],
+  ".claude/moira/knowledge/project-model/summary.md": [],
+  ".claude/moira/knowledge/quality-map/full.md": [],
+  ".claude/moira/knowledge/quality-map/summary.md": [],
+  ".claude/moira/knowledge/security/full.md": [],
+  ".claude/moira/knowledge/testing/full.md": [],
+  "AGENTS.md": [],
+  "CLAUDE.md": [],
+  "README.md": [],
+  "design/CONSTITUTION.md": [],
+  "design/IMPLEMENTATION-GUIDE.md": [],
+  "design/IMPLEMENTATION-ROADMAP.md": [],
+  "design/SYSTEM-DESIGN.md": [
+    {
+      "path": "CONSTITUTION.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "IMPLEMENTATION-GUIDE.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "IMPLEMENTATION-ROADMAP.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "architecture/agents.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "architecture/analytical-pipeline.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "architecture/commands.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "architecture/distribution.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "architecture/escape-hatch.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "architecture/naming.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "architecture/onboarding.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "architecture/overview.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "architecture/pipelines.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "architecture/rules.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "architecture/tweak-redo.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "decisions/log.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "guides/metrics-guide.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "reports/",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "specs/archive/2026-03-11-blocker-resolution-design.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "specs/archive/2026-03-16-formal-methods-implementation-plan.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "specs/archive/2026-03-16-formal-methods-optimization.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "specs/archive/2026-03-16-phase12-advanced-features.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "specs/archive/2026-03-16-phase12-implementation-plan.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "specs/archive/2026-03-17-fix-f001-f002-implementation-plan.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "specs/archive/2026-03-17-fix-f001-f002.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "specs/archive/2026-03-17-phase13-implementation-plan.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "specs/archive/2026-03-17-phase13-project-graph-rust-cli.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "specs/post-v1-backlog.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/audit.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/checkpoint-resume.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/context-budget.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/fault-tolerance.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/knowledge.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/mcp.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/metrics.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/multi-developer.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/project-graph.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/quality.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/self-monitoring.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/self-protection.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "subsystems/testing.md",
+      "symbols": [],
+      "is_type_only": false
+    }
+  ],
+  "design/architecture/agents.md": [],
+  "design/architecture/analytical-pipeline.md": [],
+  "design/architecture/commands.md": [],
+  "design/architecture/distribution.md": [],
+  "design/architecture/escape-hatch.md": [],
+  "design/architecture/naming.md": [],
+  "design/architecture/onboarding.md": [],
+  "design/architecture/overview.md": [],
+  "design/architecture/pipelines.md": [
+    {
+      "path": "../subsystems/context-budget.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "../subsystems/fault-tolerance.md",
+      "symbols": [],
+      "is_type_only": false
+    }
+  ],
+  "design/architecture/rules.md": [
+    {
+      "path": "agents.md",
+      "symbols": [],
+      "is_type_only": false
+    },
+    {
+      "path": "pipelines.md",
+      "symbols": [],
+      "is_type_only": false
+    }
+  ],
+  "design/architecture/tweak-redo.md": [],
+  "design/decisions/log.md": [],
+  "design/guides/metrics-guide.md": [],
+  "design/reports/archive/2026-03-13-architecture-review.md": [],
+  "design/reports/archive/2026-03-13-first-task-execution-sveltkit-todos.md": [],
+  "design/reports/archive/2026-03-13-init-bootstrap-bugs.md": [],
+  "design/reports/archive/2026-03-13-init-run2-sveltkit-todos.md": [],
+  "design/reports/archive/2026-03-13-init-run3-sveltkit-todos.md": [],
+  "design/reports/archive/2026-03-13-task-001-add-todos-report.md": [],
+  "design/reports/archive/2026-03-14-system-audit.md": [],
+  "design/reports/archive/2026-03-15-system-audit-2.md": [],
+  "design/reports/archive/2026-03-15-system-audit.md": [],
+  "design/reports/archive/2026-03-16-formal-methods-implementation-plan.md": [],
+  "design/reports/archive/2026-03-16-formal-methods-optimization.md": [],
+  "design/reports/archive/2026-03-16-system-audit-2.md": [],
+  "design/reports/archive/2026-03-16-system-audit.md": [],
+  "design/reports/archive/2026-03-17-system-audit.md": [],
+  "design/reports/archive/2026-03-17-task-testing.md": [],
+  "design/reports/archive/2026-03-19-architecture-review.md": [],
+  "design/reports/archive/2026-03-19-first-task-session.md": [],
+  "design/reports/archive/2026-03-22-architecture-review.md": [],
+  "design/reports/archive/init-run-sveltkit-todos-2026-03-14.md": [],
+  "design/reports/archive/init-structure-audit-2026-03-14.md": [],
+  "design/specs/archive/2026-03-11-blocker-resolution-design.md": [],
+  "design/specs/archive/2026-03-11-phase1-foundation-design.md": [],
+  "design/specs/archive/2026-03-11-phase1-implementation-plan.md": [],
+  "design/specs/archive/2026-03-11-phase2-agent-definitions.md": [],
+  "design/specs/archive/2026-03-11-phase2-implementation-plan.md": [],
+  "design/specs/archive/2026-03-11-phase3-implementation-plan.md": [],
+  "design/specs/archive/2026-03-11-phase3-pipeline-engine.md": [],
+  "design/specs/archive/2026-03-11-phase4-implementation-plan.md": [],
+  "design/specs/archive/2026-03-11-phase4-rules-knowledge.md": [],
+  "design/specs/archive/2026-03-12-phase5-bootstrap-engine.md": [],
+  "design/specs/archive/2026-03-12-phase5-implementation-plan.md": [],
+  "design/specs/archive/2026-03-12-phase6-implementation-plan.md": [],
+  "design/specs/archive/2026-03-12-phase6-quality-gates.md": [],
+  "design/specs/archive/2026-03-12-phase7-context-budget.md": [],
+  "design/specs/archive/2026-03-12-phase7-implementation-plan.md": [],
+  "design/specs/archive/2026-03-13-bootstrap-scanner-reform-implementation-plan.md": [],
+  "design/specs/archive/2026-03-13-bootstrap-scanner-reform.md": [],
+  "design/specs/archive/2026-03-13-phase8-hooks-self-monitoring.md": [],
+  "design/specs/archive/2026-03-13-phase8-implementation-plan.md": [],
+  "design/specs/archive/2026-03-13-system-audit.md": [],
+  "design/specs/archive/2026-03-14-architecture-review-fixes-implementation-plan.md": [],
+  "design/specs/archive/2026-03-14-architecture-review-fixes.md": [],
+  "design/specs/archive/2026-03-14-phase9-implementation-plan.md": [],
+  "design/specs/archive/2026-03-14-phase9-mcp-integration.md": [],
+  "design/specs/archive/2026-03-15-phase10-implementation-plan.md": [],
+  "design/specs/archive/2026-03-15-phase10-reflection-engine.md": [],
+  "design/specs/archive/2026-03-15-phase11-implementation-plan.md": [],
+  "design/specs/archive/2026-03-15-phase11-metrics-audit.md": [],
+  "design/specs/archive/2026-03-16-phase12-advanced-features.md": [],
+  "design/specs/archive/2026-03-16-phase12-implementation-plan.md": [],
+  "design/specs/archive/2026-03-17-fix-f001-f002-implementation-plan.md": [],
+  "design/specs/archive/2026-03-17-fix-f001-f002.md": [],
+  "design/specs/archive/2026-03-17-phase13-implementation-plan.md": [],
+  "design/specs/archive/2026-03-17-phase13-project-graph-rust-cli.md": [],
+  "design/specs/archive/2026-03-19-phase13-ariadne-integration.md": [],
+  "design/specs/archive/2026-03-19-phase13-implementation-plan.md": [],
+  "design/specs/archive/TESTING-IMPLEMENTATION-PLAN.md": [],
+  "design/specs/post-v1-backlog.md": [],
+  "design/subsystems/audit.md": [],
+  "design/subsystems/checkpoint-resume.md": [],
+  "design/subsystems/context-budget.md": [],
+  "design/subsystems/fault-tolerance.md": [],
+  "design/subsystems/knowledge.md": [
+    {
+      "path": "quality.md",
+      "symbols": [],
+      "is_type_only": false
+    }
+  ],
+  "design/subsystems/mcp.md": [],
+  "design/subsystems/metrics.md": [],
+  "design/subsystems/multi-developer.md": [],
+  "design/subsystems/project-graph.md": [],
+  "design/subsystems/quality.md": [
+    {
+      "path": "../architecture/analytical-pipeline.md",
+      "symbols": [],
+      "is_type_only": false
+    }
+  ],
+  "design/subsystems/self-monitoring.md": [],
+  "design/subsystems/self-protection.md": [],
+  "design/subsystems/testing.md": [],
+  "src/commands/moira/audit.md": [],
+  "src/commands/moira/bench.md": [],
+  "src/commands/moira/bypass.md": [],
+  "src/commands/moira/graph.md": [],
+  "src/commands/moira/health.md": [],
+  "src/commands/moira/help.md": [],
+  "src/commands/moira/init.md": [],
+  "src/commands/moira/knowledge.md": [],
+  "src/commands/moira/metrics.md": [],
+  "src/commands/moira/refresh.md": [],
+  "src/commands/moira/resume.md": [],
+  "src/commands/moira/status.md": [],
+  "src/commands/moira/task.md": [],
+  "src/commands/moira/upgrade.md": [],
+  "src/global/skills/completion.md": [],
+  "src/global/skills/dispatch.md": [],
+  "src/global/skills/errors.md": [],
+  "src/global/skills/gates.md": [],
+  "src/global/skills/orchestrator.md": [],
+  "src/global/skills/reflection.md": [],
+  "src/global/templates/audit/agents-deep.md": [],
+  "src/global/templates/audit/agents-standard.md": [],
+  "src/global/templates/audit/config-deep.md": [],
+  "src/global/templates/audit/config-standard.md": [],
+  "src/global/templates/audit/consistency-deep.md": [],
+  "src/global/templates/audit/consistency-standard.md": [],
+  "src/global/templates/audit/knowledge-deep.md": [],
+  "src/global/templates/audit/knowledge-light.md": [],
+  "src/global/templates/audit/knowledge-standard.md": [],
+  "src/global/templates/audit/rules-deep.md": [],
+  "src/global/templates/audit/rules-light.md": [],
+  "src/global/templates/audit/rules-standard.md": [],
+  "src/global/templates/judge/judge-prompt.md": [],
+  "src/global/templates/knowledge/conventions/full.md": [],
+  "src/global/templates/knowledge/conventions/index.md": [],
+  "src/global/templates/knowledge/conventions/summary.md": [],
+  "src/global/templates/knowledge/decisions/full.md": [],
+  "src/global/templates/knowledge/decisions/index.md": [],
+  "src/global/templates/knowledge/decisions/summary.md": [],
+  "src/global/templates/knowledge/failures/full.md": [],
+  "src/global/templates/knowledge/failures/index.md": [],
+  "src/global/templates/knowledge/failures/summary.md": [],
+  "src/global/templates/knowledge/libraries/index.md": [],
+  "src/global/templates/knowledge/libraries/summary.md": [],
+  "src/global/templates/knowledge/patterns/full.md": [],
+  "src/global/templates/knowledge/patterns/index.md": [],
+  "src/global/templates/knowledge/patterns/summary.md": [],
+  "src/global/templates/knowledge/project-model/full.md": [],
+  "src/global/templates/knowledge/project-model/index.md": [],
+  "src/global/templates/knowledge/project-model/summary.md": [],
+  "src/global/templates/knowledge/quality-map/full.md": [],
+  "src/global/templates/knowledge/quality-map/summary.md": [],
+  "src/global/templates/reflection/background.md": [],
+  "src/global/templates/reflection/deep.md": [],
+  "src/global/templates/reflection/epic.md": [],
+  "src/global/templates/reflection/lightweight.md": [],
+  "src/global/templates/scanners/convention-scan.md": [],
+  "src/global/templates/scanners/deep/deep-architecture-scan.md": [],
+  "src/global/templates/scanners/deep/deep-dependency-scan.md": [],
+  "src/global/templates/scanners/deep/deep-security-scan.md": [],
+  "src/global/templates/scanners/deep/deep-test-coverage-scan.md": [],
+  "src/global/templates/scanners/mcp-scan.md": [],
+  "src/global/templates/scanners/pattern-scan.md": [],
+  "src/global/templates/scanners/structure-scan.md": [],
+  "src/global/templates/scanners/tech-scan.md": [],
+  "src/tests/bench/calibration/good-implementation/architecture.md": [],
+  "src/tests/bench/calibration/good-implementation/implementation.md": [],
+  "src/tests/bench/calibration/good-implementation/input.md": [],
+  "src/tests/bench/calibration/good-implementation/requirements.md": [],
+  "src/tests/bench/calibration/good-implementation/review.md": [],
+  "src/tests/bench/calibration/good-implementation/test-results.md": [],
+  "src/tests/bench/calibration/mediocre-implementation/architecture.md": [],
+  "src/tests/bench/calibration/mediocre-implementation/implementation.md": [],
+  "src/tests/bench/calibration/mediocre-implementation/input.md": [],
+  "src/tests/bench/calibration/mediocre-implementation/requirements.md": [],
+  "src/tests/bench/calibration/mediocre-implementation/review.md": [],
+  "src/tests/bench/calibration/mediocre-implementation/test-results.md": [],
+  "src/tests/bench/calibration/poor-implementation/architecture.md": [],
+  "src/tests/bench/calibration/poor-implementation/implementation.md": [],
+  "src/tests/bench/calibration/poor-implementation/input.md": [],
+  "src/tests/bench/calibration/poor-implementation/requirements.md": [],
+  "src/tests/bench/calibration/poor-implementation/review.md": [],
+  "src/tests/bench/calibration/poor-implementation/test-results.md": [],
   "src/tests/bench/fixtures/greenfield-webapp/src/index.ts": [
     {
       "path": "express",

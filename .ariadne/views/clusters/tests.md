@@ -4,6 +4,24 @@
 
 | File | Type | Layer | In | Out | Centrality |
 |------|------|------:|---:|----:|-----------:|
+| `src/tests/bench/calibration/good-implementation/architecture.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/good-implementation/implementation.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/good-implementation/input.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/good-implementation/requirements.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/good-implementation/review.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/good-implementation/test-results.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/mediocre-implementation/architecture.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/mediocre-implementation/implementation.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/mediocre-implementation/input.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/mediocre-implementation/requirements.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/mediocre-implementation/review.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/mediocre-implementation/test-results.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/poor-implementation/architecture.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/poor-implementation/implementation.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/poor-implementation/input.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/poor-implementation/requirements.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/poor-implementation/review.md` | doc | 0 | 0 | 0 | 0.0000 |
+| `src/tests/bench/calibration/poor-implementation/test-results.md` | doc | 0 | 0 | 0 | 0.0000 |
 | `src/tests/bench/fixtures/greenfield-webapp/src/index.ts` | source | 1 | 0 | 1 | 0.0000 |
 | `src/tests/bench/fixtures/greenfield-webapp/src/routes/health.ts` | source | 0 | 1 | 0 | 0.0000 |
 | `src/tests/bench/fixtures/greenfield-webapp/src/types/index.ts` | source | 0 | 0 | 0 | 0.0000 |
@@ -14,9 +32,9 @@
 | `src/tests/bench/fixtures/mature-webapp/src/index.ts` | source | 3 | 0 | 4 | 0.0000 |
 | `src/tests/bench/fixtures/mature-webapp/src/middleware/error-handler.ts` | source | 0 | 1 | 0 | 0.0000 |
 | `src/tests/bench/fixtures/mature-webapp/src/routes/health.ts` | source | 0 | 1 | 0 | 0.0000 |
-| `src/tests/bench/fixtures/mature-webapp/src/routes/products.ts` | source | 2 | 1 | 1 | 0.0083 |
-| `src/tests/bench/fixtures/mature-webapp/src/routes/users.ts` | source | 2 | 1 | 2 | 0.0083 |
-| `src/tests/bench/fixtures/mature-webapp/src/services/product-service.ts` | source | 1 | 1 | 1 | 0.0083 |
+| `src/tests/bench/fixtures/mature-webapp/src/routes/products.ts` | source | 2 | 1 | 1 | 0.0000 |
+| `src/tests/bench/fixtures/mature-webapp/src/routes/users.ts` | source | 2 | 1 | 2 | 0.0000 |
+| `src/tests/bench/fixtures/mature-webapp/src/services/product-service.ts` | source | 1 | 1 | 1 | 0.0000 |
 | `src/tests/bench/fixtures/mature-webapp/src/services/user-service.ts` | source | 1 | 1 | 1 | 0.0000 |
 | `src/tests/bench/fixtures/mature-webapp/src/types/product.ts` | source | 0 | 1 | 0 | 0.0000 |
 | `src/tests/bench/fixtures/mature-webapp/src/types/user.ts` | source | 0 | 2 | 0 | 0.0000 |

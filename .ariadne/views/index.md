@@ -2,18 +2,23 @@
 
 ## Architecture Summary
 
-- **Files:** 17
-- **Edges:** 14
-- **Clusters:** 1
+- **Files:** 220
+- **Edges:** 57
+- **Clusters:** 6
 - **Max depth:** 3
-- **Avg in-degree:** 0.7059
-- **Avg out-degree:** 0.7059
+- **Avg in-degree:** 0.0545
+- **Avg out-degree:** 0.0545
 
 ## Clusters
 
 | Cluster | Files | Key File | Cohesion |
 |---------|------:|----------|--------:|
-| tests | 17 | `src/tests/bench/fixtures/mature-webapp/src/services/product-service.ts` | 1.0000 |
+| .claude | 29 | `.claude/moira/knowledge/testing/full.md` | 1.0000 |
+| commands | 14 | `src/commands/moira/upgrade.md` | 1.0000 |
+| design | 88 | `design/subsystems/testing.md` | 1.0000 |
+| global | 51 | `src/global/templates/scanners/tech-scan.md` | 1.0000 |
+| root | 3 | `README.md` | 1.0000 |
+| tests | 35 | `src/tests/bench/fixtures/mature-webapp/tests/health.test.ts` | 1.0000 |
 
 ## Orphan Files
 

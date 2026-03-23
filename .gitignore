@@ -18,6 +18,8 @@ node_modules/
 # Worktrees
 .worktrees/
 
+.ariadne/
+
 # Local testing artifacts
 tmp/
 *.tmp

@@ -1,9 +1,1836 @@
 {
   "version": 1,
   "project_root": "/Users/minddecay/Documents/Projects/Moira",
-  "node_count": 17,
-  "edge_count": 14,
+  "node_count": 220,
+  "edge_count": 57,
   "nodes": {
+    ".claude/CLAUDE.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 43,
+      "hash": "3ef22d9cf121e05f",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/commands/fix-audit.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 77,
+      "hash": "4dfce5a528e56b5d",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/commands/review-architecture.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 319,
+      "hash": "16752e6933d299ce",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/commands/review-plan.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 141,
+      "hash": "542428937c4a263c",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/commands/review-spec.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 127,
+      "hash": "2457cedcb7672eb5",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/commands/system-audit.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 119,
+      "hash": "456e9c24798873b1",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/architecture/full.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 321,
+      "hash": "2a7879f023bd2401",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/conventions/full.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 257,
+      "hash": "c9cda30cdb798731",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/conventions/index.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 10,
+      "hash": "e96f257149d33883",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/conventions/summary.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 11,
+      "hash": "a1d4d50f4e627a72",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/decisions/full.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 14,
+      "hash": "11f8173ca0ab494a",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/decisions/index.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 8,
+      "hash": "47d0b6e2a19e867b",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/decisions/summary.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 6,
+      "hash": "96ce79d87b31e326",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/dependencies/full.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 122,
+      "hash": "a30f7e86253b0323",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/failures/full.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 32,
+      "hash": "ad3e1ef211b7f351",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/failures/index.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 7,
+      "hash": "09e788a4370103ec",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/failures/summary.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 8,
+      "hash": "901256b9e49233de",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/libraries/index.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 8,
+      "hash": "aa43f98b22245473",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/libraries/summary.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 7,
+      "hash": "b2cd0ebf83130b41",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/patterns/full.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 309,
+      "hash": "2f90120f977321b3",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/patterns/index.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 9,
+      "hash": "2c7432d62e0d977d",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/patterns/summary.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 9,
+      "hash": "b7dd0f07bcd8f7b2",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/project-model/full.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 236,
+      "hash": "874a8457d6bb2ccf",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/project-model/index.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 14,
+      "hash": "e5c2627b51f697aa",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/project-model/summary.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 15,
+      "hash": "d40c1ebaeff03f13",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/quality-map/full.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 36,
+      "hash": "b5f9977158e062eb",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/quality-map/summary.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 15,
+      "hash": "17c8eee415dba475",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/security/full.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 141,
+      "hash": "27a3b21d50fb8694",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/knowledge/testing/full.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 226,
+      "hash": "11c6c8aa139ee84e",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    "AGENTS.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 99,
+      "hash": "de2d63c5fa06e78b",
+      "exports": [],
+      "cluster": "root"
+    },
+    "CLAUDE.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 165,
+      "hash": "51ccf2e700e86041",
+      "exports": [],
+      "cluster": "root"
+    },
+    "README.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 455,
+      "hash": "506ee3c5ae1eebec",
+      "exports": [],
+      "cluster": "root"
+    },
+    "design/CONSTITUTION.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 193,
+      "hash": "04d59b9fac4e3534",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/IMPLEMENTATION-GUIDE.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 258,
+      "hash": "7c8bc3bbe1f1c19f",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/IMPLEMENTATION-ROADMAP.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 383,
+      "hash": "b36f37555b4db01b",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/SYSTEM-DESIGN.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 82,
+      "hash": "4f949711f346c5c6",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/architecture/agents.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 419,
+      "hash": "ac0994e0dbf87d37",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/architecture/analytical-pipeline.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 662,
+      "hash": "c42894c37922d8ff",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/architecture/commands.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 205,
+      "hash": "8eeeca86e03f2f9d",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/architecture/distribution.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 614,
+      "hash": "1b7d0a454f5634f8",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/architecture/escape-hatch.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 108,
+      "hash": "0f38d7309aed9e9e",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/architecture/naming.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 154,
+      "hash": "88f6d5ee4e8be117",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/architecture/onboarding.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 140,
+      "hash": "3cebbf16e5ddff1e",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/architecture/overview.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 323,
+      "hash": "49ab876de9abc630",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/architecture/pipelines.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 364,
+      "hash": "07fe61b4898a224f",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/architecture/rules.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 220,
+      "hash": "0adf001ccd6258e7",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/architecture/tweak-redo.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 140,
+      "hash": "1b776b0f303fea49",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/decisions/log.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 1365,
+      "hash": "4a4fb24e94c37ab2",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/guides/metrics-guide.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 619,
+      "hash": "56c5f93ca6edd632",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-13-architecture-review.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 262,
+      "hash": "53a80105bc81d5cf",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-13-first-task-execution-sveltkit-todos.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 295,
+      "hash": "765ab1ecf62ce676",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-13-init-bootstrap-bugs.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 205,
+      "hash": "9767db1ef3bb650b",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-13-init-run2-sveltkit-todos.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 92,
+      "hash": "776a02bfee99d7aa",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-13-init-run3-sveltkit-todos.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 315,
+      "hash": "54a6cb470f2df29f",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-13-task-001-add-todos-report.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 207,
+      "hash": "3fbe2cb341dba8c4",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-14-system-audit.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 461,
+      "hash": "337a07ee6bb41eae",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-15-system-audit-2.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 343,
+      "hash": "b9904d030122b81a",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-15-system-audit.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 345,
+      "hash": "5597e3d2355e9d5b",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-16-formal-methods-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 263,
+      "hash": "bed47d325363f0ab",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-16-formal-methods-optimization.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 494,
+      "hash": "0747d8e5acbaba39",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-16-system-audit-2.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 385,
+      "hash": "fdc5cddc271a4998",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-16-system-audit.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 442,
+      "hash": "b91bd67b7df94c25",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-17-system-audit.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 381,
+      "hash": "f04b7aa5d313c08a",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-17-task-testing.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 138,
+      "hash": "6fc4f13603a01c9c",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-19-architecture-review.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 202,
+      "hash": "b06c8398d0e27bf0",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-19-first-task-session.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 566,
+      "hash": "dd939214ff40cf41",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/2026-03-22-architecture-review.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 270,
+      "hash": "3e5f56f693f8ea98",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/init-run-sveltkit-todos-2026-03-14.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 301,
+      "hash": "9eb194f6269790ce",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/archive/init-structure-audit-2026-03-14.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 335,
+      "hash": "84c029f5d9590f84",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-11-blocker-resolution-design.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 597,
+      "hash": "3171fb3ec88a1444",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-11-phase1-foundation-design.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 387,
+      "hash": "bcebdc1cb5879b84",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-11-phase1-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 573,
+      "hash": "0c61890a72bbf521",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-11-phase2-agent-definitions.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 90,
+      "hash": "0a0b81afb7ae05c4",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-11-phase2-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 595,
+      "hash": "84548c41f4245334",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-11-phase3-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 379,
+      "hash": "257ebf5edf6370b1",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-11-phase3-pipeline-engine.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 336,
+      "hash": "8a725e29b9dc3198",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-11-phase4-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 668,
+      "hash": "447b18d3bd486758",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-11-phase4-rules-knowledge.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 506,
+      "hash": "4708800d7a09d86a",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-12-phase5-bootstrap-engine.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 804,
+      "hash": "87a502e65c50caa7",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-12-phase5-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 927,
+      "hash": "ae775913065a6157",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-12-phase6-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 449,
+      "hash": "c9a4577f1c8057a6",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-12-phase6-quality-gates.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 858,
+      "hash": "6aefc8b4ae680e08",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-12-phase7-context-budget.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 657,
+      "hash": "6459489dca65329c",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-12-phase7-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 358,
+      "hash": "520ae3ed37a9e798",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-13-bootstrap-scanner-reform-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 534,
+      "hash": "4ef48511bf61b786",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-13-bootstrap-scanner-reform.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 429,
+      "hash": "cb4512aca53d7c31",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-13-phase8-hooks-self-monitoring.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 612,
+      "hash": "5c9f9f7d0c6944ff",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-13-phase8-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 487,
+      "hash": "88b63745cf1705d7",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-13-system-audit.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 232,
+      "hash": "82faf9700f7f1ba1",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-14-architecture-review-fixes-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 459,
+      "hash": "d5cb10d931f59932",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-14-architecture-review-fixes.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 147,
+      "hash": "b27953bc11b1bb97",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-14-phase9-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 346,
+      "hash": "63e3f574a3ef791f",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-14-phase9-mcp-integration.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 612,
+      "hash": "05c76791ba359d7c",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-15-phase10-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 483,
+      "hash": "bd5e22841991a655",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-15-phase10-reflection-engine.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 918,
+      "hash": "e608f79bd7fc599f",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-15-phase11-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 401,
+      "hash": "a75dc3b4bf06afc3",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-15-phase11-metrics-audit.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 389,
+      "hash": "16af5a585db67f31",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-16-phase12-advanced-features.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 524,
+      "hash": "e7ebeb56c205379c",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-16-phase12-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 675,
+      "hash": "f588c23598eb6e86",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-17-fix-f001-f002-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 199,
+      "hash": "8919568c18706887",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-17-fix-f001-f002.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 193,
+      "hash": "9a9a0a731f9ab3d6",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-17-phase13-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 417,
+      "hash": "0a6474e7cab0a559",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-17-phase13-project-graph-rust-cli.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 699,
+      "hash": "214de54af3bee221",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-19-phase13-ariadne-integration.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 436,
+      "hash": "e16337a3ccf11de6",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/2026-03-19-phase13-implementation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 388,
+      "hash": "7c491908470eb88c",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/archive/TESTING-IMPLEMENTATION-PLAN.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 397,
+      "hash": "4d2680a0a7a5d324",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/post-v1-backlog.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 50,
+      "hash": "4683deaee316e0be",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/audit.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 197,
+      "hash": "00d78f013b326c61",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/checkpoint-resume.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 211,
+      "hash": "0d87bdfaca46eae6",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/context-budget.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 236,
+      "hash": "d3f35b5bd07389c6",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/fault-tolerance.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 402,
+      "hash": "8a039e37cc20130f",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/knowledge.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 244,
+      "hash": "ff73848987c9ebdc",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/mcp.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 267,
+      "hash": "b1ea803aac0cd42e",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/metrics.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 117,
+      "hash": "8ff0a815a8ee4896",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/multi-developer.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 125,
+      "hash": "f5a626e1177830d6",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/project-graph.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 800,
+      "hash": "0aa85436a031be6b",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/quality.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 229,
+      "hash": "c5fd09f14e10cc67",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/self-monitoring.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 187,
+      "hash": "35d7a0b2465c85c8",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/self-protection.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 527,
+      "hash": "e86d5db80704214e",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/subsystems/testing.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 991,
+      "hash": "7a8c4469c3a9ab7e",
+      "exports": [],
+      "cluster": "design"
+    },
+    "src/commands/moira/audit.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 143,
+      "hash": "5f6bfd33b9896fbd",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/bench.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 81,
+      "hash": "1811c4c34ec2c0dd",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/bypass.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 102,
+      "hash": "2b5de53dac561edf",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/graph.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 153,
+      "hash": "2eb986bfc001528e",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/health.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 161,
+      "hash": "b2b828c49824d435",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/help.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 39,
+      "hash": "0099675bf21bf774",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/init.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 362,
+      "hash": "59c94c484b040974",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/knowledge.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 199,
+      "hash": "337c054a8525e635",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/metrics.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 108,
+      "hash": "d8b576a557c4cefb",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/refresh.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 130,
+      "hash": "c1a5541cc3553dfe",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/resume.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 289,
+      "hash": "ad3b951363083ba4",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/status.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 133,
+      "hash": "70efae5d84176e4a",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/task.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 130,
+      "hash": "298eaee73f04f14f",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/commands/moira/upgrade.md": {
+      "type": "doc",
+      "layer": "service",
+      "arch_depth": 0,
+      "lines": 285,
+      "hash": "74686368c3a310e5",
+      "exports": [],
+      "cluster": "commands"
+    },
+    "src/global/skills/completion.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 143,
+      "hash": "4819ed2b8bdfc90e",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/skills/dispatch.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 570,
+      "hash": "a69fa3a740494d44",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/skills/errors.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 708,
+      "hash": "4b9ca7844ad0a8ae",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/skills/gates.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 630,
+      "hash": "af47aa381b60e4db",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/skills/orchestrator.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 685,
+      "hash": "56f63f4fe37c8f2a",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/skills/reflection.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 88,
+      "hash": "5edce1ce97f2090b",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/agents-deep.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 62,
+      "hash": "2e6c82a42b1029c4",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/agents-standard.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 59,
+      "hash": "be5c82027635b38c",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/config-deep.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 66,
+      "hash": "e974b09b35a02ae1",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/config-standard.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 62,
+      "hash": "8a0bfccfe070df1a",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/consistency-deep.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 57,
+      "hash": "86f996bae1602f1c",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/consistency-standard.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 65,
+      "hash": "8aea0073a3f31104",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/knowledge-deep.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 68,
+      "hash": "7d82cb3356895cbc",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/knowledge-light.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 43,
+      "hash": "2ec9f2e062037924",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/knowledge-standard.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 50,
+      "hash": "304b8d52f206284f",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/rules-deep.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 54,
+      "hash": "7e95532d1c10cab9",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/rules-light.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 42,
+      "hash": "adddab0c063f54f7",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/audit/rules-standard.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 52,
+      "hash": "2c612f2e4dd15c68",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/judge/judge-prompt.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 67,
+      "hash": "2356ee109409fb51",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/conventions/full.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 24,
+      "hash": "56df90a396a1aa01",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/conventions/index.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 9,
+      "hash": "e77aa109427a7506",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/conventions/summary.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 13,
+      "hash": "c0767be7cfb142bc",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/decisions/full.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 14,
+      "hash": "11f8173ca0ab494a",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/decisions/index.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 8,
+      "hash": "47d0b6e2a19e867b",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/decisions/summary.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 6,
+      "hash": "96ce79d87b31e326",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/failures/full.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 13,
+      "hash": "04fb01d4d0ba6ac2",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/failures/index.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 7,
+      "hash": "1b5dc667d089b179",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/failures/summary.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 8,
+      "hash": "f653471628589a59",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/libraries/index.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 8,
+      "hash": "aa43f98b22245473",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/libraries/summary.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 7,
+      "hash": "b2cd0ebf83130b41",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/patterns/full.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 12,
+      "hash": "c7100c4e6c069b10",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/patterns/index.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 7,
+      "hash": "bfdf2011fccc8319",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/patterns/summary.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 8,
+      "hash": "737beb802863739e",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/project-model/full.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 34,
+      "hash": "5c259d20c823c405",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/project-model/index.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 12,
+      "hash": "40a7cee6161eba2d",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/project-model/summary.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 22,
+      "hash": "3135df7a35b7b771",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/quality-map/full.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 20,
+      "hash": "02c3f22b8337f5c8",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/knowledge/quality-map/summary.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 14,
+      "hash": "275841b7df9a77be",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/reflection/background.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 142,
+      "hash": "ee0e1959adb25201",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/reflection/deep.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 78,
+      "hash": "7a648b7de8b869e9",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/reflection/epic.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 75,
+      "hash": "baa1e55673ad8d88",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/reflection/lightweight.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 5,
+      "hash": "cd9d9a7b257c7bac",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/scanners/convention-scan.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 117,
+      "hash": "4e3d83d891c12c68",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/scanners/deep/deep-architecture-scan.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 74,
+      "hash": "0c05287338c933f6",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/scanners/deep/deep-dependency-scan.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 81,
+      "hash": "698e9a78b6c894a3",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/scanners/deep/deep-security-scan.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 104,
+      "hash": "c6f1c9b6689ffabe",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/scanners/deep/deep-test-coverage-scan.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 91,
+      "hash": "50ffac1bd0d29385",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/scanners/mcp-scan.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 96,
+      "hash": "1358855802dee9fb",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/scanners/pattern-scan.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 114,
+      "hash": "e77d9ac3a8b34d73",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/scanners/structure-scan.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 122,
+      "hash": "3a626c1c45d2b91a",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/templates/scanners/tech-scan.md": {
+      "type": "doc",
+      "layer": "component",
+      "arch_depth": 0,
+      "lines": 126,
+      "hash": "14304e31c27815bc",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/tests/bench/calibration/good-implementation/architecture.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 49,
+      "hash": "1b46e4c809e4de76",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/good-implementation/implementation.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 46,
+      "hash": "50daf2f80f484f36",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/good-implementation/input.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 6,
+      "hash": "14cdb17760841b77",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/good-implementation/requirements.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 22,
+      "hash": "d8b33b6b96f60b7e",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/good-implementation/review.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 20,
+      "hash": "f70a441affb86b7d",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/good-implementation/test-results.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 29,
+      "hash": "7ba0977c3d685d6f",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/mediocre-implementation/architecture.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 5,
+      "hash": "c97bb86d98c5a065",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/mediocre-implementation/implementation.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 18,
+      "hash": "42f07d65e3f28911",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/mediocre-implementation/input.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 3,
+      "hash": "4aeb09742fd7f63d",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/mediocre-implementation/requirements.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 8,
+      "hash": "a823e471a6470abf",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/mediocre-implementation/review.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 16,
+      "hash": "861148ad797ff7b7",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/mediocre-implementation/test-results.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 11,
+      "hash": "0dbdeeacaf6fe4c4",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/poor-implementation/architecture.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 3,
+      "hash": "32afd18ffdf4c45a",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/poor-implementation/implementation.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 18,
+      "hash": "8ff4b43164bb03be",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/poor-implementation/input.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 3,
+      "hash": "8ea72287b7d2bf2b",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/poor-implementation/requirements.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 6,
+      "hash": "50b86f549c5a213a",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/poor-implementation/review.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 19,
+      "hash": "fa99387b64afcf42",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/poor-implementation/test-results.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 7,
+      "hash": "dfe1ad4c8d2234a7",
+      "exports": [],
+      "cluster": "tests"
+    },
     "src/tests/bench/fixtures/greenfield-webapp/src/index.ts": {
       "type": "source",
       "layer": "unknown",
@@ -185,6 +2012,264 @@
     }
   },
   "edges": [
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/CONSTITUTION.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/IMPLEMENTATION-GUIDE.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/IMPLEMENTATION-ROADMAP.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/architecture/agents.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/architecture/analytical-pipeline.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/architecture/commands.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/architecture/distribution.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/architecture/escape-hatch.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/architecture/naming.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/architecture/onboarding.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/architecture/overview.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/architecture/pipelines.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/architecture/rules.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/architecture/tweak-redo.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/decisions/log.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/guides/metrics-guide.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/specs/archive/2026-03-11-blocker-resolution-design.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/specs/archive/2026-03-16-phase12-advanced-features.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/specs/archive/2026-03-16-phase12-implementation-plan.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/specs/archive/2026-03-17-fix-f001-f002-implementation-plan.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/specs/archive/2026-03-17-fix-f001-f002.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/specs/archive/2026-03-17-phase13-implementation-plan.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/specs/archive/2026-03-17-phase13-project-graph-rust-cli.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/specs/post-v1-backlog.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/audit.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/checkpoint-resume.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/context-budget.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/fault-tolerance.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/knowledge.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/mcp.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/metrics.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/multi-developer.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/project-graph.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/quality.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/self-monitoring.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/self-protection.md",
+      "references",
+      []
+    ],
+    [
+      "design/SYSTEM-DESIGN.md",
+      "design/subsystems/testing.md",
+      "references",
+      []
+    ],
+    [
+      "design/architecture/pipelines.md",
+      "design/subsystems/context-budget.md",
+      "references",
+      []
+    ],
+    [
+      "design/architecture/pipelines.md",
+      "design/subsystems/fault-tolerance.md",
+      "references",
+      []
+    ],
+    [
+      "design/architecture/rules.md",
+      "design/architecture/agents.md",
+      "references",
+      []
+    ],
+    [
+      "design/architecture/rules.md",
+      "design/architecture/pipelines.md",
+      "references",
+      []
+    ],
+    [
+      "design/subsystems/knowledge.md",
+      "design/subsystems/quality.md",
+      "references",
+      []
+    ],
+    [
+      "design/subsystems/quality.md",
+      "design/architecture/analytical-pipeline.md",
+      "references",
+      []
+    ],
     [
       "src/tests/bench/fixtures/greenfield-webapp/src/index.ts",
       "src/tests/bench/fixtures/greenfield-webapp/src/routes/health.ts",
