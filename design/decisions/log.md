@@ -1023,7 +1023,7 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 **Date:** 2026-03-19
 **Status:** Accepted
 **Context:** During the first real Moira session, Ariadne's `serve` command (MCP server mode) was not registered in Claude Code settings. Agents could only use static pre-generated views, missing the main value of Ariadne integration — interactive graph queries (blast-radius, cycles, centrality, smells). The MCP design (mcp.md) treats all MCP tools uniformly as "managed resources" allocated per-step by Daedalus. But Ariadne is fundamentally different: it's read-only structural data, zero external API risk, near-zero cost, and the graph engine Moira itself depends on.
-**Decision:** Ariadne MCP is classified as an **infrastructure MCP tool** — always registered during init (if binary supports `serve`), always available to graph-aware agents regardless of pipeline type. No per-step Daedalus authorization required. The orchestrator registers `ariadne serve` in Claude Code settings during `/moira:init` (Step 4b) and adds Ariadne to the MCP registry with `infrastructure: true` flag. Infrastructure MCP tools bypass the planner authorization gate — they are authorized by default for all agents whose role definition includes graph capabilities.
+**Decision:** Ariadne MCP is classified as an **infrastructure MCP tool** — always registered during init (if binary supports `serve`), always available to graph-aware agents regardless of pipeline type. No per-step Daedalus authorization required. The orchestrator registers `ariadne serve` in `.mcp.json` (project root, D-134) during `/moira:init` (Step 4b) and adds Ariadne to the MCP registry with `infrastructure: true` flag. Infrastructure MCP tools bypass the planner authorization gate — they are authorized by default for all agents whose role definition includes graph capabilities.
 **Alternatives rejected:**
 - Treat Ariadne like any external MCP — requires Daedalus, breaks Quick Pipeline, adds ceremony for zero-risk queries
 - Register manually (user responsibility) — defeats purpose of automated init, easy to forget
@@ -1340,3 +1340,14 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - Separate `/moira:complete` command — UX regression, manual step
 - Simplify Section 7 in-place — defers telemetry, loses data
 **Reasoning:** The hybrid approach gives structural reliability (fresh context window) with minimal cost (shell for mechanics, LLM only where needed). Expected cost: ~5-10k tokens and ~30 seconds vs 60k tokens and 4.5 minutes for the pure LLM approach. The shell script reuses all existing `moira_*` library functions — no new infrastructure needed.
+
+## D-134: MCP Servers in .mcp.json, Not .claude/settings.json
+
+**Date:** 2026-03-23
+**Status:** Accepted
+**Context:** Claude Code reads MCP server definitions from `.mcp.json` in the project root, NOT from `.claude/settings.json`. Moira was writing Ariadne MCP configuration to `.claude/settings.json` during `/moira:init` Step 4b.3 — this caused Claude Code to silently ignore the MCP server. The server was functional (responded correctly to JSON-RPC via stdio) but its tools never appeared in Claude Code sessions.
+**Decision:** MCP server definitions are written to `.mcp.json` at the project root. `.claude/settings.json` is reserved for hooks, permissions, and other Claude Code settings. New functions `moira_settings_merge_mcp()` and `moira_settings_remove_mcp()` in `settings-merge.sh` handle `.mcp.json` read/write. Init Step 4b.3 updated to target `.mcp.json`. D-108 updated: "registers in `.mcp.json`" replaces "registers in Claude Code settings."
+**Alternatives rejected:**
+- Keep writing to `.claude/settings.json` — Claude Code does not read MCP servers from there
+- Write to `~/.claude/settings.json` (user-level) — per-project MCP should be project-scoped
+**Reasoning:** This is a Claude Code platform requirement, not a design choice. `.mcp.json` is the designated file for project-scoped MCP server configuration.

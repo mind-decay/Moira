@@ -1,14 +1,4 @@
 {
-  "mcpServers": {
-    "ariadne": {
-      "command": "ariadne",
-      "args": [
-        "serve",
-        "--project",
-        "/Users/minddecay/Documents/Projects/Moira"
-      ]
-    }
-  },
   "hooks": {
     "PostToolUse": [
       {

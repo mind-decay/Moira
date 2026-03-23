@@ -210,6 +210,131 @@ moira_settings_register_statusline() {
   fi
 }
 
+# ── moira_settings_merge_mcp <project_root> ───────────────────────────
+# Register MCP servers in .mcp.json (project root).
+# Claude Code reads MCP server definitions from .mcp.json, NOT from
+# .claude/settings.json (D-120).
+# Additive merge — never overwrites existing mcpServers entries.
+# Idempotent — safe to re-run.
+moira_settings_merge_mcp() {
+  local project_root="$1"
+  local server_name="$2"
+  local server_command="$3"
+  shift 3
+  local server_args=("$@")
+
+  local mcp_file="$project_root/.mcp.json"
+
+  # Already registered?
+  if [[ -f "$mcp_file" ]] && grep -q "\"$server_name\"" "$mcp_file" 2>/dev/null; then
+    return 0
+  fi
+
+  # Build args JSON array
+  local args_json="["
+  local first=true
+  for arg in "${server_args[@]}"; do
+    if $first; then first=false; else args_json+=", "; fi
+    args_json+="\"$arg\""
+  done
+  args_json+="]"
+
+  if command -v jq &>/dev/null; then
+    _moira_mcp_merge_jq "$mcp_file" "$server_name" "$server_command" "$args_json"
+  else
+    _moira_mcp_merge_fallback "$mcp_file" "$server_name" "$server_command" "$args_json"
+  fi
+}
+
+# ── Internal: jq-based MCP merge ─────────────────────────────────────
+_moira_mcp_merge_jq() {
+  local mcp_file="$1"
+  local name="$2"
+  local cmd="$3"
+  local args_json="$4"
+
+  if [[ ! -f "$mcp_file" ]] || [[ ! -s "$mcp_file" ]]; then
+    jq -n --arg name "$name" --arg cmd "$cmd" --argjson args "$args_json" \
+      '{ mcpServers: { ($name): { command: $cmd, args: $args } } }' > "$mcp_file"
+    return 0
+  fi
+
+  local tmpfile
+  tmpfile=$(mktemp)
+
+  jq --arg name "$name" --arg cmd "$cmd" --argjson args "$args_json" \
+    '.mcpServers[$name] = { command: $cmd, args: $args }' "$mcp_file" > "$tmpfile" 2>/dev/null
+
+  if [[ $? -eq 0 ]] && [[ -s "$tmpfile" ]]; then
+    mv "$tmpfile" "$mcp_file"
+  else
+    rm -f "$tmpfile"
+    echo "Warning: jq merge failed for .mcp.json — falling back to manual merge" >&2
+    _moira_mcp_merge_fallback "$mcp_file" "$name" "$cmd" "$args_json"
+  fi
+}
+
+# ── Internal: fallback MCP merge (no jq) ─────────────────────────────
+_moira_mcp_merge_fallback() {
+  local mcp_file="$1"
+  local name="$2"
+  local cmd="$3"
+  local args_json="$4"
+
+  if [[ ! -f "$mcp_file" ]] || [[ ! -s "$mcp_file" ]]; then
+    cat > "$mcp_file" << MCPEOF
+{
+  "mcpServers": {
+    "$name": {
+      "command": "$cmd",
+      "args": $args_json
+    }
+  }
+}
+MCPEOF
+    return 0
+  fi
+
+  echo "Warning: Cannot safely merge into existing .mcp.json without jq" >&2
+  echo "Please add the following to your .mcp.json manually:" >&2
+  echo "  \"$name\": { \"command\": \"$cmd\", \"args\": $args_json }" >&2
+  return 1
+}
+
+# ── moira_settings_remove_mcp <project_root> <server_name> ───────────
+# Remove an MCP server entry from .mcp.json.
+moira_settings_remove_mcp() {
+  local project_root="$1"
+  local server_name="$2"
+  local mcp_file="$project_root/.mcp.json"
+
+  if [[ ! -f "$mcp_file" ]]; then
+    return 0
+  fi
+
+  if ! grep -q "\"$server_name\"" "$mcp_file" 2>/dev/null; then
+    return 0
+  fi
+
+  if command -v jq &>/dev/null; then
+    local tmpfile
+    tmpfile=$(mktemp)
+
+    jq --arg name "$server_name" 'del(.mcpServers[$name])' "$mcp_file" > "$tmpfile" 2>/dev/null
+
+    if [[ $? -eq 0 ]] && [[ -s "$tmpfile" ]]; then
+      mv "$tmpfile" "$mcp_file"
+    else
+      rm -f "$tmpfile"
+      echo "Warning: Cannot safely remove MCP server from .mcp.json without working jq" >&2
+      return 1
+    fi
+  else
+    echo "Warning: Cannot safely remove MCP server from .mcp.json without jq — please edit manually" >&2
+    return 1
+  fi
+}
+
 # ── moira_settings_remove_hooks <project_root> ────────────────────────
 # Remove Moira hook entries from settings.json.
 moira_settings_remove_hooks() {

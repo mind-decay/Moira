@@ -248,7 +248,7 @@ Reviewer (Themis) checks MCP usage in Q4 review regardless of pipeline type.
 ## MCP Server Discovery
 
 At `/moira init`, system discovers available MCP servers:
-1. Check for Ariadne binary — if `ariadne serve` exists, register as infrastructure MCP
+1. Check for Ariadne binary — if `ariadne serve` exists, register as infrastructure MCP in `.mcp.json`
 2. Scan MCP configuration (external servers via scanner agent)
 3. List available tools per server
 4. Classify each tool (type, cost, reliability)
@@ -256,3 +256,12 @@ At `/moira init`, system discovers available MCP servers:
 6. User reviews and adjusts
 
 New MCP servers added later → `/moira refresh` updates registry.
+
+## MCP Server Configuration Location (D-134)
+
+Claude Code reads MCP server definitions from **`.mcp.json`** in the project root, NOT from `.claude/settings.json`. This is a Claude Code requirement.
+
+- **`.mcp.json`** — MCP server definitions (command, args). Located at project root.
+- **`.claude/settings.json`** — hooks, permissions, and other Claude Code settings. Located in `.claude/`.
+
+During `/moira:init` Step 4b.3, Ariadne is registered in `.mcp.json` via `moira_settings_merge_mcp()`. Hooks remain in `.claude/settings.json` via `moira_settings_merge_hooks()`.

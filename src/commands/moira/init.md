@@ -124,7 +124,7 @@ Report: "Project Graph: {node_count} files, {edge_count} edges, {cluster_count} 
 
 ### 4b.3: Register Ariadne MCP (D-108)
 
-If binary found, check if `ariadne serve` is available and register as MCP server in Claude Code project settings.
+If binary found, check if `ariadne serve` is available and register as MCP server in `.mcp.json` (project root).
 
 Run via Bash:
 ```bash
@@ -132,9 +132,9 @@ bash -c 'ariadne serve --help >/dev/null 2>&1 && echo "serve_available" || echo 
 ```
 
 If `serve_available`:
-1. Read `.claude/settings.json` (project-level). If it doesn't exist, check `.claude/settings.local.json`.
+1. Read `.mcp.json` in the project root. If it doesn't exist, it will be created.
 2. Check if `ariadne` is already registered under `mcpServers`.
-3. If NOT registered, add it. Use the Write tool to update the settings file, adding to the `mcpServers` object:
+3. If NOT registered, add it. Use the Write tool to update `.mcp.json`, adding to the `mcpServers` object:
 
 ```json
 {
@@ -147,9 +147,11 @@ If `serve_available`:
 }
 ```
 
-Merge with existing settings — do NOT overwrite other `mcpServers` entries.
+Merge with existing `.mcp.json` — do NOT overwrite other `mcpServers` entries.
 
-Report: "Ariadne MCP server registered in project settings"
+**Important:** MCP servers must be configured in `.mcp.json` at the project root, NOT in `.claude/settings.json`. Claude Code reads MCP server definitions from `.mcp.json` only (D-134).
+
+Report: "Ariadne MCP server registered in .mcp.json"
 
 If `serve_unavailable`:
 Report: "Ariadne binary found but `serve` subcommand not available — update ariadne for MCP support"

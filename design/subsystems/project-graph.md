@@ -682,7 +682,7 @@ Wraps `ariadne` CLI calls for use within Claude Code sessions:
 
 ### Integration with Existing Commands
 
-**`/moira:init`** — Step 4b: `ariadne build` runs in parallel with scanner agents. Views generated after build. If `ariadne serve` is available, registers Ariadne as infrastructure MCP server in Claude Code project settings and adds it to the MCP registry with `infrastructure: true` (D-108). This ensures all pipeline agents can query the graph interactively regardless of pipeline type.
+**`/moira:init`** — Step 4b: `ariadne build` runs in parallel with scanner agents. Views generated after build. If `ariadne serve` is available, registers Ariadne as infrastructure MCP server in `.mcp.json` (project root, D-120) and adds it to the MCP registry with `infrastructure: true` (D-108). This ensures all pipeline agents can query the graph interactively regardless of pipeline type.
 
 **`/moira:refresh`** — Runs `ariadne update` (delta). Reports changes including structural diff: "Graph updated: 7 files changed, 3 added, 1 removed. 1 new cycle detected. 2 smells resolved."
 
