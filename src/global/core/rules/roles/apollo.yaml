@@ -79,6 +79,7 @@ analytical_signals:
 
 quality_checklist: null
 
+# NOTE: SUMMARY/ARTIFACTS intentionally diverge from canonical response-contract.yaml per role-specific design (D-145)
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded
   SUMMARY: mode=<implementation|analytical>, size=<small|medium|large|epic>|subtype=<subtype>, confidence=<high|low>

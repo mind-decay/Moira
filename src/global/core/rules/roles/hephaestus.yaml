@@ -58,5 +58,5 @@ quality_checklist: null
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded
   SUMMARY: <1-2 sentences, factual>
-  ARTIFACTS: [<file paths>]
-  NEXT: <recommended next step>
+  ARTIFACTS: [<list of file paths written>]
+  NEXT: <recommended next pipeline step>

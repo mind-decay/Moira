@@ -40,8 +40,9 @@ knowledge_access:
 
 quality_checklist: null
 
+# NOTE: SUMMARY/NEXT intentionally diverge from canonical response-contract.yaml per role-specific design (D-145)
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded
   SUMMARY: <documents written/updated>
-  ARTIFACTS: [<file paths>]
+  ARTIFACTS: [<list of file paths written>]
   NEXT: review
