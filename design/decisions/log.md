@@ -1367,7 +1367,7 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 ## D-136: Gate Input Classification — 5-Category Taxonomy
 
 **Date:** 2026-03-24
-**Status:** accepted
+**Status:** implemented (task-2026-03-24-002)
 **Context:** Users provide diverse input at gates — not just menu selections but feedback, questions, instructions, and typos. The orchestrator needs a classification layer to handle all input types.
 **Decision:** Classify all gate input into exactly 5 categories: menu selection, feedback-as-selection, question, contextual instruction, ambiguous/typo. Classification is uniform across all gate types using a single gate-aware classifier.
 **Alternatives rejected:** Per-gate classifiers (13+ classifiers, unmaintainable). Single classifier without gate awareness (cannot handle variable option lists in selection gates).
@@ -1376,7 +1376,7 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 ## D-137: Gate Routing — Store-and-Reprompt Pattern
 
 **Date:** 2026-03-24
-**Status:** accepted
+**Status:** implemented (task-2026-03-24-002)
 **Context:** When users provide non-menu input at gates, the system must handle it without making implicit gate decisions.
 **Decision:** All non-menu input is stored as context and the gate menu is re-presented. Gate decisions result ONLY from explicit menu selection. Re-presentation follows the existing `details` display-only precedent.
 **Alternatives rejected:** Classify-then-confirm (Art 2.3 risk — system proposes decision). Auto-classify (violates Art 2.3 directly). Ignore non-menu input (poor UX, discards feedback).
@@ -1385,7 +1385,7 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 ## D-138: Gate Recording — Two-Layer (State Content, Telemetry Enums)
 
 **Date:** 2026-03-24
-**Status:** accepted
+**Status:** implemented (task-2026-03-24-002)
 **Context:** Gate input classification and routing events need recording for traceability (Art 3.1) without putting content strings in telemetry (D-027).
 **Decision:** Two-layer recording. State (status.yaml) stores full content — input text, feedback, notes. Telemetry (telemetry.yaml) stores only enums (`input_category`) and integers (`reprompt_count`).
 **Alternatives rejected:** Single-layer in state only (loses aggregate metrics). Single-layer in telemetry (violates D-027).
@@ -1394,7 +1394,7 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 ## D-139: Gate Re-prompt — Soft Bound of 3
 
 **Date:** 2026-03-24
-**Status:** accepted
+**Status:** implemented (task-2026-03-24-002)
 **Context:** Users might repeatedly provide non-menu input, creating indefinite re-prompt loops. A bound is needed, but forcing a decision would violate Art 4.2 (user authority).
 **Decision:** Soft bound of 3 re-prompts. After 3 non-menu inputs, present explicit numbered options. Counter resets on menu selection or `details` display. Bound is soft — user is not forced to select.
 **Alternatives rejected:** Hard bound (forces decision, violates Art 4.2). No bound (infinite re-prompt loops). Higher bound (delays helpful guidance).
@@ -1403,8 +1403,17 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 ## D-140: Feedback Buffer — Accumulated Free-Form Input Enriches Modify Flow
 
 **Date:** 2026-03-24
-**Status:** accepted
+**Status:** implemented (task-2026-03-24-002)
 **Context:** Users often provide feedback at gates before selecting `modify`. This feedback should not be lost — it should inform the modification.
 **Decision:** Maintain a transient, in-memory feedback buffer during gate interaction. Feedback-as-selection and contextual instruction inputs are accumulated. When user selects `modify`, buffer contents become the feedback payload. Buffer cleared on: modify dispatch, task completion, explicit user clear.
 **Alternatives rejected:** Discard non-menu input (loses valuable context). Immediately trigger modify on feedback (violates Art 2.3). Persist buffer across gates (scope creep, unclear semantics).
 **Reasoning:** Modify flow receives richer context. No new gate structures required. Buffer is transient — no persistence complexity.
+
+## D-141: Completion Processor Dispatch Must Be Executable
+
+**Date:** 2026-03-24
+**Status:** accepted
+**Context:** D-133 created `completion.md` as a dedicated agent to handle finalization + reflection dispatch. But orchestrator Section 7 `done` action only said "Dispatch completion processor (foreground) with task context" — without specifying how: no skill file path, no Agent tool instruction, no Input Contract format. The orchestrator literally could not execute this instruction, so reflection (Mnemosyne) never ran. Additionally, `dispatch.md` Special Dispatch Cases table listed Mnemosyne and Argus but omitted the completion processor.
+**Decision:** (a) Section 7 `done` action now has explicit 3-step dispatch: (1) Read `~/.claude/moira/skills/completion.md`, (2) prepend Input Contract values (all 9 fields) to skill content, (3) dispatch via Agent tool (foreground). (b) Completion processor added to `dispatch.md` Special Dispatch Cases table. (c) Orphaned failure handler (`STATUS: failure` block after `Post-Pipeline State` subsection) moved back into `done` action.
+**Alternatives rejected:** None — the existing instruction was simply not executable.
+**Reasoning:** Every dispatch instruction in the orchestrator must be mechanically executable: specify the source file, how to construct the prompt, and which tool to use. Vague instructions like "dispatch X with Y" are ignored by the LLM under context pressure.
