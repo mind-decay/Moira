@@ -44,6 +44,7 @@ Used for:
 |----------|-------|-----------------|
 | Any | Mnemosyne (reflector) | Dedicated dispatch via `reflection.md` |
 | Any | Argus (auditor) | Dedicated dispatch via `/moira audit` templates |
+| Any | Completion processor | Dedicated dispatch via `completion.md` (Section 7 of orchestrator) |
 
 ### Instruction Size Validation (D-113)
 

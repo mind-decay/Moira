@@ -717,14 +717,28 @@ When the pipeline reaches the completion step:
 
 **`done`** — Accept all changes:
 - Write `completion.action: done` to `status.yaml` (if not already present from gate recording)
-- Dispatch completion processor (foreground) with task context:
-  - task_id, pipeline_type, pipeline_yaml_path
-  - Task Directory: .claude/moira/state/tasks/{task_id}/
-  - Path to status.yaml, current.yaml, violations.log, config.yaml
-  - Completion action: done
+- Dispatch completion processor:
+  1. Read `~/.claude/moira/skills/completion.md` (the completion processor skill)
+  2. Construct the agent prompt by prepending the Input Contract values to the skill content:
+     ```
+     Task ID: {task_id}
+     Pipeline Type: {pipeline_type}
+     Pipeline YAML Path: ~/.claude/moira/core/pipelines/{pipeline_type}.yaml
+     Task Directory: .claude/moira/state/tasks/{task_id}/
+     Status YAML: .claude/moira/state/tasks/{task_id}/status.yaml
+     Current YAML: .claude/moira/state/current.yaml
+     Violations Log: .claude/moira/state/violations.log
+     Config YAML: .claude/moira/config.yaml
+     Completion Action: done
+     ```
+  3. Dispatch via Agent tool (foreground): `description: "Completion processor — {task_id}"`, prompt = assembled content from steps 1-2
+  The completion processor handles mechanical finalization (telemetry, status, metrics) AND reflection dispatch
+  (reading `post.reflection` from the pipeline YAML to determine Mnemosyne dispatch level).
 - On completion processor return with STATUS: success:
   - Set pipeline status to `completed` in current.yaml
   - Delete session lock
+- On completion processor return with STATUS: failure:
+  - Display error, offer retry or manual completion
 
 ### Post-Pipeline State
 
@@ -734,9 +748,6 @@ If the user requests further action (implementation, fixes, changes):
 - Display: "Pipeline for {task_id} is complete. To continue with implementation:\n  /moira:task <description>\n\nTo bypass the pipeline:\n  /moira bypass: <description>"
 - Do NOT dispatch any agents
 - Do NOT interpret user instructions as pipeline continuation
-
-- On completion processor return with STATUS: failure:
-  - Display error, offer retry or manual completion
 
 ### Xref Consistency Check (Pre-Final Gate)
 
