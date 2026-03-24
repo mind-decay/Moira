@@ -241,6 +241,7 @@ Before entering the main loop:
 ### Main Loop
 
 1. Read the pipeline definition YAML for the current pipeline type from `~/.claude/moira/core/pipelines/{type}.yaml` (global)
+<!-- xref-013: canonical source is src/global/core/pipelines/*.yaml via state.sh:61 — keep in sync -->
 2. For each step in the pipeline `steps[]` array (note: steps with `agent: null` are orchestrator-handled — e.g., the final gate completion step — and are not dispatched to an agent):
    a. Update state: set step and status to `in_progress` in `.claude/moira/state/current.yaml`
    a2. **Mid-pipeline workspace check** (D-114a): Before dispatching an agent, verify the workspace hasn't been modified externally:
@@ -349,6 +350,7 @@ Before entering the main loop:
               - Clear feedback_buffer
             - Else (proceed, abort, or any other terminal selection):
               - Discard feedback_buffer
+            <!-- xref-012: canonical source is src/global/lib/state.sh:148-149 — keep in sync -->
             - **Exit loop** → execute gate decision:
               - On `proceed` → record gate, advance to next step
               - On `modify` → re-dispatch agent with user feedback (including any buffered feedback)
@@ -601,6 +603,7 @@ Reference: `errors.md` skill for full procedures.
 
 ### Quick Error Routing
 
+<!-- xref-016: canonical source is src/global/lib/state.sh:234-263 — keep in sync -->
 | Agent STATUS | Error Type | Action |
 |-------------|-----------|--------|
 | blocked | E1-INPUT | Pause, present blocked gate, wait for user |
@@ -638,6 +641,7 @@ Track orchestrator context usage approximately. Report status at every gate. Orc
 
 ### Thresholds
 
+<!-- xref-014: canonical source is src/global/lib/budget.sh:296-305 — keep in sync -->
 | Level | Range | ~Tokens (1M) | Action |
 |-------|-------|-------------|--------|
 | Healthy | <25% | <250k | No action |
@@ -692,6 +696,7 @@ Violations come from two sources (D-099, D-116):
 Both write to `state/violations.log`. After each agent returns:
 1. Check for guard.sh violation warnings in context (hookSpecificOutput)
 2. Read `state/violations.log`, count lines by prefix: orchestrator violations = `VIOLATION` lines, agent violations = `AGENT_VIOLATION` lines. The orchestrator CAN read `.claude/moira/` files — this is within its allowed scope.
+<!-- xref-015: canonical source is src/global/skills/gates.md:42-63 — keep in sync -->
 3. Include violation counts in health report at every gate (show separate counts)
 4. If either count > 0: add 🔴 indicator in health report
 

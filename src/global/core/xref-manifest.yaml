@@ -148,3 +148,54 @@ entries:
         field: "graph.enabled check"
         sync_type: "field_must_exist"
     values_tracked: "graph config fields (graph.enabled boolean, graph.timeout number)"
+
+  - id: xref-012
+    description: "Gate decision enum values"
+    canonical_source: "src/global/lib/state.sh"
+    dependents:
+      - file: "src/global/skills/orchestrator.md"
+        field: "gate decision handling"
+        sync_type: "enum_must_match"
+    values_tracked: "gate decision enum (proceed, modify, abort, sufficient, deepen, redirect, done)"
+
+  - id: xref-013
+    description: "Step name validation in state.sh"
+    canonical_source: "src/global/core/pipelines/*.yaml"
+    dependents:
+      - file: "src/global/lib/state.sh"
+        field: "valid_steps string"
+        sync_type: "enum_must_match"
+      - file: "src/global/skills/orchestrator.md"
+        field: "step name references"
+        sync_type: "enum_must_match"
+    values_tracked: "step name validation list in state.sh line 61 must match pipeline YAML step names (classification, exploration, analysis, architecture, plan, implementation, review, testing, reflection, decomposition, integration, completion, gather, scope, depth_checkpoint, organize, synthesis)"
+
+  - id: xref-014
+    description: "Budget checkpoint thresholds"
+    canonical_source: "src/global/lib/budget.sh"
+    dependents:
+      - file: "src/global/skills/orchestrator.md"
+        field: "budget checkpoint percentages"
+        sync_type: "value_must_match"
+    values_tracked: "budget threshold percentages from budget.sh (normal <25%, monitor 25-40%, warning 40-60%, critical >60%) matching current.schema.yaml warning_level enum [normal, monitor, warning, critical]"
+
+  - id: xref-015
+    description: "Health report format"
+    canonical_source: "src/global/skills/gates.md"
+    dependents:
+      - file: "src/global/skills/orchestrator.md"
+        field: "health report generation"
+        sync_type: "format_must_match"
+    values_tracked: "health report field names and structure (Context, Violations, Agents dispatched, Gates passed, Retries, Progress) with status emoji rules and data sources (context_budget.orchestrator_percent, violations.log, history[], gates[], retries.total, step index)"
+
+  - id: xref-016
+    description: "Retry counter and limit logic"
+    canonical_source: "src/global/lib/state.sh"
+    dependents:
+      - file: "src/global/skills/orchestrator.md"
+        field: "error recovery retry logic"
+        sync_type: "logic_must_match"
+      - file: "src/global/lib/retry.sh"
+        field: "retry limit enforcement"
+        sync_type: "value_must_match"
+    values_tracked: "retry counter increment/check logic from state.sh (moira_state_increment_retry: increments retries.total always + retries.<type> for specific types), retry defaults from retry.sh (E5_QUALITY:implementer:2, E5_QUALITY:architect:1, E6_AGENT:any:1, E9_SEMANTIC:implementer:2)"
