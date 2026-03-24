@@ -221,6 +221,16 @@ Orchestrator context is kept minimal by:
 3. Large agent outputs go to files, not orchestrator context
 4. Gate displays are generated from file contents, not memory
 
+### Orchestrator Context vs Agent Tokens
+
+The orchestrator context estimate tracks only what lives in the orchestrator's own conversation:
+- Base overhead (system prompt, skills, state): `_MOIRA_BUDGET_ORCH_BASE_OVERHEAD` (15k)
+- Per-step history entries: `history_count * _MOIRA_BUDGET_ORCH_PER_STEP` (500/step)
+- Per-gate interaction cost: `gate_count * _MOIRA_BUDGET_ORCH_PER_GATE` (2000/gate)
+- Agent return summaries in orchestrator context: `history_count * _MOIRA_BUDGET_ORCH_PER_AGENT_RETURN` (500/step)
+
+**Important:** `total_agent_tokens` in `current.yaml` tracks cumulative subagent token usage for cost monitoring. It is NOT added to the orchestrator context estimate because subagents run in separate context windows — their tokens do not accumulate in the orchestrator's context (D-146).
+
 ## Budget Overflow Handling
 
 ### Pre-execution (detected by Planner)

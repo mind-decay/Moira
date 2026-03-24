@@ -1,7 +1,36 @@
-<!-- moira:freshness deep-scan 2026-03-22 -->
+<!-- moira:freshness deep-scan 2026-03-24 -->
 <!-- moira:knowledge architecture L2 -->
 
-# Architecture Deep Scan — 2026-03-22
+# Architecture Deep Scan — 2026-03-24
+
+## Changes Since Previous Scan (2026-03-22)
+
+### New Files Added
+- `src/global/hooks/pre-commit.sh` — Constitutional invariant verification hook (Art 6.3, D-142). Checks: Constitution.md modification flag, pipeline gate integrity, xref-manifest validation, xref-manifest file references. Fail-closed on verification failures, fail-open on internal errors.
+- `src/global/lib/log-rotation.sh` — Log rotation with configurable 5000-line threshold (D-143). Rotates `violations.log`, `tool-usage.log`, `budget-tool-usage.log`. Called at task start. Archive-then-truncate safety pattern.
+- `src/global/core/rules/roles/calliope.yaml` — Scribe agent role file (D-118). Budget: 80k. Capabilities: markdown synthesis from finding-lattice. Custom response format per D-145 (NEXT always "review").
+- `src/global/core/pipelines/analytical.yaml` — Analytical Pipeline definition (D-119). Steps: classification, gather, scope, analysis (dynamic agent per subtype), depth_checkpoint (iterative), organize, synthesis, review, completion. Quality gates: qa1-qa4 (not q1-q5). Uses Ariadne MCP during analysis step.
+- `src/global/core/rules/quality/qa1-scope-completeness.yaml`, `qa2-evidence-quality.yaml`, `qa3-actionability.yaml`, `qa4-analytical-rigor.yaml` — Analytical pipeline quality gates (4 files).
+- `design/architecture/gate-input-routing.md` — Design document for gate input classification and routing (D-136 through D-140). 5-category input taxonomy, store-and-reprompt pattern, feedback buffer accumulation, soft re-prompt bound of 3.
+- `design/reports/2026-03-24-system-audit.md` — System audit report.
+
+### Modified Files (Significant Changes)
+- `src/global/skills/orchestrator.md` — Added gate input classification/routing (D-136-D-140), UI standardization, xref-manifest dual-implementation entries.
+- `src/global/skills/dispatch.md` — Calliope guard for non-analytical pipelines, completion processor dispatch fix (D-141).
+- `src/global/skills/completion.md` — Classification validation, step enforcement, post-pipeline terminal state (D-135).
+- `src/global/hooks/guard.sh` — Added task_id to violation log entries (F-005), `.ariadne/` Read whitelist preserved.
+- All 11 role YAML files (`src/global/core/rules/roles/*.yaml`) — Response contract normalization (F-010): unified `response_format` field added to each role file referencing `response-contract.yaml`.
+- `src/global/lib/rules.sh` — Updated to support normalized response contract embedding in assembled instructions.
+- `src/commands/moira/init.md` — Updated to install `pre-commit.sh` hook during project initialization.
+- `src/schemas/status.schema.yaml`, `src/schemas/telemetry.schema.yaml` — Extended for gate input classification fields.
+- `.claude/moira/config.yaml` — Added `logs` section (rotation_threshold_lines, archive_dir), `graph` section (enabled, timeout), `bootstrap.deep_scan_pending` field.
+
+### Task History (Project Layer)
+- 12 task directories observed in `.claude/moira/state/tasks/` (task-2026-03-22-001 through task-2026-03-24-007).
+
+---
+
+# Architecture Deep Scan — 2026-03-22 (Previous)
 
 ## 1. Service Boundaries
 
@@ -21,8 +50,8 @@ Moira is a three-layer meta-orchestration framework with no runtime server proce
 
 ### Layer 3: Execution Layer (Agents)
 **Responsibility:** All actual project interaction. Each agent is a Claude Code subagent dispatched via the Agent tool.
-**11 agents defined in:** `src/global/core/rules/roles/*.yaml` (10 role files; Calliope role file not yet created as of scan date).
-**Interface:** Agents receive assembled instruction prompts. They write detailed output to `state/tasks/{id}/` files and return a structured status summary to the orchestrator.
+**11 agents defined in:** `src/global/core/rules/roles/*.yaml` (all 11 role files present: apollo, hermes, athena, metis, daedalus, hephaestus, themis, aletheia, mnemosyne, argus, calliope).
+**Interface:** Agents receive assembled instruction prompts. They write detailed output to `state/tasks/{id}/` files and return a structured status summary to the orchestrator. All role files now include a `response_format` field normalized against `response-contract.yaml` (F-010).
 
 ### External Data Source: Ariadne (`.ariadne/`)
 **Responsibility:** Project dependency graph. Owned by an external Rust CLI tool (separate repository per D-104).
@@ -65,34 +94,36 @@ Moira is a three-layer meta-orchestration framework with no runtime server proce
 | Reflection | `reflection.md` | 3.6KB | Post-task reflection dispatch |
 
 ### 2c. Shell Libraries (`src/global/lib/`)
-21 shell scripts providing utility functions:
+22 shell scripts (10,612 total lines) providing utility functions:
 
-| Library | File | Size | Key Functions |
-|---------|------|------|---------------|
-| `rules.sh` | 31KB | Rule assembly (L1-L4 merge), instruction building |
-| `bootstrap.sh` | 31KB | Project scanning and initialization |
-| `bench.sh` | 26KB | Behavioral benchmark execution |
-| `metrics.sh` | 27KB | Metrics collection, aggregation, dashboard |
-| `knowledge.sh` | 25KB | Knowledge CRUD, freshness, archival |
-| `budget.sh` | 21KB | Token budget estimation and tracking |
-| `yaml-utils.sh` | 19KB | YAML read/write (no external deps, pure bash) |
-| `epic.sh` | 18KB | Epic decomposition and task queue |
-| `mcp.sh` | 14KB | MCP registry, allocation, infrastructure injection |
-| `reflection.sh` | 14KB | Reflection dispatching (lightweight/standard/deep/epic) |
-| `retry.sh` | 14KB | Retry logic per error type |
-| `graph.sh` | 13KB | Ariadne CLI wrappers |
-| `quality.sh` | 12KB | Quality gate processing |
-| `checkpoint.sh` | 12KB | State persistence for resume |
-| `state.sh` | 12KB | Pipeline state transitions |
-| `audit.sh` | 11KB | 5-domain audit system |
-| `upgrade.sh` | 8.8KB | Version migration |
-| `settings-merge.sh` | 7.8KB | Claude Code settings.json merge |
-| `judge.sh` | 7.7KB | LLM-judge for behavioral bench |
-| `scaffold.sh` | 4.0KB | Directory structure creation |
-| `task-id.sh` | 1.5KB | Task ID generation |
+| Library | Lines | Key Functions |
+|---------|-------|---------------|
+| `rules.sh` | 1041 | Rule assembly (L1-L4 merge), instruction building, response contract embedding |
+| `bootstrap.sh` | 920 | Project scanning and initialization |
+| `knowledge.sh` | 801 | Knowledge CRUD, freshness, archival |
+| `bench.sh` | 782 | Behavioral benchmark execution |
+| `metrics.sh` | 754 | Metrics collection, aggregation, dashboard |
+| `yaml-utils.sh` | 646 | YAML read/write (no external deps, pure bash, 3-level dot-path) |
+| `budget.sh` | 597 | Token budget estimation and tracking |
+| `epic.sh` | 597 | Epic decomposition and task queue |
+| `reflection.sh` | 456 | Reflection dispatching (lightweight/standard/deep/epic) |
+| `mcp.sh` | 446 | MCP registry, allocation, infrastructure injection |
+| `graph.sh` | 429 | Ariadne CLI wrappers |
+| `retry.sh` | 391 | Retry logic per error type |
+| `settings-merge.sh` | 382 | Claude Code settings.json merge |
+| `checkpoint.sh` | 372 | State persistence for resume |
+| `audit.sh` | 356 | 5-domain audit system |
+| `state.sh` | 355 | Pipeline state transitions |
+| `quality.sh` | 355 | Quality gate processing, CONFORM/EVOLVE mode |
+| `upgrade.sh` | 287 | Version migration |
+| `judge.sh` | 223 | LLM-judge for behavioral bench |
+| `completion.sh` | 175 | Post-gate finalization (steps 1-17) |
+| `scaffold.sh` | 119 | Directory structure creation |
+| `log-rotation.sh` | 77 | Log rotation with 5000-line threshold |
+| `task-id.sh` | 51 | Task ID generation |
 
 ### 2d. Pipeline Definitions (`src/global/core/pipelines/`)
-4 YAML pipeline definitions (Analytical pipeline not yet created):
+5 YAML pipeline definitions:
 
 | Pipeline | Trigger | Steps | Gates |
 |----------|---------|-------|-------|
@@ -100,6 +131,7 @@ Moira is a three-layer meta-orchestration framework with no runtime server proce
 | `standard.yaml` | medium, or small + low confidence | 8 (classify, explore+analyze parallel, architect, plan, implement, review, test, completion) | 4 (classification, architecture, plan, final) |
 | `full.yaml` | large | Same as standard + per-phase gates | 5+ (classification, architecture, plan, per-phase, final) |
 | `decomposition.yaml` | epic | Classify, analyze, architect, decompose into sub-tasks | Many (classification, architecture, decomposition, per-task, final) |
+| `analytical.yaml` | mode=analytical | 9 (classify, gather, scope, analysis [dynamic], depth_checkpoint [iterative], organize, synthesis, review, completion) | 3-5+ (classification, scope, depth checkpoint(s), final). Quality gates: qa1-qa4 |
 
 ### 2e. YAML Schemas (`src/schemas/`)
 12 schema files defining all YAML data structures:
@@ -108,8 +140,9 @@ Moira is a three-layer meta-orchestration framework with no runtime server proce
 ### 2f. Hooks (`src/global/hooks/`)
 | Hook | Type | Purpose |
 |------|------|---------|
-| `guard.sh` | PostToolUse | Violation detection — logs all tool calls, detects orchestrator reading/writing project files |
+| `guard.sh` | PostToolUse | Violation detection — logs all tool calls, detects orchestrator reading/writing project files. Includes task_id in violation entries. |
 | `budget-track.sh` | PostToolUse | Token usage logging |
+| `pre-commit.sh` | Git pre-commit | Constitutional invariant verification (Art 6.3, D-142). Checks: Constitution.md modification flag, pipeline gate integrity, xref-manifest validation, xref-manifest file references. Installed by `/moira:init`. |
 
 ### 2g. Test Infrastructure (`src/tests/`)
 - **Tier 1:** 24 shell test scripts + runner + helpers in `tier1/`
@@ -122,10 +155,14 @@ Moira is a three-layer meta-orchestration framework with no runtime server proce
 
 ### 3a. Shell Library Dependencies
 Observed via `source` statements:
-- `state.sh` sources `yaml-utils.sh`
+- `yaml-utils.sh` is the base dependency — sourced by: `state.sh`, `budget.sh`, `knowledge.sh`, `rules.sh`, `quality.sh`, `metrics.sh`, `audit.sh`, `reflection.sh`, `mcp.sh`, `checkpoint.sh`, `epic.sh`, `bootstrap.sh`, `bench.sh`, `judge.sh`, `settings-merge.sh`, `graph.sh`, `retry.sh`, `upgrade.sh`, `completion.sh`
+- `rules.sh` sources `yaml-utils.sh` + `knowledge.sh`
+- `completion.sh` sources `yaml-utils.sh` + `budget.sh` + `quality.sh` + `knowledge.sh` + `metrics.sh` + `checkpoint.sh`
+- `bootstrap.sh` sources `yaml-utils.sh` + `knowledge.sh` + `mcp.sh`
 - `install.sh` sources `scaffold.sh`
 - `guard.sh` is standalone (no sourcing, for performance)
-- Most lib scripts follow the pattern of sourcing `yaml-utils.sh` as foundation
+- `pre-commit.sh` is standalone (no sourcing, for portability)
+- `log-rotation.sh` is standalone (no sourcing, lightweight grep-based config reading)
 
 ### 3b. Orchestrator Data Flow Dependencies
 ```
@@ -138,7 +175,7 @@ task.md (entry point)
 ```
 
 ### 3c. Cross-Reference Manifest
-`src/global/core/xref-manifest.yaml` defines 11 cross-reference entries (xref-001 through xref-011) tracking data dependencies between files. Key tracked values:
+`src/global/core/xref-manifest.yaml` defines 16 cross-reference entries (xref-001 through xref-016) tracking data dependencies between files. Key tracked values:
 - Agent budget numbers (canonical: `budgets.schema.yaml`)
 - Pipeline step names (canonical: pipeline YAMLs)
 - Agent role names (canonical: `design/architecture/agents.md`)
@@ -278,33 +315,31 @@ Canonical source: `src/global/core/knowledge-access-matrix.yaml`
 
 ---
 
-## 7. Implementation Status (Observed)
+## 7. Implementation Status (Observed as of 2026-03-24)
 
 ### Present in `src/` (implemented):
-- All 21 shell libraries
+- 22 shell libraries (21 original + `log-rotation.sh`)
 - All 14 slash commands
-- All 5 skill files
-- All 4 pipeline definitions (analytical pipeline not yet created)
-- 10 agent role YAML files (Calliope missing — designed in D-118 but not yet created)
-- 5 quality rule files
+- All 5 skill files + 1 completion processor skill (`completion.md`)
+- All 5 pipeline definitions (quick, standard, full, decomposition, analytical)
+- All 11 agent role YAML files (apollo, hermes, athena, metis, daedalus, hephaestus, themis, aletheia, mnemosyne, argus, calliope)
+- 9 quality rule files (5 standard q1-q5 + 4 analytical qa1-qa4)
 - 12 schema files
-- 2 hook scripts
+- 3 hook scripts (guard.sh, budget-track.sh, pre-commit.sh)
 - Full test infrastructure (tier1 + bench)
-- Cross-reference manifest
+- Cross-reference manifest (16 entries, xref-001 through xref-016)
 - Knowledge access matrix + response contract
 
 ### Present in `.claude/moira/` (project layer, bootstrapped):
-- `config.yaml` with full configuration
-- Knowledge base with populated content (project-model, conventions, patterns, quality-map)
-- MCP registry (`config/mcp-registry.yaml`)
+- `config.yaml` with full configuration (14 sections including logs, graph, bootstrap)
+- Knowledge base with populated content (project-model, conventions, patterns, quality-map, failures, architecture)
+- MCP registry (`config/mcp-registry.yaml`) — Ariadne registered
 - Budget configuration (`config/budgets.yaml`)
 - Runtime state directory structure
-- One task directory (`task-2026-03-22-001`) with status `classification/pending`
+- 12 task directories (task-2026-03-22-001 through task-2026-03-24-007)
 
-### Not yet created:
-- `calliope.yaml` agent role file (D-118, Phase 14)
-- `analytical.yaml` pipeline definition (D-119, Phase 14)
-- Project layer `core/rules/roles/` and `core/rules/quality/` (empty — populated at runtime by install)
+### Not yet populated at project layer:
+- Project layer `core/rules/roles/` and `core/rules/quality/` (populated at runtime by install, not committed)
 
 ---
 

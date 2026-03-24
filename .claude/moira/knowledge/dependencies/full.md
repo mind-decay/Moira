@@ -1,3 +1,62 @@
+# Dependency Analysis — 2026-03-24 (incremental update)
+
+## Changes Since 2026-03-22 Scan
+
+### Version Change
+- **Moira Core version:** `0.1.0` -> `0.2.0` (source: `src/.version`)
+
+### New Shell Libraries
+- `log-rotation.sh` — added to `src/global/lib/`. Zero `source` dependencies (leaf node). Not sourced by any other shell file in the project (static analysis). Called at task start for log archival per Decision D-143.
+- `rules.sh` — added to `src/global/lib/`. Sources: `yaml-utils.sh`, `knowledge.sh`. Sourced by: `test-rules-assembly.sh`.
+- `completion.sh` — added to `src/global/lib/`. Sources: `yaml-utils.sh`, `budget.sh`, `quality.sh`, `knowledge.sh`, `metrics.sh`, `checkpoint.sh`. This is the highest fan-out library (6 direct dependencies).
+
+### New Hooks
+- `guard.sh` — added to `src/global/hooks/`. No `source` dependencies. Uses `jq` optionally.
+- `pre-commit.sh` — added to `src/global/hooks/`. No `source` dependencies. Reads `xref-manifest.yaml` for constitutional verification.
+
+### New Test Files (since 2026-03-22)
+- `test-rules-assembly.sh` — sources `test-helpers.sh`, `rules.sh`
+- `test-analytical-pipeline.sh` — sources `test-helpers.sh`
+- `test-bootstrap.sh` — sources `test-helpers.sh`, `bootstrap.sh`
+- `test-agent-definitions.sh` — sources `test-helpers.sh`
+- `test-orchestrator-enforcement.sh` — sources `test-helpers.sh`
+- `test-xref-manifest.sh` — sources `test-helpers.sh`
+- `test-reflection-system.sh` — sources `test-helpers.sh`
+
+### Updated Dependency Graph (additions only)
+```
+log-rotation.sh        (leaf — no sources)
+
+completion.sh          -> yaml-utils.sh, budget.sh, quality.sh, knowledge.sh, metrics.sh, checkpoint.sh
+rules.sh               -> yaml-utils.sh, knowledge.sh
+```
+
+### Updated Entry-Point-Only Libraries
+- `log-rotation.sh` — not sourced by any file (static analysis). May be invoked at runtime by orchestrator.
+- `checkpoint.sh` — now also sourced by `completion.sh` (previously entry-point only)
+
+### MCP Server Dependencies (external)
+Three MCP servers registered in `.claude/moira/config/mcp-registry.yaml`:
+| Server | Type | Tool Count |
+|---|---|---|
+| ariadne | structural | 17 tools |
+| claude.ai Context7 | documentation | 2 tools |
+| claude.ai Figma | design | 12 tools |
+
+Two additional servers listed with zero tools: `claude.ai Gmail` (communication), `claude.ai Google Calendar` (other).
+
+### YAML Schema Files
+15 schema files in `src/schemas/`: `audit`, `budgets`, `config`, `current`, `findings`, `locks`, `manifest`, `mcp-registry`, `metrics`, `queue`, `status`, `telemetry` (`.schema.yaml`). These define validation contracts for Moira state files. No external schema dependencies detected.
+
+### Circular Dependencies
+No new circular dependencies introduced. The graph remains a DAG.
+
+### Duplicate Functionality
+- **YAML parsing count update:** 15 libraries now source `yaml-utils.sh` (was 14). The new consumer is `completion.sh`.
+- No new duplicate functionality detected.
+
+---
+
 # Dependency Analysis — 2026-03-22
 
 ## 1. Package Versions (Declared Dependencies)

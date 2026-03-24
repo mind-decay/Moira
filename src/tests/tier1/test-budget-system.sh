@@ -105,4 +105,19 @@ if [[ -f "$MOIRA_HOME/skills/orchestrator.md" ]]; then
   assert_file_contains "$MOIRA_HOME/skills/orchestrator.md" ">60%" "orchestrator.md has >60% threshold"
 fi
 
+# ── Budget orchestrator formula correctness (D-146) ──────────────────
+if [[ -f "$MOIRA_HOME/lib/budget.sh" ]]; then
+  # Constant exists
+  assert_file_contains "$MOIRA_HOME/lib/budget.sh" "_MOIRA_BUDGET_ORCH_PER_AGENT_RETURN=" "budget.sh has per-agent-return constant"
+
+  # Formula uses per-agent-return estimate, not raw agent_tokens
+  if grep -q '+ agent_tokens' "$MOIRA_HOME/lib/budget.sh" 2>/dev/null; then
+    fail "budget.sh formula still uses raw agent_tokens (D-146 regression)"
+  else
+    pass "budget.sh formula does not use raw agent_tokens"
+  fi
+
+  assert_file_contains "$MOIRA_HOME/lib/budget.sh" "_MOIRA_BUDGET_ORCH_PER_AGENT_RETURN" "budget.sh formula references per-agent-return constant"
+fi
+
 test_summary

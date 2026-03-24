@@ -1448,3 +1448,11 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 **Context:** Response contract text exists in 14 files with textual divergences. Canonical source is response-contract.yaml.
 **Decision:** Normalize all copies to match canonical source exactly. Keep duplication as intentional defense-in-depth. Role-specific variants (apollo classifier format, calliope scribe format) are accepted as intentional.
 **Alternatives rejected:** Reference-only in role YAMLs (YAML has no native include), remove from role YAMLs entirely (incomplete specs), templatize with sed (over-engineering).
+
+## D-146: Orchestrator Budget Formula — Agent Tokens Decoupling
+
+**Date:** 2026-03-24
+**Status:** accepted
+**Context:** Orchestrator context budget check summed `total_agent_tokens` (cumulative subagent usage) into the orchestrator context estimate. Subagents run in separate context windows; their tokens do not accumulate in the orchestrator. This caused premature threshold warnings (688k reported vs ~150k actual).
+**Decision:** Replace `agent_tokens` in the orchestrator formula with `history_count * _MOIRA_BUDGET_ORCH_PER_AGENT_RETURN` (500 tokens per step). Keep `total_agent_tokens` in state for cost tracking. Add cost visibility line to budget report.
+**Alternatives rejected:** Remove agent tracking entirely (still useful for cost), per-message counting (not accessible from bash), fixed overhead increase (doesn't scale with steps).

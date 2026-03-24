@@ -34,6 +34,7 @@ _MOIRA_BUDGET_ORCHESTRATOR_CAPACITY=1000000
 _MOIRA_BUDGET_ORCH_BASE_OVERHEAD=15000
 _MOIRA_BUDGET_ORCH_PER_STEP=500
 _MOIRA_BUDGET_ORCH_PER_GATE=2000
+_MOIRA_BUDGET_ORCH_PER_AGENT_RETURN=500
 
 # ── _moira_budget_get_agent_budget <role> [config_path] ───────────────
 # Look up agent budget: budgets.yaml → config.yaml → role definition YAML → hardcoded defaults
@@ -288,8 +289,8 @@ moira_budget_orchestrator_check() {
   fi
 
   # Calculate estimated orchestrator tokens
-  # Agent return summaries accumulate in orchestrator context — include them
-  local estimated_tokens=$(( _MOIRA_BUDGET_ORCH_BASE_OVERHEAD + (history_count * _MOIRA_BUDGET_ORCH_PER_STEP) + (gate_count * _MOIRA_BUDGET_ORCH_PER_GATE) + agent_tokens ))
+  # Estimate agent return summary size in orchestrator context (per-step fixed estimate, not actual agent tokens)
+  local estimated_tokens=$(( _MOIRA_BUDGET_ORCH_BASE_OVERHEAD + (history_count * _MOIRA_BUDGET_ORCH_PER_STEP) + (gate_count * _MOIRA_BUDGET_ORCH_PER_GATE) + (history_count * _MOIRA_BUDGET_ORCH_PER_AGENT_RETURN) ))
 
   local percentage=$(( estimated_tokens * 100 / _MOIRA_BUDGET_ORCHESTRATOR_CAPACITY ))
 
@@ -404,6 +405,14 @@ moira_budget_generate_report() {
   printf -v summary_line "║ Orchestrator context: %sk/1000k (%s%%)%*s║" \
     "$orch_k" "$orch_pct" "$(( 21 - ${#orch_k} - ${#orch_pct} ))" ""
   report+="${summary_line}"$'\n'
+  # Total agent tokens (cost tracking, separate from orchestrator context)
+  local total_agent_tokens
+  total_agent_tokens=$(moira_yaml_get "$status_file" "budget.actual_tokens" 2>/dev/null) || true
+  total_agent_tokens=${total_agent_tokens:-0}
+  local agent_k=$(( (total_agent_tokens + 500) / 1000 ))
+  printf -v agent_line "║ Total agent tokens: %sk (cost tracking)%*s║" \
+    "$agent_k" "$(( 24 - ${#agent_k} ))" ""
+  report+="${agent_line}"$'\n'
   report+="╚══════════════════════════════════════════════╝"
 
   echo "$report"

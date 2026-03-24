@@ -1,3 +1,100 @@
+# Test Coverage Assessment — 2026-03-24
+
+## Delta Since 2026-03-22
+
+### New Source Files (not present in prior assessment)
+
+| File | Test Coverage | Notes |
+|---|---|---|
+| `src/global/lib/completion.sh` | No test coverage detected | Post-gate finalization library; sources yaml-utils, budget, quality, knowledge, metrics, checkpoint |
+| `src/global/lib/log-rotation.sh` | No test coverage detected | Log rotation with 5000-line threshold (D-143) |
+| `src/global/lib/bootstrap.sh` | `test-bootstrap.sh` | Already tracked in prior assessment |
+| `src/global/lib/rules.sh` | `test-rules-assembly.sh` | Already tracked in prior assessment |
+| `src/global/hooks/pre-commit.sh` | No test coverage detected | Constitutional invariant verification hook (Art 6.3, D-142); fail-closed on verification failures, fail-open on internal errors |
+| `src/global/skills/completion.md` | `test-orchestrator-enforcement.sh` | Structural (Phase 3 heading, pipeline_type analytical check) |
+| `src/global/core/pipelines/analytical.yaml` | `test-analytical-pipeline.sh` | Structural (9 steps, 4 gates, 6 subtypes, organize_map, depth_checkpoint branching) |
+| `src/global/core/rules/roles/calliope.yaml` | `test-analytical-pipeline.sh`, `test-agent-definitions.sh` | Structural (role, budget, identity, capabilities, never, knowledge_access, NEVER constraints >= 7) |
+| `src/global/core/rules/quality/qa1-scope-completeness.yaml` | `test-analytical-pipeline.sh` | Structural (_meta, items, on_missing, agent, pipeline_step) |
+| `src/global/core/rules/quality/qa2-evidence-quality.yaml` | `test-analytical-pipeline.sh` | Structural (same as qa1) |
+| `src/global/core/rules/quality/qa3-actionability.yaml` | `test-analytical-pipeline.sh` | Structural (same as qa1) |
+| `src/global/core/rules/quality/qa4-analytical-rigor.yaml` | `test-analytical-pipeline.sh` | Structural (same as qa1) |
+
+### New Test Files (not present in prior assessment)
+
+| Test File | Covers | Test Type |
+|---|---|---|
+| `test-analytical-pipeline.sh` | analytical.yaml, calliope.yaml, qa1-qa4, state.sh step IDs, budget.sh scribe default, apollo.yaml mode field, knowledge-access-matrix calliope entry, xref-manifest analytical entries, agent analytical_mode sections, graph.sh analytical baseline | Structural |
+| `test-orchestrator-enforcement.sh` | apollo.yaml (valid_values enums), orchestrator.md (classification validation, step enforcement, post-pipeline terminal state), completion.md (Phase 3 analytical), current.schema.yaml (completed_steps) | Structural |
+
+### Updated File Counts
+
+| Category | Prior Count | Current Count | Change |
+|---|---|---|---|
+| Shell libraries (lib/) | 21 | 23 | +2 (completion.sh, log-rotation.sh) |
+| Hooks | 2 | 3 | +1 (pre-commit.sh) |
+| Pipeline definitions | 4 | 5 | +1 (analytical.yaml) |
+| Agent roles | 10 | 11 | +1 (calliope.yaml) |
+| Quality checklists | 5 | 9 | +4 (qa1-qa4) |
+| Schemas | 12 | 12 | 0 |
+| Skills | 5 | 6 | +1 (completion.md) |
+| Commands | 14 | 14 | 0 |
+| Install script | 1 | 1 | 0 |
+| Remote install | 1 | 1 | 0 |
+| Statusline | 1 | 1 | 0 |
+| Tier 1 test files | 24 | 26 | +2 (test-analytical-pipeline.sh, test-orchestrator-enforcement.sh) |
+
+### Updated Coverage Summary
+
+| Category | Total Files | Functionally Tested | Structurally Only | Untested |
+|---|---|---|---|---|
+| Shell libraries (lib/) | 23 | 7 (yaml-utils, knowledge, rules, bootstrap, graph, scaffold, task-id) | 14 | 2 (retry.sh, completion.sh) |
+| Hooks | 3 | 0 (basic exit-code only for 2) | 2 | 1 (pre-commit.sh) |
+| Pipeline definitions | 5 | 0 (structural but thorough) | 5 | 0 |
+| Agent roles | 11 | 0 | 11 | 0 |
+| Quality checklists | 9 | 0 | 9 | 0 |
+| Schemas | 12 | 6 (via yaml-utils round-trips) | 6 | 0 |
+| Skills | 6 | 0 | 6 | 0 |
+| Commands | 14 | 0 | 14 | 0 |
+| Install script | 1 | 1 | 0 | 0 |
+| Remote install | 1 | 0 | 0 | 1 |
+| Statusline | 1 | 0 | 0 | 1 |
+| **Totals** | **86** | **14** | **67** | **5** |
+
+### New Untested Files (no test references detected)
+
+- `src/global/lib/completion.sh` — no test file sources, invokes, or references this library
+- `src/global/lib/log-rotation.sh` — no test file sources, invokes, or references this library
+- `src/global/hooks/pre-commit.sh` — no test file references this hook
+
+### New Structurally-Only Tested Files
+
+- `src/global/core/pipelines/analytical.yaml` — tested by `test-analytical-pipeline.sh` (structural: steps, gates, agent_map, organize_map)
+- `src/global/core/rules/roles/calliope.yaml` — tested by `test-analytical-pipeline.sh` and `test-agent-definitions.sh` (structural: sections, NEVER constraints)
+- `src/global/core/rules/quality/qa1-qa4` (4 files) — tested by `test-analytical-pipeline.sh` (structural: _meta, items, on_missing, agent, pipeline_step)
+- `src/global/skills/completion.md` — tested by `test-orchestrator-enforcement.sh` (structural: Phase 3 heading, pipeline_type check)
+
+### Cross-Reference: test-analytical-pipeline.sh Scope
+
+This test file validates cross-cutting concerns across multiple source files for the analytical pipeline feature:
+- `state.sh`: all 17 step IDs in valid_steps (including 5 new analytical steps: gather, scope, depth_checkpoint, organize, synthesis)
+- `budget.sh`: scribe default of 80000
+- `apollo.yaml`: mode= field and analytical_signals section
+- `knowledge-access-matrix.yaml`: calliope entry present
+- `xref-manifest.yaml`: scribe budget, gather step, calliope agent, scope_gate, depth_checkpoint_gate
+- `graph.sh`: moira_graph_analytical_baseline function and ariadne binary check
+- 4 agents (athena, metis, argus, themis): analytical_mode section present
+- calliope.yaml: correctly lacks analytical_mode section
+
+### Cross-Reference: test-orchestrator-enforcement.sh Scope
+
+This test file validates orchestrator enforcement fixes across:
+- `apollo.yaml`: valid_values block with size/mode/confidence/subtype enums
+- `orchestrator.md`: classification validation (Step 1b), step completion tracking, step enforcement, post-pipeline terminal state
+- `completion.md`: Phase 3 analytical findings, pipeline_type check
+- `current.schema.yaml`: analytical.completed_steps array type
+
+---
+
 # Test Coverage Assessment — 2026-03-22
 
 ## 1. Test Infrastructure

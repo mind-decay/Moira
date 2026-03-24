@@ -72,5 +72,5 @@ logs:
 bootstrap:
   quick_scan_completed: true
   quick_scan_at: "2026-03-23T00:00:00Z"
-  deep_scan_completed: false
-  deep_scan_pending: true
+  deep_scan_completed: true
+  deep_scan_pending: false
