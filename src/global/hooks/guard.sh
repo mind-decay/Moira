@@ -43,6 +43,12 @@ find_state_dir() {
 
 state_dir=$(find_state_dir) || exit 0
 
+# --- Extract task_id from current.yaml (lightweight, no library sourcing) ---
+task_id=""
+if [[ -f "$state_dir/current.yaml" ]]; then
+  task_id=$(grep '^task_id:' "$state_dir/current.yaml" 2>/dev/null | sed 's/^task_id:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+fi
+
 # --- Config check: hooks.guard_enabled ---
 config_file="${state_dir%/state}/config.yaml"
 if [[ -f "$config_file" ]]; then
@@ -68,7 +74,11 @@ case "$tool_name" in
     # Read is allowed for both .claude/moira and .ariadne/ paths
     if [[ -n "$file_path" && "$file_path" != *".claude/moira"* && "$file_path" != *".ariadne/"* ]]; then
       # VIOLATION: orchestrator accessed project file directly
-      echo "$timestamp VIOLATION $tool_name $file_path" >> "$state_dir/violations.log" 2>/dev/null || true
+      if [[ -n "$task_id" ]]; then
+        echo "$timestamp VIOLATION $tool_name $file_path task_id=$task_id" >> "$state_dir/violations.log" 2>/dev/null || true
+      else
+        echo "$timestamp VIOLATION $tool_name $file_path" >> "$state_dir/violations.log" 2>/dev/null || true
+      fi
 
       # Inject warning into Claude context
       echo "{\"hookSpecificOutput\":{\"additionalContext\":\"CONSTITUTIONAL VIOLATION (Art 1.1): Orchestrator used $tool_name on $file_path. Direct project file operations are prohibited.\"}}"
@@ -78,7 +88,11 @@ case "$tool_name" in
     # Write/Edit only allowed within .claude/moira — .ariadne/ is written by ariadne CLI only
     if [[ -n "$file_path" && "$file_path" != *".claude/moira"* ]]; then
       # VIOLATION: orchestrator accessed project file directly
-      echo "$timestamp VIOLATION $tool_name $file_path" >> "$state_dir/violations.log" 2>/dev/null || true
+      if [[ -n "$task_id" ]]; then
+        echo "$timestamp VIOLATION $tool_name $file_path task_id=$task_id" >> "$state_dir/violations.log" 2>/dev/null || true
+      else
+        echo "$timestamp VIOLATION $tool_name $file_path" >> "$state_dir/violations.log" 2>/dev/null || true
+      fi
 
       # Inject warning into Claude context
       echo "{\"hookSpecificOutput\":{\"additionalContext\":\"CONSTITUTIONAL VIOLATION (Art 1.1): Orchestrator used $tool_name on $file_path. Direct project file operations are prohibited.\"}}"

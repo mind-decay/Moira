@@ -180,6 +180,7 @@ gates:
       - id: deepen
         description: "Deepen analysis (next pass)"
         next_step: analysis
+        max_per_pipeline: 5
       - id: redirect
         description: "Re-scope analysis (back to Athena, max 1x per pipeline — D-130)"
         next_step: scope
