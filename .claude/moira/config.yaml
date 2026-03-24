@@ -33,6 +33,7 @@ budgets:
     tester: 90000
     reflector: 80000
     auditor: 140000
+    scribe: 80000
 
 quality:
   mode: conform
@@ -53,12 +54,23 @@ mcp:
   enabled: true
   registry_path: config/mcp-registry.yaml
 
+graph:
+  enabled: true
+  timeout: 60
+
+tooling:
+  post_implementation: []
+
 hooks:
   guard_enabled: true
   budget_tracking_enabled: true
+
+logs:
+  rotation_threshold_lines: 5000
+  archive_dir: "state/archive"
 
 bootstrap:
   quick_scan_completed: true
   quick_scan_at: "2026-03-23T00:00:00Z"
   deep_scan_completed: false
-  deep_scan_pending: false
+  deep_scan_pending: true

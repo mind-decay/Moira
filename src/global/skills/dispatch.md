@@ -104,10 +104,10 @@ The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_in
 
 You MUST return your response in this exact format:
 STATUS: success|failure|blocked|budget_exceeded
-SUMMARY: <1-2 sentences>
-ARTIFACTS: <comma-separated list of artifact file paths you wrote>
-NEXT: <recommended next step>
-QUALITY: <gate>=<verdict> (<critical>C/<warning>W/<suggestion>S)  [only if quality gate assigned]
+SUMMARY: <1-2 sentences, factual>
+ARTIFACTS: [<list of file paths written>]
+NEXT: <recommended next pipeline step>
+QUALITY: {gate}={verdict} ({critical}C/{warning}W/{suggestion}S)  [only if quality gate assigned]
 
 Write all detailed output to the artifact files. Return ONLY the status summary above.
 
@@ -229,7 +229,7 @@ If the response does not contain a valid `STATUS:` line:
 
 1. Record agent completion:
    - Write the equivalent of `moira_state_agent_done()` updates to `current.yaml` and `status.yaml` (see `lib/state.sh` for field logic) (see orchestrator.md Section 4 — When to Write State table for field logic)
-1b. Post-agent guard check (D-099, D-116): If agent role is implementer or explorer, run guard verification against protected paths (see orchestrator.md Section 2, step d1). If violation → present Guard Violation Gate (per `gates.md`) before any approval gate.
+1b. Post-agent guard check (D-099, D-116): If agent role is implementer, explorer, or calliope, run guard verification against protected paths (see orchestrator.md Section 2, step d1). If violation → present Guard Violation Gate (per `gates.md`) before any approval gate.
 2. If a gate follows this step (per pipeline definition):
    - Set `gate_pending` in `current.yaml`
    - Present gate (per `gates.md`)
