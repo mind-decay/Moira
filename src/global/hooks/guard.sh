@@ -43,6 +43,12 @@ find_state_dir() {
 
 state_dir=$(find_state_dir) || exit 0
 
+# --- Guard activation check (design/subsystems/self-monitoring.md) ---
+# Only enforce during active pipeline — .guard-active marker created by orchestrator
+if [[ ! -f "$state_dir/.guard-active" ]]; then
+  exit 0
+fi
+
 # --- Extract task_id from current.yaml (lightweight, no library sourcing) ---
 task_id=""
 if [[ -f "$state_dir/current.yaml" ]]; then

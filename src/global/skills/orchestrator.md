@@ -174,7 +174,7 @@ Before starting the pipeline, check for concurrent sessions:
 2. If lock exists and PID is alive and TTL hasn't expired → warn user: "Another Moira session is active (task {task_id}, started {started}). Running concurrent sessions on the same branch can corrupt state. Proceed anyway? (y/n)". If user declines → abort pipeline.
 3. If lock exists but PID is dead or TTL expired → stale lock, continue
 4. Create/overwrite `.session-lock` with: `{ pid: "session", started: "<current_timestamp>", task_id: "<task_id>", ttl: 3600 }`
-5. At pipeline completion or abort → delete `.session-lock`
+5. At pipeline completion or abort → delete `.session-lock` and delete `.guard-active` marker file
 
 ### Bootstrap Deep Scan Check
 
@@ -215,6 +215,7 @@ After the deep scan check, determine if Ariadne graph data is available for this
 
 Before entering the main loop:
 
+0. **Activate guard enforcement:** Write `.claude/moira/state/.guard-active` marker file (empty file, content irrelevant). This scopes `guard.sh` PostToolUse hook to only fire during active pipeline runs (design/subsystems/self-monitoring.md Layer 2a).
 1. **Read quality mode:** Read `.claude/moira/config.yaml` → `quality.mode` (default: conform). Store for dispatch.
    - If mode is `evolve`: also read `quality.evolution.current_target`
    - Pass mode and target to dispatch for inclusion in agent instructions (per `dispatch.md` Quality Mode Communication)
@@ -742,6 +743,7 @@ When the pipeline reaches the completion step:
 - On completion processor return with STATUS: success:
   - Set pipeline status to `completed` in current.yaml
   - Delete session lock
+  - **Deactivate guard enforcement:** Delete `.claude/moira/state/.guard-active` marker file.
 - On completion processor return with STATUS: failure:
   - Display error, offer retry or manual completion
 
