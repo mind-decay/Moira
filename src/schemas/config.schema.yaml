@@ -196,3 +196,13 @@ fields:
     required: false
     default: 60
     description: "ariadne build timeout in seconds"
+  logs.rotation_threshold_lines:
+    type: number
+    required: false
+    default: 5000
+    description: "Rotate log files when they exceed this many lines. Checked at task start."
+  logs.archive_dir:
+    type: string
+    required: false
+    default: "state/archive"
+    description: "Directory for archived log files, relative to .claude/moira/"
