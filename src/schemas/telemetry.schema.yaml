@@ -84,6 +84,26 @@ fields:
         type: number
         required: false
         default: 0
+  execution.gate_interactions:
+    type: array
+    required: false
+    default: []
+    description: "Gate input classification telemetry (D-138, enums only per D-027)"
+    item_fields:
+      gate_id:
+        type: string
+        required: true
+        description: "Gate identifier"
+      input_category:
+        type: enum
+        enum: [menu_selection, feedback, question, instruction, ambiguous]
+        required: true
+        description: "Classified input category (abbreviated enums)"
+      reprompt_count:
+        type: number
+        required: false
+        default: 0
+        description: "Reprompt counter value at time of this interaction"
   execution.retries_total:
     type: number
     required: true

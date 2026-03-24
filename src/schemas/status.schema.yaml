@@ -124,6 +124,36 @@ fields:
       entry: "Affected knowledge entry path"
       last_task: "Task ID when entry was last updated"
       distance: "Number of tasks since last update"
+  gate_interactions:
+    description: "Per-input gate interaction records for classification and routing traceability (Art 3.1, D-138)"
+    type: array
+    required: false
+    default: []
+    item_fields:
+      gate_id:
+        type: string
+        required: true
+        description: "Gate identifier (e.g., classification_gate, architecture_gate)"
+      input_text:
+        type: string
+        required: true
+        description: "Full user input text"
+      category:
+        type: enum
+        required: true
+        enum: [menu_selection, feedback_as_selection, question, contextual_instruction, ambiguous_typo]
+        description: "Classification result"
+      feedback_buffer:
+        type: array
+        required: false
+        default: []
+        description: "Snapshot of accumulated feedback buffer at time of this interaction"
+        item_type: string
+      notes:
+        type: string
+        required: false
+        default: ""
+        description: "Contextual notes (clarifications provided, gate name, reprompt count)"
   completion.action:
     type: enum
     required: false

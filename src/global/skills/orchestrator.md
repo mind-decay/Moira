@@ -319,15 +319,69 @@ Before entering the main loop:
         - Use that response as the gate decision (do NOT prompt user)
         - Record the decision in state files as normal
         - Skip to step (g) handling
-      - Present gate to user (per `gates.md` skill)
-      - Wait for user decision
-      - On `proceed` → record gate, advance to next step
-      - On `modify` → re-dispatch agent with user feedback
-      - On `rearchitect` (plan gate only) → re-enter pipeline at architecture step:
-        - Preserve Explorer and Analyst artifacts (do NOT re-dispatch exploration)
-        - Re-dispatch Metis (architect) with: original exploration/analysis data + user's architectural feedback
-        - Continue pipeline from architecture step through plan gate again
-      - On `abort` → set pipeline status to `failed`, stop
+      - **Gate interaction loop** (D-136 through D-140):
+        - Initialize: `feedback_buffer = []`, `reprompt_count = 0`
+        - Present gate to user (per `gates.md` skill)
+        - Wait for user input
+        - **Pre-classifier check:** if input matches `clear feedback` (case-insensitive, exact phrase):
+          - Clear feedback_buffer
+          - Display: `Feedback buffer cleared ({N} items removed).`
+          - Re-present gate (no state change, no recording)
+          - Continue loop
+        - **Classify** user input against `gate_options` from `current.yaml`:
+          - Classification rules (ordered, first match wins):
+            1. Exact match (case-insensitive, trimmed) against gate option list, OR valid numeric index (1-based) into gate_options → `menu_selection`
+            2. Ends with `?` OR starts with question words (what, how, why, when, where, which, can, will, does, is, are, should, would, could) → `question`
+            3. Contains feedback/direction language combined with implied decision (references work product AND provides modification direction) → `feedback_as_selection`
+            4. Provides context/direction without referencing current work product (directive without evaluation) → `contextual_instruction`
+            5. Short ambiguous input (1-3 words) that doesn't match options, OR empty input → `ambiguous_typo`
+          - Categories 2-5 are heuristic (natural language judgment). Only exact matches produce `menu_selection`.
+        - **Record** interaction:
+          - In `status.yaml` `gate_interactions[]`: `{ gate_id, input_text, category, feedback_buffer (snapshot), notes: "gate={gate_name}, reprompt={count}" }`
+          - In `telemetry.yaml` `execution.gate_interactions[]`: `{ gate_id, input_category (abbreviated enum), reprompt_count }`
+        - **Route** by category:
+          - `menu_selection`:
+            - If `feedback_buffer` is non-empty AND decision is `modify`:
+              - Pass feedback_buffer contents as feedback payload to agent re-dispatch
+              - Clear feedback_buffer
+            - If `feedback_buffer` is non-empty AND decision is `rearchitect`:
+              - Pass feedback_buffer contents as architectural feedback context
+              - Clear feedback_buffer
+            - Else (proceed, abort, or any other terminal selection):
+              - Discard feedback_buffer
+            - **Exit loop** → execute gate decision:
+              - On `proceed` → record gate, advance to next step
+              - On `modify` → re-dispatch agent with user feedback (including any buffered feedback)
+              - On `rearchitect` (plan gate only) → re-enter pipeline at architecture step:
+                - Preserve Explorer and Analyst artifacts (do NOT re-dispatch exploration)
+                - Re-dispatch Metis (architect) with: original exploration/analysis data + user's architectural feedback (including any buffered feedback)
+                - Continue pipeline from architecture step through plan gate again
+              - On `abort` → set pipeline status to `failed`, stop
+              - On `details` → display full artifact (display-only, per `gates.md`), then re-enter gate interaction loop (counter resets via re-initialization at loop top)
+          - `feedback_as_selection`:
+            - Append input to feedback_buffer
+            - Display: `Noted as feedback. {feedback_buffer.length} item(s) buffered — will be included if you select 'modify'.`
+            - Increment reprompt_count
+            - Continue loop
+          - `question`:
+            - Answer the question using available context (agent artifacts, pipeline state)
+            - Increment reprompt_count
+            - Continue loop
+          - `contextual_instruction`:
+            - Append input to feedback_buffer
+            - Display: `Noted as context. {feedback_buffer.length} item(s) buffered — will be included if you select 'modify'.`
+            - Increment reprompt_count
+            - Continue loop
+          - `ambiguous_typo`:
+            - Display: `I couldn't match that to a gate option. Did you mean one of:` followed by numbered gate options
+            - Increment reprompt_count
+            - Continue loop
+        - **Soft bound check** (after routing, before re-present):
+          - If `reprompt_count >= 3`:
+            - Display: `Please select an option by number:`
+            - Display numbered gate options (1-indexed)
+            - Display: `(Type 'clear feedback' to reset the feedback buffer)`
+        - Loop back to "Present gate to user"
    g. If no gate → advance to next step
 
 ### Handling Parallel Steps
