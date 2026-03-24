@@ -159,6 +159,8 @@ If you catch yourself thinking:
 - "The user said to proceed with fixes..." → CREATE A NEW TASK
 - "This is just the second phase..." → EVERY PHASE IS A SEPARATE PIPELINE
 - "The analysis already identified what to do..." → CLASSIFICATION IS STILL REQUIRED
+- "The pipeline is done, I'll just clean up..." → DISPATCH COMPLETION PROCESSOR FIRST (Section 7)
+- "Telemetry/reflection can be skipped..." → COMPLETION PROCESSOR IS MANDATORY (D-133)
 
 ANY violation is logged and reported.
 
@@ -174,7 +176,7 @@ Before starting the pipeline, check for concurrent sessions:
 2. If lock exists and PID is alive and TTL hasn't expired → warn user: "Another Moira session is active (task {task_id}, started {started}). Running concurrent sessions on the same branch can corrupt state. Proceed anyway? (y/n)". If user declines → abort pipeline.
 3. If lock exists but PID is dead or TTL expired → stale lock, continue
 4. Create/overwrite `.session-lock` with: `{ pid: "session", started: "<current_timestamp>", task_id: "<task_id>", ttl: 3600 }`
-5. At pipeline completion or abort → delete `.session-lock` and delete `.guard-active` marker file
+5. At pipeline completion → follow Section 7 completion flow. At abort → delete `.session-lock` and delete `.guard-active` marker file.
 
 ### Bootstrap Deep Scan Check
 
@@ -723,6 +725,7 @@ When the pipeline reaches the completion step:
 
 **`done`** — Accept all changes:
 - Write `completion.action: done` to `status.yaml` (if not already present from gate recording)
+- Write `completion_processor.status: required` to `status.yaml`
 - Dispatch completion processor:
   1. Read `~/.claude/moira/skills/completion.md` (the completion processor skill)
   2. Construct the agent prompt by prepending the Input Contract values to the skill content:
@@ -741,11 +744,13 @@ When the pipeline reaches the completion step:
   The completion processor handles mechanical finalization (telemetry, status, metrics) AND reflection dispatch
   (reading `post.reflection` from the pipeline YAML to determine Mnemosyne dispatch level).
 - On completion processor return with STATUS: success:
-  - Set pipeline status to `completed` in current.yaml
-  - Delete session lock
-  - **Deactivate guard enforcement:** Delete `.claude/moira/state/.guard-active` marker file.
+  - Read `completion_processor.status` from `status.yaml` — verify it is `completed`
+  - If `completed`: set pipeline status to `completed` in current.yaml, delete `.session-lock`, delete `.guard-active` marker file
+  - If still `required`: ERROR — completion processor did not update status. Re-dispatch completion processor.
 - On completion processor return with STATUS: failure:
+  - Write `completion_processor.status: failed` to `status.yaml`
   - Display error, offer retry or manual completion
+  - On manual completion (user chooses to skip): set pipeline status to `completed` in current.yaml, delete `.session-lock`, delete `.guard-active` marker file
 
 ### Post-Pipeline State
 

@@ -154,6 +154,9 @@ moira_completion_finalize() {
   # ── Step 17: Checkpoint cleanup ──
   moira_checkpoint_cleanup "$task_id" "$state_dir" 2>/dev/null || true
 
+  # ── Step 17b: Mark completion processor as completed (D-149 Layer 2) ──
+  moira_yaml_set "$status_file" "completion_processor.status" "completed"
+
   # ── Output reflection level for the caller ──
   local pipeline_yaml="${moira_home}/core/pipelines/${pipeline_type}.yaml"
   local reflection_level="lightweight"

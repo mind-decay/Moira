@@ -521,8 +521,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 1458,
-      "hash": "6865f175d7255dd8",
+      "lines": 1467,
+      "hash": "b05e5e26c1f1313d",
       "exports": [],
       "cluster": "design"
     },
@@ -1610,8 +1610,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 826,
-      "hash": "bf73b90fb2adb521",
+      "lines": 833,
+      "hash": "deafb19953068886",
       "exports": [],
       "cluster": "global"
     },
