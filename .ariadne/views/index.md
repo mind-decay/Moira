@@ -2,23 +2,24 @@
 
 ## Architecture Summary
 
-- **Files:** 220
+- **Files:** 295
 - **Edges:** 57
-- **Clusters:** 6
+- **Clusters:** 7
 - **Max depth:** 3
-- **Avg in-degree:** 0.0545
-- **Avg out-degree:** 0.0545
+- **Avg in-degree:** 0.0407
+- **Avg out-degree:** 0.0407
 
 ## Clusters
 
 | Cluster | Files | Key File | Cohesion |
 |---------|------:|----------|--------:|
-| .claude | 29 | `.claude/moira/knowledge/testing/full.md` | 1.0000 |
+| .claude | 37 | `.claude/settings.json` | 1.0000 |
 | commands | 14 | `src/commands/moira/upgrade.md` | 1.0000 |
-| design | 88 | `design/subsystems/testing.md` | 1.0000 |
-| global | 51 | `src/global/templates/scanners/tech-scan.md` | 1.0000 |
-| root | 3 | `README.md` | 1.0000 |
-| tests | 35 | `src/tests/bench/fixtures/mature-webapp/tests/health.test.ts` | 1.0000 |
+| design | 89 | `design/subsystems/testing.md` | 1.0000 |
+| global | 80 | `src/global/templates/scanners/tech-scan.md` | 1.0000 |
+| root | 4 | `README.md` | 1.0000 |
+| schemas | 12 | `src/schemas/telemetry.schema.yaml` | 1.0000 |
+| tests | 59 | `src/tests/bench/tier3-config.yaml` | 1.0000 |
 
 ## Orphan Files
 

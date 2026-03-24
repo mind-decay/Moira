@@ -6,7 +6,7 @@ Decisions: D-136, D-137, D-138, D-139, D-140
 **Type:** Design Document
 **Risk:** GREEN — additive behavior within existing orchestrator flow
 **Scope:** Orchestrator gate interaction handling
-**Status:** Draft
+**Status:** Accepted (implemented in task-2026-03-24-002)
 
 ---
 
@@ -208,3 +208,15 @@ This classification and routing logic SHALL be implemented as an additive insert
 - Existing gate option lists (for exact-match classification)
 - Existing `details` display-only precedent (for re-present behavior)
 - Existing `modify` flow (for feedback payload delivery)
+
+---
+
+## 9. Implementation Resolutions
+
+Open questions resolved during implementation (task-2026-03-24-002):
+
+**OQ-1: Feedback buffer scope across gates** — Buffer clears on any non-modify menu selection (proceed, abort, rearchitect). Feedback stays scoped to the gate where it was provided.
+
+**OQ-2: `rearchitect` and buffer consumption** — `rearchitect` consumes the buffer same as `modify` — buffer contents become architectural feedback context, then buffer clears.
+
+**OQ-3: Explicit user clear mechanism** — Implemented as `clear feedback` exact phrase (case-insensitive), checked as a pre-classifier special command before the 5-category taxonomy. Clears buffer, displays confirmation with item count, re-presents gate. Not a 6th category.

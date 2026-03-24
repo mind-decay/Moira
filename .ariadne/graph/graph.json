@@ -1,7 +1,7 @@
 {
   "version": 1,
   "project_root": "/Users/minddecay/Documents/Projects/Moira",
-  "node_count": 220,
+  "node_count": 296,
   "edge_count": 57,
   "nodes": {
     ".claude/CLAUDE.md": {
@@ -55,6 +55,33 @@
       "arch_depth": 0,
       "lines": 119,
       "hash": "456e9c24798873b1",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/config.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 76,
+      "hash": "362e74128ddb1745",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/config/budgets.yaml": {
+      "type": "data",
+      "layer": "config",
+      "arch_depth": 0,
+      "lines": 26,
+      "hash": "2f5380fcd2a771a6",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/config/mcp-registry.yaml": {
+      "type": "data",
+      "layer": "config",
+      "arch_depth": 0,
+      "lines": 254,
+      "hash": "b1aa9d51ce3fed51",
       "exports": [],
       "cluster": ".claude"
     },
@@ -265,6 +292,60 @@
       "exports": [],
       "cluster": ".claude"
     },
+    ".claude/moira/project/rules/boundaries.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 11,
+      "hash": "8aef9b4d79798323",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/project/rules/conventions.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 25,
+      "hash": "28dbd1ece7f88330",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/project/rules/patterns.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 5,
+      "hash": "82fd4e6e631ff3de",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/moira/project/rules/stack.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 3,
+      "hash": "6368ef9c21db8810",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".claude/settings.json": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 19,
+      "hash": "98570e7dd0542123",
+      "exports": [],
+      "cluster": ".claude"
+    },
+    ".mcp.json": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 12,
+      "hash": "cfc1bfc4910b4dda",
+      "exports": [],
+      "cluster": "root"
+    },
     "AGENTS.md": {
       "type": "doc",
       "layer": "unknown",
@@ -373,6 +454,15 @@
       "exports": [],
       "cluster": "design"
     },
+    "design/architecture/gate-input-routing.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 222,
+      "hash": "3bfbcbfcaf6e5d5a",
+      "exports": [],
+      "cluster": "design"
+    },
     "design/architecture/naming.md": {
       "type": "doc",
       "layer": "unknown",
@@ -431,8 +521,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 1365,
-      "hash": "4a4fb24e94c37ab2",
+      "lines": 1450,
+      "hash": "8796ef05f7375de4",
       "exports": [],
       "cluster": "design"
     },
@@ -442,6 +532,15 @@
       "arch_depth": 0,
       "lines": 619,
       "hash": "56c5f93ca6edd632",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/reports/2026-03-24-system-audit.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 225,
+      "hash": "59925f6790c1fcad",
       "exports": [],
       "cluster": "design"
     },
@@ -1142,8 +1241,8 @@
       "type": "doc",
       "layer": "service",
       "arch_depth": 0,
-      "lines": 362,
-      "hash": "59c94c484b040974",
+      "lines": 380,
+      "hash": "dfca697dd7f819b7",
       "exports": [],
       "cluster": "commands"
     },
@@ -1210,6 +1309,267 @@
       "exports": [],
       "cluster": "commands"
     },
+    "src/global/core/knowledge-access-matrix.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 49,
+      "hash": "df5f4b20140221fb",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/pipelines/analytical.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 272,
+      "hash": "614b580c657a8a41",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/pipelines/decomposition.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 216,
+      "hash": "bb711056b9e38675",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/pipelines/full.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 232,
+      "hash": "121ccd3c19ea3104",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/pipelines/quick.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 145,
+      "hash": "549e81064330df59",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/pipelines/standard.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 211,
+      "hash": "92c5f30f666023e0",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/response-contract.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 40,
+      "hash": "5008e55c6e6a8dc4",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/base.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 35,
+      "hash": "6ee132f7dd843859",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/quality/q1-completeness.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 34,
+      "hash": "be948ca65ac35983",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/quality/q2-soundness.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 37,
+      "hash": "943aa5b4053cc17f",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/quality/q3-feasibility.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 28,
+      "hash": "ef1e006e3a72d589",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/quality/q4-correctness.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 128,
+      "hash": "2f98a2722e39f923",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/quality/q5-coverage.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 31,
+      "hash": "0bed218ea6e832cd",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/quality/qa1-scope-completeness.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 25,
+      "hash": "a4ac447cfd0c4679",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/quality/qa2-evidence-quality.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 28,
+      "hash": "e832f39cf5910bb3",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/quality/qa3-actionability.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 25,
+      "hash": "1f033530ea2c8272",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/quality/qa4-analytical-rigor.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 29,
+      "hash": "4efb7ead19c19585",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/roles/aletheia.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 43,
+      "hash": "6b6c5968da5ca6f9",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/roles/apollo.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 87,
+      "hash": "8f0cd0b14440f171",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/roles/argus.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 96,
+      "hash": "dcf562f95ba4cc4f",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/roles/athena.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 78,
+      "hash": "d5389c59fc612c3d",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/roles/calliope.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 48,
+      "hash": "24b102b32cd12d79",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/roles/daedalus.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 90,
+      "hash": "2ff160d2791e8242",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/roles/hephaestus.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 62,
+      "hash": "7eb068aa68fafcb9",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/roles/hermes.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 55,
+      "hash": "abaeae4b460fa5bb",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/roles/metis.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 105,
+      "hash": "1c810e01966e1435",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/roles/mnemosyne.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 77,
+      "hash": "69a99010399d8e34",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/rules/roles/themis.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 104,
+      "hash": "bfc7db4c52bfbabd",
+      "exports": [],
+      "cluster": "global"
+    },
+    "src/global/core/xref-manifest.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 201,
+      "hash": "5275327986ed3677",
+      "exports": [],
+      "cluster": "global"
+    },
     "src/global/skills/completion.md": {
       "type": "doc",
       "layer": "unknown",
@@ -1223,8 +1583,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 570,
-      "hash": "a69fa3a740494d44",
+      "lines": 571,
+      "hash": "11a307e25dd7bf80",
       "exports": [],
       "cluster": "global"
     },
@@ -1250,8 +1610,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 756,
-      "hash": "25b3f657328989fb",
+      "lines": 826,
+      "hash": "bf73b90fb2adb521",
       "exports": [],
       "cluster": "global"
     },
@@ -1669,12 +2029,129 @@
       "exports": [],
       "cluster": "global"
     },
+    "src/schemas/audit.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 104,
+      "hash": "bc761c894e0888b9",
+      "exports": [],
+      "cluster": "schemas"
+    },
+    "src/schemas/budgets.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 58,
+      "hash": "fb7d082f4259078a",
+      "exports": [],
+      "cluster": "schemas"
+    },
+    "src/schemas/config.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 208,
+      "hash": "d597468e3e7166e6",
+      "exports": [],
+      "cluster": "schemas"
+    },
+    "src/schemas/current.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 121,
+      "hash": "08217ac59e5c5e91",
+      "exports": [],
+      "cluster": "schemas"
+    },
+    "src/schemas/findings.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 108,
+      "hash": "f1ed761b91033d1d",
+      "exports": [],
+      "cluster": "schemas"
+    },
+    "src/schemas/locks.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 12,
+      "hash": "6f8ab61179c5132a",
+      "exports": [],
+      "cluster": "schemas"
+    },
+    "src/schemas/manifest.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 64,
+      "hash": "7c995e58a949e8af",
+      "exports": [],
+      "cluster": "schemas"
+    },
+    "src/schemas/mcp-registry.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 49,
+      "hash": "c4aac98293e60e1e",
+      "exports": [],
+      "cluster": "schemas"
+    },
+    "src/schemas/metrics.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 233,
+      "hash": "f28d6fd5f6caa244",
+      "exports": [],
+      "cluster": "schemas"
+    },
+    "src/schemas/queue.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 46,
+      "hash": "e0bb4496f3dcb0ed",
+      "exports": [],
+      "cluster": "schemas"
+    },
+    "src/schemas/status.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 174,
+      "hash": "f6587299f803745b",
+      "exports": [],
+      "cluster": "schemas"
+    },
+    "src/schemas/telemetry.schema.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 229,
+      "hash": "96fa70d5f0557439",
+      "exports": [],
+      "cluster": "schemas"
+    },
     "src/tests/bench/calibration/good-implementation/architecture.md": {
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
       "lines": 49,
       "hash": "1b46e4c809e4de76",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/calibration/good-implementation/expected.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 5,
+      "hash": "fd613bc38c0d2307",
       "exports": [],
       "cluster": "tests"
     },
@@ -1732,6 +2209,15 @@
       "exports": [],
       "cluster": "tests"
     },
+    "src/tests/bench/calibration/mediocre-implementation/expected.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 5,
+      "hash": "4fee1550867f8457",
+      "exports": [],
+      "cluster": "tests"
+    },
     "src/tests/bench/calibration/mediocre-implementation/implementation.md": {
       "type": "doc",
       "layer": "unknown",
@@ -1786,6 +2272,15 @@
       "exports": [],
       "cluster": "tests"
     },
+    "src/tests/bench/calibration/poor-implementation/expected.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 5,
+      "hash": "66218d7ec01fc871",
+      "exports": [],
+      "cluster": "tests"
+    },
     "src/tests/bench/calibration/poor-implementation/implementation.md": {
       "type": "doc",
       "layer": "unknown",
@@ -1831,6 +2326,105 @@
       "exports": [],
       "cluster": "tests"
     },
+    "src/tests/bench/cases/quick-bugfix-legacy-001.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 29,
+      "hash": "f2a1ba984c8fa207",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/cases/quick-bugfix-mature-001.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 29,
+      "hash": "274df1205bc96207",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/cases/std-feature-greenfield-001.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 31,
+      "hash": "82acd21151aab7d0",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/cases/std-feature-mature-001.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 32,
+      "hash": "4bd32d4c438ccc64",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/cases/std-refactor-legacy-001.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 31,
+      "hash": "312cf4b8eafe6557",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/cases/tier3-checkpoint-resume.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 36,
+      "hash": "677c8d5654ad3958",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/cases/tier3-epic-decomposition.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 42,
+      "hash": "7312d5e4ecf4b639",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/cases/tier3-redo.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 42,
+      "hash": "ba499b7f963c7b0f",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/cases/tier3-tweak.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 42,
+      "hash": "d583ba126e7ded22",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/greenfield-webapp/.moira-fixture.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 9,
+      "hash": "9073bc2a47bb0b78",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/greenfield-webapp/package.json": {
+      "type": "config",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 19,
+      "hash": "42b0a49c8fb6d1ba",
+      "exports": [],
+      "cluster": "tests"
+    },
     "src/tests/bench/fixtures/greenfield-webapp/src/index.ts": {
       "type": "source",
       "layer": "unknown",
@@ -1864,12 +2458,39 @@
       ],
       "cluster": "tests"
     },
+    "src/tests/bench/fixtures/greenfield-webapp/tsconfig.json": {
+      "type": "config",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 11,
+      "hash": "2dea17cc1b4a6a16",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/legacy-webapp/.moira-fixture.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 11,
+      "hash": "7765ee37fd31feb8",
+      "exports": [],
+      "cluster": "tests"
+    },
     "src/tests/bench/fixtures/legacy-webapp/__tests__/health.test.js": {
       "type": "test",
       "layer": "unknown",
       "arch_depth": 0,
       "lines": 7,
       "hash": "15f959ef55ff5101",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/legacy-webapp/package.json": {
+      "type": "config",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 16,
+      "hash": "7591449bab700338",
       "exports": [],
       "cluster": "tests"
     },
@@ -1897,6 +2518,24 @@
       "arch_depth": 0,
       "lines": 7,
       "hash": "db549f583686ab6c",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/.moira-fixture.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 11,
+      "hash": "56e4c30150dad3f7",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/fixtures/mature-webapp/package.json": {
+      "type": "config",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 28,
+      "hash": "3c66826077638c64",
       "exports": [],
       "cluster": "tests"
     },
@@ -2007,6 +2646,51 @@
       "arch_depth": 0,
       "lines": 10,
       "hash": "fd05fef25df01534",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/rubrics/bugfix.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 45,
+      "hash": "182dd7dd4501342f",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/rubrics/feature-implementation.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 45,
+      "hash": "81521d9b8424fe63",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/rubrics/refactor.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 45,
+      "hash": "15da198f1792f68e",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/tier2-config.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 11,
+      "hash": "c6d682e26000001d",
+      "exports": [],
+      "cluster": "tests"
+    },
+    "src/tests/bench/tier3-config.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 14,
+      "hash": "1ad0befb7f7b692d",
       "exports": [],
       "cluster": "tests"
     }
