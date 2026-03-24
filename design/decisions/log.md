@@ -1417,3 +1417,34 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 **Decision:** (a) Section 7 `done` action now has explicit 3-step dispatch: (1) Read `~/.claude/moira/skills/completion.md`, (2) prepend Input Contract values (all 9 fields) to skill content, (3) dispatch via Agent tool (foreground). (b) Completion processor added to `dispatch.md` Special Dispatch Cases table. (c) Orphaned failure handler (`STATUS: failure` block after `Post-Pipeline State` subsection) moved back into `done` action.
 **Alternatives rejected:** None — the existing instruction was simply not executable.
 **Reasoning:** Every dispatch instruction in the orchestrator must be mechanically executable: specify the source file, how to construct the prompt, and which tool to use. Vague instructions like "dispatch X with Y" are ignored by the LLM under context pressure.
+
+## D-142: Pre-Commit Hook Architecture
+
+**Date:** 2026-03-24
+**Status:** accepted
+**Context:** Constitution Art 6.3 requires verification before commits. No pre-commit hook existed.
+**Decision:** Two-stage deployment: install.sh copies to $MOIRA_HOME/hooks/, moira init copies to .git/hooks/pre-commit. Fail closed on verification failures, fail open on internal errors. Runs on all commits. Source at src/global/hooks/pre-commit.sh.
+**Alternatives rejected:** Single-stage install (wrong scope), symlinks (fragile), hook manager (external dependency), Moira-files-only scope (Art 6.3 says "any system change").
+
+## D-143: Log Rotation Strategy
+
+**Date:** 2026-03-24
+**Status:** accepted
+**Context:** Three log files (violations.log, tool-usage.log, budget-tool-usage.log) grow without limit.
+**Decision:** Rotate at task start, 5000-line threshold (configurable), move-then-create pattern, archive to state/archive/. New lib: src/global/lib/log-rotation.sh.
+**Alternatives rejected:** Rotate at task end (data may be needed by reflection), size-based trigger (mid-task race conditions), copy+truncate (race condition risk).
+
+## D-144: F-002 (.version File) Resolution
+
+**Date:** 2026-03-24
+**Status:** accepted
+**Context:** Audit finding F-002 reported .version file missing. Explorer verified src/.version exists with content 0.2.0 and install.sh reads it correctly.
+**Decision:** No implementation needed. Finding was inaccurate.
+
+## D-145: Response Contract Normalization Strategy
+
+**Date:** 2026-03-24
+**Status:** accepted
+**Context:** Response contract text exists in 14 files with textual divergences. Canonical source is response-contract.yaml.
+**Decision:** Normalize all copies to match canonical source exactly. Keep duplication as intentional defense-in-depth. Role-specific variants (apollo classifier format, calliope scribe format) are accepted as intentional.
+**Alternatives rejected:** Reference-only in role YAMLs (YAML has no native include), remove from role YAMLs entirely (incomplete specs), templatize with sed (over-engineering).

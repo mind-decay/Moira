@@ -228,6 +228,24 @@ bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_inject_hooks
 
 This registers guard and budget-track hooks in `.claude/settings.json` and creates empty log files. If hook injection fails: display warning but continue initialization.
 
+## Step 10b: Install Pre-Commit Hook
+
+Check if `$MOIRA_HOME/hooks/pre-commit.sh` exists (source file from global install).
+
+- If source does not exist: skip (older Moira version without pre-commit support).
+- If `.git/hooks/pre-commit` already exists:
+  Display warning:
+  ```
+  Pre-commit hook already exists at .git/hooks/pre-commit.
+  To integrate Moira verification, add this line to your existing hook:
+    source ~/.claude/moira/hooks/pre-commit.sh
+  ```
+  Do NOT overwrite.
+- Otherwise:
+  1. Copy `$MOIRA_HOME/hooks/pre-commit.sh` to `.git/hooks/pre-commit`
+  2. Run `chmod +x .git/hooks/pre-commit`
+  3. Display: `Installed Moira pre-commit hook (Art 6.3 verification).`
+
 ## Step 11: User Review Gate (REQUIRED — Art 4.2)
 
 This is an **APPROVAL GATE**. Do NOT proceed without explicit user action.
