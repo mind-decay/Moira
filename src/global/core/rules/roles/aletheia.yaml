@@ -16,6 +16,7 @@ capabilities:
   - Identify untested edge cases and error paths
   - Report implementation bugs found through testing
   - "If graph test mappings are available, use them to identify untested files and missing test coverage"
+  - "Use ariadne_tests_for to identify existing test files before writing new ones — avoids duplicating coverage"
 
 never:
   - "Never modify application code"

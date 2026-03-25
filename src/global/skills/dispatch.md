@@ -66,9 +66,9 @@ The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_in
 3. **Read response contract:** `~/.claude/moira/core/response-contract.yaml` (Note: `rules.sh` `moira_rules_assemble_instruction` embeds the response contract inline rather than reading this file. The file serves as the canonical reference.)
 4. **Read task context:** from state files in `.claude/moira/state/tasks/{task_id}/`
    - Input description, previous step artifacts (as specified by pipeline `reads_from`)
-4b. **Graph context loading (D-107):** If `graph_available` is `true` in `.claude/moira/state/current.yaml`:
-   - **Pre-planning agents (Apollo, Hermes, Athena, Metis):** Read the L0 graph index via Bash: `source ~/.claude/moira/lib/graph.sh && moira_graph_read_view L0`. If non-empty, append as a `## Project Graph (L0)` section to the prompt. Budget adjustment: add ~200-500 tokens to context estimate for L0 index.
-   - **Daedalus (planner):** Pass graph directory paths in the Task section: graph data at `.ariadne/graph/`, views at `.ariadne/views/`. Daedalus queries graphs directly and assembles `## Project Graph` sections in instruction files.
+4b. **Graph context loading (D-107, D-155):** If `graph_available` is `true` in `.claude/moira/state/current.yaml`:
+   - **Pre-planning agents (Apollo, Hermes, Athena, Metis):** If MCP is enabled and the Ariadne infrastructure server is registered, use `ariadne_context` with `budget_tokens: 1000` and `task: "understand"` to assemble task-relevant structural context. Seed files: extract file paths mentioned in the task input description. If `ariadne_context` succeeds, append result as a `## Project Graph (Context)` section to the prompt. If `ariadne_context` fails (MCP error, server unavailable, or empty result), fall back to L0 view: read the L0 graph index via Bash: `source ~/.claude/moira/lib/graph.sh && moira_graph_read_view L0` and append as `## Project Graph (L0)` section. Budget adjustment: add ~1000 tokens to context estimate for ariadne_context output (or ~200-500 tokens for L0 fallback).
+   - **Daedalus (planner):** Pass graph directory paths in the Task section: graph data at `.ariadne/graph/`, views at `.ariadne/views/`. Daedalus queries graphs directly and assembles `## Project Graph` sections in instruction files. Daedalus should use `ariadne_context` token estimates (`total_tokens`, `budget_used` fields) for precise budget allocation per implementation batch.
    - **Post-planning agents (Hephaestus, Themis, Aletheia):** No change — graph data comes via pre-assembled instruction files (assembled by Daedalus).
    - If `graph_available` is `false` or not present: skip this step entirely (agents work without graph data, per D-102 graceful degradation).
 4c. **Infrastructure MCP injection (D-115):** If MCP is enabled (`.claude/moira/config.yaml` → `mcp.enabled` is `true`):
@@ -443,7 +443,7 @@ At the organize step:
 
 ### Ariadne MCP Access (Tier 2)
 
-During analytical analysis passes, Metis and Argus have access to Ariadne MCP tools (if Ariadne MCP server is running and within budget). Available queries: blast-radius, importance, spectral, coupling, compressed, diff.
+During analytical analysis passes, Metis and Argus have access to Ariadne MCP tools (if Ariadne MCP server is running and within budget). Available queries: blast-radius, importance, spectral, compressed, diff, symbols, symbol-search, callers, callees, symbol-blast-radius, context, tests-for, reading-order, plan-impact.
 
 ---
 
@@ -521,6 +521,8 @@ For external MCP tools, explicitly AUTHORIZE or PROHIBIT per step:
 - AUTHORIZE with justification and budget impact
 - PROHIBIT with reason (e.g., "design already extracted", "agent should know this")
 - Include MCP token estimates in step budget calculations
+
+Note: When `ariadne_context` is used, its response includes `total_tokens` and `budget_used` fields. Daedalus should use these actual token counts (not estimates) for precise budget allocation in instruction files. This is more accurate than the static `token_estimate` values in the registry.
 ```
 
 When MCP is disabled, append instead:

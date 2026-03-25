@@ -111,33 +111,33 @@ agent_map:
     agents: [metis]
     mode: foreground
     focus: "Open-ended investigation. Follow leads, map unknowns, report what you find."
-    ariadne_focus: "targeted queries on area of interest"
+    ariadne_focus: "targeted queries on area of interest; ariadne_context for task-scoped context, ariadne_reading_order for understanding path"
   design:
     agents: [metis]
     mode: foreground
     focus: "Evaluative analysis. Assess options against project constraints, recommend approach with trade-offs."
-    ariadne_focus: "smells, coupling, metrics for informed design decisions"
+    ariadne_focus: "smells, coupling, metrics for informed design decisions; ariadne_plan_impact for change impact, ariadne_symbol_blast_radius for interface changes"
   audit:
     agents: [argus, metis]
     mode: parallel
     focus: "Systematic verification. Check actual state against expected state."
-    ariadne_focus: "full scan: smells, cycles, layers, metrics"
+    ariadne_focus: "full scan: smells, cycles, layers, metrics; ariadne_plan_impact for structural impact, ariadne_tests_for for test coverage gaps"
   weakness:
     agents: [argus, metis]
     mode: parallel
     focus: "Adversarial analysis. Find what could break, what is fragile, what is over/under-engineered."
-    ariadne_focus: "coupling hotspots, spectral analysis, smells"
+    ariadne_focus: "coupling hotspots, spectral analysis, smells; ariadne_symbol_blast_radius for interface fragility, ariadne_callers for coupling analysis"
   decision:
     agents: [metis]
     mode: foreground
     focus: "Structured comparison. For each alternative: evidence, trade-offs, blast radius, recommendation."
-    ariadne_focus: "blast radius per alternative, coupling impact comparison"
+    ariadne_focus: "blast radius per alternative, coupling impact comparison; ariadne_plan_impact per alternative, ariadne_context for focused context per option"
   documentation:
     agents: [athena]
     mode: foreground
     support: [calliope]
     focus: "Documentation scope and structure. Determine what to document and how."
-    ariadne_focus: "whatever relevant to the docs being written"
+    ariadne_focus: "whatever relevant to the docs being written; ariadne_context for relevant file context, ariadne_reading_order for documentation structure"
 
 # Subtype -> agent mapping for organize step
 # Metis is universal organizer for all subtypes (D-132) — lattice construction

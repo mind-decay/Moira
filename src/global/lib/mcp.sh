@@ -229,14 +229,14 @@ moira_mcp_generate_registry() {
     infrastructure: true
     tools:
       blast-radius:
-        purpose: "Find files affected by changing a given file"
+        purpose: "Find files affected by changing a given file. Accepts optional symbol parameter for function-level precision."
         cost: low
         reliability: high
         when_to_use: "Before modifying a file to understand impact"
         when_NOT_to_use: "Never — always useful for impact analysis"
         token_estimate: 500
       dependencies:
-        purpose: "List direct dependencies of a file"
+        purpose: "List direct dependencies of a file. Includes symbol_edges for cross-file symbol relationships."
         cost: low
         reliability: high
         when_to_use: "When exploring what a file imports/depends on"
@@ -270,9 +270,72 @@ moira_mcp_generate_registry() {
         when_to_use: "During architecture review or when reviewing large changes"
         when_NOT_to_use: "For small, localized changes"
         token_estimate: 400
+      symbols:
+        purpose: "List all symbols in a file (functions, classes, types) with kinds, visibility, and line spans"
+        cost: low
+        reliability: high
+        when_to_use: "When you need to know what a file exports/defines without reading it"
+        when_NOT_to_use: "When you already have the file open — just read it"
+        token_estimate: 500
+      symbol-search:
+        purpose: "Search for symbols across the project by name substring and optional kind filter"
+        cost: low
+        reliability: high
+        when_to_use: "When looking for a function, class, or type by name — faster and more precise than grep"
+        when_NOT_to_use: "When searching for non-symbol text (comments, strings, config values)"
+        token_estimate: 500
+      callers:
+        purpose: "Find all cross-file call sites of a specific symbol"
+        cost: low
+        reliability: high
+        when_to_use: "When verifying all call sites are updated after changing a function signature"
+        when_NOT_to_use: "When you need intra-file references — use grep instead"
+        token_estimate: 400
+      callees:
+        purpose: "Find all cross-file symbols called by a specific function"
+        cost: low
+        reliability: high
+        when_to_use: "When understanding what a function depends on across files"
+        when_NOT_to_use: "When you need intra-file call flow"
+        token_estimate: 400
+      symbol-blast-radius:
+        purpose: "Trace transitive callers of a symbol through the call graph"
+        cost: low
+        reliability: high
+        when_to_use: "When assessing the impact of changing a specific function or method"
+        when_NOT_to_use: "For file-level impact — use blast-radius without symbol parameter"
+        token_estimate: 600
+      context:
+        purpose: "Assemble optimal file context for a task within a token budget, ranked by relevance"
+        cost: medium
+        reliability: high
+        when_to_use: "When assembling implementation context — replaces multiple individual file/dependency queries"
+        when_NOT_to_use: "For quick single-file lookups — use file or dependencies instead"
+        token_estimate: 3000
+      tests-for:
+        purpose: "Identify test files for given source files via dependency edges and name heuristics"
+        cost: low
+        reliability: high
+        when_to_use: "Before writing tests — check what test coverage already exists"
+        when_NOT_to_use: "When you already know the test file location"
+        token_estimate: 400
+      reading-order:
+        purpose: "Get optimal file reading order (topological sort) for understanding an area"
+        cost: low
+        reliability: high
+        when_to_use: "When exploring an unfamiliar area — provides structured understanding path"
+        when_NOT_to_use: "When you already understand the area or need only one file"
+        token_estimate: 500
+      plan-impact:
+        purpose: "Analyze impact of planned changes: blast radius, affected tests, risk assessment"
+        cost: medium
+        reliability: high
+        when_to_use: "During requirements/planning to assess structural impact before implementation"
+        when_NOT_to_use: "After implementation — use diff tool instead to see actual changes"
+        token_estimate: 1000
 ARIADNE_EOF
       server_count=$((server_count + 1))
-      tool_count=$((tool_count + 6))
+      tool_count=$((tool_count + 15))
     fi
   fi
 

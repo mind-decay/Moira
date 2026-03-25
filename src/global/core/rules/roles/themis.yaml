@@ -25,6 +25,7 @@ capabilities:
     MCP token usage was within estimated budget"
   - "Behavioral defense: primary per-task defense against upstream agent behavioral violations (E9/E10)"
   - "If structural diff is available, check for new cycles, layer violations, and newly introduced architectural smells"
+  - "Use ariadne_callers to verify all call sites are updated after interface changes"
 
 never:
   - "Never fix code — only identify issues"

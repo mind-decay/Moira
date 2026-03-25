@@ -53,6 +53,30 @@ if [[ -f "$MOIRA_HOME/lib/mcp.sh" ]]; then
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
+# Ariadne tool count and Phase 4/5 tool keys
+# ═══════════════════════════════════════════════════════════════════════
+
+SRC_MCP="$SRC_DIR/global/lib/mcp.sh"
+
+if [[ -f "$SRC_MCP" ]]; then
+  # Tool count should be 15 (6 original + 9 Phase 4/5)
+  if grep -q 'tool_count=\$((tool_count + 15))' "$SRC_MCP" 2>/dev/null; then
+    pass "mcp.sh: Ariadne tool_count is 15"
+  else
+    fail "mcp.sh: Ariadne tool_count expected 15"
+  fi
+
+  # Phase 4/5 tool keys must be present
+  for tool in symbols symbol-search callers callees symbol-blast-radius context tests-for reading-order plan-impact; do
+    if grep -q "^      ${tool}:" "$SRC_MCP" 2>/dev/null; then
+      pass "mcp.sh: Phase 4/5 tool key '$tool' present"
+    else
+      fail "mcp.sh: Phase 4/5 tool key '$tool' missing"
+    fi
+  done
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
 # Scanner tests
 # ═══════════════════════════════════════════════════════════════════════
 

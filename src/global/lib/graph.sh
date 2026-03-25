@@ -425,5 +425,20 @@ moira_graph_analytical_baseline() {
     echo ""
   fi
 
+  # Phase 4/5 MCP tools notice (D-151r)
+  echo "## Available MCP Tools (Phase 4/5)"
+  echo ""
+  echo "Agents dispatched during analysis have access to these additional Ariadne MCP tools:"
+  echo "- ariadne_symbols: List symbols in a file (functions, classes, types)"
+  echo "- ariadne_symbol_search: Search symbols by name across the project"
+  echo "- ariadne_callers: Find cross-file call sites of a symbol"
+  echo "- ariadne_callees: Find cross-file callees of a function"
+  echo "- ariadne_symbol_blast_radius: Trace transitive callers of a symbol"
+  echo "- ariadne_context: Assemble optimal file context within a token budget"
+  echo "- ariadne_tests_for: Identify test files for source files"
+  echo "- ariadne_reading_order: Get optimal file reading order"
+  echo "- ariadne_plan_impact: Analyze impact of planned changes"
+  echo ""
+
   return 0
 }

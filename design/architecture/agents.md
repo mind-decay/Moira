@@ -94,6 +94,8 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 **Monorepo mode:** When dispatched with package-scoped instructions, Explorer limits exploration to the specified packages and their direct dependencies. If Explorer discovers that additional packages are relevant (e.g., shared utilities not in scope), it reports E2-SCOPE (monorepo subtype, D-070) for scope expansion rather than silently expanding.
 
+**Phase 4/5 tools:** Uses `ariadne_symbol_search` for symbol discovery instead of grep when looking for functions, classes, or types by name. Uses `ariadne_reading_order` for structured exploration of unfamiliar areas.
+
 **Knowledge access:** L0 (project-model index only — must be unbiased)
 **Write access:** project_model
 
@@ -123,6 +125,8 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
   - [ ] Security implications assessed
   - [ ] Backwards compatibility impact assessed
 - Missing items → STATUS: blocked with specific questions
+
+**Phase 4/5 tools:** Uses `ariadne_plan_impact` to auto-populate impact analysis with blast radius, affected tests, layer analysis, and risk identification. Uses `ariadne_symbol_blast_radius` for precise function-level impact when requirements involve changing specific interfaces.
 
 **Knowledge access:** L1 (project-model summary), L0 (decisions index), L0 (failures index)
 
@@ -200,6 +204,8 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 3. **Budget Estimation** — Estimate tokens per batch. Success: all batches within agent budget limits. Failure: batch exceeds limit after maximum splitting.
 4. **Instruction Assembly** — Assemble Layer 1-4 rules per agent invocation. Success: each instruction set includes all required rule layers + knowledge. Failure: missing rule layer or inaccessible knowledge level.
 
+**Phase 4/5 tools:** Uses `ariadne_context` with task type and token budget to assemble graph context for instruction files, replacing manual assembly from 4-6 separate queries. Uses `ariadne_plan_impact` to assess structural impact of planned changes before decomposing into steps. `ariadne_context` returns token estimates (`total_tokens`, `budget_used`) for precise budget allocation per implementation batch.
+
 **Knowledge access:** L1 (project-model), L1 (conventions), L0 (decisions), L0 (patterns), L2 (quality-map), L0 (libraries)
 
 **Budget:** 70k
@@ -226,6 +232,8 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Does NOT add comments/docstrings/annotations to unchanged code
 - Does NOT return STATUS: success when post-implementation validation commands have failed
 - After code changes: runs post-implementation validation commands from `.claude/moira/config.yaml` → `tooling.post_implementation[]` (D-063). If commands fail, fixes errors before returning STATUS: success. If no commands configured, skips validation.
+
+**Phase 4/5 tools:** Uses `ariadne_symbols` to verify exports/imports match before writing code — confirms exact symbol names, kinds, and line spans. Uses `ariadne_context` with task type and budget to get pre-assembled implementation context.
 
 **Knowledge access:** L0 (project-model), L2 (conventions — FULL), L1 (patterns), L1 (libraries)
 
@@ -259,6 +267,8 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Verifies MCP calls were used correctly
 - False positive awareness: if unsure, mark as WARNING not CRITICAL
 
+**Phase 4/5 tools:** Uses `ariadne_callers` to verify all call sites are updated after interface changes.
+
 **Knowledge access:** L1 (project-model), L2 (conventions — FULL), L1 (decisions), L1 (patterns), L1 (quality-map)
 **Write access:** quality_map
 
@@ -287,6 +297,8 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Does NOT write brittle tests (testing implementation details)
 - Does NOT ignore test failures
 - If test fails due to implementation bug → reports, doesn't fix
+
+**Phase 4/5 tools:** Uses `ariadne_tests_for` to identify existing test files before writing new ones — avoids duplicating coverage.
 
 **Knowledge access:** L0 (project-model), L1 (conventions), L0 (patterns)
 

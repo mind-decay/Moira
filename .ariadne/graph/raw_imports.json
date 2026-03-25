@@ -36,6 +36,7 @@
   ".claude/moira/project/rules/patterns.yaml": [],
   ".claude/moira/project/rules/stack.yaml": [],
   ".claude/settings.json": [],
+  ".claude/settings.local.json": [],
   ".mcp.json": [],
   "AGENTS.md": [],
   "CLAUDE.md": [],

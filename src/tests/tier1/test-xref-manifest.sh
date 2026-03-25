@@ -125,4 +125,26 @@ else
   fail "xref-003: apollo.yaml role file not found"
 fi
 
+# ── Test: xref-017 exists and references mcp.sh ─────────────────────
+if grep -q "xref-017" "$MANIFEST" 2>/dev/null; then
+  pass "xref-017: entry exists in manifest"
+else
+  fail "xref-017: entry not found in manifest"
+fi
+
+# xref-017 canonical source should be mcp.sh
+xref017_block=$(sed -n '/id: xref-017/,/^  - id:/p' "$MANIFEST" 2>/dev/null)
+if echo "$xref017_block" | grep -q "mcp.sh"; then
+  pass "xref-017: references mcp.sh as canonical source"
+else
+  fail "xref-017: missing mcp.sh canonical source"
+fi
+
+# xref-017 should track 15 tools
+if echo "$xref017_block" | grep -q "15 Ariadne"; then
+  pass "xref-017: tracks 15 Ariadne tools"
+else
+  fail "xref-017: missing 15 Ariadne tool count in values_tracked"
+fi
+
 test_summary

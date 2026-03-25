@@ -16,6 +16,8 @@ capabilities:
   - Define acceptance criteria
   - Enumerate error cases and input validation rules
   - "If graph data is available, include blast radius and architectural smells in impact analysis"
+  - "Use ariadne_plan_impact to auto-populate impact analysis — provides blast radius, affected tests, layer analysis, and risk identification"
+  - "Use ariadne_symbol_blast_radius for precise function-level impact when requirements involve changing specific interfaces"
 
 never:
   - "Never propose technical implementation"

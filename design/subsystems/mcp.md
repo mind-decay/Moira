@@ -182,13 +182,22 @@ servers:
     infrastructure: true
     tools:
       blast-radius:
-        purpose: "Find files affected by a change"
+        purpose: "Find files affected by changing a given file. Accepts optional symbol parameter for function-level precision."
         cost: low
         reliability: high
         when_to_use: "Before modifying a file to understand impact"
         when_NOT_to_use: "Never — always useful for impact analysis"
         token_estimate: 500
-      # ... other ariadne tools
+      dependencies:
+        purpose: "List direct dependencies of a file. Includes symbol_edges for cross-file symbol relationships."
+        cost: low
+        reliability: high
+        when_to_use: "When exploring what a file imports/depends on"
+        when_NOT_to_use: "When you already have the file open and can see imports"
+        token_estimate: 300
+      # ... plus 13 more ariadne tools (15 total: blast-radius, dependencies,
+      # dependents, cycles, cluster, smells, symbols, symbol-search, callers,
+      # callees, symbol-blast-radius, context, tests-for, reading-order, plan-impact)
 
   context7:
     type: documentation

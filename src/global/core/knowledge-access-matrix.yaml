@@ -8,6 +8,7 @@ _meta:
 # Levels: L0 (~100-200 tokens), L1 (~500-2k), L2 (~2-10k)
 # null = no access to this knowledge type
 # graph: project dependency graph (read-only for all agents; extras are on-demand query views)
+# symbols: symbol-level access via MCP tools (L0=names only, L1=names+kinds+signatures, L2=full with spans)
 
 read_access:
   apollo:      { project_model: L1, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null, libraries: null, graph: L0 }
@@ -39,11 +40,12 @@ write_access:
 # L2 view  — full adjacency, edge weights, cycle membership, all metrics
 #
 # extras by agent:
-#   athena      blast_radius (L1), smells (L1)
-#   metis       metrics (L1), spectral (L1)
-#   daedalus    blast_radius (L1), importance (L1)
-#   hephaestus  subgraph (L2), compressed (L2)
-#   themis      diff (L1), smells (L1), cycles (L1)
-#   aletheia    test mappings via L1 views
-#   mnemosyne   metrics (L2)
-#   argus       stats (L2), smells (L2), spectral (L2)
+#   hermes       symbol_search (L0), reading_order (L1)
+#   athena       blast_radius (L1), smells (L1), plan_impact (L1), symbol_blast_radius (L1)
+#   metis        metrics (L1), spectral (L1)
+#   daedalus     blast_radius (L1), importance (L1), context (L1), plan_impact (L1)
+#   hephaestus   subgraph (L2), compressed (L2), symbols (L2), context (L2)
+#   themis       diff (L1), smells (L1), cycles (L1), callers (L1)
+#   aletheia     test mappings via L1 views, tests_for (L1)
+#   mnemosyne    metrics (L2)
+#   argus        stats (L2), smells (L2), spectral (L2)

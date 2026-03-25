@@ -38,6 +38,7 @@
     ".claude/moira/project/rules/patterns.yaml": 0.0,
     ".claude/moira/project/rules/stack.yaml": 0.0,
     ".claude/settings.json": 0.0,
+    ".claude/settings.local.json": 0.0,
     ".mcp.json": 0.0,
     "AGENTS.md": 0.0,
     "CLAUDE.md": 0.0,
@@ -338,6 +339,7 @@
       ".claude/moira/project/rules/patterns.yaml",
       ".claude/moira/project/rules/stack.yaml",
       ".claude/settings.json",
+      ".claude/settings.local.json",
       ".mcp.json",
       "AGENTS.md",
       "CLAUDE.md",
@@ -607,8 +609,8 @@
   },
   "summary": {
     "max_depth": 3,
-    "avg_in_degree": 0.0405,
-    "avg_out_degree": 0.0405,
+    "avg_in_degree": 0.0404,
+    "avg_out_degree": 0.0404,
     "bottleneck_files": [],
     "orphan_files": [
       "src/tests/bench/fixtures/greenfield-webapp/src/types/index.ts",

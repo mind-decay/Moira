@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/test-helpers.sh"
 
 MOIRA_HOME="${MOIRA_HOME:-$HOME/.claude/moira}"
+SRC_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ROLES_DIR="$MOIRA_HOME/core/rules/roles"
 QUALITY_DIR="$MOIRA_HOME/core/rules/quality"
 AGENTS=(apollo hermes athena metis daedalus hephaestus themis aletheia mnemosyne argus calliope)
@@ -94,6 +95,45 @@ if extract_never_section "$ROLES_DIR/mnemosyne.yaml" | grep -q "change rules dir
 else
   fail "mnemosyne: never section missing 'change rules directly'"
 fi
+
+# ── Phase 4/5 tool guidance in agent roles ───────────────────────────
+# Use source roles dir for Phase 4/5 checks (edits go to src/, not installed copy)
+SRC_ROLES="$SRC_DIR/global/core/rules/roles"
+if [[ ! -d "$SRC_ROLES" ]]; then
+  SRC_ROLES="$ROLES_DIR"
+fi
+
+P45_TOOL_PAIRS="hermes:ariadne_symbol_search athena:ariadne_plan_impact daedalus:ariadne_context hephaestus:ariadne_symbols themis:ariadne_callers aletheia:ariadne_tests_for"
+
+for pair in $P45_TOOL_PAIRS; do
+  agent="${pair%%:*}"
+  expected_ref="${pair#*:}"
+  role_file="$SRC_ROLES/${agent}.yaml"
+  if [[ ! -f "$role_file" ]]; then
+    role_file="$ROLES_DIR/${agent}.yaml"
+  fi
+  if grep -q "$expected_ref" "$role_file" 2>/dev/null; then
+    pass "phase4/5: ${agent} references $expected_ref"
+  else
+    fail "phase4/5: ${agent} missing $expected_ref"
+  fi
+done
+
+# ── Regression: all agent YAMLs still have never: block ──────────────
+for agent in "${AGENTS[@]}"; do
+  role_file="$ROLES_DIR/${agent}.yaml"
+  [[ -f "$role_file" ]] || continue
+  if grep -q "^never:" "$role_file" 2>/dev/null; then
+    never_count=$(grep -c '"Never ' "$role_file" 2>/dev/null || echo "0")
+    if [[ "$never_count" -ge 3 ]]; then
+      pass "regression: ${agent} never: block intact ($never_count constraints)"
+    else
+      fail "regression: ${agent} never: block degraded ($never_count constraints, need >= 3)"
+    fi
+  else
+    fail "regression: ${agent} missing never: block entirely"
+  fi
+done
 
 # ── Knowledge access matrix ──────────────────────────────────────────
 matrix_file="$MOIRA_HOME/core/knowledge-access-matrix.yaml"

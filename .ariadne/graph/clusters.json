@@ -38,9 +38,10 @@
         ".claude/moira/project/rules/conventions.yaml",
         ".claude/moira/project/rules/patterns.yaml",
         ".claude/moira/project/rules/stack.yaml",
-        ".claude/settings.json"
+        ".claude/settings.json",
+        ".claude/settings.local.json"
       ],
-      "file_count": 37,
+      "file_count": 38,
       "internal_edges": 0,
       "external_edges": 0,
       "cohesion": 1.0

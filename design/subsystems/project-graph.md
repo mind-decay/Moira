@@ -78,6 +78,7 @@ Node {
     lines: u32,            // line count
     hash: String,          // content hash for delta detection (xxHash)
     exports: Vec<String>,  // exported symbol names
+    symbols: Vec<SymbolDef>, // Phase 4: extracted symbols (functions, classes, types)
     cluster: String,       // assigned cluster ID
 }
 ```
@@ -90,6 +91,7 @@ Edge {
     to: String,            // target file path
     edge_type: EdgeType,   // imports | tests | re_exports | type_imports
     symbols: Vec<String>,  // which symbols are used (optional)
+    symbol_edges: Vec<SymbolEdge>, // Phase 4: cross-file symbol relationships
 }
 ```
 
@@ -415,6 +417,91 @@ extract_subgraph(files, depth=2):
 
 This is what gets rendered into L2 views for specific agents.
 
+## Symbol Graph
+
+Phase 4 adds symbol-level structural data to the graph. Symbols are extracted from source files via tree-sitter and indexed for cross-file call graph analysis.
+
+### SymbolDef
+
+```
+SymbolDef {
+    name: String,           // symbol name (e.g., "login", "UserService")
+    kind: SymbolKind,       // type of symbol
+    visibility: Visibility, // Public | Private | Internal
+    span: Span,             // start_line..end_line
+    signature: Option<String>, // optional, 200-char truncation (D-081)
+    parent: Option<String>, // optional parent symbol (e.g., class for a method)
+}
+```
+
+### SymbolKind
+
+```
+enum SymbolKind {
+    Function, Method, Class, Struct, Interface, Trait, Type, Enum, Const, Variable, Module
+}
+```
+
+### SymbolIndex
+
+Built at load time, not persisted (D-078). Rebuilt on auto-update alongside other derived indices.
+
+```
+SymbolIndex {
+    by_name: BTreeMap<String, Vec<SymbolLocation>>,   // name → locations across project
+    by_file: BTreeMap<CanonicalPath, Vec<SymbolDef>>,  // file → symbols in file
+    usages: BTreeMap<SymbolLocation, Vec<SymbolUsage>>, // symbol → usage sites
+}
+```
+
+### Call Graph
+
+Cross-file call graph built via import matching (D-079) — NOT intra-file data flow. Module in `algo/callgraph.rs`.
+
+- Built at load time from edges + SymbolIndex
+- Bidirectional: `callers_of` and `callees_of` lookups
+- Languages without symbol extractors produce empty call graphs
+
+### Symbol Extraction Support
+
+`SymbolExtractor` trait implemented for TypeScript/JS, Rust, Go (D-077). Languages without extractors produce empty symbol lists — the graph still works at file level.
+
+## Context Engine
+
+Phase 5 adds a smart context assembly engine that replaces manual multi-query patterns with a single optimized call.
+
+### `ariadne_context` Algorithm (D-082)
+
+Two-phase algorithm:
+
+1. **BFS Expansion:** Starting from seed files, expand outward through the dependency graph within the specified depth. Score each discovered file by relevance (distance from seed, centrality, task-type weight).
+
+2. **Greedy Selection:** Sort discovered files by tier then relevance/tokens ratio. Greedily select files until the token budget is exhausted.
+
+### Task-Aware Prioritization (D-083)
+
+The `task` parameter adjusts which file types are prioritized during selection:
+
+| Task Type | Prioritizes |
+|---|---|
+| `add_field` | Interfaces, type definitions, serialization |
+| `refactor` | Callers, blast radius, tests |
+| `fix_bug` | Call chain, error handling, test coverage |
+| `add_feature` | Reading order, architecture overview |
+| `understand` | Reading order, architecture overview (default) |
+
+### Token Budget Semantics
+
+- `budget_tokens` (default: 8000) — maximum tokens for selected context
+- Response includes `total_tokens`, `budget_used`, `budget` for precise accounting
+- Agents (especially Daedalus) should use actual `total_tokens`/`budget_used` values for budget allocation, not static estimates
+
+### Moira Agent Usage
+
+- **Daedalus (planner):** Uses `ariadne_context` for instruction assembly — replaces manual assembly from 4-6 separate queries. Token estimates from the response enable precise budget allocation per implementation batch.
+- **Pre-planning agents (D-155):** Dispatch step 4b uses `ariadne_context` with `budget_tokens: 1000` and `task: "understand"` to provide task-relevant structural context. Falls back to L0 view on failure.
+- **Post-planning agents:** Receive context via pre-assembled instruction files (assembled by Daedalus).
+
 ## Views: Markdown for Agents
 
 ### L0: Index (`views/index.md`)
@@ -492,27 +579,48 @@ Ariadne includes a built-in MCP server (`ariadne serve`) that provides real-time
 - Graph state atomically swapped via `ArcSwap` on file change
 - Pre-computes all views and indices on load for O(1) tool responses
 
-### MCP Tools (17 total)
+### MCP Tools (26 total)
+
+#### Phase 3 Tools (T1-T17)
 
 | Tool | Parameters | Description |
 |---|---|---|
 | `ariadne_overview` | — | Node/edge counts, language breakdown, layers, critical files, cycles, freshness |
-| `ariadne_file` | `path` | File detail: type, layer, depth, exports, cluster, centrality, edges |
-| `ariadne_blast_radius` | `path`, `depth?` | Reverse BFS: affected files with distances |
+| `ariadne_file` | `path` | File detail: type, layer, depth, exports, symbols, cluster, centrality, edges |
+| `ariadne_blast_radius` | `path`, `depth?`, `symbol?` | Reverse BFS: affected files with distances. Optional `symbol` parameter delegates to symbol-level blast radius |
 | `ariadne_subgraph` | `paths[]`, `depth?` | Extract neighborhood: nodes, edges, clusters |
 | `ariadne_centrality` | `min?` | Bottleneck files by betweenness centrality |
 | `ariadne_cycles` | — | All strongly connected components |
 | `ariadne_layers` | `layer?` | Topological layers (optionally filter to specific layer) |
 | `ariadne_cluster` | `name` | Cluster detail: files, deps, cohesion |
-| `ariadne_dependencies` | `path`, `direction` | Direct dependencies: `in`, `out`, or `both` |
+| `ariadne_dependencies` | `path`, `direction` | Direct dependencies: `in`, `out`, or `both`. Includes `symbol_edges` for cross-file symbol relationships |
 | `ariadne_freshness` | — | Graph freshness: confidence scores, stale/new/removed files |
 | `ariadne_metrics` | — | Martin metrics per cluster: I, A, D, zone classification |
 | `ariadne_smells` | `min_severity?` | Architectural smell detection (7 types) |
 | `ariadne_diff` | — | Structural diff since last auto-update |
 | `ariadne_importance` | `top?` | File importance ranking (centrality + PageRank) |
-| `ariadne_compressed` | `level`, `focus?`, `depth?` | Hierarchical compression (L0/L1/L2) with token estimates |
+| `ariadne_compressed` | `level`, `focus?`, `depth?` | Hierarchical compression (L0/L1/L2) with token estimates. L2 includes `symbol_edges` in file neighborhood |
 | `ariadne_spectral` | — | Algebraic connectivity, monolith score, Fiedler bisection |
 | `ariadne_views_export` | `level`, `cluster?` | Pre-generated markdown views (L0 index, L1 cluster) |
+
+#### Phase 4 Tools — Symbol Graph (T18-T22)
+
+| Tool | Parameters | Description |
+|---|---|---|
+| `ariadne_symbols` (T18) | `path` | All symbols in file: name, kind, visibility, span, signature, parent |
+| `ariadne_symbol_search` (T19) | `query`, `kind?` | Case-insensitive substring match across project; max 100 results; optional kind filter |
+| `ariadne_symbol_blast_radius` (T20) | `path`, `symbol`, `depth?` | BFS through usages; affected symbols + files at increasing depths; default depth 3, max 10; truncation flag |
+| `ariadne_callers` (T21) | `path`, `symbol` | Cross-file callers: file, symbol, edge_kind |
+| `ariadne_callees` (T22) | `path`, `symbol` | Cross-file callees: file, symbol, edge_kind |
+
+#### Phase 5 Tools — Context Engine (T23-T26)
+
+| Tool | Parameters | Description |
+|---|---|---|
+| `ariadne_context` (T23) | `files[]`, `task?`, `budget_tokens?`, `depth?`, `include?[]` | Assemble optimal file context for a task within a token budget, ranked by relevance |
+| `ariadne_tests_for` (T24) | `paths[]` | Identify test files for given source files via dependency edges and name heuristics |
+| `ariadne_reading_order` (T25) | `paths[]`, `depth?` | Optimal file reading order (topological sort) for understanding an area |
+| `ariadne_plan_impact` (T26) | `changes[{path, type}]` | Analyze impact of planned changes: blast radius, affected tests, risk assessment |
 
 All tools return JSON. The MCP server auto-rebuilds the graph on file changes (with debounce) and tracks freshness confidence.
 

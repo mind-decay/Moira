@@ -1465,3 +1465,44 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 **Decision:** 3-layer defense-in-depth: (1) Eliminate dual cleanup path — Section 2 now forwards completion to Section 7, keeps only abort cleanup direct; (2) State-based pre-condition — `completion_processor.status` field (required→completed) must be set before cleanup proceeds; completion.sh writes `completed`, orchestrator checks before deleting session lock; (3) Anti-rationalization rules — two new rules targeting the specific "just clean up" and "skip telemetry" thought patterns.
 **Alternatives rejected:** Guard.sh post-completion check (violates guard.sh purpose — scope enforcement, not pipeline flow), completion-as-cleanup (violates SRP, creates deadlock risk if processor crashes before cleanup, violates C-01), pure anti-rationalization alone (D-133 proved prompt-only enforcement insufficient), state gate alone without eliminating dual path (ambiguous Section 2 rule still reachable under extreme context pressure).
 **Reasoning:** Prompt compliance degrades under context pressure. D-133 and D-141 were necessary but insufficient — they made the dispatch executable but couldn't force the orchestrator to execute it. Structural enforcement (eliminating the competing path + machine-verifiable state pre-condition) does not degrade with context length.
+
+## D-150r: Pre-Planning Agents Use ariadne_context (Alt B Reversal)
+
+**Date:** 2026-03-25
+**Status:** accepted (reverses D-150)
+**Context:** D-150 decided to keep raw L0 views for pre-planning. User selected Alt B for full efficiency.
+**Decision:** Pre-planning agents use `ariadne_context` (budget_tokens: 1000, task: "understand") with L0 view fallback.
+**Alternatives rejected:** (a) Keep L0 views only (Alt A) — user wants full integration.
+**Reasoning:** `ariadne_context` provides task-aware, relevance-ranked context that is more useful than static L0 views. Fallback ensures zero regression risk.
+
+## D-151r: Analytical Baseline References Phase 4/5 Tools (Alt B Reversal)
+
+**Date:** 2026-03-25
+**Status:** accepted (reverses D-151)
+**Context:** D-151 decided to keep CLI baseline as-is. User selected Alt B.
+**Decision:** `moira_graph_analytical_baseline()` updated to inform agents about available Phase 4/5 MCP tools. CLI baseline queries unchanged (MCP unavailable in shell context).
+**Reasoning:** Shell function cannot call MCP, but can document available tools for agents.
+
+## D-153: Phase 4/5 Ariadne Tools as Infrastructure MCP
+
+**Date:** 2026-03-25
+**Status:** accepted
+**Context:** 9 new tools from Ariadne Phases 4 (symbols) and 5 (context engine).
+**Decision:** All 9 tools registered as infrastructure MCP (D-108 criteria met).
+**Reasoning:** Read-only, zero external risk, near-zero token cost, Moira-essential, always appropriate.
+
+## D-154: Knowledge Access Matrix Symbol Extras
+
+**Date:** 2026-03-25
+**Status:** accepted
+**Context:** Phase 4 adds symbol-level data accessible via MCP tools.
+**Decision:** Document symbol access levels as extras in knowledge-access-matrix.yaml comments.
+**Reasoning:** Symbol access is mediated through MCP tools, not knowledge files. Follows existing extras pattern.
+
+## D-155: Dispatch ariadne_context Integration
+
+**Date:** 2026-03-25
+**Status:** accepted
+**Context:** Alt B requires dispatch step 4b to use ariadne_context for pre-planning agents.
+**Decision:** Step 4b calls ariadne_context with budget_tokens: 1000, task: "understand". Falls back to L0 view on failure.
+**Reasoning:** Provides task-relevant context to pre-planning agents instead of generic project overview.

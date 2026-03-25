@@ -1,7 +1,7 @@
 {
   "version": 1,
   "project_root": "/Users/minddecay/Documents/Projects/Moira",
-  "node_count": 296,
+  "node_count": 297,
   "edge_count": 57,
   "nodes": {
     ".claude/CLAUDE.md": {
@@ -337,6 +337,15 @@
       "exports": [],
       "cluster": ".claude"
     },
+    ".claude/settings.local.json": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 10,
+      "hash": "64b60c6781d65307",
+      "exports": [],
+      "cluster": ".claude"
+    },
     ".mcp.json": {
       "type": "data",
       "layer": "unknown",
@@ -413,8 +422,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 419,
-      "hash": "ac0994e0dbf87d37",
+      "lines": 431,
+      "hash": "a9cb82b5b71d4769",
       "exports": [],
       "cluster": "design"
     },
@@ -521,8 +530,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 1467,
-      "hash": "b05e5e26c1f1313d",
+      "lines": 1508,
+      "hash": "2d6b87cc4f113bac",
       "exports": [],
       "cluster": "design"
     },
@@ -1115,8 +1124,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 267,
-      "hash": "b1ea803aac0cd42e",
+      "lines": 276,
+      "hash": "72a2f0c5479bd95a",
       "exports": [],
       "cluster": "design"
     },
@@ -1142,8 +1151,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 800,
-      "hash": "0aa85436a031be6b",
+      "lines": 908,
+      "hash": "057dfeb2c5c14c66",
       "exports": [],
       "cluster": "design"
     },
@@ -1313,8 +1322,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 49,
-      "hash": "df5f4b20140221fb",
+      "lines": 51,
+      "hash": "45a950aeeb58ca07",
       "exports": [],
       "cluster": "global"
     },
@@ -1323,7 +1332,7 @@
       "layer": "unknown",
       "arch_depth": 0,
       "lines": 272,
-      "hash": "614b580c657a8a41",
+      "hash": "7c67c66d70a53c25",
       "exports": [],
       "cluster": "global"
     },
@@ -1466,8 +1475,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 43,
-      "hash": "6b6c5968da5ca6f9",
+      "lines": 44,
+      "hash": "57f9f26d011e8774",
       "exports": [],
       "cluster": "global"
     },
@@ -1493,8 +1502,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 78,
-      "hash": "d5389c59fc612c3d",
+      "lines": 80,
+      "hash": "f928ebca3ba2f19d",
       "exports": [],
       "cluster": "global"
     },
@@ -1511,8 +1520,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 90,
-      "hash": "2ff160d2791e8242",
+      "lines": 93,
+      "hash": "feebe186d9407d66",
       "exports": [],
       "cluster": "global"
     },
@@ -1520,8 +1529,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 62,
-      "hash": "7eb068aa68fafcb9",
+      "lines": 64,
+      "hash": "da8c8b1059a37e5e",
       "exports": [],
       "cluster": "global"
     },
@@ -1529,8 +1538,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 55,
-      "hash": "abaeae4b460fa5bb",
+      "lines": 57,
+      "hash": "a8351dbe48b1daf7",
       "exports": [],
       "cluster": "global"
     },
@@ -1556,8 +1565,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 104,
-      "hash": "bfc7db4c52bfbabd",
+      "lines": 105,
+      "hash": "f29dd3d3a2bb464b",
       "exports": [],
       "cluster": "global"
     },
@@ -1565,8 +1574,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 201,
-      "hash": "5275327986ed3677",
+      "lines": 228,
+      "hash": "4cc1dd0bcb0c185d",
       "exports": [],
       "cluster": "global"
     },
@@ -1583,8 +1592,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 571,
-      "hash": "11a307e25dd7bf80",
+      "lines": 573,
+      "hash": "37ce217634b762a1",
       "exports": [],
       "cluster": "global"
     },
@@ -2434,7 +2443,29 @@
       "exports": [
         "default"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "PORT",
+          "kind": "const",
+          "visibility": "private",
+          "span": {
+            "start": 8,
+            "end": 8
+          },
+          "signature": "const PORT = process.env.PORT || 3000;"
+        },
+        {
+          "name": "app",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 4,
+            "end": 4
+          },
+          "signature": "const app = express();"
+        }
+      ]
     },
     "src/tests/bench/fixtures/greenfield-webapp/src/routes/health.ts": {
       "type": "source",
@@ -2445,7 +2476,19 @@
       "exports": [
         "healthRouter"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "healthRouter",
+          "kind": "variable",
+          "visibility": "public",
+          "span": {
+            "start": 3,
+            "end": 3
+          },
+          "signature": "const healthRouter = Router();"
+        }
+      ]
     },
     "src/tests/bench/fixtures/greenfield-webapp/src/types/index.ts": {
       "type": "source",
@@ -2456,7 +2499,19 @@
       "exports": [
         "HealthResponse"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "HealthResponse",
+          "kind": "interface",
+          "visibility": "public",
+          "span": {
+            "start": 1,
+            "end": 4
+          },
+          "signature": "interface HealthResponse {"
+        }
+      ]
     },
     "src/tests/bench/fixtures/greenfield-webapp/tsconfig.json": {
       "type": "config",
@@ -2483,7 +2538,29 @@
       "lines": 7,
       "hash": "15f959ef55ff5101",
       "exports": [],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "app",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 2,
+            "end": 2
+          },
+          "signature": "const app = require('../src/app');"
+        },
+        {
+          "name": "request",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 1,
+            "end": 1
+          },
+          "signature": "const request = require('supertest');"
+        }
+      ]
     },
     "src/tests/bench/fixtures/legacy-webapp/package.json": {
       "type": "config",
@@ -2501,7 +2578,69 @@
       "lines": 24,
       "hash": "f9d5322b277ff5a8",
       "exports": [],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "PORT",
+          "kind": "const",
+          "visibility": "private",
+          "span": {
+            "start": 21,
+            "end": 21
+          },
+          "signature": "const PORT = process.env.PORT || 3000;"
+        },
+        {
+          "name": "app",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 6,
+            "end": 6
+          },
+          "signature": "const app = express();"
+        },
+        {
+          "name": "bodyParser",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 2,
+            "end": 2
+          },
+          "signature": "const bodyParser = require('body-parser');"
+        },
+        {
+          "name": "express",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 1,
+            "end": 1
+          },
+          "signature": "const express = require('express');"
+        },
+        {
+          "name": "healthRoute",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 3,
+            "end": 3
+          },
+          "signature": "const healthRoute = require('./routes/health');"
+        },
+        {
+          "name": "userController",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 4,
+            "end": 4
+          },
+          "signature": "const userController = require('./controllers/UserController');"
+        }
+      ]
     },
     "src/tests/bench/fixtures/legacy-webapp/src/controllers/UserController.js": {
       "type": "source",
@@ -2510,7 +2649,19 @@
       "lines": 21,
       "hash": "eaa7dbeb5a458b8b",
       "exports": [],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "users",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 2,
+            "end": 5
+          },
+          "signature": "const users = ["
+        }
+      ]
     },
     "src/tests/bench/fixtures/legacy-webapp/src/routes/health.js": {
       "type": "source",
@@ -2519,7 +2670,19 @@
       "lines": 7,
       "hash": "db549f583686ab6c",
       "exports": [],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "router",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 1,
+            "end": 1
+          },
+          "signature": "const router = require('express').Router();"
+        }
+      ]
     },
     "src/tests/bench/fixtures/mature-webapp/.moira-fixture.yaml": {
       "type": "data",
@@ -2548,7 +2711,29 @@
       "exports": [
         "default"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "PORT",
+          "kind": "const",
+          "visibility": "private",
+          "span": {
+            "start": 15,
+            "end": 15
+          },
+          "signature": "const PORT = process.env.PORT || 3000;"
+        },
+        {
+          "name": "app",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 7,
+            "end": 7
+          },
+          "signature": "const app = express();"
+        }
+      ]
     },
     "src/tests/bench/fixtures/mature-webapp/src/middleware/error-handler.ts": {
       "type": "source",
@@ -2559,7 +2744,19 @@
       "exports": [
         "errorHandler"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "errorHandler",
+          "kind": "function",
+          "visibility": "public",
+          "span": {
+            "start": 4,
+            "end": 11
+          },
+          "signature": "function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {"
+        }
+      ]
     },
     "src/tests/bench/fixtures/mature-webapp/src/routes/health.ts": {
       "type": "source",
@@ -2570,7 +2767,19 @@
       "exports": [
         "healthRouter"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "healthRouter",
+          "kind": "variable",
+          "visibility": "public",
+          "span": {
+            "start": 3,
+            "end": 3
+          },
+          "signature": "const healthRouter = Router();"
+        }
+      ]
     },
     "src/tests/bench/fixtures/mature-webapp/src/routes/products.ts": {
       "type": "source",
@@ -2581,7 +2790,29 @@
       "exports": [
         "productsRouter"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "productService",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 5,
+            "end": 5
+          },
+          "signature": "const productService = new ProductService();"
+        },
+        {
+          "name": "productsRouter",
+          "kind": "variable",
+          "visibility": "public",
+          "span": {
+            "start": 4,
+            "end": 4
+          },
+          "signature": "const productsRouter = Router();"
+        }
+      ]
     },
     "src/tests/bench/fixtures/mature-webapp/src/routes/users.ts": {
       "type": "source",
@@ -2592,7 +2823,29 @@
       "exports": [
         "usersRouter"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "userService",
+          "kind": "variable",
+          "visibility": "private",
+          "span": {
+            "start": 6,
+            "end": 6
+          },
+          "signature": "const userService = new UserService();"
+        },
+        {
+          "name": "usersRouter",
+          "kind": "variable",
+          "visibility": "public",
+          "span": {
+            "start": 5,
+            "end": 5
+          },
+          "signature": "const usersRouter = Router();"
+        }
+      ]
     },
     "src/tests/bench/fixtures/mature-webapp/src/services/product-service.ts": {
       "type": "source",
@@ -2603,7 +2856,52 @@
       "exports": [
         "ProductService"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "ProductService",
+          "kind": "class",
+          "visibility": "public",
+          "span": {
+            "start": 3,
+            "end": 11
+          },
+          "signature": "class ProductService {"
+        },
+        {
+          "name": "findAll",
+          "kind": "method",
+          "visibility": "public",
+          "span": {
+            "start": 9,
+            "end": 9
+          },
+          "signature": "async findAll(): Promise<Product[]> { return this.products; }",
+          "parent": "ProductService"
+        },
+        {
+          "name": "findById",
+          "kind": "method",
+          "visibility": "public",
+          "span": {
+            "start": 10,
+            "end": 10
+          },
+          "signature": "async findById(id: string): Promise<Product | undefined> { return this.products.find(p => p.id === id); }",
+          "parent": "ProductService"
+        },
+        {
+          "name": "products",
+          "kind": "method",
+          "visibility": "private",
+          "span": {
+            "start": 4,
+            "end": 7
+          },
+          "signature": "private products: Product[] = [",
+          "parent": "ProductService"
+        }
+      ]
     },
     "src/tests/bench/fixtures/mature-webapp/src/services/user-service.ts": {
       "type": "source",
@@ -2614,7 +2912,52 @@
       "exports": [
         "UserService"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "UserService",
+          "kind": "class",
+          "visibility": "public",
+          "span": {
+            "start": 3,
+            "end": 13
+          },
+          "signature": "class UserService {"
+        },
+        {
+          "name": "create",
+          "kind": "method",
+          "visibility": "public",
+          "span": {
+            "start": 8,
+            "end": 12
+          },
+          "signature": "async create(data: CreateUser): Promise<User> {",
+          "parent": "UserService"
+        },
+        {
+          "name": "findAll",
+          "kind": "method",
+          "visibility": "public",
+          "span": {
+            "start": 6,
+            "end": 6
+          },
+          "signature": "async findAll(): Promise<User[]> { return this.users; }",
+          "parent": "UserService"
+        },
+        {
+          "name": "users",
+          "kind": "method",
+          "visibility": "private",
+          "span": {
+            "start": 4,
+            "end": 4
+          },
+          "signature": "private users: User[] = []",
+          "parent": "UserService"
+        }
+      ]
     },
     "src/tests/bench/fixtures/mature-webapp/src/types/product.ts": {
       "type": "source",
@@ -2625,7 +2968,19 @@
       "exports": [
         "Product"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "Product",
+          "kind": "interface",
+          "visibility": "public",
+          "span": {
+            "start": 1,
+            "end": 6
+          },
+          "signature": "interface Product {"
+        }
+      ]
     },
     "src/tests/bench/fixtures/mature-webapp/src/types/user.ts": {
       "type": "source",
@@ -2638,7 +2993,39 @@
         "CreateUserSchema",
         "User"
       ],
-      "cluster": "tests"
+      "cluster": "tests",
+      "symbols": [
+        {
+          "name": "CreateUser",
+          "kind": "type",
+          "visibility": "public",
+          "span": {
+            "start": 8,
+            "end": 8
+          },
+          "signature": "type CreateUser = z.infer<typeof CreateUserSchema>;"
+        },
+        {
+          "name": "CreateUserSchema",
+          "kind": "variable",
+          "visibility": "public",
+          "span": {
+            "start": 3,
+            "end": 6
+          },
+          "signature": "const CreateUserSchema = z.object({"
+        },
+        {
+          "name": "User",
+          "kind": "interface",
+          "visibility": "public",
+          "span": {
+            "start": 9,
+            "end": 9
+          },
+          "signature": "interface User extends CreateUser { id: string; createdAt: Date; }"
+        }
+      ]
     },
     "src/tests/bench/fixtures/mature-webapp/tests/health.test.ts": {
       "type": "test",
