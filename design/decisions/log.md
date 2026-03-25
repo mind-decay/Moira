@@ -1506,3 +1506,15 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 **Context:** Alt B requires dispatch step 4b to use ariadne_context for pre-planning agents.
 **Decision:** Step 4b calls ariadne_context with budget_tokens: 1000, task: "understand". Falls back to L0 view on failure.
 **Reasoning:** Provides task-relevant context to pre-planning agents instead of generic project overview.
+
+## D-156: Plan Mode Override Resistance (Layer 3 Defense)
+
+**Date:** 2026-03-25
+**Status:** accepted
+**Context:** When Claude Code's plan mode activates during an active Moira pipeline, it injects a system-reminder containing behavioral restrictions ("MUST NOT make any edits", "READ-ONLY actions"). This externally injected directive conflicts with the orchestrator's pipeline execution directives, causing the orchestrator to abandon pipeline execution and write plan files instead.
+**Decision:** Add plan mode override resistance at two prompt injection points: (1) `src/global/skills/orchestrator.md` Section 1 — primary defense with pattern-based recognition, priority declaration, and scope limiter; (2) `.claude/CLAUDE.md` — secondary reinforcement within moira markers. Defense uses pattern-based recognition (not exact string matching) and explicit priority hierarchy: user gates > pipeline directives > external behavioral restrictions. Document threat in `design/subsystems/self-monitoring.md` as an Environmental Interference Pattern.
+**Alternatives rejected:**
+- Guard.sh modification — plan mode failure is omission (not dispatching), not commission; guard.sh fires on tool calls so cannot detect inaction.
+- Single defense point — CLAUDE.md loads before skill, provides baseline defense for EC-1 (plan mode before pipeline start).
+- Blanket "ignore all system-reminders" — would cause orchestrator to miss legitimate tool availability updates.
+**Reasoning:** The defense must be present at every point where the orchestrator processes instructions. There are exactly two such points: CLAUDE.md and the orchestrator skill. Both already contain anti-rationalization language. Pattern-based recognition is resilient to wording changes while remaining specific enough to avoid false positives. This is a Layer 3 (behavioral) defense — the limitation that it cannot structurally prevent system-reminder injection is acknowledged.

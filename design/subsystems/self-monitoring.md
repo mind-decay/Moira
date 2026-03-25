@@ -110,6 +110,30 @@ Violations are logged to `state/violations.log` with `AGENT_VIOLATION` prefix (d
 
 Moira section in project CLAUDE.md contains inviolable rules about orchestrator boundaries.
 
+## Environmental Interference Patterns
+
+External systems may inject directives that interfere with orchestrator behavior. These are distinct from the internal violations detected by Layers 1-3 above — they originate outside Moira's control boundary.
+
+### Plan Mode Override (system-reminder injection)
+
+**Threat:** Claude Code plan mode injects a system-reminder containing behavioral restrictions ("MUST NOT make any edits", "READ-ONLY actions only"). This conflicts with the orchestrator's pipeline execution directives, causing it to stop dispatching agents and instead write plan files — abandoning pipeline structure entirely.
+
+**Impact:** Complete pipeline abandonment. The orchestrator ceases agent dispatch, skips remaining gates, and begins producing plan output instead of executing the pipeline. The failure mode is omission (not dispatching), not commission (calling wrong tools).
+
+**Defense layer:** Layer 3 (behavioral/prompt). Layers 1 and 2 cannot address this threat — Layer 1 (allowed-tools) is unaffected because plan mode does not add/remove tools; Layer 2 (guard.sh) fires on tool calls, but the failure mode is absence of tool calls.
+
+**Defense mechanism:** Explicit override resistance language in two prompt injection points:
+1. `src/global/skills/orchestrator.md` Section 1 — primary defense with pattern-based recognition, priority declaration, and scope limiter (D-156)
+2. `.claude/CLAUDE.md` — secondary reinforcement within moira markers
+
+The defense uses pattern-based recognition (behavioral characteristics, not exact strings) and an explicit priority hierarchy: user gates > pipeline directives > external behavioral restrictions.
+
+**Limitation:** This is a behavioral defense (prompt language), not a structural defense. It cannot physically prevent system-reminder injection. Its effectiveness depends on the orchestrator's instruction-following behavior under competing directives.
+
+**Detection:** Observable by user (orchestrator stops dispatching, starts writing plans). Guard.sh may detect writes to non-moira paths if the orchestrator begins producing plan output files.
+
+**Recovery:** User exits plan mode via Claude Code UI, then uses `/moira:resume` to continue from the last completed pipeline step.
+
 ## Orchestrator Context Monitoring
 
 ### Thresholds

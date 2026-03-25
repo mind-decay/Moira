@@ -8,8 +8,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 43,
-      "hash": "3ef22d9cf121e05f",
+      "lines": 50,
+      "hash": "2d43c2f8be96b8e7",
       "exports": [],
       "cluster": ".claude"
     },
@@ -530,8 +530,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 1508,
-      "hash": "2d6b87cc4f113bac",
+      "lines": 1520,
+      "hash": "8af5afa7dc3f7cd0",
       "exports": [],
       "cluster": "design"
     },
@@ -1169,8 +1169,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 187,
-      "hash": "35d7a0b2465c85c8",
+      "lines": 211,
+      "hash": "8a69621c28d81660",
       "exports": [],
       "cluster": "design"
     },
@@ -1619,8 +1619,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 833,
-      "hash": "deafb19953068886",
+      "lines": 856,
+      "hash": "282554178b430b01",
       "exports": [],
       "cluster": "global"
     },
