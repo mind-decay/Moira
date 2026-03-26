@@ -111,6 +111,16 @@ Format output as follows:
   Monolith: {monolith_score}  Freshness: {fresh/stale}
   MCP server: {running (PID {pid}) / stopped}
 
+  {If annotations exist (.ariadne/annotations.json):}
+  Annotations: {annotation_count}
+  {If bookmarks exist (.ariadne/bookmarks.json):}
+  Bookmarks: {bookmark_count}
+
+  {If temporal_available (check current.yaml temporal_available field):}
+  Temporal:    {total_commits_30d} commits (30d)  Hotspots: {hotspot_count}  Hidden deps: {hidden_dep_count}
+  {If temporal not available:}
+  Temporal:    not available
+
   {If .ariadne/graph/graph.json does not exist:}
   Project Graph: not available (ariadne not installed)
 

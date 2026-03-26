@@ -236,6 +236,18 @@ After the deep scan check, determine if Ariadne graph data is available for this
    - `graph_available` remains `true` (stale data is better than no data)
 5. If graph.json does not exist: set `graph_available = false`, continue silently
 
+### Temporal Availability Check (D-159)
+
+After the graph availability check, determine if Ariadne temporal data is available:
+
+1. If `graph_available` is `false`: set `temporal_available = false` in `.claude/moira/state/current.yaml`, skip remaining checks
+2. If `graph_available` is `true`: use the `ariadne_overview` MCP tool to check for temporal data
+   - Call `ariadne_overview` (infrastructure MCP, always available when graph is available)
+   - If the response contains a `temporal` field (any value): set `temporal_available = true`
+   - If the response does not contain a `temporal` field, or the call fails: set `temporal_available = false`
+3. Set `temporal_available` in `.claude/moira/state/current.yaml` (boolean, per D-159 schema)
+4. This is a one-time check at task start — no per-step re-checking
+
 ### Pre-Pipeline Setup
 
 Before entering the main loop:

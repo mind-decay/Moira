@@ -67,10 +67,10 @@ fi
 # Test 3: Tool count is 15
 # ═══════════════════════════════════════════════════════════════════════
 
-if grep -q 'tool_count=\$((tool_count + 15))' "$MCP_SH" 2>/dev/null; then
-  pass "mcp.sh has tool_count + 15 for Ariadne"
+if grep -q 'tool_count=\$((tool_count + 26))' "$MCP_SH" 2>/dev/null; then
+  pass "mcp.sh has tool_count + 26 for Ariadne"
 else
-  fail "mcp.sh expected tool_count + 15 for Ariadne"
+  fail "mcp.sh expected tool_count + 26 for Ariadne"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

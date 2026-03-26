@@ -1,7 +1,7 @@
 ---
 name: moira:graph
 description: Query project structure graph
-argument-hint: "[blast-radius|cluster|file|cycles|layers|metrics|smells|importance|spectral|diff|compressed|stats] [args...]"
+argument-hint: "[blast-radius|cluster|file|cycles|layers|metrics|smells|importance|spectral|diff|compressed|stats|churn|coupling|hotspots|ownership|hidden-deps|annotate|annotations|bookmark|bookmarks] [args...]"
 allowed-tools:
   - Read
   - Bash
@@ -133,12 +133,78 @@ bash -c 'ariadne query compressed --level <level> --format md'
 ```
 If no level argument provided: display "Usage: /moira:graph compressed <level>"
 
+### `churn`
+Requires `temporal_available = true` (check `.claude/moira/state/current.yaml`).
+```bash
+bash -c 'ariadne query churn --period <period> --format md'
+```
+Period argument: `30d` (default), `90d`, or `1y`.
+If temporal not available: display "Temporal data not available (no git history or ariadne temporal not enabled)."
+
+### `coupling`
+Requires `temporal_available = true`.
+```bash
+bash -c 'ariadne query coupling --min-confidence <threshold> --format md'
+```
+Default threshold: `0.7`.
+If temporal not available: display "Temporal data not available."
+
+### `hotspots`
+Requires `temporal_available = true`.
+```bash
+bash -c 'ariadne query hotspots --top <n> --format md'
+```
+Default top: `10`.
+If temporal not available: display "Temporal data not available."
+
+### `ownership`
+Requires `temporal_available = true`.
+```bash
+bash -c 'ariadne query ownership <path> --format md'
+```
+If no path argument provided: show project-wide ownership.
+If temporal not available: display "Temporal data not available."
+
+### `hidden-deps`
+Requires `temporal_available = true`.
+```bash
+bash -c 'ariadne query hidden-deps --format md'
+```
+If temporal not available: display "Temporal data not available."
+
+### `annotate`
+Requires graph available.
+```bash
+bash -c 'ariadne annotate <target> --tag <tag> --text "<text>"'
+```
+If no target/tag/text argument provided: display "Usage: /moira:graph annotate <target> <tag> <text>"
+
+### `annotations`
+Requires graph available.
+```bash
+bash -c 'ariadne query annotations --tag <tag> --format md'
+```
+If no tag argument: list all annotations.
+
+### `bookmark`
+Requires graph available.
+```bash
+bash -c 'ariadne bookmark <name> <paths...>'
+```
+If no name/paths argument provided: display "Usage: /moira:graph bookmark <name> <paths...>"
+
+### `bookmarks`
+Requires graph available.
+```bash
+bash -c 'ariadne query bookmarks --format md'
+```
+
 ### Unknown subcommand
 Display:
 ```
 Unknown subcommand: {subcommand}
 
-Available: blast-radius, cluster, file, cycles, layers, metrics, smells, importance, spectral, diff, compressed, stats
+Available: blast-radius, cluster, file, cycles, layers, metrics, smells, importance, spectral, diff, compressed, stats, churn, coupling, hotspots, ownership, hidden-deps, annotate, annotations, bookmark, bookmarks
 ```
 
 ## Step 4: Display Results

@@ -49,3 +49,20 @@ write_access:
 #   aletheia     test mappings via L1 views, tests_for (L1)
 #   mnemosyne    metrics (L2)
 #   argus        stats (L2), smells (L2), spectral (L2)
+
+# temporal_extras by agent (conditional on temporal_available — D-159):
+#   hermes       ownership (L0)
+#   athena       hotspots (L1), hidden_deps (L1)
+#   metis        churn (L1), coupling (L1), ownership (L1)
+#   daedalus     (no temporal extras — planner delegates temporal to downstream agents)
+#   hephaestus   churn (L1)
+#   themis       hidden_deps (L1), hotspots (L1)
+#   aletheia     (no temporal extras)
+#   mnemosyne    hotspots (L2), churn (L2)
+#   argus        hotspots (L2), hidden_deps (L2), churn (L2), ownership (L2)
+
+# annotation_access (via ariadne_annotate/ariadne_annotations MCP tools — D-157):
+#   mnemosyne    write (ariadne_annotate, ariadne_remove_annotation)
+#   daedalus     bookmark-write (ariadne_bookmark, ariadne_remove_bookmark)
+#   argus        read (ariadne_annotations) — for stale annotation audit
+#   all agents   implicit read (annotations visible in ariadne_file/ariadne_cluster responses)

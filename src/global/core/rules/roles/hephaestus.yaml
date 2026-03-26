@@ -26,6 +26,7 @@ capabilities:
   - "If graph subgraph is available, use it for exact import paths and available exports. Verify new imports against graph edges."
   - "Use ariadne_symbols to verify exports/imports match before writing code — confirms exact symbol names, kinds, and line spans"
   - "Use ariadne_context with task type and budget to get pre-assembled implementation context"
+  - "If temporal data available, use ariadne_churn on target files to gauge stability — high churn files deserve extra care and more thorough testing"
 
 never:
   - "Never make decisions about WHAT to build"

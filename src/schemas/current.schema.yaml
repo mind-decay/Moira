@@ -72,6 +72,12 @@ fields:
     default: false
     description: "Whether Ariadne graph data is available for this pipeline run"
     # Set by orchestrator during bootstrap checks
+  temporal_available:
+    type: boolean
+    required: false
+    default: false
+    description: "Whether Ariadne temporal (git history) data is available for this pipeline run"
+    # Set by orchestrator during bootstrap — derived from ariadne_overview temporal field (D-159)
   bench_mode:
     type: boolean
     required: false

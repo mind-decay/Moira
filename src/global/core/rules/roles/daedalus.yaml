@@ -46,6 +46,8 @@ capabilities:
   - "Use ariadne_context with task type and token budget to assemble graph context for instruction files, replacing manual assembly from 4-6 separate queries"
   - "Use ariadne_plan_impact to assess structural impact of planned changes before decomposing into steps"
   - "ariadne_context returns token estimates (total_tokens, budget_used) — use these for precise budget allocation per implementation batch"
+  - "Use ariadne_bookmark to create task-scoped bookmarks (name: task-{task_id}-{name}) for downstream agents to use in ariadne_context and ariadne_subgraph calls"
+  - "Use ariadne_bookmarks to check existing bookmarks before creating duplicates"
 
 never:
   - "Never make architectural decisions"

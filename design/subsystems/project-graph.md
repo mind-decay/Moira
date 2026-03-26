@@ -502,6 +502,101 @@ The `task` parameter adjusts which file types are prioritized during selection:
 - **Pre-planning agents (D-155):** Dispatch step 4b uses `ariadne_context` with `budget_tokens: 1000` and `task: "understand"` to provide task-relevant structural context. Falls back to L0 view on failure.
 - **Post-planning agents:** Receive context via pre-assembled instruction files (assembled by Daedalus).
 
+## Phase 6 — MCP Protocol Expansion
+
+### Annotation System (3 tools)
+
+| Tool | Purpose | Write? |
+|------|---------|--------|
+| `ariadne_annotate` | Add/update annotation on file, cluster, symbol, or edge | Yes |
+| `ariadne_annotations` | List annotations with tag/target filter | No |
+| `ariadne_remove_annotation` | Remove an annotation by ID | Yes |
+
+Annotations persist in `.ariadne/annotations.json`. Write tools restricted by agent role:
+- Mnemosyne: `ariadne_annotate`, `ariadne_remove_annotation` (tech-debt, architectural notes)
+- Argus: `ariadne_annotations` read-only (audit of stale annotations)
+- All agents: implicit read (annotations visible in `ariadne_file` and `ariadne_cluster` responses)
+
+### Bookmark System (3 tools)
+
+| Tool | Purpose | Write? |
+|------|---------|--------|
+| `ariadne_bookmark` | Create named subgraph bookmark | Yes |
+| `ariadne_bookmarks` | List all bookmarks | No |
+| `ariadne_remove_bookmark` | Remove a bookmark by name | Yes |
+
+Bookmarks persist in `.ariadne/bookmarks.json`. Write tools restricted by agent role:
+- Daedalus: `ariadne_bookmark`, `ariadne_remove_bookmark` (task-scoped bookmarks)
+- Completion processor: `ariadne_remove_bookmark` (cleanup, D-160)
+- All agents: `ariadne_bookmarks` read-only
+
+Bookmark naming convention: `task-{task_id}-{name}` for task-scoped bookmarks.
+
+### MCP Resources (6 resources — D-162)
+
+| Resource URI | Description |
+|-------------|-------------|
+| `ariadne://overview` | Project overview data |
+| `ariadne://file/{path}` | File-level graph data |
+| `ariadne://cluster/{name}` | Cluster data |
+| `ariadne://smells` | Architectural smells |
+| `ariadne://hotspots` | Top files by combined importance (centrality + PageRank) |
+| `ariadne://freshness` | Graph freshness status |
+
+Resources are MCP protocol features (not tools). Not registered in `mcp-registry.yaml`. Available via Claude Code `@ariadne:ariadne://...` syntax — automatically fetched and included as context when referenced (D-162).
+
+### MCP Prompts (4 prompts — D-163)
+
+| Prompt | Description |
+|--------|-------------|
+| `explore-area` | Pre-built exploration template |
+| `review-impact` | Pre-built impact review template |
+| `find-refactoring` | Pre-built refactoring discovery template |
+| `understand-module` | Pre-built module understanding template |
+
+Prompts are callable via MCP `get_prompt` RPC method. Available for agent workflows: Hermes (explore-area), Themis (review-impact), Metis (find-refactoring), and for module understanding (understand-module). See D-163.
+
+### Storage
+
+- `.ariadne/annotations.json` — annotation persistence
+- `.ariadne/bookmarks.json` — bookmark persistence
+
+## Phase 7 — Git Temporal Analysis
+
+### Temporal Data Model
+
+Phase 7 adds git history analysis to the structural graph. Temporal data is **optional** — it requires git history and gracefully degrades when unavailable.
+
+Detection: orchestrator checks `ariadne_overview` output for `temporal` field at bootstrap (D-159). Sets `temporal_available` in pipeline state.
+
+### Temporal Tools (5 tools)
+
+| Tool | Purpose | Token Est. |
+|------|---------|-----------|
+| `ariadne_churn` | Files by change frequency for period (30d/90d/1y) | 500 |
+| `ariadne_coupling` | Co-change pairs above confidence threshold | 500 |
+| `ariadne_hotspots` | Files ranked by churn x LOC x blast_radius | 500 |
+| `ariadne_ownership` | Authors/contributors per file or project-wide | 500 |
+| `ariadne_hidden_deps` | Co-change pairs with NO structural import link | 400 |
+
+All temporal tools are classified as infrastructure MCP (D-161) — read-only, zero external risk, near-zero cost.
+
+### Enhanced Existing Tools
+
+Phase 7 adds temporal data to existing tool responses:
+- `ariadne_file` — adds `temporal` field (churn, last_changed, top_authors)
+- `ariadne_overview` — adds `temporal` summary (total_commits_30d, hotspot_count, hidden_dep_count)
+- `ariadne_context` — high-churn files get relevance boost in scoring
+- `ariadne_importance` — formula enhanced with churn factor
+- `ariadne_smells` — includes TemporalCouplingWithoutImport smell
+
+### Graceful Degradation
+
+- No git repo: all temporal tools return `{"error": "temporal_unavailable"}`
+- Shallow clone: `TemporalState.shallow = true`, results may be incomplete
+- Agent guidance conditional: all temporal capabilities prefixed with "If temporal data available"
+- `temporal_available` flag prevents unnecessary tool calls
+
 ## Views: Markdown for Agents
 
 ### L0: Index (`views/index.md`)
@@ -579,7 +674,7 @@ Ariadne includes a built-in MCP server (`ariadne serve`) that provides real-time
 - Graph state atomically swapped via `ArcSwap` on file change
 - Pre-computes all views and indices on load for O(1) tool responses
 
-### MCP Tools (26 total)
+### MCP Tools (37 total)
 
 #### Phase 3 Tools (T1-T17)
 
@@ -621,6 +716,27 @@ Ariadne includes a built-in MCP server (`ariadne serve`) that provides real-time
 | `ariadne_tests_for` (T24) | `paths[]` | Identify test files for given source files via dependency edges and name heuristics |
 | `ariadne_reading_order` (T25) | `paths[]`, `depth?` | Optimal file reading order (topological sort) for understanding an area |
 | `ariadne_plan_impact` (T26) | `changes[{path, type}]` | Analyze impact of planned changes: blast radius, affected tests, risk assessment |
+
+#### Phase 6 Tools — Annotations & Bookmarks (T27-T32)
+
+| Tool | Parameters | Description |
+|---|---|---|
+| `ariadne_annotate` (T27) | `target`, `tag`, `text` | Add/update annotation on file, cluster, symbol, or edge |
+| `ariadne_annotations` (T28) | `tag?`, `target?` | List annotations with tag/target filter |
+| `ariadne_remove_annotation` (T29) | `id` | Remove an annotation by ID |
+| `ariadne_bookmark` (T30) | `name`, `paths[]` | Create named subgraph bookmark |
+| `ariadne_bookmarks` (T31) | — | List all bookmarks |
+| `ariadne_remove_bookmark` (T32) | `name` | Remove a bookmark by name |
+
+#### Phase 7 Tools — Temporal Analysis (T33-T37)
+
+| Tool | Parameters | Description |
+|---|---|---|
+| `ariadne_churn` (T33) | `period?` | Files by change frequency for period (30d/90d/1y) |
+| `ariadne_coupling` (T34) | `min_confidence?` | Co-change pairs above confidence threshold |
+| `ariadne_hotspots` (T35) | `top?` | Files ranked by churn x LOC x blast_radius |
+| `ariadne_ownership` (T36) | `path?` | Authors/contributors per file or project-wide |
+| `ariadne_hidden_deps` (T37) | — | Co-change pairs with NO structural import link |
 
 All tools return JSON. The MCP server auto-rebuilds the graph on file changes (with debounce) and tracks freshness confidence.
 

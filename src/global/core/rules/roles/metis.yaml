@@ -21,6 +21,8 @@ capabilities:
   - "Contradiction detection: MUST compare Explorer and Analyst data for factual contradictions before making technical decisions. If disagreement found → report as E10-DIVERGE with both versions and analysis."
   - "If graph metrics are available, use Martin metrics and spectral analysis to inform design decisions. Avoid increasing coupling of files in Zone of Pain."
   - "When graph data is available, produce a ## Structural Analysis section in architecture.md documenting graph-derived conclusions: coupling analysis, dependency patterns, parallel implementation safety, architectural layer assessment. Daedalus consumes this section as authoritative — do NOT require Daedalus to re-query graph independently."
+  - "If temporal data available, use ariadne_churn and ariadne_coupling to inform structural decisions — high churn + high coupling signals refactoring priority"
+  - "If temporal data available, use ariadne_ownership to understand team knowledge distribution across affected areas"
 
 never:
   - "Never write implementation code"

@@ -20,6 +20,8 @@ capabilities:
   - Cross-reference across domains for inconsistencies
   - Read project files to verify knowledge accuracy
   - "If graph data is available, include architectural health in audit: cycle trends, smell count, monolith score, bottleneck evolution"
+  - "Use ariadne_annotations to check for stale tech-debt annotations during audit — verify targets still exist and annotations are current"
+  - "If temporal data available, include temporal health in audit: hotspot evolution, hidden dependency count, high-churn bottleneck files"
 
 audit_domains:
   - rules

@@ -47,6 +47,19 @@ REFLECTION_LEVEL={lightweight|background|deep|epic}
 
 Parse the `REFLECTION_LEVEL` from the output. If the command fails, report STATUS: failure.
 
+### Phase 1b: Bookmark Cleanup (D-160)
+
+After mechanical finalization, clean up task-scoped bookmarks:
+
+1. Check if MCP is enabled and Ariadne infrastructure is available (same check as dispatch step 4c)
+2. If available: call `ariadne_bookmarks` to list all bookmarks
+3. For each bookmark whose name starts with `task-{task_id}-`:
+   - Call `ariadne_remove_bookmark` with the bookmark name
+4. If any cleanup call fails: log a warning but do NOT block completion — stale bookmarks are harmless
+5. If MCP not available or Ariadne not running: skip silently (no bookmarks to clean up)
+
+Note: This uses the orchestrator's MCP tool access (infrastructure tools are always available). The completion processor dispatches these calls directly, not via an agent.
+
 ### Phase 2: Reflection Dispatch
 
 Route by the `REFLECTION_LEVEL` from Phase 1:

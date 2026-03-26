@@ -227,6 +227,38 @@ moira_graph_is_fresh() {
   return 0
 }
 
+# ── moira_graph_temporal_available <project_root> ────────────────────────────
+# Check if temporal (git history) data is available via Ariadne.
+# Returns 0 if temporal data is available, 1 otherwise.
+# Detection: queries ariadne overview and checks for "temporal" in output.
+# Reference: D-159
+moira_graph_temporal_available() {
+  local project_root="${1:-}"
+
+  if [[ -z "$project_root" ]]; then
+    echo "Error: moira_graph_temporal_available requires <project_root>" >&2
+    return 1
+  fi
+
+  if ! command -v ariadne >/dev/null 2>&1; then
+    return 1
+  fi
+
+  local overview_output
+  overview_output=$(ariadne query overview 2>/dev/null) || return 1
+
+  if [[ -z "$overview_output" ]]; then
+    return 1
+  fi
+
+  # Check if overview output contains temporal data indicator
+  if echo "$overview_output" | grep -qi "temporal" 2>/dev/null; then
+    return 0
+  fi
+
+  return 1
+}
+
 # ── moira_graph_summary <graph_dir> ─────────────────────────────────────────
 # Extract key metrics from graph.json, stats.json, and clusters.json.
 # Outputs key=value pairs, one per line:
@@ -318,6 +350,35 @@ moira_graph_summary() {
   echo "bottleneck_count=${bottleneck_count}"
   echo "smell_count=${smell_count}"
   echo "monolith_score=${monolith_score}"
+
+  # Temporal summary (if available)
+  if moira_graph_temporal_available "${graph_dir%/*}" 2>/dev/null; then
+    local overview_output
+    overview_output=$(ariadne query overview 2>/dev/null) || overview_output=""
+    if [[ -n "$overview_output" ]]; then
+      local hotspot_count=0
+      local hidden_dep_count=0
+      local commits_30d=0
+      if command -v jq >/dev/null 2>&1; then
+        hotspot_count=$(echo "$overview_output" | jq '.temporal.hotspot_count // 0' 2>/dev/null) || hotspot_count=0
+        hidden_dep_count=$(echo "$overview_output" | jq '.temporal.hidden_dep_count // 0' 2>/dev/null) || hidden_dep_count=0
+        commits_30d=$(echo "$overview_output" | jq '.temporal.total_commits_30d // 0' 2>/dev/null) || commits_30d=0
+      else
+        hotspot_count=$(echo "$overview_output" | grep -o '"hotspot_count"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$' | head -1) || hotspot_count=0
+        hidden_dep_count=$(echo "$overview_output" | grep -o '"hidden_dep_count"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$' | head -1) || hidden_dep_count=0
+        commits_30d=$(echo "$overview_output" | grep -o '"total_commits_30d"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$' | head -1) || commits_30d=0
+      fi
+      hotspot_count="${hotspot_count:-0}"
+      hidden_dep_count="${hidden_dep_count:-0}"
+      commits_30d="${commits_30d:-0}"
+      echo "temporal_available=true"
+      echo "hotspot_count=${hotspot_count}"
+      echo "hidden_dep_count=${hidden_dep_count}"
+      echo "commits_30d=${commits_30d}"
+    fi
+  else
+    echo "temporal_available=false"
+  fi
 }
 
 # ── moira_graph_read_view <level> [cluster_name] [graph_dir] ────────────────
@@ -368,6 +429,7 @@ moira_graph_read_view() {
 # If Ariadne binary not found, returns a degradation message (D-102).
 moira_graph_analytical_baseline() {
   local scope_path="${1:-}"
+  local project_root="${2:-.}"
 
   if ! command -v ariadne >/dev/null 2>&1; then
     echo "# Ariadne Baseline"
@@ -439,6 +501,38 @@ moira_graph_analytical_baseline() {
   echo "- ariadne_reading_order: Get optimal file reading order"
   echo "- ariadne_plan_impact: Analyze impact of planned changes"
   echo ""
+
+  # Phase 6 MCP tools notice (D-157)
+  echo "## Available MCP Tools (Phase 6 — Annotations & Bookmarks)"
+  echo ""
+  echo "Agents dispatched during analysis have access to these Ariadne Phase 6 MCP tools:"
+  echo "- ariadne_annotate: Add/update annotation on file, cluster, symbol, or edge"
+  echo "- ariadne_annotations: List annotations with tag/target filter"
+  echo "- ariadne_remove_annotation: Remove an annotation"
+  echo "- ariadne_bookmark: Create named subgraph bookmark"
+  echo "- ariadne_bookmarks: List all bookmarks"
+  echo "- ariadne_remove_bookmark: Remove a bookmark"
+  echo "Note: Write tools (annotate, bookmark, remove-*) are restricted by agent role."
+  echo ""
+
+  # Phase 7 MCP tools notice — conditional on temporal availability (D-161)
+  if moira_graph_temporal_available "$project_root" 2>/dev/null; then
+    echo "## Available MCP Tools (Phase 7 — Temporal Analysis)"
+    echo ""
+    echo "Temporal data is available. Agents have access to these Ariadne Phase 7 MCP tools:"
+    echo "- ariadne_churn: Files by change frequency for period (30d/90d/1y)"
+    echo "- ariadne_coupling: Co-change pairs above confidence threshold"
+    echo "- ariadne_hotspots: Files ranked by churn x LOC x blast_radius"
+    echo "- ariadne_ownership: Authors/contributors per file or project-wide"
+    echo "- ariadne_hidden_deps: Co-change pairs with NO structural import link"
+    echo ""
+  else
+    echo "## Available MCP Tools (Phase 7 — Temporal Analysis)"
+    echo ""
+    echo "Temporal data is NOT available (no git history or shallow clone)."
+    echo "Phase 7 tools will return temporal_unavailable errors."
+    echo ""
+  fi
 
   return 0
 }

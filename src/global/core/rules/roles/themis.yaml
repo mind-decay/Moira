@@ -26,6 +26,8 @@ capabilities:
   - "Behavioral defense: primary per-task defense against upstream agent behavioral violations (E9/E10)"
   - "If structural diff is available, check for new cycles, layer violations, and newly introduced architectural smells"
   - "Use ariadne_callers to verify all call sites are updated after interface changes"
+  - "If temporal data available, use ariadne_hidden_deps to check for new hidden dependencies introduced by changes"
+  - "If temporal data available, use ariadne_hotspots to flag changes to high-risk files"
 
 never:
   - "Never fix code — only identify issues"

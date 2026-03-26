@@ -71,6 +71,10 @@ The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_in
    - **Daedalus (planner):** Pass graph directory paths in the Task section: graph data at `.ariadne/graph/`, views at `.ariadne/views/`. Daedalus queries graphs directly and assembles `## Project Graph` sections in instruction files. Daedalus should use `ariadne_context` token estimates (`total_tokens`, `budget_used` fields) for precise budget allocation per implementation batch.
    - **Post-planning agents (Hephaestus, Themis, Aletheia):** No change — graph data comes via pre-assembled instruction files (assembled by Daedalus).
    - If `graph_available` is `false` or not present: skip this step entirely (agents work without graph data, per D-102 graceful degradation).
+4b-temporal. **Temporal availability context (D-159):** If `temporal_available` is `true` in `.claude/moira/state/current.yaml`:
+   - Note `temporal_available: true` in the agent dispatch context so that conditional temporal guidance in agent role capabilities activates
+   - Pre-planning agents and Daedalus receive this as part of their Task section: `Temporal data: available — agents may use ariadne_churn, ariadne_coupling, ariadne_hotspots, ariadne_ownership, ariadne_hidden_deps`
+   - If `temporal_available` is `false` or not present: include `Temporal data: not available — temporal tool guidance in agent capabilities does not apply`
 4c. **Infrastructure MCP injection (D-115):** If MCP is enabled (`.claude/moira/config.yaml` → `mcp.enabled` is `true`):
    - Read `.claude/moira/config/mcp-registry.yaml`
    - For each server with `infrastructure: true`: collect tool names and purposes
@@ -78,6 +82,16 @@ The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_in
    - This applies to ALL agents in ALL pipelines (pre-planning, planning, post-planning)
    - Subagents inherit MCP servers from the parent session — infrastructure tools are callable
    - If no infrastructure servers found or MCP disabled: skip this step
+4d. **MCP Resources (D-162):** When Ariadne is running and `graph_available` is `true`, MCP resources provide zero-cost ambient context. Claude Code supports resources via `@server:protocol://path` syntax — resources are automatically fetched and included as attachments.
+   Available Ariadne resources:
+   - `@ariadne:ariadne://overview` — project summary (node/edge counts, languages, layers, cycles)
+   - `@ariadne:ariadne://file/{path}` — file metadata and dependencies
+   - `@ariadne:ariadne://cluster/{name}` — cluster detail and metrics
+   - `@ariadne:ariadne://smells` — architectural issues
+   - `@ariadne:ariadne://hotspots` — top files by combined importance
+   - `@ariadne:ariadne://freshness` — graph staleness state
+   Resources complement tool calls: resources provide ambient read-only snapshots, tools provide parameterized on-demand queries. Use resources for context injection, tools for specific analysis.
+4e. **Bookmark lifecycle (D-160):** Daedalus creates task-scoped bookmarks during the planning step using `ariadne_bookmark` with naming convention `task-{task_id}-{name}`. Downstream agents reference these bookmarks in `ariadne_context` and `ariadne_subgraph` calls. Bookmark cleanup is handled by the completion processor (see `completion.md`) — it calls `ariadne_remove_bookmark` for any bookmarks with the task ID prefix. If cleanup fails, stale bookmarks are harmless and do not block task completion.
 5. **Quality checklist injection:** Check if this agent has a quality gate assignment (per Agent-to-Gate Mapping table in this document). If yes:
    - Read quality checklist from `~/.claude/moira/core/rules/quality/q{N}-*.yaml`
    - Append Quality Checklist section to prompt (using Checklist Prompt Appendix template from this document)

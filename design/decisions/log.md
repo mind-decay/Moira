@@ -1518,3 +1518,78 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - Single defense point — CLAUDE.md loads before skill, provides baseline defense for EC-1 (plan mode before pipeline start).
 - Blanket "ignore all system-reminders" — would cause orchestrator to miss legitimate tool availability updates.
 **Reasoning:** The defense must be present at every point where the orchestrator processes instructions. There are exactly two such points: CLAUDE.md and the orchestrator skill. Both already contain anti-rationalization language. Pattern-based recognition is resilient to wording changes while remaining specific enough to avoid false positives. This is a Layer 3 (behavioral) defense — the limitation that it cannot structurally prevent system-reminder injection is acknowledged.
+
+## D-157: Phase 6 Annotation/Bookmark Tools — Infrastructure with Role-Level Write Restriction
+
+**Date:** 2026-03-26
+**Status:** accepted
+**Context:** Phase 6 adds 6 tools including write operations (annotate, bookmark) to `.ariadne/` files. D-108 infrastructure criteria require read-only, but these writes are to Ariadne's own metadata (not project files), have zero external API risk, near-zero cost.
+**Decision:** Classify all Phase 6 tools as infrastructure MCP, extending D-108. Restrict write tool usage via agent role definitions: only Mnemosyne may call `ariadne_annotate`, only Daedalus may call `ariadne_bookmark`. READ tools unrestricted.
+**Alternatives rejected:**
+- Classify writes as external MCP requiring Daedalus authorization — adds ceremony for zero-risk writes
+- Split Phase 6 into infrastructure (reads) and managed (writes) — complicates registry
+**Reasoning:** The D-108 "read-only" criterion targets external side-effects. Annotation/bookmark writes are local, deterministic, reversible, confined to `.ariadne/`. Role-level restriction provides sufficient control.
+
+## D-158: MCP Resources/Prompts — Document Availability, Defer Integration
+
+**Date:** 2026-03-26
+**Status:** superseded by D-162, D-163
+**Context:** Phase 6 adds 6 MCP resources and 4 MCP prompts. Original decision incorrectly assumed Claude Code may not support MCP resource subscriptions.
+**Decision:** ~~Document only, defer integration.~~ **Superseded:** Claude Code fully supports MCP resources via `@server:protocol://path` syntax and MCP prompts via `get_prompt` RPC. See D-162 (resources) and D-163 (prompts) for replacement decisions.
+**Post-mortem:** The premise "Claude Code's MCP client may not fully support resource subscriptions" was fabricated by the architect agent without verification. This violated INV-001 (never fabricate). Detected during post-task audit.
+
+## D-159: Temporal Availability — Derived from ariadne_overview at Bootstrap
+
+**Date:** 2026-03-26
+**Status:** accepted
+**Context:** Moira needs to know if temporal data is available to condition agent guidance and status output.
+**Decision:** Add `temporal_available` boolean in `current.schema.yaml`. Set during orchestrator bootstrap: if `graph_available` is true, query `ariadne_overview` — if response contains `temporal` field, set true. One-time check at task start.
+**Alternatives rejected:**
+- Derive at each usage point — N+1 queries, wastes budget
+- Always assume available when graph available — incorrect for non-git projects
+- Shell-level git check in graph.sh — duplicates Ariadne's detection logic
+**Reasoning:** Single-point detection keeps flag consistent. Using `ariadne_overview` delegates detection to Ariadne's own logic.
+
+## D-160: Bookmark Lifecycle — Completion Processor Cleanup
+
+**Date:** 2026-03-26
+**Status:** accepted
+**Context:** Daedalus creates task-scoped bookmarks during planning that should be cleaned up at task completion.
+**Decision:** Completion processor responsible for cleanup. Calls `ariadne_remove_bookmark` for bookmarks with task ID prefix. Naming convention: `task-{task_id}-{name}`. Cleanup failure logs warning, does not block completion.
+**Alternatives rejected:**
+- No cleanup — degrades UX over time
+- Guard.sh enforcement — wrong mechanism (monitors tool calls, not MCP state)
+- TTL-based expiry — requires Ariadne-side changes
+**Reasoning:** Completion processor already handles end-of-task housekeeping (D-133, D-149). Task-ID prefixed names make cleanup deterministic and safe.
+
+## D-161: Phase 7 Temporal Tools — Infrastructure Classification
+
+**Date:** 2026-03-26
+**Status:** accepted
+**Context:** Phase 7 adds 5 read-only temporal analysis tools.
+**Decision:** Classify all 5 as infrastructure MCP, extending D-153. Meet all D-108 criteria: read-only, zero external risk, near-zero token cost.
+**Reasoning:** Same rationale as D-108/D-153. Temporal tools query local git history processed by Ariadne.
+
+## D-162: MCP Resources Integration — Active Use in Agent Dispatch
+
+**Date:** 2026-03-26
+**Status:** accepted
+**Supersedes:** D-158 (resources portion)
+**Context:** Claude Code supports MCP resources via `@server:protocol://path` syntax. Resources are automatically fetched and included as attachments when referenced. Ariadne provides 6 resources: ariadne://overview, ariadne://file/{path}, ariadne://cluster/{name}, ariadne://smells, ariadne://hotspots, ariadne://freshness.
+**Decision:** Integrate Ariadne MCP resources into agent dispatch. Resources provide zero-cost context injection — they are declarative data subscriptions, not tool calls. Include resource references in agent prompts where appropriate: ariadne://overview for bootstrap context, ariadne://smells for review context, ariadne://freshness for staleness checks. Resources complement (not replace) tool calls — tools provide on-demand queries, resources provide ambient context.
+**Alternatives rejected:**
+- Continue deferring — wastes available capability based on false premise
+- Replace all tool calls with resources — resources are read-only snapshots, tools provide parameterized queries
+**Reasoning:** Resources are free, always-current context that agents can reference without consuming tool call budget. Claude Code's `@` syntax makes them trivially accessible.
+
+## D-163: MCP Prompts Integration — Available for Agent Workflows
+
+**Date:** 2026-03-26
+**Status:** accepted
+**Supersedes:** D-158 (prompts portion)
+**Context:** MCP prompts are server-side templates callable via `get_prompt` RPC method. Ariadne provides 4 prompts: explore-area (path), review-impact (paths), find-refactoring (scope?), understand-module (module). Each returns structured context combining graph data with analysis guidance.
+**Decision:** Document MCP prompts as available workflow accelerators. Prompts are callable through the MCP protocol and can be used by agents that have MCP access. Primary use cases: Hermes can use `explore-area` for structured exploration, Themis can use `review-impact` for change analysis, Metis can use `find-refactoring` for architectural assessment. Prompts are not registered in mcp-registry.yaml (they are a separate MCP primitive, not tools).
+**Alternatives rejected:**
+- Register prompts as tools — conflates MCP primitives, prompts have different invocation semantics
+- Ignore prompts — wastes available capability
+**Reasoning:** Prompts provide pre-built, graph-enriched analysis templates that save agent tokens compared to manual tool-call sequences.

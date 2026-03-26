@@ -98,6 +98,51 @@ Where check_icon is: pass = checkmark, warning = warning symbol with details.
 
 Include graph check pass/fail counts in the structural conformance pass/fail ratio. If graph has 7 checks and 5 pass, add 5 passes and 2 failures to the structural total.
 
+### 1c. Temporal Health (subsection of Structural Conformance)
+
+If `temporal_available` is false (check `.claude/moira/state/current.yaml`): skip this entire subsection.
+
+If temporal data is available, run checks via Bash:
+
+```bash
+bash -c 'ariadne query hotspots --format json 2>/dev/null'
+```
+
+```bash
+bash -c 'ariadne query hidden-deps --format json 2>/dev/null'
+```
+
+```bash
+bash -c 'ariadne query churn --period 30d --format json 2>/dev/null'
+```
+
+Parse results and evaluate each check:
+
+1. **Hotspot count:** Count files in hotspots response.
+   - Pass (count <= 10): "Hotspots: {N} (healthy)"
+   - Warning (count > 10, <= 20): "Hotspots: {N} (elevated)"
+   - Critical (count > 20): "Hotspots: {N} (critical — review high-risk files)"
+
+2. **Hidden dependencies:** Count pairs in hidden-deps response.
+   - Pass (count <= 5): "Hidden deps: {N} (healthy)"
+   - Warning (count > 5, <= 10): "Hidden deps: {N} (elevated — co-change without imports)"
+   - Critical (count > 10): "Hidden deps: {N} (critical — structural gaps)"
+
+3. **High-churn bottlenecks:** Cross-reference churn data with centrality > 0.7 files. Count files that appear in both.
+   - Pass (count <= 3): "High-churn bottlenecks: {N} (healthy)"
+   - Warning (count > 3, <= 5): "High-churn bottlenecks: {N} (elevated — frequent changes to critical files)"
+   - Critical (count > 5): "High-churn bottlenecks: {N} (critical — stability risk)"
+
+Display format:
+```
+Temporal Health:
+  {check_icon} {check_description}
+  {check_icon} {check_description}
+  {check_icon} {check_description}
+```
+
+Include temporal check pass/fail counts in the structural conformance pass/fail ratio.
+
 ### 2. Result Quality (50% weight)
 
 Load live telemetry aggregate from `.claude/moira/testing/live/index.yaml` (if exists).

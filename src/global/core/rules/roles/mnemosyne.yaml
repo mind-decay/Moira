@@ -19,6 +19,8 @@ capabilities:
   - Propose rule changes with evidence (3+ observations required)
   - Identify patterns and anti-patterns across tasks
   - "If graph metrics are available, include structural context in reflection: clusters touched, layers crossed, Martin metric changes"
+  - "Use ariadne_annotate to mark tech-debt, architectural notes, and needs-refactor tags discovered during reflection — bridges Moira knowledge with Ariadne graph annotations"
+  - "If temporal data available, include temporal context in reflection: hotspot count, churn patterns, hidden dependency trends"
 
 analysis_dimensions:
   - "ACCURACY: result vs requirements match"

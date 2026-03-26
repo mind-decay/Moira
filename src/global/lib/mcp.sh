@@ -333,9 +333,86 @@ moira_mcp_generate_registry() {
         when_to_use: "During requirements/planning to assess structural impact before implementation"
         when_NOT_to_use: "After implementation — use diff tool instead to see actual changes"
         token_estimate: 1000
+      annotate:
+        purpose: "Add or update annotation on a file, cluster, symbol, or edge target"
+        cost: low
+        reliability: high
+        when_to_use: "When marking tech-debt, architectural notes, or needs-refactor tags on graph elements"
+        when_NOT_to_use: "Only specific agents are authorized to use write tools — check your role definition"
+        token_estimate: 300
+      annotations:
+        purpose: "List annotations with optional tag and target filters"
+        cost: low
+        reliability: high
+        when_to_use: "When checking existing annotations on files, clusters, or symbols"
+        when_NOT_to_use: "When you only need file-level info — annotations are included in ariadne_file responses"
+        token_estimate: 500
+      remove-annotation:
+        purpose: "Remove an annotation by ID"
+        cost: low
+        reliability: high
+        when_to_use: "When cleaning up stale or incorrect annotations"
+        when_NOT_to_use: "Only specific agents are authorized to use write tools — check your role definition"
+        token_estimate: 200
+      bookmark:
+        purpose: "Create a named subgraph bookmark for later reference in context and subgraph queries"
+        cost: low
+        reliability: high
+        when_to_use: "When creating task-scoped bookmarks for downstream agents to use in ariadne_context calls"
+        when_NOT_to_use: "Only specific agents are authorized to use write tools — check your role definition"
+        token_estimate: 300
+      bookmarks:
+        purpose: "List all bookmarks"
+        cost: low
+        reliability: high
+        when_to_use: "When checking existing bookmarks before creating duplicates"
+        when_NOT_to_use: "Never — always safe to check existing bookmarks"
+        token_estimate: 300
+      remove-bookmark:
+        purpose: "Remove a bookmark by name"
+        cost: low
+        reliability: high
+        when_to_use: "When cleaning up task-scoped bookmarks after task completion"
+        when_NOT_to_use: "Only specific agents are authorized to use write tools — check your role definition"
+        token_estimate: 200
+      churn:
+        purpose: "Files ranked by change frequency for a given period (30d, 90d, 1y)"
+        cost: low
+        reliability: high
+        when_to_use: "When assessing file stability or identifying frequently-changed areas"
+        when_NOT_to_use: "When temporal data is unavailable — check temporal_available flag"
+        token_estimate: 500
+      coupling:
+        purpose: "Co-change pairs above a confidence threshold — files that change together"
+        cost: low
+        reliability: high
+        when_to_use: "When looking for implicit coupling between files that may not have import links"
+        when_NOT_to_use: "When temporal data is unavailable — check temporal_available flag"
+        token_estimate: 500
+      hotspots:
+        purpose: "Files ranked by composite risk: churn x LOC x blast_radius"
+        cost: low
+        reliability: high
+        when_to_use: "When identifying high-risk files that are both frequently changed and structurally important"
+        when_NOT_to_use: "When temporal data is unavailable — check temporal_available flag"
+        token_estimate: 500
+      ownership:
+        purpose: "Authors and contributors per file or project-wide"
+        cost: low
+        reliability: high
+        when_to_use: "When identifying domain experts or understanding knowledge distribution across files"
+        when_NOT_to_use: "When temporal data is unavailable — check temporal_available flag"
+        token_estimate: 500
+      hidden-deps:
+        purpose: "Co-change pairs with NO structural import link — hidden dependencies"
+        cost: low
+        reliability: high
+        when_to_use: "When looking for invisible coupling that structural analysis misses"
+        when_NOT_to_use: "When temporal data is unavailable — check temporal_available flag"
+        token_estimate: 400
 ARIADNE_EOF
       server_count=$((server_count + 1))
-      tool_count=$((tool_count + 15))
+      tool_count=$((tool_count + 26))
     fi
   fi
 
