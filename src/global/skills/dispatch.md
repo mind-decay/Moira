@@ -46,6 +46,8 @@ Used for:
 | Any | Argus (auditor) | Dedicated dispatch via `/moira audit` templates |
 | Any | Completion processor | Dedicated dispatch via `completion.md` (Section 7 of orchestrator) |
 
+**Note:** Metis (architect) dispatch via simplified assembly additionally includes step 4f (pre-architecture documentation fetch — D-164), which injects external system documentation and closed-world constraint before the quality checklist.
+
 ### Instruction Size Validation (D-113)
 
 Before dispatching any agent, estimate instruction size (assembled prompt byte count / 4 ≈ tokens). If estimated size exceeds 50k tokens:
@@ -92,6 +94,31 @@ The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_in
    - `@ariadne:ariadne://freshness` — graph staleness state
    Resources complement tool calls: resources provide ambient read-only snapshots, tools provide parameterized on-demand queries. Use resources for context injection, tools for specific analysis.
 4e. **Bookmark lifecycle (D-160):** Daedalus creates task-scoped bookmarks during the planning step using `ariadne_bookmark` with naming convention `task-{task_id}-{name}`. Downstream agents reference these bookmarks in `ariadne_context` and `ariadne_subgraph` calls. Bookmark cleanup is handled by the completion processor (see `completion.md`) — it calls `ariadne_remove_bookmark` for any bookmarks with the task ID prefix. If cleanup fails, stale bookmarks are harmless and do not block task completion.
+4f. **Pre-architecture documentation fetch (D-164):** When constructing the prompt for Metis (architect) only — skip this step for all other agents:
+
+   1. **Scan upstream artifacts** — read exploration.md, input.md, and requirements.md from the task state directory. Identify mentions of external systems, platforms, APIs, protocols, or third-party libraries that are NOT part of the project's own codebase.
+
+   2. **Check verified facts cache** — for each identified external system, read `.claude/moira/knowledge/libraries/verified-facts.yaml`. If a verified entry exists for this system and is not expired (based on `expiry_hint` and agent judgment), use the cached fact. Skip Context7 fetch for this system.
+
+   3. **Fetch documentation** — for each remaining unverified external system (max 3 systems, prioritized by mention frequency in upstream artifacts):
+      - Primary: Context7 MCP — call `resolve-library-id` with the system name, then `query-docs` with the resolved library ID and a topic relevant to the task
+      - Fallback: WebFetch if registered in mcp-registry.yaml
+      - If no documentation tool available or fetch fails: mark the system as `DOCUMENTATION_NOT_AVAILABLE`
+
+   4. **Inject into prompt** — assemble a `## External Documentation (auto-fetched)` section containing:
+      - For each system with fetched documentation: the documentation content with system name header
+      - For each system marked `DOCUMENTATION_NOT_AVAILABLE`: a note stating documentation was not available
+      - Place this section after the Task section and before the Quality Checklist section in the prompt template
+
+   5. **Add closed-world constraint** — append to the injected section:
+      ```
+      CLOSED-WORLD CONSTRAINT: You can ONLY make factual claims about external systems whose documentation appears in this section. For any system listed as DOCUMENTATION_NOT_AVAILABLE: you MUST classify any claim about it as UNVERIFIED and flag it as load-bearing if your decision depends on it. Do not hedge with 'may' or 'might' — either cite the documentation or report UNVERIFIED.
+      ```
+
+   6. **Cap enforcement** — if more than 3 external systems are identified, fetch only the top 3 by mention frequency. Remaining systems are listed as `DOCUMENTATION_NOT_AVAILABLE` with a note: "Documentation fetch cap reached (3 systems max)."
+
+   Token cost: 3-15k tokens per fetched system. For tasks with 0 external system references, this step is a no-op (zero cost).
+
 5. **Quality checklist injection:** Check if this agent has a quality gate assignment (per Agent-to-Gate Mapping table in this document). If yes:
    - Read quality checklist from `~/.claude/moira/core/rules/quality/q{N}-*.yaml`
    - Append Quality Checklist section to prompt (using Checklist Prompt Appendix template from this document)

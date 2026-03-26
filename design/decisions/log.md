@@ -1593,3 +1593,116 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - Register prompts as tools — conflates MCP primitives, prompts have different invocation semantics
 - Ignore prompts — wastes available capability
 **Reasoning:** Prompts provide pre-built, graph-enriched analysis templates that save agent tokens compared to manual tool-call sequences.
+
+## D-164: Pre-Architecture Documentation Fetch
+
+**Date:** 2026-03-26
+**Status:** Accepted
+**Context:** D-158 — Metis fabricated claims about Claude Code MCP capabilities because it had no documentation. INV-001 existed but was violated.
+**Decision:** Modify dispatch system to add step 4f — scan upstream artifacts for external system references, fetch documentation via Context7 MCP, inject into Metis prompt with closed-world constraint. Max 3 systems, 3-15k tokens each.
+**Alternatives rejected:**
+- Separate verification agent (too expensive)
+- Metis calls Context7 directly (agent doesn't know what it doesn't know)
+- User flags external systems (shifts responsibility)
+**Reasoning:** Primary structural fix. Agent fabricated because it lacked data. Injecting documentation at dispatch time provides facts before reasoning begins.
+
+## D-165: Closed-World Constraint for External Claims
+
+**Date:** 2026-03-26
+**Status:** Accepted
+**Context:** No boundary between facts the agent knows and facts it generates.
+**Decision:** Add never rule to metis.yaml: can only make claims about external systems whose documentation is in ## External Documentation section. Also add documentation grounding capability.
+**Alternatives rejected:**
+- Add to base.yaml (only Metis makes these claims)
+- Soft guidance (failed in D-158)
+**Reasoning:** Checkable invariant — D-166 can verify whether documentation was cited, not just whether the agent was told to be honest.
+
+## D-166: Deterministic Post-Architecture Checks
+
+**Date:** 2026-03-26
+**Status:** Accepted
+**Context:** Prompt rules alone cannot prevent fabrication (D-158). LLM-based verification shares the same failure mode.
+**Decision:** Add deterministic pattern-matching checks to orchestrator gate protocol: hedge phrase detection, closed-world violation detection, missing epistemic section detection. Zero LLM tokens.
+**Alternatives rejected:**
+- LLM evaluation (same blindness)
+- Rely on Themis (too late — runs after implementation)
+- Hedge phrases only (misses confident false claims)
+**Reasoning:** Pattern matching cannot be persuaded by fluent text. Checks structural properties, not truth claims.
+
+## D-167: Conditional Escalation at Architecture Gate
+
+**Date:** 2026-03-26
+**Status:** Accepted
+**Context:** D-166 produces flags. System needs response protocol balancing safety and usability.
+**Decision:** WARNING flags (hedge, missing section) shown as advisory. BLOCK flags (closed-world violation) trigger automatic documentation fetch + Metis re-dispatch before presenting gate. Fallback: convert to WARNING if fetch fails.
+**Alternatives rejected:**
+- Always block (too strict)
+- Never block (defeats purpose)
+- Block without fetch (wastes user time)
+**Reasoning:** Cost scales with severity. Clean architectures: zero overhead. Ungrounded: automatic remediation.
+
+## D-168: Root Cause to Mechanism Mapping Table
+
+**Date:** 2026-03-26
+**Status:** Accepted
+**Context:** First architecture version proposed prompt rules to fix prompt rule failure. No mechanism to type-check solution fit.
+**Decision:** Required architecture section for failure-driven tasks. Table with: Root Cause, Mechanism, Decision, Mechanism Type (structural/deterministic/prompt/visual), Why It Works.
+**Alternatives rejected:**
+- Require for all tasks (overhead for feature work)
+- Have Themis check instead (value is in forcing architect to think)
+**Reasoning:** Makes logical contradictions visible. "Root cause: prompts fail / Mechanism: prompt" is self-evidently wrong.
+
+## D-169: Pre-Mortem Section
+
+**Date:** 2026-03-26
+**Status:** Accepted
+**Context:** First architecture self-assessed Q2=pass with 0 critical findings without questioning effectiveness.
+**Decision:** Required architecture section for ALL tasks: how could this fail, what assumptions could be wrong, failure modes, conditions for ineffectiveness.
+**Alternatives rejected:**
+- Make optional (skipped when most needed)
+- Separate agent (adds complexity)
+**Reasoning:** LLMs are poor at spontaneous self-critique but good at structured adversarial analysis when prompted.
+
+## D-170: Effectiveness Simulation at Architecture Gate
+
+**Date:** 2026-03-26
+**Status:** Accepted
+**Context:** When architecture addresses a known incident, system should replay that incident against proposed solution.
+**Decision:** Orchestrator performs lightweight check before architecture gate (only for incident-driven tasks). Reads Root Cause → Mechanism Mapping, checks mechanism types against root cause types. Produces PREVENTS/PARTIALLY_PREVENTS/DOES_NOT_PREVENT per mechanism.
+**Alternatives rejected:**
+- Full agent-dispatch replay (too expensive)
+- Skip for non-incident tasks (this IS the decision)
+**Reasoning:** Catches meta-failure of proposing solutions that wouldn't solve the problem they address.
+
+## D-171: Themis Epistemic Integrity Review
+
+**Date:** 2026-03-26
+**Status:** Accepted
+**Context:** Themis checks conformance but not premises. Secondary defense — D-164/D-166 are primary.
+**Decision:** Add epistemic_integrity section to q4-correctness.yaml (Q4-E01 through Q4-E05). Add epistemic integrity entry to themis.yaml upstream_verification.
+**Alternatives rejected:**
+- Themis as primary defense (runs too late)
+- Separate epistemic agent (unnecessary complexity)
+**Reasoning:** Defense-in-depth. Catches what primary mechanisms miss.
+
+## D-172: Gate Epistemic Flags
+
+**Date:** 2026-03-26
+**Status:** Accepted
+**Context:** Gates present all claims uniformly. User cannot distinguish verified from assumed.
+**Decision:** Add EPISTEMIC FLAGS section to architecture gate (between details and health report) when flags exist. Plan gate inherits unresolved flags. Max 5 displayed.
+**Alternatives rejected:**
+- Full epistemic section in gate (too verbose)
+- No gate display (defeats gate purpose)
+**Reasoning:** Makes epistemic quality visible at the decision point.
+
+## D-173: Verified Facts in Knowledge Base
+
+**Date:** 2026-03-26
+**Status:** Accepted
+**Context:** Verified claims should be cached for future tasks to avoid re-fetching.
+**Decision:** Add verified_facts subcategory under libraries knowledge type. Entry format: claim, verified_date, evidence_source, task_id, expiry_hint. Subject to E8-STALE detection.
+**Alternatives rejected:**
+- New top-level knowledge type (ORANGE risk)
+- Store in decision log (wrong concept)
+**Reasoning:** Reduces cost of D-164 pre-fetch over time. First verification costs one Context7 call; subsequent tasks get it free.

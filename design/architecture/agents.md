@@ -161,11 +161,14 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Checks quality-map for existing patterns (Strong → follow, Problematic → avoid)
 - Checks UI component constraints when task involves frontend
 - Defines contract interfaces for parallel implementation batches
+- When dispatched with `## External Documentation` section, grounds all external claims in provided documentation (D-165 closed-world constraint)
+- For failure-driven tasks, produces Root Cause → Mechanism Mapping table with explicit mechanism types — structural, deterministic, prompt, visual (D-168)
+- Produces mandatory Pre-mortem section describing how proposed solutions could fail (D-169)
 - Architecture document MUST include a `## Structural Analysis` section recording graph-derived conclusions (coupling analysis, dependency patterns, parallel implementation safety, import fan-in/fan-out). Daedalus consumes this section as authoritative rather than independently re-querying graph data (prevents E10-DIVERGE between Architect and Planner).
 - MUST compare Explorer and Analyst data for factual contradictions before making technical decisions. If disagreement found → report as E10-DIVERGE with both versions and analysis.
 - Does NOT proceed with technical decisions when Explorer and Analyst data conflict (reports E10-DIVERGE)
 
-**Knowledge access:** L1 (project-model), L0 (conventions), L2 (decisions — FULL), L1 (patterns), L1 (quality-map), L0 (failures index)
+**Knowledge access:** L1 (project-model), L0 (conventions), L2 (decisions — FULL), L1 (patterns), L1 (quality-map), L0 (failures index), L0 (libraries — verified-facts index)
 
 **Budget:** 100k
 
@@ -264,6 +267,8 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
   - WARNING: should fix, can proceed with user approval
   - SUGGESTION: logged for reflection, doesn't block
 - Checks conformance with project quality-map
+- Reviews architecture epistemic integrity — verifies factual premises about external systems are verified or marked UNVERIFIED (D-171)
+- Evaluates Q4-E01 through Q4-E05 epistemic integrity checklist items
 - Verifies MCP calls were used correctly
 - False positive awareness: if unsure, mark as WARNING not CRITICAL
 

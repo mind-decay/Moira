@@ -262,3 +262,18 @@ entries:
         field: "temporal_available context loading"
         sync_type: "field_must_exist"
     values_tracked: "temporal_available boolean field (set by orchestrator via ariadne_overview temporal check — D-159, consumed by dispatch)"
+
+  - id: xref-020
+    description: "Q4 epistemic integrity checklist items"
+    canonical_source: "src/global/core/rules/quality/q4-correctness.yaml"
+    dependents:
+      - file: "src/global/core/rules/roles/themis.yaml"
+        field: "upstream_verification epistemic integrity entry"
+        sync_type: "value_must_match"
+      - file: "src/global/skills/gates.md"
+        field: "epistemic flags section references"
+        sync_type: "format_must_match"
+      - file: "src/global/skills/orchestrator.md"
+        field: "step e3 epistemic checks"
+        sync_type: "logic_must_match"
+    values_tracked: "Q4-E01 through Q4-E05 epistemic integrity checklist items (Q4-E01: epistemic_status_section_present, Q4-E02: unverified_claims_marked, Q4-E03: load_bearing_unverified_flagged, Q4-E04: verified_claims_have_evidence, Q4-E05: closed_world_compliance)"

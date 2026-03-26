@@ -1,0 +1,14 @@
+# Verified External Facts Cache
+# Source: D-173
+# Populated by the pre-architecture documentation fetch (D-164) when claims are verified.
+# Agents check this cache before fetching documentation to avoid redundant calls.
+# Subject to E8-STALE detection when contradicting evidence is found.
+#
+# Entry schema:
+#   - claim: "<factual claim text>"
+#     verified_date: YYYY-MM-DD
+#     evidence_source: "<documentation URL, tool output, or test description>"
+#     task_id: <task ID that performed verification>
+#     expiry_hint: "<optional — describes when this fact might become stale>"
+
+verified_facts: []

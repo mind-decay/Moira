@@ -128,6 +128,23 @@ After Metis (architect) completes.
 
 **Note:** The Decomposition Pipeline architecture gate uses the proceed/details/modify/abort option set (same as the Standard Pipeline variant above), not the alternatives-selection variant used by the Full Pipeline.
 
+**Epistemic flags (D-172):** If epistemic checks (orchestrator.md step e3) produced any flags, include an EPISTEMIC FLAGS section in the gate display. This section appears after the "Details" line and before the Health Report.
+
+```
+─── Epistemic Flags ────
+⚠ HEDGE_WITHOUT_EVIDENCE: "{quoted phrase}" in decision D-{N}
+⚠ MISSING_EPISTEMIC_SECTION: architecture mentions external systems but has no ## Epistemic Status section
+🔴 CLOSED_WORLD_VIOLATION: claim about {system} without documentation (auto-remediation attempted: {success|failed})
+📊 EFFECTIVENESS: {mechanism} → {PREVENTS|PARTIALLY_PREVENTS|DOES_NOT_PREVENT} for {incident}
+```
+
+Rules:
+- If no flags exist: omit the section entirely (no noise for clean architectures)
+- If all flags are WARNING level: show with ⚠ prefix
+- If any BLOCK flags survived remediation (D-167): show with 🔴 prefix
+- Maximum 5 flags displayed; if more, show count and direct user to artifact: "... and {N} more — see {artifact_path}"
+- Effectiveness simulation results (D-170) shown as 📊 lines
+
 **Options (Standard Pipeline):**
 ```
 1) proceed — Architecture approved, continue
@@ -170,6 +187,16 @@ After Daedalus (planner) completes.
  Estimated total budget: ~{N}k tokens
  Budget risk: {none | N steps near limit}
 ```
+
+**Inherited epistemic flags (D-172):** If the architecture gate had UNVERIFIED claims that the user chose to proceed with, display a reminder:
+
+```
+─── Epistemic Reminder ────
+This plan is based on an architecture with {N} UNVERIFIED claims about external systems.
+See architecture artifact for details: → {architecture_artifact_path}
+```
+
+Only display if N > 0. This is informational — no behavioral change to plan gate options.
 
 **Options:**
 ```

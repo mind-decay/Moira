@@ -120,6 +120,29 @@ sections:
         check: "Error handling pattern matches project pattern"
         required: true
 
+  epistemic_integrity:
+    items:
+      - id: Q4-E01
+        check: "Architecture artifact contains ## Epistemic Status section when external system claims are present"
+        severity_if_fail: warning
+        required: true
+      - id: Q4-E02
+        check: "All UNVERIFIED claims are explicitly marked — no hedged claims ('may not', 'might not') without UNVERIFIED classification"
+        severity_if_fail: critical
+        required: true
+      - id: Q4-E03
+        check: "Load-bearing UNVERIFIED claims are flagged — decisions that would change if the claim is false are identified"
+        severity_if_fail: critical
+        required: true
+      - id: Q4-E04
+        check: "VERIFIED claims include evidence source (documentation reference, tool output, codebase observation)"
+        severity_if_fail: warning
+        required: true
+      - id: Q4-E05
+        check: "No claims about external systems whose documentation was listed as DOCUMENTATION_NOT_AVAILABLE are presented as facts"
+        severity_if_fail: critical
+        required: true
+
 severity:
   critical: "Blocks pipeline, must fix (correctness, security, broken contracts)"
   warning: "Should fix, can proceed with user approval"

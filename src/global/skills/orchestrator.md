@@ -351,6 +351,53 @@ Before entering the main loop:
           - After 2 failures: escalate to user (E5-QUALITY gate in `gates.md`)
         - `fail_warning` → present quality checkpoint to user (per `gates.md`)
       - If no quality gate for this agent: skip to approval gate check
+   e3. **Epistemic checks (architecture gate only):** If the next gate is the architecture gate, run these checks on the architecture artifact before presenting the gate:
+
+   e3a. **Deterministic pattern-matching checks (D-166):**
+   Run three checks on the architecture artifact text. These are string/regex operations — zero LLM tokens, no agent dispatch.
+
+   1. **Hedge phrase detection:** Scan architecture artifact for uncertainty phrases without evidence backing:
+      - Pattern list: "may not support", "might not fully", "could potentially", "not yet verified", "uncertain whether", "unclear if", "possibly", "probably does not"
+      - For each match: check whether the surrounding context (within 200 characters) contains a documentation citation (e.g., "per Context7 docs", "documentation shows", "## External Documentation") or an explicit UNVERIFIED classification
+      - If hedge phrase WITHOUT evidence reference or UNVERIFIED marker → flag as `HEDGE_WITHOUT_EVIDENCE` (severity: WARNING)
+
+   2. **Closed-world violation detection:** If `## External Documentation` section was injected by dispatch step 4f:
+      - Extract the list of external systems that had documentation fetched
+      - Extract the list of external systems marked as `DOCUMENTATION_NOT_AVAILABLE`
+      - Scan the rest of the architecture artifact for claims about external systems
+      - For each claim about a system listed as `DOCUMENTATION_NOT_AVAILABLE`: check if the claim is marked UNVERIFIED
+      - If claim about unavailable-documentation system NOT marked UNVERIFIED → flag as `CLOSED_WORLD_VIOLATION` (severity: BLOCK)
+
+   3. **Missing epistemic section detection:** If the architecture artifact mentions any external system, platform, or API:
+      - Check whether an `## Epistemic Status` section exists in the artifact
+      - If external systems mentioned but no epistemic status section → flag as `MISSING_EPISTEMIC_SECTION` (severity: WARNING)
+
+   e3b. **Conditional escalation (D-167):**
+   Process the flags from e3a before presenting the gate:
+
+   - **WARNING-only flags** (HEDGE_WITHOUT_EVIDENCE, MISSING_EPISTEMIC_SECTION):
+     - Attach as `EPISTEMIC_WARNINGS` to the gate display (see gates.md EPISTEMIC FLAGS section — D-172)
+     - Present the gate normally — user can proceed, modify, or abort
+
+   - **BLOCK flags** (CLOSED_WORLD_VIOLATION):
+     - Do NOT present the gate yet
+     - For each system referenced in the violation: attempt Context7 documentation fetch (`resolve-library-id` then `query-docs`)
+     - If fetch succeeds: re-dispatch Metis with original inputs + newly fetched documentation + instruction: "Your previous architecture contained claims about {system} without documentation. Documentation has now been fetched. Revise your architecture using this documentation."
+     - Run e3a checks again on the revised artifact
+     - If checks pass → present gate with any remaining warnings
+     - If checks still fail → convert BLOCK to WARNING with note: "Attempted automatic documentation fetch and re-architecture; issues persist. Review carefully."
+     - If documentation fetch fails: convert BLOCK to WARNING with note: "Documentation could not be fetched for {system}. Claims about this system are unverified."
+
+   e3c. **Effectiveness simulation (D-170):**
+   Conditional: only runs when the task was triggered by a known incident (detected by: task input.md or requirements.md references a specific decision ID like "D-158" or references a specific failure/incident).
+
+   - Read the `## Root Cause → Mechanism Mapping` table from the architecture artifact (required by D-168 for failure-driven tasks)
+   - For each root cause in the table:
+     - Check mechanism type: if root cause describes a behavioral failure (agent ignored rules, prompt didn't work) and mechanism type is "prompt" → flag as "mechanism type mismatch" (WARNING)
+     - Assess: "If the triggering incident happened again with this mechanism in place, would the mechanism prevent it?" → verdict: `PREVENTS` | `PARTIALLY_PREVENTS` | `DOES_NOT_PREVENT`
+   - If any mechanism gets `DOES_NOT_PREVENT`: add WARNING to gate flags
+   - Results displayed in gate via EPISTEMIC FLAGS section (D-172) as 📊 lines
+
    f. If a gate follows this step (check `gates[]` in pipeline definition):
       - Set `gate_pending` in `current.yaml`
       - **Bench mode check:** if `bench_mode: true` in `current.yaml`:

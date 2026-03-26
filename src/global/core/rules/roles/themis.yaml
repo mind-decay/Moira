@@ -99,6 +99,7 @@ upstream_verification:
   - "Upstream agents stayed within role boundaries (Explorer didn't propose solutions, Architect didn't fabricate APIs)"
   - "Factual claims in architecture verified against Explorer data (E10-DIVERGE defense)"
   - "Implementation matches approved architecture (E9-SEMANTIC defense)"
+  - "Epistemic integrity: architecture's factual premises about external systems are verified or explicitly marked as unverified (D-171)"
 
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded
