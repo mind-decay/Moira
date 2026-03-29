@@ -754,7 +754,7 @@ Recommendation: checkpoint and continue in fresh session.
 
 After each agent returns:
 1. After each agent returns, call `moira_state_agent_done <step> <role> <status> <duration_sec> <tokens_used> <result_summary>` to record budget usage and update orchestrator context tracking.
-2. Read `context_budget.warning_level` from `current.yaml` (updated by `moira_budget_orchestrator_check` via `moira_state_agent_done`)
+2. Read `context_budget.warning_level` and `context_budget.orchestrator_percent` from `current.yaml` (updated by `moira_budget_orchestrator_check` via `moira_state_agent_done`). **CRITICAL: Always use `orchestrator_percent` from the script output — NEVER compute context percentage yourself. `total_agent_tokens` is a cost metric, NOT orchestrator context (agents run in separate context windows).**
 3. If level is `warning`: display the warning template above (checkpoint offered but optional)
 4. If level is `critical` (>60%): **mandatory checkpoint** — quality will degrade:
    - Call `moira_checkpoint_create <task_id> <current_step> context_limit`
@@ -789,7 +789,7 @@ Both write to `state/violations.log`. After each agent returns:
 
 After the final gate, display the full budget report. Generate from state data:
 1. Read `status.yaml` → `budget.by_agent` block for per-agent data
-2. Read `current.yaml` → `context_budget.*` for orchestrator data
+2. Read `current.yaml` → `context_budget.orchestrator_tokens_used` and `context_budget.orchestrator_percent` for orchestrator data. **Use these script-computed values directly — do NOT substitute `total_agent_tokens` (that's a separate cost metric for subagent sessions).**
 3. Format using the budget report table template in `gates.md` (Budget Report Section)
 4. Per-agent status emoji: ✅ (<50%), ⚠ (50-70%), 🔴 (>70%)
 5. Token values formatted as `{N}k` (divide by 1000, round)

@@ -256,7 +256,9 @@ moira_budget_record_agent() {
 }
 
 # ── moira_budget_orchestrator_check [state_dir] ──────────────────────
-# Check orchestrator context health using proxy estimation (D-058).
+# Check orchestrator context health (D-058, D-177).
+# Reads real token usage from transcript (written by budget-track.sh hook).
+# Falls back to proxy formula if no real data available.
 # Updates current.yaml and outputs key-value pairs.
 moira_budget_orchestrator_check() {
   local state_dir="${1:-.claude/moira/state}"
@@ -269,30 +271,38 @@ moira_budget_orchestrator_check() {
     return 0
   fi
 
-  # Read agent tokens added to orchestrator context
-  local agent_tokens
-  agent_tokens=$(moira_yaml_get "$current_file" "context_budget.total_agent_tokens" 2>/dev/null) || true
-  agent_tokens=${agent_tokens:-0}
+  local estimated_tokens=0
+  local percentage=0
 
-  # Count history entries (steps completed)
-  local history_count=0
-  if grep -q "^history:" "$current_file" 2>/dev/null; then
-    history_count=$(grep -c "^  - step:" "$current_file" 2>/dev/null) || true
+  # Primary: read real context usage from transcript (D-177)
+  # Written by budget-track.sh PostToolUse hook from session transcript
+  local actual_file="${state_dir}/context-actual-tokens.txt"
+  if [[ -f "$actual_file" ]]; then
+    local actual_tokens
+    actual_tokens=$(cat "$actual_file" 2>/dev/null | tr -d '[:space:]') || true
+    if [[ -n "$actual_tokens" && "$actual_tokens" -gt 0 ]] 2>/dev/null; then
+      estimated_tokens=$actual_tokens
+      percentage=$(( estimated_tokens * 100 / _MOIRA_BUDGET_ORCHESTRATOR_CAPACITY ))
+    fi
   fi
 
-  # Count gate interactions from status.yaml gate entries
-  local gate_count=0
-  local task_id
-  task_id=$(moira_yaml_get "$current_file" "task_id" 2>/dev/null) || true
-  if [[ -n "$task_id" && -f "${state_dir}/tasks/${task_id}/status.yaml" ]]; then
-    gate_count=$(grep -c "^  - gate:" "${state_dir}/tasks/${task_id}/status.yaml" 2>/dev/null) || true
+  # Fallback: proxy formula (D-058) when no transcript data
+  if [[ "$estimated_tokens" -eq 0 ]]; then
+    local history_count=0
+    if grep -q "^history:" "$current_file" 2>/dev/null; then
+      history_count=$(grep -c "^  - step:" "$current_file" 2>/dev/null) || true
+    fi
+
+    local gate_count=0
+    local task_id
+    task_id=$(moira_yaml_get "$current_file" "task_id" 2>/dev/null) || true
+    if [[ -n "$task_id" && -f "${state_dir}/tasks/${task_id}/status.yaml" ]]; then
+      gate_count=$(grep -c "^  - gate:" "${state_dir}/tasks/${task_id}/status.yaml" 2>/dev/null) || true
+    fi
+
+    estimated_tokens=$(( _MOIRA_BUDGET_ORCH_BASE_OVERHEAD + (history_count * _MOIRA_BUDGET_ORCH_PER_STEP) + (gate_count * _MOIRA_BUDGET_ORCH_PER_GATE) + (history_count * _MOIRA_BUDGET_ORCH_PER_AGENT_RETURN) ))
+    percentage=$(( estimated_tokens * 100 / _MOIRA_BUDGET_ORCHESTRATOR_CAPACITY ))
   fi
-
-  # Calculate estimated orchestrator tokens
-  # Estimate agent return summary size in orchestrator context (per-step fixed estimate, not actual agent tokens)
-  local estimated_tokens=$(( _MOIRA_BUDGET_ORCH_BASE_OVERHEAD + (history_count * _MOIRA_BUDGET_ORCH_PER_STEP) + (gate_count * _MOIRA_BUDGET_ORCH_PER_GATE) + (history_count * _MOIRA_BUDGET_ORCH_PER_AGENT_RETURN) ))
-
-  local percentage=$(( estimated_tokens * 100 / _MOIRA_BUDGET_ORCHESTRATOR_CAPACITY ))
 
   # Determine level (from context-budget.md / self-monitoring.md)
   # Values must match current.schema.yaml warning_level enum: [normal, monitor, warning, critical]

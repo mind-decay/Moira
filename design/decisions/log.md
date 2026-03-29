@@ -1742,3 +1742,15 @@ Total: 9 hooks across 6 event types (PreToolUse, PostToolUse, Stop, SessionStart
 - CronCreate for periodic self-checks (prompt-based, not structural)
 - Skill frontmatter hooks (cleaner scoping but requires refactoring install process — deferred)
 **Reasoning:** Each hook addresses a specific failure mode with the minimum mechanism that provides structural guarantees. Guard-prevent closes the last detection-only gap. Compact-reinject prevents drift after compaction. Agent-inject ensures minimum prompt quality. Agent-output-validate enforces response contract.
+
+## D-177: Orchestrator Context — Real Token Usage from Transcript
+
+**Date:** 2026-03-29
+**Status:** accepted
+**Context:** Moira's orchestrator context percentage diverged from the Claude Code statusline (~50% reported vs ~7-15% actual). Root cause: the orchestrator LLM used `total_agent_tokens` (cumulative subagent cost metric) as context usage instead of `orchestrator_percent` computed by the proxy formula. D-146 decoupled agent tokens from the formula, but the behavioral bug persisted. Additionally, the proxy formula (D-058) gives ~3% for typical pipelines — also inaccurate, just in the other direction.
+**Decision:** Read real context usage from the session transcript JSONL. The `budget-track.sh` PostToolUse hook receives `transcript_path`, extracts `input_tokens + cache_creation_input_tokens + cache_read_input_tokens` from the last assistant message, and writes to `context-actual-tokens.txt`. `moira_budget_orchestrator_check()` reads this file first, falls back to the D-058 proxy formula when no transcript data is available. Orchestrator prompt updated to explicitly use script-computed `orchestrator_percent`, never self-compute from `total_agent_tokens`.
+**Alternatives rejected:**
+- Recalibrate proxy formula constants — still an approximation, can't match statusline across varying workloads
+- Remove context tracking entirely — loses checkpoint/warning functionality
+- Parse transcript in budget.sh directly — budget.sh doesn't have transcript path, hooks do
+**Reasoning:** The transcript already contains the exact same API usage data that the statusline displays. Extracting it via the existing PostToolUse hook is minimal additional work and gives ground-truth values instead of estimates.

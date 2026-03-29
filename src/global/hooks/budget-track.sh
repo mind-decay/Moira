@@ -67,4 +67,22 @@ esac
 # --- Log to budget-tool-usage.log ---
 echo "$timestamp $tool_name ${file_path:--} ${file_size:-0}" >> "$state_dir/budget-tool-usage.log" 2>/dev/null || true
 
+# --- Extract real context usage from transcript (D-177) ---
+if command -v jq &>/dev/null; then
+  transcript_path=$(echo "$input" | jq -r '.transcript_path // empty' 2>/dev/null) || transcript_path=""
+  if [[ -n "$transcript_path" && -f "$transcript_path" ]]; then
+    # Last assistant message has current context usage
+    usage_json=$(grep '"usage"' "$transcript_path" 2>/dev/null | tail -1 | jq -r '.message.usage // empty' 2>/dev/null) || usage_json=""
+    if [[ -n "$usage_json" ]]; then
+      input_tok=$(echo "$usage_json" | jq -r '.input_tokens // 0' 2>/dev/null) || input_tok=0
+      cache_create=$(echo "$usage_json" | jq -r '.cache_creation_input_tokens // 0' 2>/dev/null) || cache_create=0
+      cache_read=$(echo "$usage_json" | jq -r '.cache_read_input_tokens // 0' 2>/dev/null) || cache_read=0
+      total=$(( input_tok + cache_create + cache_read ))
+      if [[ "$total" -gt 0 ]]; then
+        echo "$total" > "$state_dir/context-actual-tokens.txt" 2>/dev/null || true
+      fi
+    fi
+  fi
+fi
+
 exit 0
