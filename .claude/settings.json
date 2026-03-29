@@ -1,5 +1,15 @@
 {
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/task-submit.sh"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "",
@@ -30,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/moira/hooks/pipeline-compliance.sh"
+            "command": "bash ~/.claude/moira/hooks/pipeline-dispatch.sh"
           }
         ]
       },
@@ -81,6 +91,20 @@
           {
             "type": "command",
             "command": "bash ~/.claude/moira/hooks/agent-output-validate.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/agent-done.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/session-cleanup.sh"
           }
         ]
       }

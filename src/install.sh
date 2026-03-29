@@ -81,6 +81,8 @@ install_global() {
     cp -f "$SCRIPT_DIR/global/hooks/"* "$MOIRA_HOME/hooks/" 2>/dev/null || true
     chmod +x "$MOIRA_HOME/hooks/"*.sh 2>/dev/null || true
   fi
+  # Remove superseded hooks (D-178: pipeline-compliance.sh replaced by pipeline-dispatch.sh)
+  rm -f "$MOIRA_HOME/hooks/pipeline-compliance.sh" 2>/dev/null || true
   # Copy knowledge templates (Phase 4)
   if [[ -d "$SCRIPT_DIR/global/templates/knowledge" ]]; then
     mkdir -p "$MOIRA_HOME/templates/knowledge"
@@ -211,7 +213,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh reflection.sh judge.sh metrics.sh audit.sh retry.sh checkpoint.sh epic.sh upgrade.sh graph.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh task-init.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh reflection.sh judge.sh metrics.sh audit.sh retry.sh checkpoint.sh epic.sh upgrade.sh graph.sh; do
     ((checks_total++)) || true
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then

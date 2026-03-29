@@ -1754,3 +1754,21 @@ Total: 9 hooks across 6 event types (PreToolUse, PostToolUse, Stop, SessionStart
 - Remove context tracking entirely — loses checkpoint/warning functionality
 - Parse transcript in budget.sh directly — budget.sh doesn't have transcript path, hooks do
 **Reasoning:** The transcript already contains the exact same API usage data that the statusline displays. Extracting it via the existing PostToolUse hook is minimal additional work and gives ground-truth values instead of estimates.
+
+## D-178: State Management Automation — Hook-Driven State Writes
+
+**Date:** 2026-03-29
+**Status:** accepted
+**Context:** The orchestrator spends ~12-18k tokens per pipeline on mechanical YAML Read/Write operations for state management. Shell libraries (state.sh, budget.sh) define canonical state logic, but the orchestrator cannot call them (Bash is not an allowed tool — Art 1.1). Instead, it reads .sh files as reference and reproduces the same logic via Read/Write — a fragile, error-prone, context-expensive pattern.
+**Decision:** Move mechanical state operations into Claude Code hooks that fire automatically:
+- `task-submit.sh` (UserPromptSubmit): detects `/moira:task` prefix, scaffolds task directory and all initial state files (manifest.yaml, status.yaml, input.md, current.yaml, session-lock, guard-active) via `task-init.sh` shell library. Injects task_id into orchestrator context.
+- `pipeline-dispatch.sh` (PreToolUse:Agent): replaces `pipeline-compliance.sh` — validates step transitions (L1/L2/L3 as before) AND auto-writes step/step_status to current.yaml via state.sh. Writes `dispatched_role` to tracker state for agent-done.sh.
+- `agent-done.sh` (SubagentStop): reads dispatched_role from tracker, extracts STATUS/SUMMARY from agent output, records completion in current.yaml history and budget via `moira_state_agent_done()`. Injects budget state (orchestrator_percent, warning_level) as additionalContext.
+- `session-cleanup.sh` (SessionEnd): cleans up session-lock, guard-active, pipeline-tracker.state on completed/checkpointed exit. Marks lock as stale on abnormal exit.
+Gate recording stays manual — no hookable event for user gate decisions. Open question resolution: SubagentStop fires before PostToolUse(Agent), so pipeline-dispatch.sh writes `dispatched_role` in PreToolUse for agent-done.sh to read in SubagentStop. pipeline-compliance.sh merged into pipeline-dispatch.sh to avoid two PreToolUse(Agent) processes.
+**Prerequisites fixed:** Two latent bugs in `moira_yaml_block_append` — AWK `-v` newline limitation (replaced with ENVIRON) and `[]` not replaced before append (added sed pre-processing). Both were latent (no runtime caller used block_append) but blocked the automation work.
+**Alternatives rejected:**
+- Prompt-based hooks (type: "prompt") for state decisions — state writes are deterministic, not judgmental
+- MCP server for state management — overkill; hooks are simpler and synchronous
+- Keep all state manual — wastes ~12k tokens/pipeline on mechanical bookkeeping
+**Reasoning:** Hooks provide structural guarantees that prompts cannot. State transitions always happen correctly regardless of orchestrator context quality. Saves ~12k tokens per pipeline (~25% of a quick pipeline budget). The orchestrator focuses on decisions (gates, errors, routing) while hooks handle bookkeeping.

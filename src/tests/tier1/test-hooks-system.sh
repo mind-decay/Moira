@@ -119,13 +119,16 @@ fi
 # ═══════════════════════════════════════════════════════════════════════
 
 COMPLIANCE_HOOKS=(
-  "pipeline-compliance.sh"
+  "pipeline-dispatch.sh"
   "pipeline-tracker.sh"
   "pipeline-stop-guard.sh"
   "guard-prevent.sh"
   "compact-reinject.sh"
   "agent-inject.sh"
   "agent-output-validate.sh"
+  "agent-done.sh"
+  "session-cleanup.sh"
+  "task-submit.sh"
 )
 
 for hook in "${COMPLIANCE_HOOKS[@]}"; do
@@ -140,13 +143,13 @@ for hook in "${COMPLIANCE_HOOKS[@]}"; do
 done
 
 # Structural checks for key hooks
-assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "permissionDecision" "pipeline-compliance.sh: can DENY dispatches"
-assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "review_pending" "pipeline-compliance.sh: enforces review"
-assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "quick:classifier" "pipeline-compliance.sh: has quick transition table"
-assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "standard:classifier" "pipeline-compliance.sh: has standard transition table"
-assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "full:classifier" "pipeline-compliance.sh: has full transition table"
-assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "decomposition:classifier" "pipeline-compliance.sh: has decomposition transition table"
-assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "analytical:classifier" "pipeline-compliance.sh: has analytical transition table"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "permissionDecision" "pipeline-dispatch.sh: can DENY dispatches"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "review_pending" "pipeline-dispatch.sh: enforces review"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "quick:classifier" "pipeline-dispatch.sh: has quick transition table"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "standard:classifier" "pipeline-dispatch.sh: has standard transition table"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "full:classifier" "pipeline-dispatch.sh: has full transition table"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "decomposition:classifier" "pipeline-dispatch.sh: has decomposition transition table"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "analytical:classifier" "pipeline-dispatch.sh: has analytical transition table"
 
 assert_file_contains "$MOIRA_HOME/hooks/pipeline-tracker.sh" "pipeline-tracker.state" "pipeline-tracker.sh: writes tracker state"
 assert_file_contains "$MOIRA_HOME/hooks/pipeline-tracker.sh" "additionalContext" "pipeline-tracker.sh: injects guidance"
@@ -162,6 +165,16 @@ assert_file_contains "$MOIRA_HOME/hooks/agent-output-validate.sh" "STATUS:" "age
 
 assert_file_contains "$MOIRA_HOME/hooks/compact-reinject.sh" "CONTEXT RECOVERY" "compact-reinject.sh: injects context recovery"
 
+# State automation hooks (D-178)
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "moira_state_transition" "pipeline-dispatch.sh: writes step transition"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "dispatched_role" "pipeline-dispatch.sh: writes dispatched_role"
+assert_file_contains "$MOIRA_HOME/hooks/agent-done.sh" "moira_state_agent_done" "agent-done.sh: records agent completion"
+assert_file_contains "$MOIRA_HOME/hooks/agent-done.sh" "dispatched_role" "agent-done.sh: reads dispatched_role"
+assert_file_contains "$MOIRA_HOME/hooks/session-cleanup.sh" "guard-active" "session-cleanup.sh: cleans guard marker"
+assert_file_contains "$MOIRA_HOME/hooks/session-cleanup.sh" "session-lock" "session-cleanup.sh: cleans session lock"
+assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "moira_task_init" "task-submit.sh: scaffolds task"
+assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "MOIRA TASK INITIALIZED" "task-submit.sh: injects task_id"
+
 # ═══════════════════════════════════════════════════════════════════════
 # Hook functional tests (basic)
 # ═══════════════════════════════════════════════════════════════════════
@@ -170,13 +183,16 @@ assert_file_contains "$MOIRA_HOME/hooks/compact-reinject.sh" "CONTEXT RECOVERY" 
 ALL_HOOKS=(
   "guard.sh"
   "budget-track.sh"
-  "pipeline-compliance.sh"
+  "pipeline-dispatch.sh"
   "pipeline-tracker.sh"
   "pipeline-stop-guard.sh"
   "guard-prevent.sh"
   "compact-reinject.sh"
   "agent-inject.sh"
   "agent-output-validate.sh"
+  "agent-done.sh"
+  "session-cleanup.sh"
+  "task-submit.sh"
 )
 
 for hook in "${ALL_HOOKS[@]}"; do
