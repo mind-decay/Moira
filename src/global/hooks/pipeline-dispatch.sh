@@ -191,7 +191,12 @@ if [[ -n "$last_role" ]]; then
       esac
 
       if [[ -n "$valid" ]] && ! echo ",$valid," | grep -q ",$role,"; then
-        deny "PIPELINE COMPLIANCE: Invalid step transition in $pipeline pipeline. After $last_role, valid next agents are: [$valid]. You are trying to dispatch $role which is not in the allowed sequence. Follow the pipeline step order."
+        local hint=""
+        # Contextual guidance for common mis-transitions
+        if [[ "$last_role" == "reviewer" && "$role" == "implementer" ]]; then
+          hint=" To fix critical review findings, dispatch classifier to restart the subtask cycle — it will route back through implementer with proper context for the fix."
+        fi
+        deny "PIPELINE COMPLIANCE: Invalid step transition in $pipeline pipeline. After $last_role, valid next agents are: [$valid]. You are trying to dispatch $role which is not in the allowed sequence.${hint}"
       fi
     }
   }
