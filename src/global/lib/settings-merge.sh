@@ -52,7 +52,7 @@ moira_settings_merge_hooks() {
         ]
       },
       {
-        "matcher": "Read|Write",
+        "matcher": "Read|Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -315,7 +315,7 @@ _moira_settings_merge_fallback() {
         ]
       },
       {
-        "matcher": "Read|Write",
+        "matcher": "Read|Write|Edit",
         "hooks": [
           {
             "type": "command",

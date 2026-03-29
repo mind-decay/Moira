@@ -70,7 +70,7 @@ if [[ -f "$state_dir/current.yaml" ]]; then
   existing_task=$(grep '^task_id:' "$state_dir/current.yaml" 2>/dev/null | sed 's/^task_id:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
   existing_status=$(grep '^step_status:' "$state_dir/current.yaml" 2>/dev/null | sed 's/^step_status:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
 
-  if [[ -n "$existing_task" && "$existing_task" != "null" && "$existing_status" == "in_progress" ]]; then
+  if [[ -n "$existing_task" && "$existing_task" != "null" && ( "$existing_status" == "in_progress" || "$existing_status" == "pending" ) ]]; then
     # Active pipeline — don't overwrite, let orchestrator handle
     exit 0
   fi

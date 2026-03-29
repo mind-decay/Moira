@@ -23,7 +23,7 @@ Also injects `permissions.allow` for `/.claude/moira/**` (Read/Write/Edit) so su
 |------|-------|------|---------|
 | `task-submit.sh` | UserPromptSubmit | Inject | Task initialization on prompt submit |
 | `pipeline-dispatch.sh` | PreToolUse (Agent) | DENY | Per-pipeline transition table enforcement |
-| `guard-prevent.sh` | PreToolUse (Read\|Write) | DENY | Block orchestrator access to project files |
+| `guard-prevent.sh` | PreToolUse (Read\|Write\|Edit) | DENY | Block orchestrator access to project files |
 | `guard.sh` | PostToolUse (all) | Audit | Violation detection + tool usage logging |
 | `budget-track.sh` | PostToolUse (all) | Audit | Token usage tracking |
 | `graph-update.sh` | PostToolUse (Write\|Edit) | Inject | Incremental graph update on file changes |
@@ -64,15 +64,17 @@ Transition tables cover all 5 pipeline types (quick, standard, full, decompositi
 - Parallel dispatches (standard/full: explorer+analyst)
 - Repeatable groups (full: phase cycles, decomposition: sub-tasks)
 - Error recovery (architect/planner always allowed as re-entry points)
+- E5-QUALITY retry (reviewer/tester → implementer for defect fixes)
 - Retry (same role dispatch always allowed)
+- Analytical pipeline dynamic roles (`analytical_primary`, `analytical_organizer`)
 
-`pipeline-tracker.sh` (PostToolUse Agent) tracks dispatched roles and injects next-step guidance into orchestrator context after each dispatch.
+`pipeline-tracker.sh` (PostToolUse Agent) tracks dispatched roles and injects next-step guidance into orchestrator context after each dispatch. Uses **per-subtask state isolation** in decomposition pipeline: each sub-task gets its own state file (`pipeline-tracker-sub-{N}.state`) for `last_role`, `review_pending`, `test_pending`, preventing one sub-task's pending flags from blocking another sub-task's dispatches.
 
-`pipeline-stop-guard.sh` (Stop) prevents pipeline completion while review or testing is pending.
+`pipeline-stop-guard.sh` (Stop) prevents pipeline completion while review or testing is pending. In decomposition mode, checks ALL per-subtask state files.
 
-#### Layer 2b: Boundary Enforcement (PreToolUse Read|Write)
+#### Layer 2b: Boundary Enforcement (PreToolUse Read|Write|Edit)
 
-`guard-prevent.sh` DENY orchestrator Read/Write on files outside `.claude/moira/` and `.ariadne/`. Upgrades guard.sh from detection-only to prevention. Orchestrator content never enters context.
+`guard-prevent.sh` DENY orchestrator Read/Write/Edit on files outside `.claude/moira/` and `.ariadne/`. Upgrades guard.sh from detection-only to prevention. Orchestrator content never enters context. Denied operations are logged to `violations.log`.
 
 `guard.sh` (PostToolUse) remains for audit logging — logs all tool usage and detects violations after the fact.
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Guard Prevent — PreToolUse hook for Read/Write boundary enforcement
+# Guard Prevent — PreToolUse hook for Read/Write/Edit boundary enforcement
 # DENY orchestrator access to project files outside .claude/moira/ and .ariadne/
 # Upgrades guard.sh from detection (PostToolUse) to prevention (PreToolUse).
 # Part of Pipeline Compliance system (D-175).
 #
-# Fires: PreToolUse (matcher: Read|Write)
+# Fires: PreToolUse (matcher: Read|Write|Edit)
 # Can output: permissionDecision=deny to block file access
 #
 # guard.sh (PostToolUse) remains for audit logging — this hook adds blocking.
@@ -22,9 +22,9 @@ else
   file_path=$(echo "$input" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"file_path"[[:space:]]*:[[:space:]]*"//;s/"$//' 2>/dev/null) || file_path=""
 fi
 
-# Only process Read and Write
+# Only process Read, Write, and Edit
 case "$tool_name" in
-  Read|Write) ;;
+  Read|Write|Edit) ;;
   *) exit 0 ;;
 esac
 
@@ -66,17 +66,17 @@ case "$file_path" in
   *".ariadne/"*)
     case "$tool_name" in
       Read) exit 0 ;; # read graph data — allowed
-      Write)
+      Write|Edit)
         # Writing to .ariadne/ is only for ariadne CLI, not orchestrator
         echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"BOUNDARY VIOLATION (Art 1.2): Orchestrator cannot write to .ariadne/ — only Ariadne CLI writes graph data.\"}}"
         exit 0
         ;;
     esac
     ;;
-  "$HOME/.claude/moira/"*|"$HOME/.claude/moira"*)
+  "$HOME/.claude/moira/"*)
     case "$tool_name" in
       Read) exit 0 ;; # read global core definitions — allowed
-      Write)
+      Write|Edit)
         echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"BOUNDARY VIOLATION: Orchestrator cannot write to global Moira installation (~/.claude/moira/). Global files are read-only.\"}}"
         exit 0
         ;;
@@ -84,7 +84,10 @@ case "$file_path" in
     ;;
 esac
 
-# Any other path — DENY
+# Any other path — DENY and log
+timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || timestamp="unknown"
+echo "$timestamp DENIED $tool_name $file_path" >> "$state_dir/violations.log" 2>/dev/null || true
+
 local_escaped=$(echo "$file_path" | sed 's/\\/\\\\/g; s/"/\\"/g' 2>/dev/null) || local_escaped="$file_path"
 echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"BOUNDARY VIOLATION (Art 1.1): Orchestrator cannot $tool_name project file $local_escaped. Use agents for project file operations. Dispatch Hermes (explorer) to read or Hephaestus (implementer) to write.\"}}"
 exit 0

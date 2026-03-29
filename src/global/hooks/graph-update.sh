@@ -44,6 +44,6 @@ case "$file_path" in
 esac
 
 # --- Run incremental update ---
-ariadne update "$project_root" >/dev/null 2>&1 || true
+timeout 10 ariadne update "$project_root" >/dev/null 2>&1 || true
 
 exit 0

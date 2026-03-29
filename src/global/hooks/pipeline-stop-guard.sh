@@ -43,8 +43,23 @@ fi
 tracker_file="$state_dir/pipeline-tracker.state"
 [[ ! -f "$tracker_file" ]] && exit 0
 
-review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+subtask_mode=$(grep '^subtask_mode=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+
+# Per-subtask state: check ALL active subtask files for pending flags
+review_pending="false"
+test_pending="false"
+if [[ "$subtask_mode" == "true" ]]; then
+  for sub_file in "$state_dir"/pipeline-tracker-sub-*.state; do
+    [[ -f "$sub_file" ]] || continue
+    sub_review=$(grep '^review_pending=' "$sub_file" 2>/dev/null | cut -d= -f2) || true
+    sub_test=$(grep '^test_pending=' "$sub_file" 2>/dev/null | cut -d= -f2) || true
+    [[ "$sub_review" == "true" ]] && review_pending="true"
+    [[ "$sub_test" == "true" ]] && test_pending="true"
+  done
+else
+  review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+  test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+fi
 
 # --- Block stop if mandatory steps are pending ---
 if [[ "$review_pending" == "true" ]]; then

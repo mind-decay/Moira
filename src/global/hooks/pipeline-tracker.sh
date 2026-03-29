@@ -48,7 +48,7 @@ state_dir=$(find_state_dir) || exit 0
 
 # --- Extract agent role from description ---
 # Moira format: "Name (role) — description"
-role=$(echo "$description" | grep -oE '\([a-z]+\)' | head -1 | tr -d '()' 2>/dev/null) || true
+role=$(echo "$description" | grep -oE '\([a-z_]+\)' | head -1 | tr -d '()' 2>/dev/null) || true
 
 # No role = not a standard Moira dispatch (completion processor, scanner, etc.)
 [[ -z "$role" ]] && exit 0
@@ -68,16 +68,31 @@ fi
 # --- Tracker state file ---
 tracker_file="$state_dir/pipeline-tracker.state"
 
-# Read current state (defaults if file doesn't exist)
+# Read current global state (defaults if file doesn't exist)
 last_role=""
 review_pending="false"
 test_pending="false"
 subtask_mode="false"
+current_subtask=""
+subtask_counter="0"
 if [[ -f "$tracker_file" ]]; then
-  last_role=$(grep '^last_role=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
   subtask_mode=$(grep '^subtask_mode=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+  current_subtask=$(grep '^current_subtask=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+  subtask_counter=$(grep '^subtask_counter=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+
+  # Per-subtask state isolation: read from per-subtask file when in subtask mode
+  if [[ "$subtask_mode" == "true" && -n "$current_subtask" ]]; then
+    subtask_file="$state_dir/pipeline-tracker-sub-${current_subtask}.state"
+    if [[ -f "$subtask_file" ]]; then
+      last_role=$(grep '^last_role=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+      review_pending=$(grep '^review_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+      test_pending=$(grep '^test_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+    fi
+  else
+    last_role=$(grep '^last_role=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+    review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+    test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+  fi
 fi
 
 # --- Compute new state ---
@@ -109,10 +124,14 @@ case "$role" in
     new_review_pending="false"
     new_test_pending="false"
     ;;
-  architect|planner)
+  architect|planner|analytical_primary|analytical_organizer)
     # Re-architecture/re-plan invalidates previous implementation
     new_review_pending="false"
     new_test_pending="false"
+    ;;
+  scribe)
+    # Synthesis complete — review is required next
+    new_review_pending="true"
     ;;
 esac
 
@@ -120,29 +139,56 @@ esac
 # subtask_mode activates on the first classifier AFTER the main-level planner,
 # not on the planner itself — so compliance uses decomposition transitions for
 # the dispatch immediately following planner (must be classifier or tester).
+new_subtask_counter="$subtask_counter"
+new_current_subtask="$current_subtask"
+
 if [[ "$pipeline" == "decomposition" ]]; then
   if [[ "$role" == "classifier" && "$last_role" == "planner" && "$subtask_mode" != "true" ]]; then
     # First sub-task classifier dispatched after main-level planner
     new_subtask_mode="true"
+    new_subtask_counter="1"
+    new_current_subtask="1"
+  elif [[ "$subtask_mode" == "true" && "$role" == "classifier" && "$last_role" != "planner" ]]; then
+    # New sub-task starting (classifier after previous sub-task's tester/completion)
+    new_subtask_counter=$(( subtask_counter + 1 ))
+    new_current_subtask="$new_subtask_counter"
   fi
 fi
 
 # --- Write tracker state ---
+# Global state file: pipeline-level fields
 cat > "$tracker_file" 2>/dev/null << EOF
 active=true
 pipeline=$pipeline
+subtask_mode=$new_subtask_mode
+subtask_counter=$new_subtask_counter
+current_subtask=$new_current_subtask
+EOF
+
+# Per-subtask or global role/pending state
+if [[ "$new_subtask_mode" == "true" && -n "$new_current_subtask" ]]; then
+  # Write per-subtask state file
+  subtask_state_file="$state_dir/pipeline-tracker-sub-${new_current_subtask}.state"
+  cat > "$subtask_state_file" 2>/dev/null << EOF
 last_role=$role
 review_pending=$new_review_pending
 test_pending=$new_test_pending
-subtask_mode=$new_subtask_mode
 EOF
+else
+  # Non-decomposition: append role/pending to global state file
+  cat >> "$tracker_file" 2>/dev/null << EOF
+last_role=$role
+review_pending=$new_review_pending
+test_pending=$new_test_pending
+EOF
+fi
 
 # --- Inject next-step guidance via additionalContext ---
 guidance=""
 
 # Determine effective pipeline for guidance
 eff_pipeline="$pipeline"
-if [[ "$pipeline" == "decomposition" && "$new_subtask_mode" == "true" && "$role" != "planner" ]]; then
+if [[ "$pipeline" == "decomposition" && "$new_subtask_mode" == "true" && "$role" != "planner" && -n "$new_current_subtask" ]]; then
   eff_pipeline="decomposition_sub"
 fi
 
@@ -166,7 +212,7 @@ case "$role" in
       quick)
         guidance="Pipeline compliance: Exploration complete. Next: dispatch Hephaestus (implementer)." ;;
       decomposition_sub)
-        guidance="Pipeline compliance: Exploration complete. Next: dispatch Metis (architect), or Hephaestus (implementer) if sub-task is quick pipeline." ;;
+        guidance="Pipeline compliance: Exploration complete. Next: dispatch Metis (architect), or wait for parallel Athena (analyst)." ;;
       analytical)
         guidance="Pipeline compliance: Gathering complete. Next: dispatch Athena (analyst) for scope formalization." ;;
       *)
@@ -182,6 +228,12 @@ case "$role" in
       *)
         guidance="Pipeline compliance: Analysis complete. Proceed to Metis (architect), or wait for parallel Hermes (explorer)." ;;
     esac
+    ;;
+  analytical_primary)
+    guidance="Pipeline compliance: Analysis step complete. Next: dispatch Themis (reviewer) for depth checkpoint."
+    ;;
+  analytical_organizer)
+    guidance="Pipeline compliance: Organize step complete. Next: dispatch Calliope (scribe) for synthesis."
     ;;
   architect)
     case "$eff_pipeline" in

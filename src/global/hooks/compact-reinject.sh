@@ -50,11 +50,24 @@ last_role=""
 review_pending="false"
 test_pending="false"
 subtask_mode="false"
+current_subtask=""
 if [[ -f "$tracker_file" ]]; then
-  last_role=$(grep '^last_role=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
   subtask_mode=$(grep '^subtask_mode=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+  current_subtask=$(grep '^current_subtask=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+
+  # Per-subtask state isolation
+  if [[ "$subtask_mode" == "true" && -n "$current_subtask" ]]; then
+    subtask_file="$state_dir/pipeline-tracker-sub-${current_subtask}.state"
+    if [[ -f "$subtask_file" ]]; then
+      last_role=$(grep '^last_role=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+      review_pending=$(grep '^review_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+      test_pending=$(grep '^test_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+    fi
+  else
+    last_role=$(grep '^last_role=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+    review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+    test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+  fi
 fi
 
 # --- Build re-injection message ---
@@ -72,11 +85,12 @@ if [[ "$pipeline" == "decomposition" && "$subtask_mode" == "true" ]]; then
 fi
 
 msg="$msg CRITICAL RULES: You are a pure orchestrator — NEVER read/write project files directly. Dispatch agents for all work. Follow the pipeline step sequence. Present all required gates."
-msg="$msg Read the orchestrator skill: ~/.claude/moira/skills/orchestrator.md and the current pipeline definition: ~/.claude/moira/core/pipelines/$pipeline.yaml"
+moira_home="${MOIRA_HOME:-$HOME/.claude/moira}"
+msg="$msg Read the orchestrator skill: $moira_home/skills/orchestrator.md and the current pipeline definition: $moira_home/core/pipelines/$pipeline.yaml"
 
 # --- Ariadne graph context (re-inject after compaction) ---
 if command -v ariadne &>/dev/null; then
-  graph_overview=$(ariadne query overview --project "$PWD" 2>/dev/null) || true
+  graph_overview=$(timeout 10 ariadne query overview --project "$PWD" 2>/dev/null) || true
   if [[ -n "$graph_overview" ]]; then
     # Extract key stats for compact injection
     if command -v jq &>/dev/null; then

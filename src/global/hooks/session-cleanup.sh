@@ -41,6 +41,7 @@ case "$step_status" in
     rm -f "$state_dir/.session-lock" 2>/dev/null || true
     rm -f "$state_dir/.guard-active" 2>/dev/null || true
     rm -f "$state_dir/pipeline-tracker.state" 2>/dev/null || true
+    rm -f "$state_dir/pipeline-tracker-sub-*.state" 2>/dev/null || true
     ;;
   *)
     # Abnormal exit (in_progress, pending, failed, etc.)
@@ -51,6 +52,8 @@ case "$step_status" in
       rm -f "$state_dir/.session-lock.bak" 2>/dev/null || true
     fi
     # Leave .guard-active and tracker for /moira:resume
+    # Write stale marker so non-resume sessions can detect and clean up
+    echo "stale_since=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" > "$state_dir/.guard-stale" 2>/dev/null || true
     ;;
 esac
 

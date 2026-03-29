@@ -58,8 +58,6 @@ fi
 # --- Config check: hooks.guard_enabled ---
 config_file="${state_dir%/state}/config.yaml"
 if [[ -f "$config_file" ]]; then
-  guard_enabled=$(grep -A1 'guard_enabled' "$config_file" 2>/dev/null | tail -1 | grep -o 'false' 2>/dev/null) || true
-  # If config explicitly has guard_enabled followed by false on next line, or guard_enabled: false on same line
   guard_val=$(grep 'guard_enabled' "$config_file" 2>/dev/null | head -1) || true
   if [[ "$guard_val" == *"false"* ]]; then
     exit 0

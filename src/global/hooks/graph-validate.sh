@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Graph Validate — TaskCompleted hook
 # Checks structural health before allowing task completion.
-# Blocks (exit 2) if new cycles or critical architectural smells are detected.
+# Warns on cycles or critical architectural smells (exit 0 + stderr).
 #
 # Fires: TaskCompleted (no matcher support)
 # Reads: .ariadne/graph/ via ariadne CLI
-# Outputs: stderr message on block (exit 2), silent on pass (exit 0)
+# Outputs: stderr warning on issues, silent on pass (exit 0)
 #
 # MUST NOT crash — exits 0 on any infrastructure error (graceful degradation).
 
@@ -30,7 +30,7 @@ find_project_root() {
 project_root=$(find_project_root) || exit 0
 
 # --- Check for cycles ---
-cycles_output=$(ariadne query cycles --project "$project_root" 2>/dev/null) || exit 0
+cycles_output=$(timeout 15 ariadne query cycles --project "$project_root" 2>/dev/null) || exit 0
 
 cycle_count=0
 if command -v jq &>/dev/null; then
@@ -38,7 +38,7 @@ if command -v jq &>/dev/null; then
 fi
 
 # --- Check for critical smells ---
-smells_output=$(ariadne query smells --project "$project_root" 2>/dev/null) || exit 0
+smells_output=$(timeout 15 ariadne query smells --project "$project_root" 2>/dev/null) || exit 0
 
 critical_smells=0
 if command -v jq &>/dev/null; then
@@ -59,9 +59,6 @@ fi
 
 if [[ -n "$issues" ]]; then
   echo "STRUCTURAL HEALTH WARNING: ${issues}Review with ariadne query cycles/smells before completing." >&2
-  # Note: exit 2 would BLOCK completion. Using exit 0 + stderr as warning for now.
-  # Uncomment the line below to enforce blocking:
-  # exit 2
 fi
 
 exit 0

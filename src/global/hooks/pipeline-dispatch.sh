@@ -53,7 +53,7 @@ state_dir=$(find_state_dir) || exit 0
 
 # --- Extract agent role from description ---
 # Moira format: "Name (role) — description"
-role=$(echo "$description" | grep -oE '\([a-z]+\)' | head -1 | tr -d '()' 2>/dev/null) || true
+role=$(echo "$description" | grep -oE '\([a-z_]+\)' | head -1 | tr -d '()' 2>/dev/null) || true
 [[ -z "$role" ]] && exit 0
 
 # Always-allowed roles (outside pipeline step sequence)
@@ -69,12 +69,25 @@ last_role=""
 review_pending="false"
 test_pending="false"
 subtask_mode="false"
+current_subtask=""
 if [[ -f "$tracker_file" ]]; then
   pipeline=$(grep '^pipeline=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  last_role=$(grep '^last_role=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
   subtask_mode=$(grep '^subtask_mode=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+  current_subtask=$(grep '^current_subtask=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+
+  # Per-subtask state isolation: in decomposition subtask mode, read from per-subtask file
+  if [[ "$subtask_mode" == "true" && -n "$current_subtask" ]]; then
+    subtask_file="$state_dir/pipeline-tracker-sub-${current_subtask}.state"
+    if [[ -f "$subtask_file" ]]; then
+      last_role=$(grep '^last_role=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+      review_pending=$(grep '^review_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+      test_pending=$(grep '^test_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+    fi
+  else
+    last_role=$(grep '^last_role=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+    review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+    test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+  fi
 fi
 
 # If no tracker yet, read pipeline from current.yaml
@@ -152,51 +165,54 @@ if [[ -n "$last_role" ]]; then
         quick:classifier)             valid="explorer" ;;
         quick:explorer)               valid="implementer" ;;
         quick:implementer)            valid="reviewer" ;;
-        quick:reviewer)               valid="" ;;
+        quick:reviewer)               valid="implementer" ;;
         standard:classifier)          valid="explorer,analyst" ;;
         standard:explorer)            valid="architect,analyst" ;;
         standard:analyst)             valid="architect,explorer" ;;
         standard:architect)           valid="planner" ;;
         standard:planner)             valid="implementer" ;;
         standard:implementer)         valid="implementer,reviewer" ;;
-        standard:reviewer)            valid="tester" ;;
-        standard:tester)              valid="" ;;
+        standard:reviewer)            valid="tester,implementer" ;;
+        standard:tester)              valid="implementer" ;;
         full:classifier)              valid="explorer,analyst" ;;
         full:explorer)                valid="architect,analyst" ;;
         full:analyst)                 valid="architect,explorer" ;;
         full:architect)               valid="planner" ;;
         full:planner)                 valid="implementer" ;;
         full:implementer)             valid="reviewer" ;;
-        full:reviewer)                valid="tester" ;;
+        full:reviewer)                valid="tester,implementer" ;;
         full:tester)                  valid="implementer,tester" ;;
         decomposition:classifier)     valid="analyst" ;;
         decomposition:analyst)        valid="architect" ;;
         decomposition:architect)      valid="planner" ;;
         decomposition:planner)        valid="classifier,tester" ;;
+        decomposition:tester)         valid="TERMINAL" ;;
         decomposition_sub:classifier) valid="explorer,analyst" ;;
-        decomposition_sub:explorer)   valid="implementer,architect,analyst" ;;
+        decomposition_sub:explorer)   valid="architect,analyst" ;;
         decomposition_sub:analyst)    valid="architect,explorer" ;;
         decomposition_sub:architect)  valid="planner" ;;
         decomposition_sub:planner)    valid="implementer" ;;
         decomposition_sub:implementer) valid="reviewer" ;;
-        decomposition_sub:reviewer)   valid="tester,classifier" ;;
+        decomposition_sub:reviewer)   valid="tester,classifier,implementer" ;;
         decomposition_sub:tester)     valid="classifier,tester" ;;
         analytical:classifier)        valid="explorer" ;;
         analytical:explorer)          valid="analyst" ;;
-        analytical:analyst)           valid="architect,explorer,analyst,reviewer,scribe" ;;
+        analytical:analyst)           valid="architect,explorer,analyst" ;;
+        analytical:analytical_primary) valid="reviewer" ;;
+        analytical:analytical_organizer) valid="scribe" ;;
         analytical:architect)         valid="analyst,reviewer,scribe" ;;
-        analytical:reviewer)          valid="analyst,architect,scribe" ;;
+        analytical:reviewer)          valid="analyst,architect,analytical_organizer,scribe" ;;
         analytical:scribe)            valid="reviewer" ;;
         *) ;; # Unknown state — allow
       esac
 
+      # TERMINAL = explicit dead end (deny all non-recovery transitions)
+      if [[ "$valid" == "TERMINAL" ]]; then
+        deny "PIPELINE COMPLIANCE: $last_role is a terminal step in $pipeline pipeline. No further agent dispatches expected. Proceed to final gate."
+      fi
+
       if [[ -n "$valid" ]] && ! echo ",$valid," | grep -q ",$role,"; then
-        local hint=""
-        # Contextual guidance for common mis-transitions
-        if [[ "$last_role" == "reviewer" && "$role" == "implementer" ]]; then
-          hint=" To fix critical review findings, dispatch classifier to restart the subtask cycle — it will route back through implementer with proper context for the fix."
-        fi
-        deny "PIPELINE COMPLIANCE: Invalid step transition in $pipeline pipeline. After $last_role, valid next agents are: [$valid]. You are trying to dispatch $role which is not in the allowed sequence.${hint}"
+        deny "PIPELINE COMPLIANCE: Invalid step transition in $pipeline pipeline. After $last_role, valid next agents are: [$valid]. You are trying to dispatch $role which is not in the allowed sequence."
       fi
     }
   }
@@ -229,11 +245,23 @@ case "$role" in
     fi ;;
   architect)
     if [[ "$pipeline" == "analytical" ]]; then
-      step="organize"
+      # organize step comes after depth_checkpoint/reviewer; analysis step comes after scope/analyst
+      if [[ "$last_role" == "reviewer" ]]; then
+        step="organize"
+      else
+        step="analysis"
+      fi
     else
       step="architecture"
     fi ;;
-  planner)      step="plan" ;;
+  analytical_primary)  step="analysis" ;;
+  analytical_organizer) step="organize" ;;
+  planner)
+    if [[ "$pipeline" == "decomposition" && "$subtask_mode" != "true" ]]; then
+      step="decomposition"
+    else
+      step="plan"
+    fi ;;
   implementer)  step="implementation" ;;
   reviewer)
     if [[ "$pipeline" == "analytical" ]]; then

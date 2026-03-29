@@ -26,8 +26,8 @@ else
   last_msg=$(echo "$input" | grep -o '"last_assistant_message"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"last_assistant_message"[[:space:]]*:[[:space:]]*"//;s/"$//' 2>/dev/null) || last_msg=""
 fi
 
-# Prevent re-entry
-[[ "$stop_hook_active" == "true" ]] && exit 0
+# Allow re-entry: agent-done must still record completion after agent-output-validate
+# blocks and the agent retries. Only agent-output-validate.sh skips on re-entry.
 
 # Skip built-in agent types
 case "$agent_type" in

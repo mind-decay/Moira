@@ -1799,3 +1799,18 @@ Gate recording stays manual — no hookable event for user gate decisions. Open 
 - Separate binary per command — unnecessary fragmentation, harder to maintain
 - Node.js/Python CLI — adds runtime dependency, Moira's principle is bash-only
 **Reasoning:** The CLI reuses 100% of existing shell libraries (yaml-utils, knowledge, metrics, graph). No code duplication. Users get sub-second response for status checks instead of waiting for LLM. The skill files remain for backward compatibility and for users who prefer the integrated experience.
+
+## D-181: Per-Subtask State Isolation in Pipeline Tracker
+
+**Date:** 2026-03-30
+**Status:** accepted
+**Context:** The pipeline tracker used a single global state file (`pipeline-tracker.state`) with one set of `last_role`, `review_pending`, `test_pending` flags. In decomposition pipelines with sequential (or parallel) sub-tasks, one sub-task's `review_pending=true` would block unrelated dispatches for another sub-task. E5-QUALITY retry paths (`reviewer �� implementer`) were also blocked across all 4 non-analytical pipelines because the Layer 3 transition tables didn't include implementer as a valid successor to reviewer/tester.
+**Decision:**
+- **Per-subtask state files**: When `subtask_mode=true`, each sub-task gets `pipeline-tracker-sub-{N}.state` for `last_role`, `review_pending`, `test_pending`. Global tracker retains pipeline-level fields (`pipeline`, `subtask_mode`, `subtask_counter`, `current_subtask`).
+- **E5-QUALITY transitions**: `reviewer → implementer` added to quick, standard, full, decomposition_sub transition tables. `tester → implementer` added to standard.
+- **Guard-prevent Edit coverage**: Added `Edit` to PreToolUse matcher (was only `Read|Write`), closing a boundary enforcement gap.
+- **TERMINAL sentinel**: Explicit terminal states use `valid="TERMINAL"` (deny all) vs `valid=""` (no rule = allow).
+**Alternatives rejected:**
+- Sections in one file — race conditions on concurrent write, complex parsing
+- Relax Layer 1/2 for decomposition — trades enforcement correctness for simplicity
+**Reasoning:** Per-subtask files are atomic (one writer per file), use the same `grep/cut` parsing as existing code, and scale to arbitrary subtask counts. The approach adds ~20 lines to each hook without architectural changes.
