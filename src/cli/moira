@@ -1,0 +1,982 @@
+#!/usr/bin/env bash
+# moira — Moira CLI for read-only commands (no LLM required)
+# Replaces skill-based invocation for: status, help, knowledge, metrics, graph, health
+#
+# Usage: moira <command> [args...]
+# Install: ln -sf "$(pwd)/src/cli/moira" ~/.local/bin/moira
+#
+# Bash 3.2+ compatible (macOS default)
+
+set -euo pipefail
+
+# ── Resolve paths ────────────────────────────────────────────────────────
+MOIRA_HOME="${MOIRA_HOME:-$HOME/.claude/moira}"
+MOIRA_LIB="${MOIRA_HOME}/lib"
+MOIRA_PROJECT_STATE=".claude/moira"
+MOIRA_CONFIG="${MOIRA_PROJECT_STATE}/config.yaml"
+
+# ── Color support ────────────────────────────────────────────────────────
+if [[ -t 1 ]] && command -v tput >/dev/null 2>&1; then
+  BOLD=$(tput bold)
+  DIM=$(tput dim)
+  RESET=$(tput sgr0)
+  GREEN=$(tput setaf 2)
+  YELLOW=$(tput setaf 3)
+  RED=$(tput setaf 1)
+  CYAN=$(tput setaf 6)
+else
+  BOLD="" DIM="" RESET="" GREEN="" YELLOW="" RED="" CYAN=""
+fi
+
+# ── Source libraries ─────────────────────────────────────────────────────
+_source_lib() {
+  local lib="$1"
+  if [[ -f "${MOIRA_LIB}/${lib}" ]]; then
+    source "${MOIRA_LIB}/${lib}"
+  else
+    echo "Error: library not found: ${MOIRA_LIB}/${lib}" >&2
+    echo "Is Moira installed? Run: ~/.claude/moira/ should exist." >&2
+    exit 1
+  fi
+}
+
+# ── Helpers ──────────────────────────────────────────────────────────────
+_check_init() {
+  if [[ ! -f "$MOIRA_CONFIG" ]]; then
+    echo "Moira is not initialized for this project."
+    echo "Run /moira:init first."
+    exit 1
+  fi
+}
+
+_version() {
+  if [[ -f "${MOIRA_HOME}/.version" ]]; then
+    cat "${MOIRA_HOME}/.version"
+  else
+    echo "unknown"
+  fi
+}
+
+_truncate() {
+  local str="$1"
+  local max="${2:-60}"
+  if [[ ${#str} -gt $max ]]; then
+    echo "${str:0:$((max - 3))}..."
+  else
+    echo "$str"
+  fi
+}
+
+_status_icon() {
+  case "$1" in
+    completed) echo "✅" ;;
+    failed)    echo "🔴" ;;
+    aborted)   echo "⏸ " ;;
+    in_progress) echo "🔄" ;;
+    pending)   echo "⬜" ;;
+    *)         echo "  " ;;
+  esac
+}
+
+# ═════════════════════════════════════════════════════════════════════════
+# COMMAND: help
+# ═════════════════════════════════════════════════════════════════════════
+cmd_help() {
+  local version
+  version=$(_version)
+
+  cat <<EOF
+${BOLD}Moira v${version}${RESET} — Meta-orchestration for Claude Code
+
+${BOLD}Commands:${RESET}
+  moira status              Show current system state
+  moira help                Show this help
+  moira knowledge [type]    View knowledge base
+  moira metrics [sub]       View performance metrics
+  moira graph [sub] [args]  Query project structure graph
+  moira health [sub]        System health check (structural)
+
+${BOLD}LLM-required commands${RESET} (use via /moira:<cmd> in Claude Code):
+  /moira:task <desc>        Execute task through pipeline
+  /moira:init               Set up Moira for project
+  /moira:resume             Resume interrupted task
+  /moira:audit              Run system health audit
+  /moira:bypass <desc>      Execute without pipeline
+  /moira:refresh            Update project model
+  /moira:bench              Run behavioral tests
+
+${BOLD}Quick start:${RESET}
+  1. /moira:init           — set up Moira for your project
+  2. /moira:task <desc>    — execute a task
+  3. moira status          — check progress (instant, no LLM)
+EOF
+}
+
+# ═════════════════════════════════════════════════════════════════════════
+# COMMAND: status
+# ═════════════════════════════════════════════════════════════════════════
+cmd_status() {
+  _source_lib "yaml-utils.sh"
+  _check_init
+
+  local version project_name stack quality_mode
+  version=$(_version)
+  project_name=$(moira_yaml_get "$MOIRA_CONFIG" "project.name" 2>/dev/null) || project_name="unknown"
+  stack=$(moira_yaml_get "$MOIRA_CONFIG" "project.stack" 2>/dev/null) || stack="unknown"
+  quality_mode=$(moira_yaml_get "$MOIRA_CONFIG" "quality.mode" 2>/dev/null) || quality_mode="unknown"
+
+  local quick_scan deep_scan
+  quick_scan=$(moira_yaml_get "$MOIRA_CONFIG" "bootstrap.quick_scan_completed" 2>/dev/null) || quick_scan="false"
+  deep_scan=$(moira_yaml_get "$MOIRA_CONFIG" "bootstrap.deep_scan_completed" 2>/dev/null) || deep_scan="false"
+  [[ "$quick_scan" == "true" ]] && quick_scan="yes" || quick_scan="no"
+  [[ "$deep_scan" == "true" ]] && deep_scan="yes" || deep_scan="no"
+
+  echo "═══════════════════════════════════════════"
+  echo "  ${BOLD}MOIRA${RESET} — System Status"
+  echo "═══════════════════════════════════════════"
+  echo ""
+  echo "  Version:     ${version}"
+  echo "  Project:     ${project_name}"
+  echo "  Stack:       ${stack}"
+  echo "  Quality:     ${quality_mode} mode"
+  echo "  Bootstrap:   quick=${quick_scan}  deep=${deep_scan}"
+
+  # ── Active Task ──
+  echo ""
+  echo "─── Active Task ──────────────────────────"
+  echo ""
+
+  local current_file="${MOIRA_PROJECT_STATE}/state/current.yaml"
+  if [[ -f "$current_file" ]]; then
+    local task_id pipeline step step_status orch_pct gate_pending
+    task_id=$(moira_yaml_get "$current_file" "task_id" 2>/dev/null) || task_id=""
+    if [[ -n "$task_id" && "$task_id" != "null" ]]; then
+      pipeline=$(moira_yaml_get "$current_file" "pipeline" 2>/dev/null) || pipeline=""
+      step=$(moira_yaml_get "$current_file" "step" 2>/dev/null) || step=""
+      step_status=$(moira_yaml_get "$current_file" "step_status" 2>/dev/null) || step_status=""
+      orch_pct=$(moira_yaml_get "$current_file" "orchestrator_percent" 2>/dev/null) || orch_pct="0"
+      gate_pending=$(moira_yaml_get "$current_file" "gate_pending" 2>/dev/null) || gate_pending=""
+
+      echo "  Task:        ${task_id}"
+      echo "  Pipeline:    ${pipeline}"
+      echo "  Step:        ${step} (${step_status})"
+      echo "  Context:     ${orch_pct}% used"
+      if [[ -n "$gate_pending" && "$gate_pending" != "null" ]]; then
+        echo "  Gate:        ${gate_pending} — awaiting decision"
+      fi
+    else
+      echo "  No active task."
+    fi
+  else
+    echo "  No active task."
+  fi
+
+  # ── Recent Tasks ──
+  echo ""
+  echo "─── Recent Tasks ─────────────────────────"
+  echo ""
+
+  local tasks_dir="${MOIRA_PROJECT_STATE}/state/tasks"
+  if [[ -d "$tasks_dir" ]]; then
+    local count=0
+    # Sort by directory name descending (newest first)
+    for task_dir in $(find "${tasks_dir}" -maxdepth 1 -name "task-*" -type d 2>/dev/null | sort -r | head -5); do
+      local sfile="${task_dir}/status.yaml"
+      [[ -f "$sfile" ]] || continue
+
+      local tid desc status pip sz
+      tid=$(basename "$task_dir")
+      desc=$(moira_yaml_get "$sfile" "description" 2>/dev/null) || desc=""
+      # Pipeline/size from manifest.yaml (canonical source)
+      local mfile="${task_dir}/manifest.yaml"
+      pip=""
+      sz=""
+      if [[ -f "$mfile" ]]; then
+        pip=$(moira_yaml_get "$mfile" "pipeline" 2>/dev/null) || pip=""
+        sz=$(moira_yaml_get "$mfile" "size" 2>/dev/null) || sz=""
+      fi
+
+      # Derive status: check completion_processor.status, then completion.action, then infer
+      status=$(moira_yaml_get "$sfile" "completion_processor.status" 2>/dev/null) || status=""
+      if [[ -z "$status" || "$status" == "null" ]]; then
+        local action
+        action=$(moira_yaml_get "$sfile" "completion.action" 2>/dev/null) || action=""
+        case "$action" in
+          done)  status="completed" ;;
+          abort) status="aborted" ;;
+          ""|null)
+            # Check if this is the active task
+            if [[ -f "$current_file" ]]; then
+              local active_tid
+              active_tid=$(moira_yaml_get "$current_file" "task_id" 2>/dev/null) || active_tid=""
+              if [[ "$tid" == "$active_tid" ]]; then
+                status="in_progress"
+              else
+                status="pending"
+              fi
+            else
+              status="pending"
+            fi
+            ;;
+          *) status="$action" ;;
+        esac
+      fi
+
+      local icon
+      icon=$(_status_icon "$status")
+      desc=$(_truncate "$desc" 50)
+
+      printf "  %-28s %s %-12s %-10s %s\n" "$tid" "$icon" "$status" "$pip" "$sz"
+      if [[ -n "$desc" ]]; then
+        echo "  ${DIM}${desc}${RESET}"
+      fi
+      count=$((count + 1))
+    done
+
+    if [[ $count -eq 0 ]]; then
+      echo "  No tasks yet."
+    fi
+  else
+    echo "  No tasks yet."
+  fi
+
+  # ── Knowledge ──
+  echo ""
+  echo "─── Knowledge ────────────────────────────"
+  echo ""
+
+  local knowledge_dir="${MOIRA_PROJECT_STATE}/knowledge"
+  local knowledge_types="project-model conventions decisions patterns failures quality-map"
+
+  # Get current task count for freshness scoring
+  local task_count=0
+  if [[ -d "$tasks_dir" ]]; then
+    task_count=$(find "${tasks_dir}" -maxdepth 1 -name "task-*" -type d 2>/dev/null | wc -l | tr -d ' ')
+  fi
+
+  _source_lib "knowledge.sh"
+
+  for ktype in $knowledge_types; do
+    local kdir="${knowledge_dir}/${ktype}"
+    if [[ -d "$kdir" ]]; then
+      local fcount
+      fcount=$(find "$kdir" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+
+      local freshness_str="unknown"
+      local score
+      score=$(moira_knowledge_freshness_score "$knowledge_dir" "$ktype" "$task_count" 2>/dev/null) || score="0"
+      local category
+      category=$(moira_knowledge_freshness_category "$score" 2>/dev/null) || category="unknown"
+      freshness_str="${score}% (${category})"
+
+      printf "  %-16s %2s entries  %s\n" "${ktype}:" "$fcount" "$freshness_str"
+    else
+      printf "  %-16s not initialized\n" "${ktype}:"
+    fi
+  done
+
+  # ── Project Graph ──
+  echo ""
+  echo "─── Project Graph ────────────────────────"
+  echo ""
+
+  if [[ -f ".ariadne/graph/graph.json" ]]; then
+    _source_lib "graph.sh"
+
+    local summary_output
+    summary_output=$(moira_graph_summary 2>/dev/null) || summary_output=""
+
+    if [[ -n "$summary_output" ]]; then
+      local node_count edge_count cluster_count cycle_count bottleneck_count smell_count monolith_score
+      node_count=$(echo "$summary_output" | grep '^node_count=' | cut -d= -f2)
+      edge_count=$(echo "$summary_output" | grep '^edge_count=' | cut -d= -f2)
+      cluster_count=$(echo "$summary_output" | grep '^cluster_count=' | cut -d= -f2)
+      cycle_count=$(echo "$summary_output" | grep '^cycle_count=' | cut -d= -f2)
+      bottleneck_count=$(echo "$summary_output" | grep '^bottleneck_count=' | cut -d= -f2)
+      smell_count=$(echo "$summary_output" | grep '^smell_count=' | cut -d= -f2)
+      monolith_score=$(echo "$summary_output" | grep '^monolith_score=' | cut -d= -f2)
+
+      local fresh_str="stale"
+      if moira_graph_is_fresh 2>/dev/null; then
+        fresh_str="fresh"
+      fi
+
+      echo "  Files: ${node_count}  Edges: ${edge_count}  Clusters: ${cluster_count}"
+      echo "  Cycles: ${cycle_count}  Bottlenecks: ${bottleneck_count}  Smells: ${smell_count}"
+      echo "  Monolith: ${monolith_score}  Freshness: ${fresh_str}"
+
+      # MCP server status
+      local pid_file=".ariadne/graph/.serve.pid"
+      if [[ -f "$pid_file" ]]; then
+        local pid
+        pid=$(cat "$pid_file" 2>/dev/null) || pid=""
+        if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+          echo "  MCP server: running (PID ${pid})"
+        else
+          echo "  MCP server: stopped"
+        fi
+      else
+        echo "  MCP server: stopped"
+      fi
+
+      # Temporal
+      local temporal
+      temporal=$(echo "$summary_output" | grep '^temporal_available=' | cut -d= -f2)
+      if [[ "$temporal" == "true" ]]; then
+        local hotspots hidden_deps commits_30d
+        hotspots=$(echo "$summary_output" | grep '^hotspot_count=' | cut -d= -f2)
+        hidden_deps=$(echo "$summary_output" | grep '^hidden_dep_count=' | cut -d= -f2)
+        commits_30d=$(echo "$summary_output" | grep '^commits_30d=' | cut -d= -f2)
+        echo "  Temporal: ${commits_30d} commits (30d)  Hotspots: ${hotspots}  Hidden deps: ${hidden_deps}"
+      else
+        echo "  Temporal: not available"
+      fi
+
+      # Annotations & bookmarks
+      if [[ -f ".ariadne/annotations.json" ]]; then
+        local ann_count
+        ann_count=$(grep -c '"target"' ".ariadne/annotations.json" 2>/dev/null) || ann_count=0
+        echo "  Annotations: ${ann_count}"
+      fi
+      if [[ -f ".ariadne/bookmarks.json" ]]; then
+        local bm_count
+        bm_count=$(grep -c '"name"' ".ariadne/bookmarks.json" 2>/dev/null) || bm_count=0
+        echo "  Bookmarks: ${bm_count}"
+      fi
+    else
+      echo "  Graph exists but summary unavailable."
+    fi
+  else
+    echo "  Not available (ariadne not installed or graph not built)"
+  fi
+
+  # ── Locks ──
+  echo ""
+  echo "─── Locks ────────────────────────────────"
+  echo ""
+
+  local locks_file="${MOIRA_PROJECT_STATE}/config/locks.yaml"
+  if [[ -f "$locks_file" ]]; then
+    # Simple display of lock entries
+    grep -E '^\s+-' "$locks_file" 2>/dev/null | while IFS= read -r line; do
+      echo "  $line"
+    done
+    if ! grep -qE '^\s+-' "$locks_file" 2>/dev/null; then
+      echo "  No active locks."
+    fi
+  else
+    echo "  No active locks."
+  fi
+
+  echo ""
+  echo "═══════════════════════════════════════════"
+}
+
+# ═════════════════════════════════════════════════════════════════════════
+# COMMAND: knowledge
+# ═════════════════════════════════════════════════════════════════════════
+cmd_knowledge() {
+  _source_lib "yaml-utils.sh"
+  _source_lib "knowledge.sh"
+  _check_init
+
+  local arg="${1:-}"
+  local knowledge_dir="${MOIRA_PROJECT_STATE}/knowledge"
+  local project_name stack
+  project_name=$(moira_yaml_get "$MOIRA_CONFIG" "project.name" 2>/dev/null) || project_name="unknown"
+  stack=$(moira_yaml_get "$MOIRA_CONFIG" "project.stack" 2>/dev/null) || stack="unknown"
+
+  # Get current task count
+  local tasks_dir="${MOIRA_PROJECT_STATE}/state/tasks"
+  local task_count=0
+  if [[ -d "$tasks_dir" ]]; then
+    task_count=$(find "${tasks_dir}" -maxdepth 1 -name "task-*" -type d 2>/dev/null | wc -l | tr -d ' ')
+  fi
+
+  case "$arg" in
+    "")
+      # Overview
+      echo "═══════════════════════════════════════════"
+      echo "  ${BOLD}MOIRA${RESET} — Knowledge Base"
+      echo "═══════════════════════════════════════════"
+      echo ""
+      echo "  Project: ${project_name}"
+      echo "  Stack:   ${stack}"
+      echo ""
+      echo "─── Knowledge Types ──────────────────────"
+      echo ""
+
+      local knowledge_types="project-model conventions decisions patterns failures quality-map"
+      for ktype in $knowledge_types; do
+        local kdir="${knowledge_dir}/${ktype}"
+        if [[ -d "$kdir" ]]; then
+          # Check levels present
+          local levels=""
+          [[ -f "${kdir}/index.md" ]] && levels+="L0 " || levels+="-- "
+          [[ -f "${kdir}/summary.md" ]] && levels+="L1 " || levels+="-- "
+          [[ -f "${kdir}/full.md" ]] && levels+="L2" || levels+="--"
+
+          local freshness_str="unknown"
+          local score
+          score=$(moira_knowledge_freshness_score "$knowledge_dir" "$ktype" "$task_count" 2>/dev/null) || score="0"
+          local category
+          category=$(moira_knowledge_freshness_category "$score" 2>/dev/null) || category="unknown"
+          freshness_str="${score}% (${category})"
+
+          local archive_str=""
+          if [[ -d "${kdir}/archive" ]]; then
+            local acount
+            acount=$(find "${kdir}/archive" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+            [[ $acount -gt 0 ]] && archive_str="  ${acount} archived"
+          fi
+
+          printf "  %-16s %s   %s%s\n" "$ktype" "$levels" "$freshness_str" "$archive_str"
+        else
+          printf "  %-16s not initialized\n" "$ktype"
+        fi
+      done
+
+      echo ""
+      echo "─── Agent Access Matrix ──────────────────"
+      echo ""
+      echo "  apollo       project-model(L1)"
+      echo "  hermes       project-model(L0)"
+      echo "  athena       project-model(L1) decisions(L0) failures(L0)"
+      echo "  metis        project-model(L1) conventions(L0) decisions(L2) patterns(L1) quality-map(L1) failures(L0)"
+      echo "  daedalus     project-model(L1) conventions(L1) decisions(L0) patterns(L0) quality-map(L2) libraries(L0)"
+      echo "  hephaestus   project-model(L0) conventions(L2) patterns(L1) libraries(L1)"
+      echo "  themis       project-model(L1) conventions(L2) decisions(L1) patterns(L1) quality-map(L1)"
+      echo "  aletheia     project-model(L0) conventions(L1) patterns(L0)"
+      echo "  mnemosyne    ALL(L2)"
+      echo "  argus        ALL(L2) READ-ONLY"
+      echo ""
+      echo "─── Freshness ────────────────────────────"
+      echo ""
+      echo "  Confidence ranges: >70 trusted | 30-70 usable | <=30 needs-verification"
+      echo ""
+
+      for ktype in $knowledge_types; do
+        local kdir="${knowledge_dir}/${ktype}"
+        [[ -d "$kdir" ]] || continue
+        local score
+        score=$(moira_knowledge_freshness_score "$knowledge_dir" "$ktype" "$task_count" 2>/dev/null) || score="0"
+        local category
+        category=$(moira_knowledge_freshness_category "$score" 2>/dev/null) || category="unknown"
+        printf "  %-16s confidence %3s%% (%s)\n" "${ktype}:" "$score" "$category"
+      done
+
+      echo ""
+      echo "═══════════════════════════════════════════"
+      echo ""
+      echo "  View details: moira knowledge <type>"
+      echo "  Edit manually: moira knowledge edit"
+      ;;
+
+    edit)
+      cat <<'EDITEOF'
+═══════════════════════════════════════════
+  MOIRA — Knowledge Edit
+═══════════════════════════════════════════
+
+  Knowledge files are markdown. You can edit them directly.
+
+  Locations:
+  .claude/moira/knowledge/
+  ├── project-model/
+  │   ├── index.md       (L0 — topic list)
+  │   ├── summary.md     (L1 — key facts)
+  │   └── full.md        (L2 — complete)
+  ├── conventions/
+  │   ├── index.md
+  │   ├── summary.md
+  │   └── full.md
+  ├── decisions/
+  │   ├── index.md
+  │   ├── summary.md
+  │   ├── full.md
+  │   └── archive/       (rotated entries)
+  ├── patterns/
+  │   ├── index.md
+  │   ├── summary.md
+  │   ├── full.md
+  │   └── archive/
+  ├── failures/
+  │   ├── index.md
+  │   └── summary.md
+  └── quality-map/
+      ├── summary.md
+      └── full.md
+
+  Guidelines:
+  - Keep L0 under 200 tokens (topic list with one-liners)
+  - Keep L1 under 2000 tokens (key facts for decisions)
+  - L2 can be up to 10000 tokens (full detail with examples)
+  - Add freshness markers: <!-- moira:freshness {task_id} {date} λ={rate} -->
+  - After editing, run /moira:audit knowledge to verify consistency
+
+═══════════════════════════════════════════
+EDITEOF
+      ;;
+
+    project-model|conventions|decisions|patterns|failures|quality-map)
+      local ktype="$arg"
+      local kdir="${knowledge_dir}/${ktype}"
+
+      echo "═══════════════════════════════════════════"
+      echo "  ${BOLD}MOIRA${RESET} — Knowledge: ${ktype}"
+      echo "═══════════════════════════════════════════"
+      echo ""
+
+      local content=""
+      local level=""
+
+      if [[ -f "${kdir}/summary.md" ]]; then
+        content=$(cat "${kdir}/summary.md")
+        level="L1 (Summary)"
+      elif [[ -f "${kdir}/index.md" ]]; then
+        content=$(cat "${kdir}/index.md")
+        level="L0 (Index)"
+      fi
+
+      if [[ -z "$content" ]]; then
+        echo "  No ${ktype} knowledge collected yet."
+        echo ""
+        echo "═══════════════════════════════════════════"
+        return
+      fi
+
+      local score
+      score=$(moira_knowledge_freshness_score "$knowledge_dir" "$ktype" "$task_count" 2>/dev/null) || score="0"
+      local category
+      category=$(moira_knowledge_freshness_category "$score" 2>/dev/null) || category="unknown"
+
+      # Extract last verified info from freshness marker
+      local marker_info=""
+      local target="${kdir}/summary.md"
+      [[ ! -f "$target" ]] && target="${kdir}/index.md"
+      if [[ -f "$target" ]]; then
+        local tag
+        tag=$(grep -m1 '^<!-- moira:freshness ' "$target" 2>/dev/null || true)
+        if [[ -n "$tag" ]]; then
+          local ftask fdate
+          ftask=$(echo "$tag" | sed 's/<!-- moira:freshness \([^ ]*\) .*/\1/')
+          fdate=$(echo "$tag" | sed 's/<!-- moira:freshness [^ ]* \([^ ]*\).*/\1/')
+          marker_info="${ftask} on ${fdate}"
+        fi
+      fi
+
+      echo "  Level: ${level}"
+      echo "  Freshness: ${score}% (${category})"
+      [[ -n "$marker_info" ]] && echo "  Last verified: ${marker_info}"
+      echo ""
+      echo "───────────────────────────────────────────"
+      echo ""
+      # Print content, stripping freshness markers for clean display
+      echo "$content" | grep -v '^<!-- moira:freshness' || true
+      echo ""
+      echo "───────────────────────────────────────────"
+
+      if [[ -d "${kdir}/archive" ]]; then
+        local acount
+        acount=$(find "${kdir}/archive" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+        if [[ $acount -gt 0 ]]; then
+          echo ""
+          echo "  Archive: ${acount} entries"
+        fi
+      fi
+      echo "  View full (L2): cat ${kdir}/full.md"
+      echo ""
+      echo "═══════════════════════════════════════════"
+      ;;
+
+    *)
+      echo "Unknown knowledge type: ${arg}"
+      echo "Valid: project-model, conventions, decisions, patterns, failures, quality-map, edit"
+      return 1
+      ;;
+  esac
+}
+
+# ═════════════════════════════════════════════════════════════════════════
+# COMMAND: metrics
+# ═════════════════════════════════════════════════════════════════════════
+cmd_metrics() {
+  _source_lib "yaml-utils.sh"
+  _source_lib "metrics.sh"
+  _check_init
+
+  local subcmd="${1:-}"
+  local state_dir="${MOIRA_PROJECT_STATE}/state"
+
+  case "$subcmd" in
+    "")
+      moira_metrics_dashboard "$state_dir"
+      ;;
+    details)
+      local section="${2:-}"
+      if [[ -z "$section" ]]; then
+        echo "Usage: moira metrics details <section>"
+        echo "Sections: tasks, quality, accuracy, efficiency, knowledge, evolution"
+        return 1
+      fi
+      moira_metrics_drilldown "$section" "$state_dir"
+      ;;
+    compare)
+      moira_metrics_compare "$state_dir"
+      ;;
+    export)
+      moira_metrics_export "$state_dir"
+      ;;
+    *)
+      echo "Unknown metrics subcommand: ${subcmd}"
+      echo "Valid: details <section>, compare, export"
+      return 1
+      ;;
+  esac
+}
+
+# ═════════════════════════════════════════════════════════════════════════
+# COMMAND: graph
+# ═════════════════════════════════════════════════════════════════════════
+cmd_graph() {
+  local subcmd="${1:-stats}"
+  shift 2>/dev/null || true
+
+  # Check binary
+  if ! command -v ariadne >/dev/null 2>&1; then
+    echo "ariadne binary not found."
+    echo "Install: cargo install ariadne-graph"
+    return 1
+  fi
+
+  # Check graph exists
+  if [[ ! -f ".ariadne/graph/graph.json" ]]; then
+    echo "No graph found. Run /moira:init or ariadne build ."
+    return 1
+  fi
+
+  case "$subcmd" in
+    stats)
+      ariadne query stats --format md
+      ;;
+    blast-radius)
+      if [[ -z "${1:-}" ]]; then
+        echo "Usage: moira graph blast-radius <file>"
+        return 1
+      fi
+      ariadne query blast-radius "$1" --format md
+      ;;
+    cluster)
+      if [[ -z "${1:-}" ]]; then
+        echo "Usage: moira graph cluster <name>"
+        return 1
+      fi
+      ariadne query cluster "$1" --format md
+      ;;
+    file)
+      if [[ -z "${1:-}" ]]; then
+        echo "Usage: moira graph file <path>"
+        return 1
+      fi
+      ariadne query file "$1" --format md
+      ;;
+    cycles)
+      ariadne query cycles --format md
+      ;;
+    layers)
+      ariadne query layers --format md
+      ;;
+    metrics)
+      ariadne query metrics --format md
+      ;;
+    smells)
+      ariadne query smells --format md
+      ;;
+    importance)
+      ariadne query importance --format md
+      ;;
+    spectral)
+      ariadne query spectral --format md
+      ;;
+    diff)
+      local pid_file=".ariadne/graph/.serve.pid"
+      if [[ ! -f "$pid_file" ]]; then
+        echo "This subcommand requires ariadne serve."
+        echo "Start with: ariadne serve --project ."
+        return 1
+      fi
+      local pid
+      pid=$(cat "$pid_file" 2>/dev/null) || pid=""
+      if [[ -z "$pid" ]] || ! kill -0 "$pid" 2>/dev/null; then
+        echo "This subcommand requires ariadne serve."
+        echo "Start with: ariadne serve --project ."
+        return 1
+      fi
+      ariadne query diff --format md
+      ;;
+    compressed)
+      if [[ -z "${1:-}" ]]; then
+        echo "Usage: moira graph compressed <level> (0, 1, or 2)"
+        return 1
+      fi
+      ariadne query compressed --level "$1" --format md
+      ;;
+    churn)
+      local period="${1:-30d}"
+      ariadne query churn --period "$period" --format md
+      ;;
+    coupling)
+      local threshold="${1:-0.7}"
+      ariadne query coupling --min-confidence "$threshold" --format md
+      ;;
+    hotspots)
+      local top="${1:-10}"
+      ariadne query hotspots --top "$top" --format md
+      ;;
+    ownership)
+      if [[ -n "${1:-}" ]]; then
+        ariadne query ownership "$1" --format md
+      else
+        ariadne query ownership --format md
+      fi
+      ;;
+    hidden-deps)
+      ariadne query hidden-deps --format md
+      ;;
+    annotate)
+      if [[ $# -lt 3 ]]; then
+        echo "Usage: moira graph annotate <target> <tag> <text>"
+        return 1
+      fi
+      ariadne annotate "$1" --tag "$2" --text "$3"
+      ;;
+    annotations)
+      if [[ -n "${1:-}" ]]; then
+        ariadne query annotations --tag "$1" --format md
+      else
+        ariadne query annotations --format md
+      fi
+      ;;
+    bookmark)
+      if [[ $# -lt 2 ]]; then
+        echo "Usage: moira graph bookmark <name> <paths...>"
+        return 1
+      fi
+      ariadne bookmark "$@"
+      ;;
+    bookmarks)
+      ariadne query bookmarks --format md
+      ;;
+    *)
+      echo "Unknown subcommand: ${subcmd}"
+      echo ""
+      echo "Available: stats, blast-radius, cluster, file, cycles, layers, metrics,"
+      echo "  smells, importance, spectral, diff, compressed, churn, coupling,"
+      echo "  hotspots, ownership, hidden-deps, annotate, annotations, bookmark, bookmarks"
+      return 1
+      ;;
+  esac
+
+  # Show "No results." for empty output
+  # (ariadne itself handles this, but just in case)
+}
+
+# ═════════════════════════════════════════════════════════════════════════
+# COMMAND: health
+# ═════════════════════════════════════════════════════════════════════════
+cmd_health() {
+  _source_lib "yaml-utils.sh"
+  _check_init
+
+  local subcmd="${1:-report}"
+
+  echo "═══════════════════════════════════════════"
+  echo "  ${BOLD}MOIRA${RESET} — System Health"
+  echo "═══════════════════════════════════════════"
+  echo ""
+
+  # ── Structural Conformance ──
+  echo "─── Structural Conformance (30%) ─────────"
+  echo ""
+
+  local tier1_pass=0 tier1_fail=0 tier1_total=0
+
+  if [[ -f "${MOIRA_HOME}/tests/tier1/run-all.sh" ]]; then
+    local tier1_output
+    tier1_output=$(bash "${MOIRA_HOME}/tests/tier1/run-all.sh" 2>&1) || true
+
+    # Parse pass/fail from output
+    tier1_pass=$(echo "$tier1_output" | grep -c "PASS" 2>/dev/null) || tier1_pass=0
+    tier1_fail=$(echo "$tier1_output" | grep -c "FAIL" 2>/dev/null) || tier1_fail=0
+    tier1_total=$((tier1_pass + tier1_fail))
+
+    if [[ $tier1_total -gt 0 ]]; then
+      local tier1_pct=$((tier1_pass * 100 / tier1_total))
+      echo "  Tier 1 tests: ${tier1_pass}/${tier1_total} passed (${tier1_pct}%)"
+    else
+      echo "  Tier 1 tests: no results"
+    fi
+
+    # Show failures
+    if [[ $tier1_fail -gt 0 ]]; then
+      echo ""
+      echo "$tier1_output" | grep "FAIL" | while IFS= read -r line; do
+        echo "  ${RED}${line}${RESET}"
+      done
+    fi
+  else
+    echo "  Tier 1 tests: not found"
+  fi
+
+  # ── Graph Health ──
+  local graph_pass=0 graph_fail=0
+
+  if [[ -f ".ariadne/graph/graph.json" ]]; then
+    echo ""
+    echo "  Graph Health:"
+
+    _source_lib "graph.sh"
+
+    # 1. Freshness
+    if moira_graph_is_fresh 2>/dev/null; then
+      echo "  ${GREEN}✓${RESET} Graph exists and is current"
+      graph_pass=$((graph_pass + 1))
+    else
+      echo "  ${YELLOW}⚠${RESET} Graph is stale (source files changed since last build)"
+      graph_fail=$((graph_fail + 1))
+    fi
+
+    # 2-7. Run summary and parse
+    local summary_output
+    summary_output=$(moira_graph_summary 2>/dev/null) || summary_output=""
+
+    if [[ -n "$summary_output" ]]; then
+      local cycle_count bottleneck_count smell_count monolith_score
+      cycle_count=$(echo "$summary_output" | grep '^cycle_count=' | cut -d= -f2)
+      bottleneck_count=$(echo "$summary_output" | grep '^bottleneck_count=' | cut -d= -f2)
+      smell_count=$(echo "$summary_output" | grep '^smell_count=' | cut -d= -f2)
+      monolith_score=$(echo "$summary_output" | grep '^monolith_score=' | cut -d= -f2)
+
+      # Cycles
+      if [[ "${cycle_count:-0}" -eq 0 ]]; then
+        echo "  ${GREEN}✓${RESET} No circular dependencies"
+        graph_pass=$((graph_pass + 1))
+      else
+        echo "  ${YELLOW}⚠${RESET} ${cycle_count} circular dependencies"
+        graph_fail=$((graph_fail + 1))
+      fi
+
+      # Bottlenecks
+      if [[ "${bottleneck_count:-0}" -eq 0 ]]; then
+        echo "  ${GREEN}✓${RESET} No high-centrality bottlenecks"
+        graph_pass=$((graph_pass + 1))
+      else
+        echo "  ${YELLOW}⚠${RESET} ${bottleneck_count} files with centrality > 0.9 (bottlenecks)"
+        graph_fail=$((graph_fail + 1))
+      fi
+
+      # Smells (god files + unstable foundations combined)
+      if [[ "${smell_count:-0}" -eq 0 ]]; then
+        echo "  ${GREEN}✓${RESET} No architectural smells detected"
+        graph_pass=$((graph_pass + 1))
+      else
+        echo "  ${YELLOW}⚠${RESET} ${smell_count} architectural smell(s)"
+        graph_fail=$((graph_fail + 1))
+      fi
+
+      # Monolith score
+      local ms_val="${monolith_score:-0}"
+      # Compare as integer (multiply by 10 for decimal comparison)
+      local ms_int
+      ms_int=$(echo "$ms_val" | awk '{printf "%d", $1 * 10}')
+      if [[ "${ms_int:-0}" -le 5 ]]; then
+        echo "  ${GREEN}✓${RESET} Monolith score: ${ms_val} (healthy)"
+        graph_pass=$((graph_pass + 1))
+      else
+        echo "  ${YELLOW}⚠${RESET} Monolith score: ${ms_val} (high coupling)"
+        graph_fail=$((graph_fail + 1))
+      fi
+
+      # Temporal health
+      local temporal
+      temporal=$(echo "$summary_output" | grep '^temporal_available=' | cut -d= -f2)
+      if [[ "$temporal" == "true" ]]; then
+        local hotspots hidden_deps
+        hotspots=$(echo "$summary_output" | grep '^hotspot_count=' | cut -d= -f2)
+        hidden_deps=$(echo "$summary_output" | grep '^hidden_dep_count=' | cut -d= -f2)
+
+        echo ""
+        echo "  Temporal Health:"
+
+        if [[ "${hotspots:-0}" -le 10 ]]; then
+          echo "  ${GREEN}✓${RESET} Hotspots: ${hotspots} (healthy)"
+          graph_pass=$((graph_pass + 1))
+        elif [[ "${hotspots:-0}" -le 20 ]]; then
+          echo "  ${YELLOW}⚠${RESET} Hotspots: ${hotspots} (elevated)"
+          graph_fail=$((graph_fail + 1))
+        else
+          echo "  ${RED}✗${RESET} Hotspots: ${hotspots} (critical)"
+          graph_fail=$((graph_fail + 1))
+        fi
+
+        if [[ "${hidden_deps:-0}" -le 5 ]]; then
+          echo "  ${GREEN}✓${RESET} Hidden deps: ${hidden_deps} (healthy)"
+          graph_pass=$((graph_pass + 1))
+        elif [[ "${hidden_deps:-0}" -le 10 ]]; then
+          echo "  ${YELLOW}⚠${RESET} Hidden deps: ${hidden_deps} (elevated)"
+          graph_fail=$((graph_fail + 1))
+        else
+          echo "  ${RED}✗${RESET} Hidden deps: ${hidden_deps} (critical)"
+          graph_fail=$((graph_fail + 1))
+        fi
+      fi
+    fi
+  fi
+
+  # ── Composite Score ──
+  echo ""
+  echo "─── Composite Score ──────────────────────"
+  echo ""
+
+  local total_pass=$((tier1_pass + graph_pass))
+  local total_fail=$((tier1_fail + graph_fail))
+  local total_checks=$((total_pass + total_fail))
+
+  local structural_score=0
+  if [[ $total_checks -gt 0 ]]; then
+    structural_score=$((total_pass * 100 / total_checks))
+  fi
+
+  echo "  Structural: ${structural_score}/100  (${total_pass}/${total_checks} checks passed)"
+  echo ""
+  echo "  ${DIM}Quality and Efficiency scores require LLM evaluation.${RESET}"
+  echo "  ${DIM}Run /moira:health in Claude Code for the full composite score.${RESET}"
+  echo ""
+  echo "═══════════════════════════════════════════"
+}
+
+# ═════════════════════════════════════════════════════════════════════════
+# MAIN DISPATCHER
+# ═════════════════════════════════════════════════════════════════════════
+main() {
+  local cmd="${1:-help}"
+  shift 2>/dev/null || true
+
+  case "$cmd" in
+    status)    cmd_status "$@" ;;
+    help|-h|--help) cmd_help "$@" ;;
+    knowledge) cmd_knowledge "$@" ;;
+    metrics)   cmd_metrics "$@" ;;
+    graph)     cmd_graph "$@" ;;
+    health)    cmd_health "$@" ;;
+    version|-v|--version) _version ;;
+    *)
+      echo "Unknown command: ${cmd}"
+      echo ""
+      cmd_help
+      return 1
+      ;;
+  esac
+}
+
+main "$@"

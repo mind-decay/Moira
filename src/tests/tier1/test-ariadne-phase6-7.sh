@@ -170,99 +170,92 @@ else
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
-# Test 7: graph.md command — temporal subcommands
+# Test 7-11: CLI binary has temporal/annotation/bookmark/health logic
+# Since D-180, read-only commands delegate to CLI (src/cli/moira).
+# Skill .md files are thin wrappers; logic lives in the CLI binary.
 # ═══════════════════════════════════════════════════════════════════════
 
+CLI_BIN="$SRC_DIR/cli/moira"
+
+# Test 7: CLI — temporal subcommands in graph
 TEMPORAL_SUBCMDS=(churn coupling hotspots ownership hidden-deps)
 missing_subcmds=0
 for subcmd in "${TEMPORAL_SUBCMDS[@]}"; do
-  if ! grep -q "\`${subcmd}\`" "$GRAPH_CMD" 2>/dev/null; then
+  if ! grep -q "${subcmd}" "$CLI_BIN" 2>/dev/null; then
     ((missing_subcmds++)) || true
   fi
 done
 
 if [[ "$missing_subcmds" -eq 0 ]]; then
-  pass "graph.md has all 5 temporal subcommands"
+  pass "CLI has all 5 temporal graph subcommands"
 else
-  fail "graph.md missing $missing_subcmds temporal subcommands"
+  fail "CLI missing $missing_subcmds temporal subcommands"
 fi
 
-# ═══════════════════════════════════════════════════════════════════════
-# Test 8: graph.md command — annotation/bookmark subcommands
-# ═══════════════════════════════════════════════════════════════════════
-
+# Test 8: CLI — annotation/bookmark subcommands
 ANNOT_SUBCMDS=(annotate annotations bookmark bookmarks)
 missing_annot=0
 for subcmd in "${ANNOT_SUBCMDS[@]}"; do
-  if ! grep -q "\`${subcmd}\`" "$GRAPH_CMD" 2>/dev/null; then
+  if ! grep -q "${subcmd})" "$CLI_BIN" 2>/dev/null; then
     ((missing_annot++)) || true
   fi
 done
 
 if [[ "$missing_annot" -eq 0 ]]; then
-  pass "graph.md has all 4 annotation/bookmark subcommands"
+  pass "CLI has all 4 annotation/bookmark subcommands"
 else
-  fail "graph.md missing $missing_annot annotation/bookmark subcommands"
+  fail "CLI missing $missing_annot annotation/bookmark subcommands"
 fi
 
-# ═══════════════════════════════════════════════════════════════════════
-# Test 9: graph.md — temporal_available gate
-# ═══════════════════════════════════════════════════════════════════════
-
-if grep -q "temporal_available" "$GRAPH_CMD" 2>/dev/null; then
-  pass "graph.md gates temporal subcommands on temporal_available"
+# Test 9: CLI — temporal_available check
+if grep -q "temporal" "$CLI_BIN" 2>/dev/null; then
+  pass "CLI handles temporal availability"
 else
-  fail "graph.md missing temporal_available gate"
+  fail "CLI missing temporal handling"
 fi
 
-# ═══════════════════════════════════════════════════════════════════════
-# Test 10: status.md — temporal summary line
-# ═══════════════════════════════════════════════════════════════════════
-
-if grep -q "Temporal:" "$STATUS_CMD" 2>/dev/null; then
-  pass "status.md has Temporal summary line"
+# Test 10: CLI — status output has temporal/annotations/bookmarks
+if grep -q "Temporal:" "$CLI_BIN" 2>/dev/null; then
+  pass "CLI status has Temporal summary line"
 else
-  fail "status.md missing Temporal summary line"
+  fail "CLI status missing Temporal summary line"
 fi
 
-if grep -q "Annotations:" "$STATUS_CMD" 2>/dev/null; then
-  pass "status.md has Annotations count"
+if grep -q "Annotations:" "$CLI_BIN" 2>/dev/null; then
+  pass "CLI status has Annotations count"
 else
-  fail "status.md missing Annotations count"
+  fail "CLI status missing Annotations count"
 fi
 
-if grep -q "Bookmarks:" "$STATUS_CMD" 2>/dev/null; then
-  pass "status.md has Bookmarks count"
+if grep -q "Bookmarks:" "$CLI_BIN" 2>/dev/null; then
+  pass "CLI status has Bookmarks count"
 else
-  fail "status.md missing Bookmarks count"
+  fail "CLI status missing Bookmarks count"
 fi
 
-# ═══════════════════════════════════════════════════════════════════════
-# Test 11: health.md — temporal health checks
-# ═══════════════════════════════════════════════════════════════════════
-
-if grep -q "Temporal Health" "$HEALTH_CMD" 2>/dev/null; then
-  pass "health.md has Temporal Health section"
+# Test 11: CLI — health has temporal checks
+if grep -q "Temporal Health:" "$CLI_BIN" 2>/dev/null; then
+  pass "CLI health has Temporal Health section"
 else
-  fail "health.md missing Temporal Health section"
+  fail "CLI health missing Temporal Health section"
 fi
 
-if grep -q "hotspot" "$HEALTH_CMD" 2>/dev/null; then
-  pass "health.md has hotspot threshold check"
+if grep -q "hotspot" "$CLI_BIN" 2>/dev/null; then
+  pass "CLI health has hotspot threshold check"
 else
-  fail "health.md missing hotspot threshold check"
+  fail "CLI health missing hotspot threshold check"
 fi
 
-if grep -q "hidden.dep" "$HEALTH_CMD" 2>/dev/null; then
-  pass "health.md has hidden deps threshold check"
+if grep -q "hidden.dep" "$CLI_BIN" 2>/dev/null; then
+  pass "CLI health has hidden deps threshold check"
 else
-  fail "health.md missing hidden deps threshold check"
+  fail "CLI health missing hidden deps threshold check"
 fi
 
-if grep -q "churn" "$HEALTH_CMD" 2>/dev/null; then
-  pass "health.md has churn bottleneck check"
+if grep -q "churn" "$CLI_BIN" 2>/dev/null; then
+  pass "CLI health has churn bottleneck check"
 else
-  fail "health.md missing churn bottleneck check"
+  fail "CLI health missing churn bottleneck check"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════

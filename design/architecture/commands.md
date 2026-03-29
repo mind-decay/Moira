@@ -1,6 +1,23 @@
 # Command Reference
 
-## Primary Commands (daily use)
+## Moira CLI (no LLM required)
+
+Read-only commands are available as a standalone CLI, giving instant results without invoking Claude:
+
+```
+moira status              — system state, tasks, knowledge, graph
+moira help                — command reference
+moira knowledge [type]    — knowledge base overview or detail
+moira metrics [sub]       — performance dashboard, drilldown, compare
+moira graph [sub] [args]  — project structure graph (ariadne wrapper)
+moira health              — structural health checks
+```
+
+Installed to `~/.local/bin/moira` by `install.sh`. Sources libraries from `~/.claude/moira/lib/`.
+
+Commands that require LLM reasoning are invoked via `/moira:<cmd>` in Claude Code (see below).
+
+## Primary Commands (daily use, LLM required)
 
 ### `/moira init`
 Set up Moira for the current project.

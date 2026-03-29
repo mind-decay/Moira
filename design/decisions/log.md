@@ -1787,3 +1787,15 @@ Gate recording stays manual — no hookable event for user gate decisions. Open 
 - Running scanner agents in foreground (sequential) — slower, defeats parallelism
 - Adding permissions only to Moira repo — consumers would hit the same issue
 **Reasoning:** Permissions are structural (like hooks) — they must be injected automatically at install time, not rely on users configuring them manually. Two-layer approach (project + global) mirrors the two-layer file architecture (project-local state + global install).
+
+## D-180: Standalone CLI for Read-Only Commands
+
+**Date:** 2026-03-29
+**Status:** Accepted
+**Context:** Six Moira commands (`status`, `help`, `knowledge`, `metrics`, `graph`, `health`) are fully mechanical — they read YAML files, call ariadne CLI, and format output. Invoking them via `/moira:<cmd>` wastes LLM tokens and adds latency for what is essentially shell scripting.
+**Decision:** Create a standalone shell CLI at `src/cli/moira` (installed to `~/.claude/moira/bin/moira`, symlinked to `~/.local/bin/moira`). The CLI sources existing libraries from `~/.claude/moira/lib/` and provides instant, LLM-free access to read-only commands. LLM-requiring commands (`task`, `init`, `audit`, `resume`, `bypass`, `refresh`, `bench`) remain as `/moira:<cmd>` skills.
+**Alternatives rejected:**
+- Replace skill files with CLI — would break existing `/moira:<cmd>` UX for users who prefer Claude Code integration
+- Separate binary per command — unnecessary fragmentation, harder to maintain
+- Node.js/Python CLI — adds runtime dependency, Moira's principle is bash-only
+**Reasoning:** The CLI reuses 100% of existing shell libraries (yaml-utils, knowledge, metrics, graph). No code duplication. Users get sub-second response for status checks instead of waiting for LLM. The skill files remain for backward compatibility and for users who prefer the integrated experience.

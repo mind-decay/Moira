@@ -189,6 +189,25 @@ assert_dir_exists "$MOIRA_HOME/.version-snapshot" "clean install: .version-snaps
 # Phase 12: upgrade command
 assert_file_exists "$TEST_HOME/.claude/commands/moira/upgrade.md" "clean install: upgrade.md command exists"
 
+# CLI binary
+assert_file_exists "$MOIRA_HOME/bin/moira" "clean install: CLI binary exists"
+if [[ -x "$MOIRA_HOME/bin/moira" ]]; then
+  pass "clean install: CLI binary is executable"
+else
+  fail "clean install: CLI binary is not executable"
+fi
+if bash -n "$MOIRA_HOME/bin/moira" 2>/dev/null; then
+  pass "clean install: CLI binary syntax valid"
+else
+  fail "clean install: CLI binary has syntax errors"
+fi
+# CLI symlink
+if [[ -L "$TEST_HOME/.local/bin/moira" ]]; then
+  pass "clean install: CLI symlink created"
+else
+  fail "clean install: CLI symlink not created at ~/.local/bin/moira"
+fi
+
 # Phase 13: graph.sh and graph command
 assert_file_exists "$MOIRA_HOME/lib/graph.sh" "clean install: graph.sh exists"
 if bash -n "$MOIRA_HOME/lib/graph.sh" 2>/dev/null; then

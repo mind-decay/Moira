@@ -253,8 +253,25 @@ else
   pass ".version-snapshot/ skipped (source-tree layout, created by install.sh)"
 fi
 
+# ── CLI binary ──────────────────────────────────────────────────────
+if [[ -f "$MOIRA_HOME/bin/moira" ]]; then
+  pass "bin/moira CLI exists"
+  if [[ -x "$MOIRA_HOME/bin/moira" ]]; then
+    pass "bin/moira is executable"
+  else
+    fail "bin/moira is not executable"
+  fi
+  if bash -n "$MOIRA_HOME/bin/moira" 2>/dev/null; then
+    pass "bin/moira syntax valid"
+  else
+    fail "bin/moira has syntax errors"
+  fi
+else
+  pass "bin/moira skipped (source-tree layout, created by install.sh)"
+fi
+
 # ── Command stubs ────────────────────────────────────────────────────
-commands=(task init status resume knowledge metrics audit bypass refresh help bench health upgrade)
+commands=(task init status resume knowledge metrics audit bypass refresh help bench health upgrade graph)
 for cmd in "${commands[@]}"; do
   assert_file_exists "$COMMANDS_DIR/${cmd}.md" "command ${cmd}.md exists"
 done

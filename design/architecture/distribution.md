@@ -2,17 +2,19 @@
 
 ## What Moira Actually Is (technically)
 
-Moira has no compiled code, no runtime dependencies, no binary. It is a structured set of:
+Moira has no compiled code, no runtime dependencies beyond bash 3.2+. It is a structured set of:
 
 | File type | Purpose | Location |
 |-----------|---------|----------|
 | Markdown (.md) | Agent prompts, skills, docs | `~/.claude/moira/` and `.claude/moira/` |
 | YAML (.yaml) | Rules, configs, state schemas | Same |
-| Shell scripts (.sh) | Hooks (guard, budget tracker) | Same |
+| Shell scripts (.sh) | Hooks, libs, CLI | Same |
 
-That's it. Moira runs entirely within Claude Code's existing infrastructure — agents, skills, hooks, CLAUDE.md. No daemon, no server, no extra processes.
+Moira runs entirely within Claude Code's existing infrastructure — agents, skills, hooks, CLAUDE.md. No daemon, no server, no extra processes.
 
-This means installation = putting the right files in the right places.
+The **Moira CLI** (`~/.claude/moira/bin/moira`, symlinked to `~/.local/bin/moira`) provides instant, LLM-free access to read-only commands: `status`, `help`, `knowledge`, `metrics`, `graph`, `health`. Commands that require LLM reasoning (`task`, `init`, `audit`, etc.) are still invoked via `/moira:<cmd>` in Claude Code.
+
+This means installation = putting the right files in the right places + symlinking the CLI.
 
 ---
 

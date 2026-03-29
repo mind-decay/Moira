@@ -191,7 +191,35 @@ install_statusline() {
   echo "[OK] Statusline and global permissions registered"
 }
 
-# ── Step 6: Verify installation ──────────────────────────────────────
+# ── Step 6: Install CLI ─────────────────────────────────────────────
+install_cli() {
+  echo "  Installing CLI binary..."
+
+  # Copy CLI script to MOIRA_HOME/bin/
+  mkdir -p "$MOIRA_HOME/bin"
+  cp -f "$SCRIPT_DIR/cli/moira" "$MOIRA_HOME/bin/moira"
+  chmod +x "$MOIRA_HOME/bin/moira"
+
+  # Symlink to ~/.local/bin/ (standard user bin, usually in PATH)
+  local target_bin="$HOME/.local/bin"
+  mkdir -p "$target_bin"
+
+  if [[ -L "${target_bin}/moira" ]] || [[ ! -e "${target_bin}/moira" ]]; then
+    ln -sf "$MOIRA_HOME/bin/moira" "${target_bin}/moira"
+    echo "[OK] CLI installed: ${target_bin}/moira"
+  else
+    echo "[WARN] ${target_bin}/moira exists and is not a symlink — skipping"
+    echo "  Manual: ln -sf $MOIRA_HOME/bin/moira ${target_bin}/moira"
+  fi
+
+  # Check if target_bin is in PATH
+  if [[ ":$PATH:" != *":${target_bin}:"* ]]; then
+    echo "[INFO] ${target_bin} is not in your PATH"
+    echo "  Add to your shell profile: export PATH=\"\$HOME/.local/bin:\$PATH\""
+  fi
+}
+
+# ── Step 7: Verify installation ──────────────────────────────────────
 verify() {
   echo "  Verifying installation..."
 
@@ -475,6 +503,18 @@ verify() {
     return 1
   fi
 
+  # Check: CLI binary exists and is executable
+  ((checks_total++)) || true
+  if [[ -f "$MOIRA_HOME/bin/moira" && -x "$MOIRA_HOME/bin/moira" ]]; then
+    if bash -n "$MOIRA_HOME/bin/moira" 2>/dev/null; then
+      ((checks_passed++)) || true
+    else
+      errors+="  bin/moira has syntax errors\n"
+    fi
+  else
+    errors+="  bin/moira not found or not executable\n"
+  fi
+
   # Optional: check for ariadne binary (informational, never fails verification)
   if command -v ariadne &>/dev/null; then
     local ariadne_ver
@@ -492,6 +532,7 @@ install_global
 install_commands
 install_schemas
 install_statusline
+install_cli
 
 # Create version snapshot after all installation steps complete (Phase 12)
 # Must be after install_schemas so snapshot includes schema files for three-way upgrade diff
