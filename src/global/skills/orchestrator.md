@@ -275,6 +275,14 @@ Before entering the main loop:
 5. **Passive audit — task start checks:**
    - Check `.claude/moira/config/locks.yaml` for stale locks (TTL expired) → if found, display passive audit warning (per `gates.md` Passive Audit Warning template). Informational only (D-068).
    - Check `current.yaml` for orphaned `in_progress` state (task_id set but step_status not `checkpointed` and no active session) → if found, display warning, offer cleanup (reset current.yaml to idle).
+   - **Stale knowledge check:** Run `bash -c 'source ~/.claude/moira/lib/knowledge.sh && moira_knowledge_stale_entries .claude/moira/knowledge'` to detect knowledge entries with confidence ≤ 30%. If any stale entries are found, display:
+     ```
+     ⚠ STALE KNOWLEDGE
+       {count} knowledge entries below confidence threshold:
+       • {type}: {freshness_category} (confidence {score}%)
+       Consider running /moira:refresh to update.
+     ```
+     Informational only — do NOT block the pipeline.
 
 ### Main Loop
 

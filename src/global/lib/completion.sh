@@ -154,6 +154,12 @@ moira_completion_finalize() {
   # ── Step 17: Checkpoint cleanup ──
   moira_checkpoint_cleanup "$task_id" "$state_dir" 2>/dev/null || true
 
+  # ── Step 17c: Log rotation ──
+  # Rotate logs that grow unbounded. Keep last 500 lines, archive the rest.
+  _moira_completion_rotate_log "${state_dir}/violations.log" 500
+  _moira_completion_rotate_log "${state_dir}/tool-usage.log" 500
+  _moira_completion_rotate_log "${state_dir}/budget-tool-usage.log" 500
+
   # ── Step 17b: Mark completion processor as completed (D-149 Layer 2) ──
   moira_yaml_set "$status_file" "completion_processor.status" "completed"
 
@@ -175,4 +181,35 @@ moira_completion_finalize() {
   echo "REFLECTION_LEVEL=${reflection_level}"
 
   return 0
+}
+
+# ── _moira_completion_rotate_log <log_path> <keep_lines> ─────────────
+# Rotate a log file: if it exceeds keep_lines × 2, archive older lines
+# to {log_path}.archive and keep only the tail.
+_moira_completion_rotate_log() {
+  local log_path="$1"
+  local keep_lines="$2"
+
+  [[ -f "$log_path" ]] || return 0
+
+  local line_count
+  line_count=$(wc -l < "$log_path" 2>/dev/null) || return 0
+  line_count=${line_count##* }
+
+  # Only rotate when file exceeds 2× threshold
+  local threshold=$(( keep_lines * 2 ))
+  if [[ "$line_count" -le "$threshold" ]]; then
+    return 0
+  fi
+
+  local archive_path="${log_path}.archive"
+  local lines_to_archive=$(( line_count - keep_lines ))
+
+  # Append older lines to archive
+  head -n "$lines_to_archive" "$log_path" >> "$archive_path" 2>/dev/null || true
+
+  # Keep only recent lines
+  local tmpfile
+  tmpfile=$(mktemp)
+  tail -n "$keep_lines" "$log_path" > "$tmpfile" 2>/dev/null && mv "$tmpfile" "$log_path"
 }

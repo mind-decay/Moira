@@ -268,7 +268,7 @@ _moira_settings_merge_fallback() {
     # Existing hooks — too complex to merge safely without jq
     echo "Warning: Cannot safely merge Moira hooks into existing settings.json without jq" >&2
     echo "Please install jq and re-run install, or add hooks manually." >&2
-    echo "Required hooks: guard.sh, budget-track.sh, pipeline-compliance.sh, pipeline-tracker.sh, pipeline-stop-guard.sh" >&2
+    echo "Required hooks: guard.sh, budget-track.sh, pipeline-dispatch.sh, pipeline-tracker.sh, pipeline-stop-guard.sh" >&2
     return 1
   fi
 

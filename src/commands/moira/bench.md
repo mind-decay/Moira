@@ -74,6 +74,24 @@ Recalibration triggers:
 - Tier 3: max 30 tests, warn at 20
 - Token-based guards deferred to Phase 7
 
+## Judge Score Recording (Tier 2/3)
+
+After `moira_bench_run` records structural results for each test, check for a judge prompt file:
+
+1. For each `{run_dir}/{test_id}-judge-prompt.md` file:
+   a. Read the judge prompt file
+   b. Dispatch Agent with the prompt content (description: "LLM Judge — {test_id}")
+   c. Parse the agent's YAML evaluation response — extract scores for: `requirements_coverage`, `code_correctness`, `architecture_quality`, `conventions_adherence`
+   d. Compute composite score: `bash -c 'source ~/.claude/moira/lib/judge.sh && moira_judge_composite_score {req} {code} {arch} {conv}'`
+   e. Write scores back to `{run_dir}/{test_id}.yaml` using `moira_yaml_set`:
+      - `quality_scores.requirements_coverage: {score}`
+      - `quality_scores.code_correctness: {score}`
+      - `quality_scores.architecture_quality: {score}`
+      - `quality_scores.conventions_adherence: {score}`
+      - `quality_scores.composite: {composite}`
+   f. Update baseline: `bash -c 'source ~/.claude/moira/lib/bench.sh && moira_bench_update_baseline {aggregate_path} composite_score {composite}'`
+2. After all tests: call `moira_bench_report` to generate summary with quality scores included.
+
 ## Notes
 
 - Tier 2/3 tests include LLM-judge invocation after structural checks
