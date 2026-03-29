@@ -587,15 +587,22 @@ moira_yaml_block_append() {
   local tmpfile
   tmpfile=$(mktemp)
 
+  # Replace inline empty arrays ("key: []") with bare key ("key:") before appending.
+  # Mixed "key: []\n  - item" is invalid YAML.
+  sed -i.bak "s/^\([[:space:]]*\)\(${parent_key##*.}\):[[:space:]]*\[\]/\1\2:/" "$file"
+  rm -f "${file}.bak"
+
   local IFS='.'
   set -- $parent_key
   local p1="${1:-}"
   local p2="${2:-}"
   local depth=$#
 
+  # Note: yaml_text is passed via ENVIRON to avoid AWK -v newline limitation.
+  # AWK's -v flag does not support embedded newlines in values.
   if [[ $depth -eq 1 ]]; then
-    awk -v p1="$p1" -v text="$yaml_text" '
-    BEGIN { in_section=0; last_line=0 }
+    YAML_APPEND_TEXT="$yaml_text" awk -v p1="$p1" '
+    BEGIN { text = ENVIRON["YAML_APPEND_TEXT"]; in_section=0; last_line=0 }
     {
       lines[NR] = $0;
       match($0, /^[[:space:]]*/);
@@ -615,8 +622,8 @@ moira_yaml_block_append() {
       }
     }' "$file" > "$tmpfile"
   elif [[ $depth -eq 2 ]]; then
-    awk -v p1="$p1" -v p2="$p2" -v text="$yaml_text" '
-    BEGIN { in_p1=0; in_p2=0; last_line=0 }
+    YAML_APPEND_TEXT="$yaml_text" awk -v p1="$p1" -v p2="$p2" '
+    BEGIN { text = ENVIRON["YAML_APPEND_TEXT"]; in_p1=0; in_p2=0; last_line=0 }
     {
       lines[NR] = $0;
       match($0, /^[[:space:]]*/);
