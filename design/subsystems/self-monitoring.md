@@ -16,19 +16,25 @@ Rules alone don't prevent this 100%. We need structural enforcement.
 
 ### Hook Registration
 
-9 hooks across 6 event types, registered in `.claude/settings.json` by `install.sh` via `settings-merge.sh`:
+13 hooks across 9 event types, registered in `.claude/settings.json` by `install.sh` via `settings-merge.sh`.
+Also injects `permissions.allow` for `/.claude/moira/**` (Read/Write/Edit) so subagents can access state without permission prompts. Global `Read(~/.claude/moira/**)` is registered in `~/.claude/settings.json` for role/template reads.
 
 | Hook | Event | Type | Purpose |
 |------|-------|------|---------|
-| `pipeline-compliance.sh` | PreToolUse (Agent) | DENY | Per-pipeline transition table enforcement |
+| `task-submit.sh` | UserPromptSubmit | Inject | Task initialization on prompt submit |
+| `pipeline-dispatch.sh` | PreToolUse (Agent) | DENY | Per-pipeline transition table enforcement |
 | `guard-prevent.sh` | PreToolUse (Read\|Write) | DENY | Block orchestrator access to project files |
 | `guard.sh` | PostToolUse (all) | Audit | Violation detection + tool usage logging |
 | `budget-track.sh` | PostToolUse (all) | Audit | Token usage tracking |
+| `graph-update.sh` | PostToolUse (Write\|Edit) | Inject | Incremental graph update on file changes |
 | `pipeline-tracker.sh` | PostToolUse (Agent) | Inject | Dispatch tracking + next-step guidance |
 | `pipeline-stop-guard.sh` | Stop | BLOCK | Prevent completion with pending review/test |
 | `compact-reinject.sh` | SessionStart (compact) | Inject | Re-inject pipeline state after compaction |
 | `agent-inject.sh` | SubagentStart | Inject | Response contract + rules in every agent |
 | `agent-output-validate.sh` | SubagentStop | BLOCK | Validate agent output has STATUS line |
+| `agent-done.sh` | SubagentStop | Audit | Record agent completion in state |
+| `graph-validate.sh` | TaskCompleted | Audit | Validate graph consistency after task |
+| `session-cleanup.sh` | SessionEnd | Cleanup | Clean transient state on session end |
 
 ### Layer 1: `allowed-tools` in command frontmatter (PREVENTION)
 

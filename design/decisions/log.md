@@ -1772,3 +1772,18 @@ Gate recording stays manual — no hookable event for user gate decisions. Open 
 - MCP server for state management — overkill; hooks are simpler and synchronous
 - Keep all state manual — wastes ~12k tokens/pipeline on mechanical bookkeeping
 **Reasoning:** Hooks provide structural guarantees that prompts cannot. State transitions always happen correctly regardless of orchestrator context quality. Saves ~12k tokens per pipeline (~25% of a quick pipeline budget). The orchestrator focuses on decisions (gates, errors, routing) while hooks handle bookkeeping.
+
+## D-179: Permission Auto-Registration for Subagent Access
+
+**Date:** 2026-03-29
+**Status:** accepted
+**Context:** Background subagents (launched via `run_in_background: true` in refresh/init) silently failed when writing scan results to `.claude/moira/` or reading role files from `~/.claude/moira/`. Permission prompts cannot be displayed for background agents, causing silent denials. Additionally, `settings-merge.sh` was out of sync with the actual hook set — missing 6 hooks and referencing non-existent `pipeline-compliance.sh`.
+**Decision:**
+- **Project-level permissions** (`settings-merge.sh` → `.claude/settings.json`): auto-inject `Read(/.claude/moira/**)`, `Write(/.claude/moira/**)`, `Edit(/.claude/moira/**)` using correct `Tool(specifier)` format with `/` prefix (project-root-relative, not CWD-relative).
+- **Global permissions** (`moira_settings_register_global_permissions()` → `~/.claude/settings.json`): auto-inject `Read(~/.claude/moira/**)` so subagents can read role definitions, templates, pipelines from the global install.
+- **Full hook sync**: `settings-merge.sh` now injects all 13 hooks across 9 event types, matching the actual hook set. Removed stale `pipeline-compliance.sh` reference (merged into `pipeline-dispatch.sh` per D-178).
+- **No Bash permission**: `Bash(bash ~/.claude/moira/**)` was removed — real commands use `bash -c 'source ~/.claude/moira/...'` which doesn't match that pattern.
+**Alternatives rejected:**
+- Running scanner agents in foreground (sequential) — slower, defeats parallelism
+- Adding permissions only to Moira repo — consumers would hit the same issue
+**Reasoning:** Permissions are structural (like hooks) — they must be injected automatically at install time, not rely on users configuring them manually. Two-layer approach (project + global) mirrors the two-layer file architecture (project-local state + global install).

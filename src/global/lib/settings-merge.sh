@@ -19,18 +19,35 @@ moira_settings_merge_hooks() {
 
   mkdir -p "$settings_dir"
 
-  # The full Moira hook configuration to inject
+  # The full Moira hook + permissions configuration to inject
   local moira_hooks_json
   moira_hooks_json=$(cat <<'HOOKJSON'
 {
+  "permissions": {
+    "allow": [
+      "Read(/.claude/moira/**)",
+      "Write(/.claude/moira/**)",
+      "Edit(/.claude/moira/**)"
+    ]
+  },
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/task-submit.sh"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Agent",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/moira/hooks/pipeline-compliance.sh"
+            "command": "bash ~/.claude/moira/hooks/pipeline-dispatch.sh"
           }
         ]
       },
@@ -55,6 +72,15 @@ moira_settings_merge_hooks() {
           {
             "type": "command",
             "command": "bash ~/.claude/moira/hooks/budget-track.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/graph-update.sh"
           }
         ]
       },
@@ -105,6 +131,30 @@ moira_settings_merge_hooks() {
           {
             "type": "command",
             "command": "bash ~/.claude/moira/hooks/agent-output-validate.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/agent-done.sh"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/graph-validate.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/session-cleanup.sh"
           }
         ]
       }
@@ -114,17 +164,23 @@ moira_settings_merge_hooks() {
 HOOKJSON
 )
 
-  # Check if ALL Moira hooks are already registered (idempotent)
-  # If any hook is missing, re-merge (handles upgrades from older installations)
+  # Check if ALL Moira hooks + permissions are already registered (idempotent)
+  # If any hook or permission is missing, re-merge (handles upgrades from older installations)
   if [[ -f "$settings_file" ]] && \
+     grep -q 'moira/hooks/task-submit.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/guard.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/guard-prevent.sh' "$settings_file" 2>/dev/null && \
-     grep -q 'moira/hooks/pipeline-compliance.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/pipeline-dispatch.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/pipeline-tracker.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/pipeline-stop-guard.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/compact-reinject.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/agent-inject.sh' "$settings_file" 2>/dev/null && \
-     grep -q 'moira/hooks/agent-output-validate.sh' "$settings_file" 2>/dev/null; then
+     grep -q 'moira/hooks/agent-output-validate.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/agent-done.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/graph-update.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/graph-validate.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/session-cleanup.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'Write(/.claude/moira/' "$settings_file" 2>/dev/null; then
     return 0
   fi
 
@@ -150,26 +206,41 @@ _moira_settings_merge_jq() {
   local tmpfile
   tmpfile=$(mktemp)
 
-  jq --argjson new_hooks "$(echo "$moira_hooks_json" | jq '.hooks')" '
+  jq --argjson new_hooks "$(echo "$moira_hooks_json" | jq '.hooks')" \
+     --argjson new_perms "$(echo "$moira_hooks_json" | jq '.permissions')" '
     # Remove existing Moira entries from all hook event types
     def remove_moira:
       if . then [.[] | .hooks = [.hooks[] | select(.command | contains("moira/hooks/") | not)] | select(.hooks | length > 0)] else [] end;
 
+    # Remove existing Moira permission entries
+    def remove_moira_perms:
+      if . then [.[] | select(contains(".claude/moira/") | not)] else [] end;
+
+    # Merge permissions (additive, deduplicated)
+    .permissions = (.permissions // {}) |
+    .permissions.allow = ((.permissions.allow | remove_moira_perms) + ($new_perms.allow // []) | unique) |
+
     .hooks = (.hooks // {}) |
+    .hooks.UserPromptSubmit = (.hooks.UserPromptSubmit | remove_moira) |
     .hooks.PreToolUse = (.hooks.PreToolUse | remove_moira) |
     .hooks.PostToolUse = (.hooks.PostToolUse | remove_moira) |
     .hooks.Stop = (.hooks.Stop | remove_moira) |
     .hooks.SessionStart = (.hooks.SessionStart | remove_moira) |
     .hooks.SubagentStart = (.hooks.SubagentStart | remove_moira) |
     .hooks.SubagentStop = (.hooks.SubagentStop | remove_moira) |
+    .hooks.TaskCompleted = (.hooks.TaskCompleted | remove_moira) |
+    .hooks.SessionEnd = (.hooks.SessionEnd | remove_moira) |
 
     # Add Moira hook entries
+    .hooks.UserPromptSubmit = (.hooks.UserPromptSubmit + ($new_hooks.UserPromptSubmit // [])) |
     .hooks.PreToolUse = (.hooks.PreToolUse + ($new_hooks.PreToolUse // [])) |
     .hooks.PostToolUse = (.hooks.PostToolUse + ($new_hooks.PostToolUse // [])) |
     .hooks.Stop = (.hooks.Stop + ($new_hooks.Stop // [])) |
     .hooks.SessionStart = (.hooks.SessionStart + ($new_hooks.SessionStart // [])) |
     .hooks.SubagentStart = (.hooks.SubagentStart + ($new_hooks.SubagentStart // [])) |
-    .hooks.SubagentStop = (.hooks.SubagentStop + ($new_hooks.SubagentStop // []))
+    .hooks.SubagentStop = (.hooks.SubagentStop + ($new_hooks.SubagentStop // [])) |
+    .hooks.TaskCompleted = (.hooks.TaskCompleted + ($new_hooks.TaskCompleted // [])) |
+    .hooks.SessionEnd = (.hooks.SessionEnd + ($new_hooks.SessionEnd // []))
   ' "$settings_file" > "$tmpfile" 2>/dev/null
 
   if [[ $? -eq 0 ]] && [[ -s "$tmpfile" ]]; then
@@ -215,14 +286,40 @@ _moira_settings_merge_fallback() {
   {
     echo "$trimmed,"
     cat <<'HOOKS'
+  "permissions": {
+    "allow": [
+      "Read(/.claude/moira/**)",
+      "Write(/.claude/moira/**)",
+      "Edit(/.claude/moira/**)"
+    ]
+  },
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/task-submit.sh"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Agent",
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/moira/hooks/pipeline-compliance.sh"
+            "command": "bash ~/.claude/moira/hooks/pipeline-dispatch.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/guard-prevent.sh"
           }
         ]
       }
@@ -242,6 +339,15 @@ _moira_settings_merge_fallback() {
         ]
       },
       {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/graph-update.sh"
+          }
+        ]
+      },
+      {
         "matcher": "Agent",
         "hooks": [
           {
@@ -257,6 +363,61 @@ _moira_settings_merge_fallback() {
           {
             "type": "command",
             "command": "bash ~/.claude/moira/hooks/pipeline-stop-guard.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/compact-reinject.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/agent-inject.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/agent-output-validate.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/agent-done.sh"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/graph-validate.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/session-cleanup.sh"
           }
         ]
       }
@@ -304,6 +465,49 @@ moira_settings_register_statusline() {
   else
     echo "Warning: jq not found — please add statusLine to ~/.claude/settings.json manually:" >&2
     echo "  \"statusLine\": { \"type\": \"command\", \"command\": \"$statusline_cmd\" }" >&2
+    return 1
+  fi
+}
+
+# ── moira_settings_register_global_permissions ───────────────────────
+# Register global read permissions for ~/.claude/moira/ in user-level
+# ~/.claude/settings.json. Subagents need to read role files, templates,
+# pipelines, and rules from the global install without permission prompts.
+# Idempotent — safe to re-run.
+moira_settings_register_global_permissions() {
+  local settings_file="$HOME/.claude/settings.json"
+
+  mkdir -p "$HOME/.claude"
+
+  # Already registered?
+  if [[ -f "$settings_file" ]] && grep -q 'Read(~/.claude/moira/' "$settings_file" 2>/dev/null; then
+    return 0
+  fi
+
+  local perm_entry='Read(~/.claude/moira/**)'
+
+  if command -v jq &>/dev/null; then
+    if [[ ! -f "$settings_file" ]] || [[ ! -s "$settings_file" ]]; then
+      jq -n --arg perm "$perm_entry" '{ permissions: { allow: [$perm] } }' > "$settings_file"
+    else
+      local tmpfile
+      tmpfile=$(mktemp)
+      jq --arg perm "$perm_entry" '
+        .permissions = (.permissions // {}) |
+        .permissions.allow = ((.permissions.allow // []) + [$perm] | unique)
+      ' "$settings_file" > "$tmpfile" 2>/dev/null
+      if [[ $? -eq 0 ]] && [[ -s "$tmpfile" ]]; then
+        mv "$tmpfile" "$settings_file"
+      else
+        rm -f "$tmpfile"
+        echo "Warning: Could not register global permissions — please add manually to ~/.claude/settings.json:" >&2
+        echo '  "permissions": { "allow": ["Read(~/.claude/moira/**"] }' >&2
+        return 1
+      fi
+    fi
+  else
+    echo "Warning: jq not found — please add global permissions to ~/.claude/settings.json manually:" >&2
+    echo '  "permissions": { "allow": ["Read(~/.claude/moira/**"] }' >&2
     return 1
   fi
 }
@@ -463,20 +667,31 @@ moira_settings_remove_hooks() {
         else [] end;
 
       # Remove from all event types
+      (if .hooks.UserPromptSubmit then .hooks.UserPromptSubmit |= remove_moira else . end) |
       (if .hooks.PreToolUse then .hooks.PreToolUse |= remove_moira else . end) |
       (if .hooks.PostToolUse then .hooks.PostToolUse |= remove_moira else . end) |
       (if .hooks.Stop then .hooks.Stop |= remove_moira else . end) |
       (if .hooks.SessionStart then .hooks.SessionStart |= remove_moira else . end) |
       (if .hooks.SubagentStart then .hooks.SubagentStart |= remove_moira else . end) |
       (if .hooks.SubagentStop then .hooks.SubagentStop |= remove_moira else . end) |
+      (if .hooks.TaskCompleted then .hooks.TaskCompleted |= remove_moira else . end) |
+      (if .hooks.SessionEnd then .hooks.SessionEnd |= remove_moira else . end) |
+
+      # Remove Moira permissions
+      (if .permissions.allow then .permissions.allow |= [.[] | select(contains(".claude/moira/") | not)] else . end) |
+      (if .permissions.allow and (.permissions.allow | length) == 0 then del(.permissions.allow) else . end) |
+      (if .permissions and (.permissions | length) == 0 then del(.permissions) else . end) |
 
       # Clean up empty arrays and objects
+      (if .hooks.UserPromptSubmit and (.hooks.UserPromptSubmit | length) == 0 then del(.hooks.UserPromptSubmit) else . end) |
       (if .hooks.PreToolUse and (.hooks.PreToolUse | length) == 0 then del(.hooks.PreToolUse) else . end) |
       (if .hooks.PostToolUse and (.hooks.PostToolUse | length) == 0 then del(.hooks.PostToolUse) else . end) |
       (if .hooks.Stop and (.hooks.Stop | length) == 0 then del(.hooks.Stop) else . end) |
       (if .hooks.SessionStart and (.hooks.SessionStart | length) == 0 then del(.hooks.SessionStart) else . end) |
       (if .hooks.SubagentStart and (.hooks.SubagentStart | length) == 0 then del(.hooks.SubagentStart) else . end) |
       (if .hooks.SubagentStop and (.hooks.SubagentStop | length) == 0 then del(.hooks.SubagentStop) else . end) |
+      (if .hooks.TaskCompleted and (.hooks.TaskCompleted | length) == 0 then del(.hooks.TaskCompleted) else . end) |
+      (if .hooks.SessionEnd and (.hooks.SessionEnd | length) == 0 then del(.hooks.SessionEnd) else . end) |
       (if .hooks and (.hooks | length) == 0 then del(.hooks) else . end)
     ' "$settings_file" > "$tmpfile" 2>/dev/null
 

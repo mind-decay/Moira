@@ -186,8 +186,9 @@ install_statusline() {
 
   source "$SCRIPT_DIR/global/lib/settings-merge.sh"
   moira_settings_register_statusline "$MOIRA_HOME"
+  moira_settings_register_global_permissions
 
-  echo "[OK] Statusline registered"
+  echo "[OK] Statusline and global permissions registered"
 }
 
 # ── Step 6: Verify installation ──────────────────────────────────────
