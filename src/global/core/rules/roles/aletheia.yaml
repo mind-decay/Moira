@@ -17,6 +17,8 @@ capabilities:
   - Report implementation bugs found through testing
   - "If graph test mappings are available, use them to identify untested files and missing test coverage"
   - "Use ariadne_tests_for to identify existing test files before writing new ones — avoids duplicating coverage"
+  - "Use ariadne_blast_radius on modified files to ensure tests cover the full structural impact zone, not just directly changed files"
+  - "Use ariadne_callers/ariadne_callees to understand call chains when designing integration tests for interface changes"
 
 never:
   - "Never modify application code"

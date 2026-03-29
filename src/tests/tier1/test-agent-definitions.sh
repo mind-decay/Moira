@@ -105,6 +105,9 @@ fi
 
 P45_TOOL_PAIRS="hermes:ariadne_symbol_search athena:ariadne_plan_impact daedalus:ariadne_context hephaestus:ariadne_symbols themis:ariadne_callers aletheia:ariadne_tests_for"
 
+# Phase 8: expanded Ariadne integration — additional tool references per agent
+P8_TOOL_PAIRS="hermes:ariadne_dependencies hermes:ariadne_cluster athena:ariadne_coupling themis:ariadne_diff themis:ariadne_cycles themis:ariadne_smells hephaestus:ariadne_callers hephaestus:ariadne_dependencies aletheia:ariadne_blast_radius aletheia:ariadne_callers"
+
 for pair in $P45_TOOL_PAIRS; do
   agent="${pair%%:*}"
   expected_ref="${pair#*:}"
@@ -116,6 +119,20 @@ for pair in $P45_TOOL_PAIRS; do
     pass "phase4/5: ${agent} references $expected_ref"
   else
     fail "phase4/5: ${agent} missing $expected_ref"
+  fi
+done
+
+for pair in $P8_TOOL_PAIRS; do
+  agent="${pair%%:*}"
+  expected_ref="${pair#*:}"
+  role_file="$SRC_ROLES/${agent}.yaml"
+  if [[ ! -f "$role_file" ]]; then
+    role_file="$ROLES_DIR/${agent}.yaml"
+  fi
+  if grep -q "$expected_ref" "$role_file" 2>/dev/null; then
+    pass "phase8: ${agent} references $expected_ref"
+  else
+    fail "phase8: ${agent} missing $expected_ref"
   fi
 done
 

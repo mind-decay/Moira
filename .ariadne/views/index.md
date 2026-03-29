@@ -2,18 +2,18 @@
 
 ## Architecture Summary
 
-- **Files:** 296
+- **Files:** 298
 - **Edges:** 57
 - **Clusters:** 7
 - **Max depth:** 3
-- **Avg in-degree:** 0.0405
-- **Avg out-degree:** 0.0405
+- **Avg in-degree:** 0.0403
+- **Avg out-degree:** 0.0403
 
 ## Clusters
 
 | Cluster | Files | Key File | Cohesion |
 |---------|------:|----------|--------:|
-| .claude | 37 | `.claude/settings.json` | 1.0000 |
+| .claude | 39 | `.claude/settings.local.json` | 1.0000 |
 | commands | 14 | `src/commands/moira/upgrade.md` | 1.0000 |
 | design | 90 | `design/subsystems/testing.md` | 1.0000 |
 | global | 80 | `src/global/templates/scanners/tech-scan.md` | 1.0000 |

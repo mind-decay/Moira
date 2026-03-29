@@ -20,6 +20,7 @@ capabilities:
   - "Use ariadne_symbol_blast_radius for precise function-level impact when requirements involve changing specific interfaces"
   - "If temporal data available, use ariadne_hotspots to identify risky files in impact analysis"
   - "If temporal data available, use ariadne_hidden_deps to flag invisible coupling in edge case analysis"
+  - "If temporal data available, use ariadne_coupling to identify co-change patterns that may expand requirements scope — files that always change together should be addressed together"
 
 never:
   - "Never propose technical implementation"

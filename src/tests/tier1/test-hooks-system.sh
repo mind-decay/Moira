@@ -129,6 +129,8 @@ COMPLIANCE_HOOKS=(
   "agent-done.sh"
   "session-cleanup.sh"
   "task-submit.sh"
+  "graph-update.sh"
+  "graph-validate.sh"
 )
 
 for hook in "${COMPLIANCE_HOOKS[@]}"; do
@@ -175,6 +177,13 @@ assert_file_contains "$MOIRA_HOME/hooks/session-cleanup.sh" "session-lock" "sess
 assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "moira_task_init" "task-submit.sh: scaffolds task"
 assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "MOIRA TASK INITIALIZED" "task-submit.sh: injects task_id"
 
+# Ariadne graph hooks
+assert_file_contains "$MOIRA_HOME/hooks/graph-update.sh" "ariadne update" "graph-update.sh: runs ariadne update"
+assert_file_contains "$MOIRA_HOME/hooks/graph-update.sh" ".ariadne" "graph-update.sh: checks for .ariadne dir"
+assert_file_contains "$MOIRA_HOME/hooks/graph-validate.sh" "ariadne query cycles" "graph-validate.sh: checks cycles"
+assert_file_contains "$MOIRA_HOME/hooks/graph-validate.sh" "ariadne query smells" "graph-validate.sh: checks smells"
+assert_file_contains "$MOIRA_HOME/hooks/compact-reinject.sh" "ariadne query overview" "compact-reinject.sh: injects graph overview"
+
 # ═══════════════════════════════════════════════════════════════════════
 # Hook functional tests (basic)
 # ═══════════════════════════════════════════════════════════════════════
@@ -193,6 +202,8 @@ ALL_HOOKS=(
   "agent-done.sh"
   "session-cleanup.sh"
   "task-submit.sh"
+  "graph-update.sh"
+  "graph-validate.sh"
 )
 
 for hook in "${ALL_HOOKS[@]}"; do

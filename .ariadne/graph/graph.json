@@ -1,7 +1,7 @@
 {
   "version": 1,
   "project_root": "/Users/minddecay/Documents/Projects/Moira",
-  "node_count": 297,
+  "node_count": 300,
   "edge_count": 57,
   "nodes": {
     ".claude/CLAUDE.md": {
@@ -202,6 +202,15 @@
       "exports": [],
       "cluster": ".claude"
     },
+    ".claude/moira/knowledge/libraries/verified-facts.yaml": {
+      "type": "data",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 14,
+      "hash": "f8053c2beecb135e",
+      "exports": [],
+      "cluster": ".claude"
+    },
     ".claude/moira/knowledge/patterns/full.md": {
       "type": "doc",
       "layer": "unknown",
@@ -332,8 +341,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 19,
-      "hash": "98570e7dd0542123",
+      "lines": 132,
+      "hash": "587c85eddb3053ba",
       "exports": [],
       "cluster": ".claude"
     },
@@ -422,8 +431,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 431,
-      "hash": "a9cb82b5b71d4769",
+      "lines": 436,
+      "hash": "fc83e0d605bfb568",
       "exports": [],
       "cluster": "design"
     },
@@ -530,8 +539,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 1595,
-      "hash": "cd8c98c17c6aebd2",
+      "lines": 1774,
+      "hash": "c7a5b63d52a5d363",
       "exports": [],
       "cluster": "design"
     },
@@ -730,6 +739,24 @@
       "arch_depth": 0,
       "lines": 335,
       "hash": "84c029f5d9590f84",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/2026-03-29-state-automation-plan.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 242,
+      "hash": "e6f60e2d02675520",
+      "exports": [],
+      "cluster": "design"
+    },
+    "design/specs/2026-03-29-state-automation.md": {
+      "type": "doc",
+      "layer": "unknown",
+      "arch_depth": 0,
+      "lines": 409,
+      "hash": "a4698e7f04a3299b",
       "exports": [],
       "cluster": "design"
     },
@@ -1169,8 +1196,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 211,
-      "hash": "8a69621c28d81660",
+      "lines": 228,
+      "hash": "c4f1866c1a6fdb51",
       "exports": [],
       "cluster": "design"
     },
@@ -1304,8 +1331,8 @@
       "type": "doc",
       "layer": "service",
       "arch_depth": 0,
-      "lines": 130,
-      "hash": "298eaee73f04f14f",
+      "lines": 80,
+      "hash": "b9b8a3a3be537546",
       "exports": [],
       "cluster": "commands"
     },
@@ -1323,7 +1350,7 @@
       "layer": "unknown",
       "arch_depth": 0,
       "lines": 68,
-      "hash": "a26c6c2b7ec25445",
+      "hash": "335ceda0c02977c5",
       "exports": [],
       "cluster": "global"
     },
@@ -1421,8 +1448,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 128,
-      "hash": "2f98a2722e39f923",
+      "lines": 151,
+      "hash": "9773a0491271de21",
       "exports": [],
       "cluster": "global"
     },
@@ -1475,8 +1502,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 44,
-      "hash": "57f9f26d011e8774",
+      "lines": 46,
+      "hash": "f793c7d3131d6daa",
       "exports": [],
       "cluster": "global"
     },
@@ -1502,8 +1529,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 82,
-      "hash": "81a2f4e8814206c1",
+      "lines": 83,
+      "hash": "06edb54b26971c5a",
       "exports": [],
       "cluster": "global"
     },
@@ -1529,8 +1556,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 65,
-      "hash": "eea5b4b4fb7a96f4",
+      "lines": 67,
+      "hash": "20a054a364892144",
       "exports": [],
       "cluster": "global"
     },
@@ -1538,8 +1565,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 58,
-      "hash": "244b43f8b2721c8d",
+      "lines": 60,
+      "hash": "6d1f1bafd2aa9266",
       "exports": [],
       "cluster": "global"
     },
@@ -1547,8 +1574,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 107,
-      "hash": "4a1ce9b05ecf9a02",
+      "lines": 111,
+      "hash": "35a8052fe5f14870",
       "exports": [],
       "cluster": "global"
     },
@@ -1565,8 +1592,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 107,
-      "hash": "21f900792e8cbbbe",
+      "lines": 110,
+      "hash": "24c9a80d1b947369",
       "exports": [],
       "cluster": "global"
     },
@@ -1574,8 +1601,8 @@
       "type": "data",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 264,
-      "hash": "da9a72f33b08346b",
+      "lines": 279,
+      "hash": "1f2f9d5fafa9a6cb",
       "exports": [],
       "cluster": "global"
     },
@@ -1592,8 +1619,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 587,
-      "hash": "1c6340712c6e5c1e",
+      "lines": 614,
+      "hash": "a8e942e80b687795",
       "exports": [],
       "cluster": "global"
     },
@@ -1610,8 +1637,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 684,
-      "hash": "dfab7acc60a513a4",
+      "lines": 711,
+      "hash": "e0d5e76aaa098094",
       "exports": [],
       "cluster": "global"
     },
@@ -1619,8 +1646,8 @@
       "type": "doc",
       "layer": "unknown",
       "arch_depth": 0,
-      "lines": 868,
-      "hash": "57af056921011093",
+      "lines": 915,
+      "hash": "39bd585af0e1d447",
       "exports": [],
       "cluster": "global"
     },

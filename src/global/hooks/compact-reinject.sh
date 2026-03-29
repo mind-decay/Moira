@@ -74,6 +74,21 @@ fi
 msg="$msg CRITICAL RULES: You are a pure orchestrator — NEVER read/write project files directly. Dispatch agents for all work. Follow the pipeline step sequence. Present all required gates."
 msg="$msg Read the orchestrator skill: ~/.claude/moira/skills/orchestrator.md and the current pipeline definition: ~/.claude/moira/core/pipelines/$pipeline.yaml"
 
+# --- Ariadne graph context (re-inject after compaction) ---
+if command -v ariadne &>/dev/null; then
+  graph_overview=$(ariadne query overview --project "$PWD" 2>/dev/null) || true
+  if [[ -n "$graph_overview" ]]; then
+    # Extract key stats for compact injection
+    if command -v jq &>/dev/null; then
+      nodes=$(echo "$graph_overview" | jq -r '.node_count // "?"' 2>/dev/null) || nodes="?"
+      edges=$(echo "$graph_overview" | jq -r '.edge_count // "?"' 2>/dev/null) || edges="?"
+      cycles=$(echo "$graph_overview" | jq -r '.cycle_count // 0' 2>/dev/null) || cycles="0"
+      layers=$(echo "$graph_overview" | jq -r '.max_depth // "?"' 2>/dev/null) || layers="?"
+      msg="$msg PROJECT GRAPH (Ariadne): ${nodes} files, ${edges} edges, ${cycles} cycles, ${layers} layers deep. Graph is available — agents should use ariadne_* tools for structural queries."
+    fi
+  fi
+fi
+
 # --- Inject ---
 msg_escaped=$(echo "$msg" | sed 's/\\/\\\\/g; s/"/\\"/g' 2>/dev/null) || exit 0
 echo "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"$msg_escaped\"}}"

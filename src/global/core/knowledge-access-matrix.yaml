@@ -40,19 +40,19 @@ write_access:
 # L2 view  — full adjacency, edge weights, cycle membership, all metrics
 #
 # extras by agent:
-#   hermes       symbol_search (L0), reading_order (L1)
+#   hermes       symbol_search (L0), reading_order (L1), dependencies (L1), cluster (L1)
 #   athena       blast_radius (L1), smells (L1), plan_impact (L1), symbol_blast_radius (L1)
 #   metis        metrics (L1), spectral (L1)
 #   daedalus     blast_radius (L1), importance (L1), context (L1), plan_impact (L1)
-#   hephaestus   subgraph (L2), compressed (L2), symbols (L2), context (L2)
+#   hephaestus   subgraph (L2), compressed (L2), symbols (L2), context (L2), callers (L1), dependencies (L1)
 #   themis       diff (L1), smells (L1), cycles (L1), callers (L1)
-#   aletheia     test mappings via L1 views, tests_for (L1)
+#   aletheia     test mappings via L1 views, tests_for (L1), blast_radius (L1), callers (L1), callees (L1)
 #   mnemosyne    metrics (L2)
 #   argus        stats (L2), smells (L2), spectral (L2)
 
 # temporal_extras by agent (conditional on temporal_available — D-159):
 #   hermes       ownership (L0)
-#   athena       hotspots (L1), hidden_deps (L1)
+#   athena       hotspots (L1), hidden_deps (L1), coupling (L1)
 #   metis        churn (L1), coupling (L1), ownership (L1)
 #   daedalus     (no temporal extras — planner delegates temporal to downstream agents)
 #   hephaestus   churn (L1)

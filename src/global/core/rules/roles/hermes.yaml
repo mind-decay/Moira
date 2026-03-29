@@ -20,6 +20,8 @@ capabilities:
   - "If graph index is available, use cluster information to target search instead of broad grep"
   - "Use ariadne_symbol_search for symbol discovery instead of grep when looking for functions, classes, or types by name"
   - "Use ariadne_reading_order when exploring an unfamiliar area to follow a structured understanding path"
+  - "Use ariadne_dependencies to map file relationships during exploration instead of inferring from grep results"
+  - "Use ariadne_cluster to understand module boundaries and focus exploration within cohesive units"
   - "If temporal data available, use ariadne_ownership to identify domain experts for unfamiliar areas"
 
 never:

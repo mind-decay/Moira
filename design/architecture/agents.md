@@ -94,7 +94,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 **Monorepo mode:** When dispatched with package-scoped instructions, Explorer limits exploration to the specified packages and their direct dependencies. If Explorer discovers that additional packages are relevant (e.g., shared utilities not in scope), it reports E2-SCOPE (monorepo subtype, D-070) for scope expansion rather than silently expanding.
 
-**Phase 4/5 tools:** Uses `ariadne_symbol_search` for symbol discovery instead of grep when looking for functions, classes, or types by name. Uses `ariadne_reading_order` for structured exploration of unfamiliar areas.
+**Phase 4/5 tools:** Uses `ariadne_symbol_search` for symbol discovery instead of grep when looking for functions, classes, or types by name. Uses `ariadne_reading_order` for structured exploration of unfamiliar areas. Uses `ariadne_dependencies` to map file relationships during exploration. Uses `ariadne_cluster` to understand module boundaries and focus exploration within cohesive units.
 
 **Knowledge access:** L0 (project-model index only — must be unbiased)
 **Write access:** project_model
@@ -126,7 +126,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
   - [ ] Backwards compatibility impact assessed
 - Missing items → STATUS: blocked with specific questions
 
-**Phase 4/5 tools:** Uses `ariadne_plan_impact` to auto-populate impact analysis with blast radius, affected tests, layer analysis, and risk identification. Uses `ariadne_symbol_blast_radius` for precise function-level impact when requirements involve changing specific interfaces.
+**Phase 4/5 tools:** Uses `ariadne_plan_impact` to auto-populate impact analysis with blast radius, affected tests, layer analysis, and risk identification. Uses `ariadne_symbol_blast_radius` for precise function-level impact when requirements involve changing specific interfaces. Uses `ariadne_coupling` (temporal) to identify co-change patterns that may expand requirements scope.
 
 **Knowledge access:** L1 (project-model summary), L0 (decisions index), L0 (failures index)
 
@@ -236,7 +236,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Does NOT return STATUS: success when post-implementation validation commands have failed
 - After code changes: runs post-implementation validation commands from `.claude/moira/config.yaml` → `tooling.post_implementation[]` (D-063). If commands fail, fixes errors before returning STATUS: success. If no commands configured, skips validation.
 
-**Phase 4/5 tools:** Uses `ariadne_symbols` to verify exports/imports match before writing code — confirms exact symbol names, kinds, and line spans. Uses `ariadne_context` with task type and budget to get pre-assembled implementation context.
+**Phase 4/5 tools:** Uses `ariadne_symbols` to verify exports/imports match before writing code — confirms exact symbol names, kinds, and line spans. Uses `ariadne_callers` when changing function signatures or interfaces to verify all call sites. Uses `ariadne_dependencies` to verify new imports respect existing dependency structure. Uses `ariadne_context` with task type and budget to get pre-assembled implementation context.
 
 **Knowledge access:** L0 (project-model), L2 (conventions — FULL), L1 (patterns), L1 (libraries)
 
@@ -272,7 +272,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Verifies MCP calls were used correctly
 - False positive awareness: if unsure, mark as WARNING not CRITICAL
 
-**Phase 4/5 tools:** Uses `ariadne_callers` to verify all call sites are updated after interface changes.
+**Phase 4/5 tools:** Uses `ariadne_diff` to see structural changes introduced by the task. Uses `ariadne_cycles` to verify no new circular dependencies were introduced. Uses `ariadne_smells` to check for newly introduced architectural smells. Uses `ariadne_callers` to verify all call sites are updated after interface changes.
 
 **Knowledge access:** L1 (project-model), L2 (conventions — FULL), L1 (decisions), L1 (patterns), L1 (quality-map)
 **Write access:** quality_map
@@ -303,7 +303,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Does NOT ignore test failures
 - If test fails due to implementation bug → reports, doesn't fix
 
-**Phase 4/5 tools:** Uses `ariadne_tests_for` to identify existing test files before writing new ones — avoids duplicating coverage.
+**Phase 4/5 tools:** Uses `ariadne_tests_for` to identify existing test files before writing new ones — avoids duplicating coverage. Uses `ariadne_blast_radius` on modified files to ensure tests cover the full structural impact zone. Uses `ariadne_callers`/`ariadne_callees` to understand call chains for integration test design.
 
 **Knowledge access:** L0 (project-model), L1 (conventions), L0 (patterns)
 

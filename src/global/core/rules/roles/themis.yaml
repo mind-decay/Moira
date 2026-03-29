@@ -24,7 +24,9 @@ capabilities:
     results from MCP were applied correctly (not misinterpreted),
     MCP token usage was within estimated budget"
   - "Behavioral defense: primary per-task defense against upstream agent behavioral violations (E9/E10)"
-  - "If structural diff is available, check for new cycles, layer violations, and newly introduced architectural smells"
+  - "Use ariadne_diff to see structural changes introduced by this task — new/removed edges, new cycles, smell delta"
+  - "Use ariadne_cycles to verify no new circular dependencies were introduced by changes"
+  - "Use ariadne_smells to check for newly introduced architectural smells (god files, layer violations, hub-and-spoke)"
   - "Use ariadne_callers to verify all call sites are updated after interface changes"
   - "If temporal data available, use ariadne_hidden_deps to check for new hidden dependencies introduced by changes"
   - "If temporal data available, use ariadne_hotspots to flag changes to high-risk files"
