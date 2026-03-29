@@ -115,25 +115,91 @@ if [[ -f "$MOIRA_HOME/schemas/config.schema.yaml" ]]; then
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
+# Pipeline compliance hooks (D-175, D-176)
+# ═══════════════════════════════════════════════════════════════════════
+
+COMPLIANCE_HOOKS=(
+  "pipeline-compliance.sh"
+  "pipeline-tracker.sh"
+  "pipeline-stop-guard.sh"
+  "guard-prevent.sh"
+  "compact-reinject.sh"
+  "agent-inject.sh"
+  "agent-output-validate.sh"
+)
+
+for hook in "${COMPLIANCE_HOOKS[@]}"; do
+  assert_file_exists "$MOIRA_HOME/hooks/$hook" "$hook exists"
+  if [[ -f "$MOIRA_HOME/hooks/$hook" ]]; then
+    if bash -n "$MOIRA_HOME/hooks/$hook" 2>/dev/null; then
+      pass "$hook syntax valid"
+    else
+      fail "$hook has syntax errors"
+    fi
+  fi
+done
+
+# Structural checks for key hooks
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "permissionDecision" "pipeline-compliance.sh: can DENY dispatches"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "review_pending" "pipeline-compliance.sh: enforces review"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "quick:classifier" "pipeline-compliance.sh: has quick transition table"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "standard:classifier" "pipeline-compliance.sh: has standard transition table"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "full:classifier" "pipeline-compliance.sh: has full transition table"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "decomposition:classifier" "pipeline-compliance.sh: has decomposition transition table"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-compliance.sh" "analytical:classifier" "pipeline-compliance.sh: has analytical transition table"
+
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-tracker.sh" "pipeline-tracker.state" "pipeline-tracker.sh: writes tracker state"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-tracker.sh" "additionalContext" "pipeline-tracker.sh: injects guidance"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-tracker.sh" "subtask_mode" "pipeline-tracker.sh: tracks sub-task mode"
+
+assert_file_contains "$MOIRA_HOME/hooks/guard-prevent.sh" "permissionDecision" "guard-prevent.sh: can DENY file access"
+assert_file_contains "$MOIRA_HOME/hooks/guard-prevent.sh" "BOUNDARY VIOLATION" "guard-prevent.sh: reports boundary violations"
+
+assert_file_contains "$MOIRA_HOME/hooks/agent-inject.sh" "RESPONSE CONTRACT" "agent-inject.sh: injects response contract"
+assert_file_contains "$MOIRA_HOME/hooks/agent-inject.sh" "INVIOLABLE RULES" "agent-inject.sh: injects rules"
+
+assert_file_contains "$MOIRA_HOME/hooks/agent-output-validate.sh" "STATUS:" "agent-output-validate.sh: validates STATUS line"
+
+assert_file_contains "$MOIRA_HOME/hooks/compact-reinject.sh" "CONTEXT RECOVERY" "compact-reinject.sh: injects context recovery"
+
+# ═══════════════════════════════════════════════════════════════════════
 # Hook functional tests (basic)
 # ═══════════════════════════════════════════════════════════════════════
 
-# guard.sh exits 0 when no state directory exists (non-Moira session)
-if [[ -f "$MOIRA_HOME/hooks/guard.sh" ]]; then
-  if echo "" | bash "$MOIRA_HOME/hooks/guard.sh" 2>/dev/null; then
-    pass "guard.sh: exits 0 with empty input (non-Moira session)"
-  else
-    fail "guard.sh: non-zero exit with empty input"
-  fi
-fi
+# All hooks exit 0 with empty input (non-Moira session)
+ALL_HOOKS=(
+  "guard.sh"
+  "budget-track.sh"
+  "pipeline-compliance.sh"
+  "pipeline-tracker.sh"
+  "pipeline-stop-guard.sh"
+  "guard-prevent.sh"
+  "compact-reinject.sh"
+  "agent-inject.sh"
+  "agent-output-validate.sh"
+)
 
-# budget-track.sh exits 0 when no state directory exists
-if [[ -f "$MOIRA_HOME/hooks/budget-track.sh" ]]; then
-  if echo "" | bash "$MOIRA_HOME/hooks/budget-track.sh" 2>/dev/null; then
-    pass "budget-track.sh: exits 0 with empty input (non-Moira session)"
-  else
-    fail "budget-track.sh: non-zero exit with empty input"
+for hook in "${ALL_HOOKS[@]}"; do
+  if [[ -f "$MOIRA_HOME/hooks/$hook" ]]; then
+    if echo "" | bash "$MOIRA_HOME/hooks/$hook" 2>/dev/null; then
+      pass "$hook: exits 0 with empty input (non-Moira session)"
+    else
+      fail "$hook: non-zero exit with empty input"
+    fi
   fi
+done
+
+# ═══════════════════════════════════════════════════════════════════════
+# Settings merge — all hook types registered
+# ═══════════════════════════════════════════════════════════════════════
+
+if [[ -f "$SRC_DIR/global/lib/settings-merge.sh" ]]; then
+  assert_file_contains "$SRC_DIR/global/lib/settings-merge.sh" "PreToolUse" "settings-merge.sh: registers PreToolUse hooks"
+  assert_file_contains "$SRC_DIR/global/lib/settings-merge.sh" "PostToolUse" "settings-merge.sh: registers PostToolUse hooks"
+  assert_file_contains "$SRC_DIR/global/lib/settings-merge.sh" "Stop" "settings-merge.sh: registers Stop hooks"
+  assert_file_contains "$SRC_DIR/global/lib/settings-merge.sh" "SessionStart" "settings-merge.sh: registers SessionStart hooks"
+  assert_file_contains "$SRC_DIR/global/lib/settings-merge.sh" "SubagentStart" "settings-merge.sh: registers SubagentStart hooks"
+  assert_file_contains "$SRC_DIR/global/lib/settings-merge.sh" "SubagentStop" "settings-merge.sh: registers SubagentStop hooks"
 fi
 
 test_summary

@@ -1706,3 +1706,39 @@ The orchestrator constructs this section during dispatch — no Daedalus require
 - New top-level knowledge type (ORANGE risk)
 - Store in decision log (wrong concept)
 **Reasoning:** Reduces cost of D-164 pre-fetch over time. First verification costs one Context7 call; subsequent tasks get it free.
+
+## D-175: Pipeline Compliance Hooks — Deterministic Step Enforcement
+
+**Date:** 2026-03-27
+**Status:** Accepted
+**Context:** Orchestrator at 15% context usage skipped sub-pipeline execution for decomposition pipeline — dispatched Hephaestus directly for each sub-task without Themis (reviewer) or Aletheia (tester). Anti-rationalization rules and orchestrator skill instructions failed to prevent this. Root cause: LLM non-compliance with procedures, not context exhaustion or forgetfulness.
+**Decision:** Add three deterministic hooks that enforce pipeline step ordering:
+- `pipeline-compliance.sh` (PreToolUse, Agent): DENY wrong agent dispatches. Enforces review-after-implementation, test-after-review, classifier-first-in-decomposition.
+- `pipeline-tracker.sh` (PostToolUse, Agent): Tracks dispatch sequence in `pipeline-tracker.state`, injects next-step guidance via `additionalContext`.
+- `pipeline-stop-guard.sh` (Stop): Blocks pipeline completion while review or testing is pending.
+Hooks are installed automatically via `install.sh` and `settings-merge.sh`. No user configuration required.
+**Alternatives rejected:**
+- Prompt-based enforcement (anti-rationalization rules) — already proven insufficient at 15% context
+- Per-step procedure loading — addresses forgetting, not compliance
+- Inlining all instructions in skill file — same problem (LLM may ignore inline instructions too)
+- Agent-based hooks (type: "agent") — too slow, unnecessary complexity for deterministic checks
+**Reasoning:** Only code executing outside the LLM provides structural guarantees. Shell hooks fire deterministically on every tool call and cannot be "rationalized away" by the LLM. Defense-in-depth: Layer 1 (prompt) tells the LLM what to do, Layer 4 (hooks) blocks it from doing the wrong thing.
+
+## D-176: Extended Hook Suite — Full Lifecycle Enforcement
+
+**Date:** 2026-03-29
+**Status:** Accepted
+**Context:** D-175 hooks cover pipeline step ordering. Analysis of remaining failure modes reveals additional gaps: boundary violation prevention (guard.sh is detection-only), context loss after compaction, agent prompt quality, and agent output format compliance.
+**Decision:** Extend the hook suite with 4 additional hooks + upgrade compliance/tracker to full transition tables:
+- `guard-prevent.sh` (PreToolUse, Read|Write): DENY orchestrator access to project files. Upgrades guard.sh from detection to prevention.
+- `compact-reinject.sh` (SessionStart, compact): Re-injects pipeline state after context compaction.
+- `agent-inject.sh` (SubagentStart): Injects response contract and inviolable rules into every subagent.
+- `agent-output-validate.sh` (SubagentStop): BLOCK agents that don't produce STATUS line in output.
+- `pipeline-compliance.sh` upgraded: full per-pipeline transition tables (quick/standard/full/decomposition/analytical).
+- `pipeline-tracker.sh` upgraded: subtask_mode tracking, architect/planner reset review/test pending.
+Total: 9 hooks across 6 event types (PreToolUse, PostToolUse, Stop, SessionStart, SubagentStart, SubagentStop).
+**Alternatives rejected:**
+- MCP Channels for monitoring (overkill — hooks are simpler and synchronous)
+- CronCreate for periodic self-checks (prompt-based, not structural)
+- Skill frontmatter hooks (cleaner scoping but requires refactoring install process — deferred)
+**Reasoning:** Each hook addresses a specific failure mode with the minimum mechanism that provides structural guarantees. Guard-prevent closes the last detection-only gap. Compact-reinject prevents drift after compaction. Agent-inject ensures minimum prompt quality. Agent-output-validate enforces response contract.

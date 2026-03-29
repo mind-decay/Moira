@@ -10,34 +10,25 @@ The orchestrator (main Claude) might violate its own rules:
 
 Rules alone don't prevent this 100%. We need structural enforcement.
 
-## Three-Layer Guard Mechanism (D-031)
+## Four-Layer Guard Mechanism (D-031, D-175, D-176)
 
-`allowed-tools` is the primary enforcement layer. Hooks provide audit and detection. Prompt rules provide guidance.
+`allowed-tools` is the primary prevention layer. Hook suite provides deterministic enforcement, audit, and context injection. Prompt rules provide guidance.
 
 ### Hook Registration
 
-```jsonc
-// .claude/settings.json (merged by install.sh)
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/moira/hooks/guard.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash ~/.claude/moira/hooks/budget-track.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+9 hooks across 6 event types, registered in `.claude/settings.json` by `install.sh` via `settings-merge.sh`:
+
+| Hook | Event | Type | Purpose |
+|------|-------|------|---------|
+| `pipeline-compliance.sh` | PreToolUse (Agent) | DENY | Per-pipeline transition table enforcement |
+| `guard-prevent.sh` | PreToolUse (Read\|Write) | DENY | Block orchestrator access to project files |
+| `guard.sh` | PostToolUse (all) | Audit | Violation detection + tool usage logging |
+| `budget-track.sh` | PostToolUse (all) | Audit | Token usage tracking |
+| `pipeline-tracker.sh` | PostToolUse (Agent) | Inject | Dispatch tracking + next-step guidance |
+| `pipeline-stop-guard.sh` | Stop | BLOCK | Prevent completion with pending review/test |
+| `compact-reinject.sh` | SessionStart (compact) | Inject | Re-inject pipeline state after compaction |
+| `agent-inject.sh` | SubagentStart | Inject | Response contract + rules in every agent |
+| `agent-output-validate.sh` | SubagentStop | BLOCK | Validate agent output has STATUS line |
 
 ### Layer 1: `allowed-tools` in command frontmatter (PREVENTION)
 
@@ -55,15 +46,41 @@ allowed-tools:
 
 The orchestrator physically cannot invoke Edit, Grep, Glob, or Bash because these tools are not in its allowed set. This is stronger than PreToolUse blocking — the tools don't exist in the orchestrator's context at all.
 
-### Layer 2: Two-Tier Violation Detection (D-031, D-099, D-116)
+### Layer 2: Deterministic Hook Enforcement (D-175, D-176)
 
-Layer 2 has two sub-mechanisms. Claude Code supports hooks in subagent frontmatter, but Moira agents use dynamic prompt construction (not static `.claude/agents/` definitions with frontmatter), so `settings.json` hooks don't reach agent sessions. Post-agent git diff verification handles agent-level guard checks instead (D-099). See D-116 for future migration path to subagent frontmatter hooks.
+Hook-based enforcement that executes outside the LLM. Cannot be "rationalized away" or ignored — shell code fires on every tool call and blocks non-compliant actions.
 
-#### Layer 2a: PostToolUse `guard.sh` hook — Orchestrator violations (DETECTION + AUDIT)
+#### Layer 2a: Pipeline Step Enforcement (PreToolUse Agent)
 
-**Scope:** guard.sh is registered in `settings.json` and fires only in the orchestrator session (settings.json hooks do not propagate to subagent sessions). It detects orchestrator-level Art 1.1 violations (orchestrator touching project files). It cannot block — PostToolUse fires after the tool call (D-075). It logs violations and injects context warnings via hookSpecificOutput.
+`pipeline-compliance.sh` maintains per-pipeline transition tables. Before every Agent dispatch, validates that the dispatched role is a valid transition from the previous role. DENY if invalid.
 
-**Activation:** Guard enforcement requires a `.guard-active` marker file in the state directory. The orchestrator creates this marker at pipeline start (Pre-Pipeline Setup, step 0) and deletes it on pipeline end (completion, abort, or failure). Without the marker, guard.sh exits silently — preventing false positives in normal Claude Code sessions and when a pipeline is interrupted awaiting `/moira:resume`.
+Transition tables cover all 5 pipeline types (quick, standard, full, decomposition, analytical) with special handling for:
+- Parallel dispatches (standard/full: explorer+analyst)
+- Repeatable groups (full: phase cycles, decomposition: sub-tasks)
+- Error recovery (architect/planner always allowed as re-entry points)
+- Retry (same role dispatch always allowed)
+
+`pipeline-tracker.sh` (PostToolUse Agent) tracks dispatched roles and injects next-step guidance into orchestrator context after each dispatch.
+
+`pipeline-stop-guard.sh` (Stop) prevents pipeline completion while review or testing is pending.
+
+#### Layer 2b: Boundary Enforcement (PreToolUse Read|Write)
+
+`guard-prevent.sh` DENY orchestrator Read/Write on files outside `.claude/moira/` and `.ariadne/`. Upgrades guard.sh from detection-only to prevention. Orchestrator content never enters context.
+
+`guard.sh` (PostToolUse) remains for audit logging — logs all tool usage and detects violations after the fact.
+
+#### Layer 2c: Agent Quality Enforcement (SubagentStart/SubagentStop)
+
+`agent-inject.sh` (SubagentStart) injects response contract and inviolable rules into every subagent. Ensures minimum prompt quality regardless of orchestrator's prompt construction.
+
+`agent-output-validate.sh` (SubagentStop) validates agent output contains required STATUS line. BLOCK if missing — agent continues and fixes format.
+
+#### Layer 2d: Context Recovery (SessionStart compact)
+
+`compact-reinject.sh` re-injects pipeline state (task ID, pipeline type, current step, pending review/test) after context compaction. Prevents orchestrator from losing track of pipeline state.
+
+### Layer 3: Post-agent Guard Check (D-099, D-116)
 
 ```bash
 #!/bin/bash
@@ -98,7 +115,7 @@ if [[ "$tool_name" =~ ^(Read|Write|Edit)$ ]]; then
 fi
 ```
 
-#### Layer 2b: Post-agent git diff check — Agent violations (DETECTION + BLOCKING, D-099)
+#### Layer 3a: Post-agent git diff check — Agent violations (DETECTION + BLOCKING, D-099)
 
 **Scope:** After each file-modifying agent (implementer, explorer) returns, the orchestrator runs `git diff --name-only` and checks modified files against protected paths. Unlike guard.sh, this mechanism CAN block the pipeline — violations trigger a Guard Violation Gate (revert/accept/abort) defined in `gates.md`.
 
@@ -106,7 +123,7 @@ Protected paths (agents MUST NOT modify): `design/CONSTITUTION.md`, `design/**`,
 
 Violations are logged to `state/violations.log` with `AGENT_VIOLATION` prefix (distinct from orchestrator `VIOLATION` prefix). Agent violations are distinguished from orchestrator violations by the `AGENT_VIOLATION` log prefix (vs `VIOLATION` prefix for orchestrator violations).
 
-### Layer 3: CLAUDE.md prompt enforcement (GUIDANCE)
+### Layer 4: CLAUDE.md prompt enforcement (GUIDANCE)
 
 Moira section in project CLAUDE.md contains inviolable rules about orchestrator boundaries.
 

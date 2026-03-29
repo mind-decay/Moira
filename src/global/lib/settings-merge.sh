@@ -19,11 +19,31 @@ moira_settings_merge_hooks() {
 
   mkdir -p "$settings_dir"
 
-  # The Moira hook matcher block to inject
+  # The full Moira hook configuration to inject
   local moira_hooks_json
   moira_hooks_json=$(cat <<'HOOKJSON'
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/pipeline-compliance.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/guard-prevent.sh"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "",
@@ -37,6 +57,56 @@ moira_settings_merge_hooks() {
             "command": "bash ~/.claude/moira/hooks/budget-track.sh"
           }
         ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/pipeline-tracker.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/pipeline-stop-guard.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/compact-reinject.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/agent-inject.sh"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/agent-output-validate.sh"
+          }
+        ]
       }
     ]
   }
@@ -44,8 +114,17 @@ moira_settings_merge_hooks() {
 HOOKJSON
 )
 
-  # Check if Moira hooks are already registered (idempotent)
-  if [[ -f "$settings_file" ]] && grep -q 'moira/hooks/guard.sh' "$settings_file" 2>/dev/null; then
+  # Check if ALL Moira hooks are already registered (idempotent)
+  # If any hook is missing, re-merge (handles upgrades from older installations)
+  if [[ -f "$settings_file" ]] && \
+     grep -q 'moira/hooks/guard.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/guard-prevent.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/pipeline-compliance.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/pipeline-tracker.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/pipeline-stop-guard.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/compact-reinject.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/agent-inject.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/agent-output-validate.sh' "$settings_file" 2>/dev/null; then
     return 0
   fi
 
@@ -61,37 +140,36 @@ _moira_settings_merge_jq() {
   local settings_file="$1"
   local moira_hooks_json="$2"
 
-  local moira_matcher
-  moira_matcher=$(cat <<'MATCHER'
-{
-  "matcher": "",
-  "hooks": [
-    {
-      "type": "command",
-      "command": "bash ~/.claude/moira/hooks/guard.sh"
-    },
-    {
-      "type": "command",
-      "command": "bash ~/.claude/moira/hooks/budget-track.sh"
-    }
-  ]
-}
-MATCHER
-)
-
   if [[ ! -f "$settings_file" ]] || [[ ! -s "$settings_file" ]]; then
     # No existing file — write the full hooks JSON
     echo "$moira_hooks_json" | jq '.' > "$settings_file"
     return 0
   fi
 
-  # File exists — merge
+  # File exists — remove any existing Moira hooks, then add the full set
   local tmpfile
   tmpfile=$(mktemp)
 
-  jq --argjson matcher "$moira_matcher" '
+  jq --argjson new_hooks "$(echo "$moira_hooks_json" | jq '.hooks')" '
+    # Remove existing Moira entries from all hook event types
+    def remove_moira:
+      if . then [.[] | .hooks = [.hooks[] | select(.command | contains("moira/hooks/") | not)] | select(.hooks | length > 0)] else [] end;
+
     .hooks = (.hooks // {}) |
-    .hooks.PostToolUse = ((.hooks.PostToolUse // []) + [$matcher])
+    .hooks.PreToolUse = (.hooks.PreToolUse | remove_moira) |
+    .hooks.PostToolUse = (.hooks.PostToolUse | remove_moira) |
+    .hooks.Stop = (.hooks.Stop | remove_moira) |
+    .hooks.SessionStart = (.hooks.SessionStart | remove_moira) |
+    .hooks.SubagentStart = (.hooks.SubagentStart | remove_moira) |
+    .hooks.SubagentStop = (.hooks.SubagentStop | remove_moira) |
+
+    # Add Moira hook entries
+    .hooks.PreToolUse = (.hooks.PreToolUse + ($new_hooks.PreToolUse // [])) |
+    .hooks.PostToolUse = (.hooks.PostToolUse + ($new_hooks.PostToolUse // [])) |
+    .hooks.Stop = (.hooks.Stop + ($new_hooks.Stop // [])) |
+    .hooks.SessionStart = (.hooks.SessionStart + ($new_hooks.SessionStart // [])) |
+    .hooks.SubagentStart = (.hooks.SubagentStart + ($new_hooks.SubagentStart // [])) |
+    .hooks.SubagentStop = (.hooks.SubagentStop + ($new_hooks.SubagentStop // []))
   ' "$settings_file" > "$tmpfile" 2>/dev/null
 
   if [[ $? -eq 0 ]] && [[ -s "$tmpfile" ]]; then
@@ -115,28 +193,18 @@ _moira_settings_merge_fallback() {
   fi
 
   # File exists — check complexity
-  if grep -q '"PostToolUse"' "$settings_file" 2>/dev/null; then
-    # Existing PostToolUse hooks — too complex to merge safely without jq
+  if grep -q '"hooks"' "$settings_file" 2>/dev/null; then
+    # Existing hooks — too complex to merge safely without jq
     echo "Warning: Cannot safely merge Moira hooks into existing settings.json without jq" >&2
-    echo "Please add the following to your .claude/settings.json manually:" >&2
-    echo "" >&2
-    echo 'In the "hooks.PostToolUse" array, add:' >&2
-    echo '{' >&2
-    echo '  "matcher": "",' >&2
-    echo '  "hooks": [' >&2
-    echo '    { "type": "command", "command": "bash ~/.claude/moira/hooks/guard.sh" },' >&2
-    echo '    { "type": "command", "command": "bash ~/.claude/moira/hooks/budget-track.sh" }' >&2
-    echo '  ]' >&2
-    echo '}' >&2
+    echo "Please install jq and re-run install, or add hooks manually." >&2
+    echo "Required hooks: guard.sh, budget-track.sh, pipeline-compliance.sh, pipeline-tracker.sh, pipeline-stop-guard.sh" >&2
     return 1
   fi
 
-  # No PostToolUse — insert hooks before the final closing brace
+  # No hooks section — insert before the final closing brace
   local tmpfile
   tmpfile=$(mktemp)
 
-  # Remove trailing whitespace/newlines and the final }
-  # Then append the hooks section and close
   local content
   content=$(cat "$settings_file")
 
@@ -148,6 +216,17 @@ _moira_settings_merge_fallback() {
     echo "$trimmed,"
     cat <<'HOOKS'
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/pipeline-compliance.sh"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "",
@@ -159,6 +238,25 @@ _moira_settings_merge_fallback() {
           {
             "type": "command",
             "command": "bash ~/.claude/moira/hooks/budget-track.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/pipeline-tracker.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/pipeline-stop-guard.sh"
           }
         ]
       }
@@ -355,16 +453,31 @@ moira_settings_remove_hooks() {
     tmpfile=$(mktemp)
 
     jq '
-      if .hooks.PostToolUse then
-        .hooks.PostToolUse = [
-          .hooks.PostToolUse[] |
-          .hooks = [.hooks[] | select(.command | contains("moira/hooks/") | not)] |
-          select(.hooks | length > 0)
-        ] |
-        if (.hooks.PostToolUse | length) == 0 then del(.hooks.PostToolUse) else . end |
-        if (.hooks | length) == 0 then del(.hooks) else . end
-      else .
-      end
+      # Helper: remove Moira hook entries from a hook event array
+      def remove_moira:
+        if . then
+          [.[] |
+            .hooks = [.hooks[] | select(.command | contains("moira/hooks/") | not)] |
+            select(.hooks | length > 0)
+          ]
+        else [] end;
+
+      # Remove from all event types
+      (if .hooks.PreToolUse then .hooks.PreToolUse |= remove_moira else . end) |
+      (if .hooks.PostToolUse then .hooks.PostToolUse |= remove_moira else . end) |
+      (if .hooks.Stop then .hooks.Stop |= remove_moira else . end) |
+      (if .hooks.SessionStart then .hooks.SessionStart |= remove_moira else . end) |
+      (if .hooks.SubagentStart then .hooks.SubagentStart |= remove_moira else . end) |
+      (if .hooks.SubagentStop then .hooks.SubagentStop |= remove_moira else . end) |
+
+      # Clean up empty arrays and objects
+      (if .hooks.PreToolUse and (.hooks.PreToolUse | length) == 0 then del(.hooks.PreToolUse) else . end) |
+      (if .hooks.PostToolUse and (.hooks.PostToolUse | length) == 0 then del(.hooks.PostToolUse) else . end) |
+      (if .hooks.Stop and (.hooks.Stop | length) == 0 then del(.hooks.Stop) else . end) |
+      (if .hooks.SessionStart and (.hooks.SessionStart | length) == 0 then del(.hooks.SessionStart) else . end) |
+      (if .hooks.SubagentStart and (.hooks.SubagentStart | length) == 0 then del(.hooks.SubagentStart) else . end) |
+      (if .hooks.SubagentStop and (.hooks.SubagentStop | length) == 0 then del(.hooks.SubagentStop) else . end) |
+      (if .hooks and (.hooks | length) == 0 then del(.hooks) else . end)
     ' "$settings_file" > "$tmpfile" 2>/dev/null
 
     if [[ $? -eq 0 ]] && [[ -s "$tmpfile" ]]; then
@@ -376,7 +489,7 @@ moira_settings_remove_hooks() {
     fi
   else
     echo "Warning: Cannot safely remove Moira hooks without jq — please edit .claude/settings.json manually" >&2
-    echo "Remove entries containing 'moira/hooks/guard.sh' and 'moira/hooks/budget-track.sh'" >&2
+    echo "Remove all entries containing 'moira/hooks/'" >&2
     return 1
   fi
 }
