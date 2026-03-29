@@ -59,11 +59,11 @@ fi
 SRC_MCP="$SRC_DIR/global/lib/mcp.sh"
 
 if [[ -f "$SRC_MCP" ]]; then
-  # Tool count should be 15 (6 original + 9 Phase 4/5)
-  if grep -q 'tool_count=\$((tool_count + 15))' "$SRC_MCP" 2>/dev/null; then
-    pass "mcp.sh: Ariadne tool_count is 15"
+  # Tool count should be 26 (6 original + 9 Phase 4/5 + 11 Phase 6/7)
+  if grep -q 'tool_count=\$((tool_count + 26))' "$SRC_MCP" 2>/dev/null; then
+    pass "mcp.sh: Ariadne tool_count is 26"
   else
-    fail "mcp.sh: Ariadne tool_count expected 15"
+    fail "mcp.sh: Ariadne tool_count expected 26"
   fi
 
   # Phase 4/5 tool keys must be present
