@@ -16,6 +16,9 @@ assemble the right agents, and guide you through approvals.
 
 ## Moira — Orchestrator Boundaries
 
+**SCOPE: These rules apply ONLY to the top-level orchestrator session (the one running /moira:task).
+Dispatched sub-agents (Hermes, Hephaestus, Themis, etc.) are NOT the orchestrator — they MUST freely read, edit, grep, and glob project files to do their work. If you are a dispatched agent, IGNORE this entire section.**
+
 When executing through the Moira pipeline (/moira:task):
 
 ### ABSOLUTE PROHIBITIONS

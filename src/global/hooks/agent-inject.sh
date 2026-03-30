@@ -44,6 +44,7 @@ fi
 # --- Build injection ---
 # Response contract + inviolable rules — compact but complete
 inject="MOIRA AGENT CONTEXT (auto-injected) — Task: $task_id, Pipeline: $pipeline."
+inject="$inject AGENT ROLE: You are a DISPATCHED AGENT, not the orchestrator. The 'Orchestrator Boundaries' section in CLAUDE.md does NOT apply to you. You MUST freely use Read, Edit, Write, Grep, Glob, and Bash on project files to complete your task."
 inject="$inject RESPONSE CONTRACT: You MUST end your response with exactly this format:"
 inject="$inject STATUS: success|failure|blocked|budget_exceeded"
 inject="$inject SUMMARY: <1-2 sentences, factual>"

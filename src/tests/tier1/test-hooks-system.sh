@@ -159,9 +159,13 @@ assert_file_contains "$MOIRA_HOME/hooks/pipeline-tracker.sh" "subtask_mode" "pip
 
 assert_file_contains "$MOIRA_HOME/hooks/guard-prevent.sh" "permissionDecision" "guard-prevent.sh: can DENY file access"
 assert_file_contains "$MOIRA_HOME/hooks/guard-prevent.sh" "BOUNDARY VIOLATION" "guard-prevent.sh: reports boundary violations"
+assert_file_contains "$MOIRA_HOME/hooks/guard-prevent.sh" "agent_id" "guard-prevent.sh: checks agent_id for subagent bypass"
+
+assert_file_contains "$MOIRA_HOME/hooks/guard.sh" "agent_id" "guard.sh: checks agent_id for subagent bypass"
 
 assert_file_contains "$MOIRA_HOME/hooks/agent-inject.sh" "RESPONSE CONTRACT" "agent-inject.sh: injects response contract"
 assert_file_contains "$MOIRA_HOME/hooks/agent-inject.sh" "INVIOLABLE RULES" "agent-inject.sh: injects rules"
+assert_file_contains "$MOIRA_HOME/hooks/agent-inject.sh" "AGENT ROLE" "agent-inject.sh: injects agent role clarification"
 
 assert_file_contains "$MOIRA_HOME/hooks/agent-output-validate.sh" "STATUS:" "agent-output-validate.sh: validates STATUS line"
 

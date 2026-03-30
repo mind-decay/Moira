@@ -27,6 +27,16 @@ fi
 # No tool name = nothing to do
 [[ -z "$tool_name" ]] && exit 0
 
+# --- Subagent bypass ---
+# Guard boundaries apply ONLY to the orchestrator, not dispatched agents.
+# agent_id is present only in subagent contexts.
+if command -v jq &>/dev/null; then
+  agent_id=$(echo "$input" | jq -r '.agent_id // empty' 2>/dev/null) || agent_id=""
+else
+  agent_id=$(echo "$input" | grep -o '"agent_id"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"agent_id"[[:space:]]*:[[:space:]]*"//;s/"$//' 2>/dev/null) || agent_id=""
+fi
+[[ -n "$agent_id" ]] && exit 0
+
 # --- Find Moira state directory ---
 # Walk up from CWD looking for .claude/moira/state/current.yaml
 find_state_dir() {

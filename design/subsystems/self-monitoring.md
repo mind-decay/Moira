@@ -76,11 +76,13 @@ Transition tables cover all 5 pipeline types (quick, standard, full, decompositi
 
 `guard-prevent.sh` DENY orchestrator Read/Write/Edit on files outside `.claude/moira/` and `.ariadne/`. Upgrades guard.sh from detection-only to prevention. Orchestrator content never enters context. Denied operations are logged to `violations.log`.
 
-`guard.sh` (PostToolUse) remains for audit logging — logs all tool usage and detects violations after the fact.
+**Subagent bypass (D-183):** Both `guard-prevent.sh` and `guard.sh` check the `agent_id` field in hook input. This field is present **only** in subagent contexts — the orchestrator session does not have it. When `agent_id` is present, the hook exits immediately (exit 0), allowing dispatched agents to freely Read/Write/Edit project files. This is structural enforcement: the bypass is determined by the Claude Code harness, not by LLM prompt compliance.
+
+`guard.sh` (PostToolUse) remains for audit logging — logs all tool usage and detects violations after the fact. Also bypassed for subagents to prevent false-positive violation logging.
 
 #### Layer 2c: Agent Quality Enforcement (SubagentStart/SubagentStop)
 
-`agent-inject.sh` (SubagentStart) injects response contract and inviolable rules into every subagent. Ensures minimum prompt quality regardless of orchestrator's prompt construction.
+`agent-inject.sh` (SubagentStart) injects response contract, inviolable rules, and agent role clarification into every subagent. The role clarification explicitly states the agent is NOT the orchestrator and MUST freely use Read/Edit/Write/Grep/Glob/Bash on project files — countering any CLAUDE.md orchestrator boundary rules the agent may read at startup. Ensures minimum prompt quality regardless of orchestrator's prompt construction.
 
 `agent-output-validate.sh` (SubagentStop) validates agent output contains required STATUS line. BLOCK if missing — agent continues and fixes format.
 

@@ -1814,3 +1814,19 @@ Gate recording stays manual — no hookable event for user gate decisions. Open 
 - Sections in one file — race conditions on concurrent write, complex parsing
 - Relax Layer 1/2 for decomposition — trades enforcement correctness for simplicity
 **Reasoning:** Per-subtask files are atomic (one writer per file), use the same `grep/cut` parsing as existing code, and scale to arbitrary subtask counts. The approach adds ~20 lines to each hook without architectural changes.
+
+## D-183: Subagent Bypass in Guard Hooks via agent_id
+
+**Date:** 2026-03-30
+**Status:** accepted
+**Context:** Dispatched subagents (Hermes, Hephaestus, Themis, etc.) read CLAUDE.md at startup and see the "Orchestrator Boundaries" section which says "NEVER read project files". Some agents started applying these restrictions to themselves, refusing to Read/Edit project files — even though the rules are meant only for the orchestrator. Additionally, `guard-prevent.sh` (PreToolUse) and `guard.sh` (PostToolUse) were blocking/logging violations for subagent file operations, producing false positives. The problem was intermittent: agents sometimes "obeyed" the orchestrator rules and sometimes didn't, depending on how strongly the LLM weighted the CLAUDE.md instructions vs the agent prompt.
+**Decision:**
+- **Hook-level bypass**: `guard-prevent.sh` and `guard.sh` now check the `agent_id` field in hook input JSON. This field is present only in subagent contexts (set by Claude Code harness). When `agent_id` is non-empty, the hook exits immediately (exit 0), allowing subagents to freely access project files. This is structural — cannot be rationalized away by the LLM.
+- **Agent role injection**: `agent-inject.sh` (SubagentStart) now includes an `AGENT ROLE` line explicitly stating the agent is NOT the orchestrator and MUST use Read/Edit/Write/Grep/Glob/Bash on project files. This counters CLAUDE.md instructions at the prompt level.
+- **CLAUDE.md scope marker**: Added explicit scope declaration to the Orchestrator Boundaries section: "If you are a dispatched agent, IGNORE this entire section." Defense-in-depth at the prompt layer.
+- **Dispatch template**: Added `## Agent Role Clarification` section to the dispatch prompt template and pre-assembled instruction file prepend path.
+**Alternatives rejected:**
+- Prompt-only fix (CLAUDE.md + dispatch template) — doesn't guarantee compliance per D-174 (feedback: prompt rules don't guarantee compliance)
+- Removing orchestrator boundaries from CLAUDE.md entirely — would weaken orchestrator enforcement
+- Separate CLAUDE.md for subagents — Claude Code doesn't support per-agent CLAUDE.md
+**Reasoning:** Three-layer defense: (1) hook-level `agent_id` bypass is structural and deterministic, (2) `agent-inject.sh` role clarification reinforces at prompt level, (3) CLAUDE.md scope marker provides guidance if agent reads it. The hook layer is the primary enforcement; prompt layers are defense-in-depth.

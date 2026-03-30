@@ -15,8 +15,8 @@ When dispatching a post-planning agent (any agent after Daedalus has run), check
 1. Check path: `.claude/moira/state/tasks/{task_id}/instructions/{agent_name}.md`
 2. If file exists and is non-empty:
    - Read the file contents
-   - Use directly as the agent prompt (the file IS the complete prompt)
-   - Skip simplified assembly -- the file contains all rules, knowledge, and context
+   - Prepend `## Agent Role Clarification` section (same as in simplified assembly prompt template) before the instruction file contents
+   - Use as the agent prompt — skip simplified assembly
 3. If file does not exist:
    - Fall back to simplified assembly (below)
 
@@ -127,6 +127,10 @@ The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_in
 ### Prompt Template
 
 ```
+## Agent Role Clarification
+
+You are a DISPATCHED AGENT, not the orchestrator. The "Orchestrator Boundaries" section in CLAUDE.md does NOT apply to you. You MUST freely use Read, Edit, Write, Grep, Glob, and Bash on project files to complete your task.
+
 ## Identity
 
 {content from role yaml identity field}

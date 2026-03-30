@@ -244,6 +244,43 @@ else
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
+# Guard-prevent: subagent bypass — agents CAN read project files
+# ═══════════════════════════════════════════════════════════════════════
+
+run_guard_prevent_as_agent() {
+  local state_dir="$1"
+  local tool="$2"
+  local file_path="$3"
+
+  local json="{\"tool_name\":\"$tool\",\"tool_input\":{\"file_path\":\"$file_path\"},\"agent_id\":\"agent-test-123\",\"agent_type\":\"general-purpose\"}"
+  (cd "$(dirname "$(dirname "$state_dir")")" && echo "$json" | bash "$SRC_DIR/global/hooks/guard-prevent.sh" 2>/dev/null) || true
+}
+
+# Subagent Read on project file — should be ALLOWED
+result=$(run_guard_prevent_as_agent "$state" "Read" "/some/project/file.ts")
+if echo "$result" | grep -q "permissionDecision.*deny"; then
+  fail "guard-prevent: subagent Read on project files should be ALLOWED"
+else
+  pass "guard-prevent: subagent Read on project files allowed (agent_id bypass)"
+fi
+
+# Subagent Edit on project file — should be ALLOWED
+result=$(run_guard_prevent_as_agent "$state" "Edit" "/some/project/file.ts")
+if echo "$result" | grep -q "permissionDecision.*deny"; then
+  fail "guard-prevent: subagent Edit on project files should be ALLOWED"
+else
+  pass "guard-prevent: subagent Edit on project files allowed (agent_id bypass)"
+fi
+
+# Subagent Write on project file — should be ALLOWED
+result=$(run_guard_prevent_as_agent "$state" "Write" "/some/project/file.ts")
+if echo "$result" | grep -q "permissionDecision.*deny"; then
+  fail "guard-prevent: subagent Write on project files should be ALLOWED"
+else
+  pass "guard-prevent: subagent Write on project files allowed (agent_id bypass)"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
 # Decomposition: explicit terminal for tester
 # ═══════════════════════════════════════════════════════════════════════
 
