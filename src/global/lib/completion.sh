@@ -205,11 +205,105 @@ _moira_completion_rotate_log() {
   local archive_path="${log_path}.archive"
   local lines_to_archive=$(( line_count - keep_lines ))
 
-  # Append older lines to archive
-  head -n "$lines_to_archive" "$log_path" >> "$archive_path" 2>/dev/null || true
+  # Discard older lines (no archive — stale data wastes context)
+  head -n "$lines_to_archive" "$log_path" > /dev/null 2>/dev/null || true
 
   # Keep only recent lines
   local tmpfile
   tmpfile=$(mktemp)
   tail -n "$keep_lines" "$log_path" > "$tmpfile" 2>/dev/null && mv "$tmpfile" "$log_path"
+
+  # Remove any pre-existing archive
+  rm -f "${log_path}.archive"
+}
+
+# ── moira_completion_cleanup <task_id> <state_dir> [pipeline_type] ────
+# Delete pipeline artifacts from a completed task directory.
+# Preserves status.yaml and telemetry.yaml (permanent records).
+# Returns 0 on success (warnings go to stderr).
+# Returns 1 only for path traversal violations.
+moira_completion_cleanup() {
+  local task_id="$1"
+  local state_dir="$2"
+  local pipeline_type="${3:-}"
+
+  # Path traversal validation
+  if [[ "$task_id" == *..* ]] || [[ "$task_id" == */* ]]; then
+    echo "ERROR: Invalid task_id: $task_id" >&2
+    return 1
+  fi
+
+  # Construct and validate task directory
+  local task_dir="${state_dir}/tasks/${task_id}"
+  if [[ ! -d "$task_dir" ]]; then
+    echo "WARN: Task directory not found: $task_dir" >&2
+    return 0
+  fi
+
+  # Delete allowlisted files (explicit list)
+  local -a cleanup_files=(
+    classification.md
+    exploration.md
+    architecture.md
+    plan.md
+    implementation.md
+    review.md
+    testing.md
+    reflection.md
+    requirements.md
+    test-results.md
+    input.md
+    manifest.yaml
+  )
+  for f in "${cleanup_files[@]}"; do
+    rm -f "${task_dir}/${f}"
+  done
+
+  # Delete variant files (glob patterns)
+  local -a cleanup_globs=(
+    "review-tweak-*.md"
+    "tweak-*.md"
+    "implementation-batch*.md"
+    "batch-*-report.md"
+    "alternatives.md"
+    "context.md"
+    "tweak-xref.md"
+  )
+  for pattern in "${cleanup_globs[@]}"; do
+    # shellcheck disable=SC2086
+    rm -f ${task_dir}/${pattern} 2>/dev/null
+  done
+
+  # Delete allowlisted directories
+  local -a cleanup_dirs=(instructions findings phases)
+  for d in "${cleanup_dirs[@]}"; do
+    if [[ -d "${task_dir}/${d}" ]]; then
+      rm -rf "${task_dir}/${d}"
+    fi
+  done
+
+  # Delete current.yaml (pipeline state no longer needed)
+  rm -f "${state_dir}/current.yaml"
+
+  # Epic cleanup (conditional)
+  if [[ "$pipeline_type" == "epic" ]]; then
+    rm -f "${task_dir}/queue.yaml"
+    # Delete subtask directories
+    local subtask_dir
+    for subtask_dir in "${task_dir}"/subtask-*; do
+      if [[ -d "$subtask_dir" ]]; then
+        rm -rf "$subtask_dir"
+      fi
+    done
+    # Delete global queue pointer if it matches this epic
+    if [[ -f "${state_dir}/queue.yaml" ]]; then
+      local queue_epic_id
+      queue_epic_id=$(grep -o 'epic_id: *[^ ]*' "${state_dir}/queue.yaml" 2>/dev/null | head -1 | sed 's/epic_id: *//')
+      if [[ "$queue_epic_id" == "$task_id" ]]; then
+        rm -f "${state_dir}/queue.yaml"
+      fi
+    fi
+  fi
+
+  return 0
 }

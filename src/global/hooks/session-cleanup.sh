@@ -42,6 +42,8 @@ case "$step_status" in
     rm -f "$state_dir/.guard-active" 2>/dev/null || true
     rm -f "$state_dir/pipeline-tracker.state" 2>/dev/null || true
     rm -f "$state_dir/pipeline-tracker-sub-*.state" 2>/dev/null || true
+    rm -f "$state_dir/current.yaml" 2>/dev/null || true
+    rm -f "$state_dir/.guard-stale" 2>/dev/null || true
     ;;
   *)
     # Abnormal exit (in_progress, pending, failed, etc.)

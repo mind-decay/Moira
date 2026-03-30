@@ -120,6 +120,23 @@ When Mnemosyne returns:
 
 4. **Auto-defer:** Run `moira_reflection_auto_defer_stale .claude/moira/state`
 
+### Phase 2b: Artifact Cleanup
+
+After reflection dispatch, clean up pipeline artifacts from the task directory.
+
+1. **Gate on reflection outcome:**
+   - If Phase 2 reflection dispatch FAILED (command error or agent failure): skip this phase entirely.
+     Output: `"Skipping artifact cleanup: reflection did not succeed."`
+   - If reflection succeeded or was dispatched as background: proceed to step 2.
+
+2. **Run cleanup:**
+   ```bash
+   source ~/.claude/moira/lib/completion.sh && moira_completion_cleanup "{task_id}" ".claude/moira/state" "{pipeline_type}"
+   ```
+   Substitute `{task_id}` and `{pipeline_type}` with the actual values from the current task context.
+
+3. **Log the result.** If the cleanup command returns non-zero, log a warning but do NOT fail completion — artifact cleanup is best-effort.
+
 ### Phase 3: Actionable Findings Recommendation (Analytical Pipeline Only)
 
 If pipeline_type == "analytical":

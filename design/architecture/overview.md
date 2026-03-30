@@ -117,7 +117,7 @@ User → /moira <task>
 │   │   └── xref-manifest.yaml         # Cross-reference dependency map (D-077)
 │   ├── skills/
 │   │   ├── orchestrator.md            # Main orchestrator skill
-│   │   ├── completion.md              # Completion processor skill (D-133)
+│   │   ├── completion.md              # Completion processor skill (D-133); Phase 2b artifact cleanup
 │   │   ├── gates.md                   # Gate presentation templates
 │   │   ├── dispatch.md                # Agent dispatch instructions
 │   │   ├── errors.md                  # Error handling procedures
@@ -160,7 +160,7 @@ User → /moira <task>
 │       ├── mcp.sh
 │       ├── metrics.sh
 │       ├── quality.sh
-│       ├── completion.sh               # Post-gate finalization (steps 1-17) (D-133)
+│       ├── completion.sh               # Post-gate finalization (steps 1-17) (D-133); moira_completion_cleanup for artifact lifecycle
 │       ├── reflection.sh
 │       ├── retry.sh
 │       ├── rules.sh

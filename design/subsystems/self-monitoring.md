@@ -34,7 +34,7 @@ Also injects `permissions.allow` for `/.claude/moira/**` (Read/Write/Edit) so su
 | `agent-output-validate.sh` | SubagentStop | BLOCK | Validate agent output has STATUS line |
 | `agent-done.sh` | SubagentStop | Audit | Record agent completion in state |
 | `graph-validate.sh` | TaskCompleted | Audit | Validate graph consistency after task |
-| `session-cleanup.sh` | SessionEnd | Cleanup | Clean transient state on session end |
+| `session-cleanup.sh` | SessionEnd | Cleanup | Clean transient state on session end (incl. current.yaml, .guard-stale) |
 
 ### Layer 1: `allowed-tools` in command frontmatter (PREVENTION)
 
