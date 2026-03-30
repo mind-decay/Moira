@@ -27,7 +27,18 @@ moira_settings_merge_hooks() {
     "allow": [
       "Read(/.claude/moira/**)",
       "Write(/.claude/moira/**)",
-      "Edit(/.claude/moira/**)"
+      "Edit(/.claude/moira/**)",
+      "Glob(/.claude/moira/**)",
+      "Grep(/.claude/moira/**)",
+      "Bash(mkdir */.claude/moira/*)",
+      "Bash(mkdir -p */.claude/moira/*)",
+      "Bash(cp */.claude/moira/*)",
+      "Bash(mv */.claude/moira/*)",
+      "Bash(rm */.claude/moira/*)",
+      "Bash(chmod */.claude/moira/*)",
+      "Bash(cat */.claude/moira/*)",
+      "Bash(ls */.claude/moira/*)",
+      "Bash(bash */.claude/moira/*)"
     ]
   },
   "hooks": {
@@ -180,7 +191,9 @@ HOOKJSON
      grep -q 'moira/hooks/graph-update.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/graph-validate.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/session-cleanup.sh' "$settings_file" 2>/dev/null && \
-     grep -q 'Write(/.claude/moira/' "$settings_file" 2>/dev/null; then
+     grep -q 'Write(/.claude/moira/' "$settings_file" 2>/dev/null && \
+     grep -q 'Glob(/.claude/moira/' "$settings_file" 2>/dev/null && \
+     grep -q 'Bash(mkdir' "$settings_file" 2>/dev/null; then
     return 0
   fi
 
@@ -290,7 +303,18 @@ _moira_settings_merge_fallback() {
     "allow": [
       "Read(/.claude/moira/**)",
       "Write(/.claude/moira/**)",
-      "Edit(/.claude/moira/**)"
+      "Edit(/.claude/moira/**)",
+      "Glob(/.claude/moira/**)",
+      "Grep(/.claude/moira/**)",
+      "Bash(mkdir */.claude/moira/*)",
+      "Bash(mkdir -p */.claude/moira/*)",
+      "Bash(cp */.claude/moira/*)",
+      "Bash(mv */.claude/moira/*)",
+      "Bash(rm */.claude/moira/*)",
+      "Bash(chmod */.claude/moira/*)",
+      "Bash(cat */.claude/moira/*)",
+      "Bash(ls */.claude/moira/*)",
+      "Bash(bash */.claude/moira/*)"
     ]
   },
   "hooks": {

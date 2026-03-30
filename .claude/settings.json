@@ -3,7 +3,18 @@
     "allow": [
       "Read(/.claude/moira/**)",
       "Write(/.claude/moira/**)",
-      "Edit(/.claude/moira/**)"
+      "Edit(/.claude/moira/**)",
+      "Glob(/.claude/moira/**)",
+      "Grep(/.claude/moira/**)",
+      "Bash(mkdir */.claude/moira/*)",
+      "Bash(mkdir -p */.claude/moira/*)",
+      "Bash(cp */.claude/moira/*)",
+      "Bash(mv */.claude/moira/*)",
+      "Bash(rm */.claude/moira/*)",
+      "Bash(chmod */.claude/moira/*)",
+      "Bash(cat */.claude/moira/*)",
+      "Bash(ls */.claude/moira/*)",
+      "Bash(bash */.claude/moira/*)"
     ]
   },
   "hooks": {
