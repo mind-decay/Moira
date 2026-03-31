@@ -120,6 +120,44 @@ sections:
         check: "Error handling pattern matches project pattern"
         required: true
 
+  craftsmanship:
+    items:
+      - id: Q4-F01
+        check: "Solution approach is appropriate for the problem complexity — not over-engineered, not under-engineered"
+        severity_if_fail: warning
+        required: true
+      - id: Q4-F02
+        check: "Code is readable without requiring comments to explain intent — clear naming, linear flow, small functions"
+        severity_if_fail: warning
+        required: true
+      - id: Q4-F03
+        check: "Error handling is meaningful — errors are specific, actionable, and propagated appropriately, not swallowed or generically caught"
+        severity_if_fail: warning
+        required: true
+      - id: Q4-F04
+        check: "No unnecessary complexity — no premature abstractions, no wrapper functions that add no value, no indirection without purpose"
+        severity_if_fail: warning
+        required: true
+
+  structural_quality_delta:
+    items:
+      - id: Q4-D01
+        check: "ariadne_diff: no new architectural smells introduced in changed area"
+        severity_if_fail: warning
+        required: false
+      - id: Q4-D02
+        check: "ariadne_diff: no new circular dependencies introduced"
+        severity_if_fail: warning
+        required: false
+      - id: Q4-D03
+        check: "ariadne_refactor_opportunities: no new refactoring needs in changed area"
+        severity_if_fail: warning
+        required: false
+      - id: Q4-D04
+        check: "Structural quality delta compared against baseline from plan — verdict: improved | neutral | degraded:minor | degraded:major"
+        severity_if_fail: warning
+        required: false
+
   epistemic_integrity:
     items:
       - id: Q4-E01

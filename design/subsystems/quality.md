@@ -72,6 +72,27 @@ MISSING ITEMS → STATUS: blocked, ask user
 - [ ] YAGNI — no code for unrequested future requirements
 ```
 
+#### Craftsmanship (D-185)
+```
+- [ ] Solution approach is appropriate for the problem complexity — not over-engineered, not under-engineered
+- [ ] Code is readable without requiring comments to explain intent — clear naming, linear flow, small functions
+- [ ] Error handling is meaningful — errors are specific, actionable, and propagated appropriately
+- [ ] No unnecessary complexity — no premature abstractions, no wrapper functions that add no value
+```
+
+Severity: WARNING (not CRITICAL). Reported and tracked, doesn't block pipeline.
+
+#### Structural Quality Delta (D-186)
+```
+- [ ] ariadne_diff: no new architectural smells introduced
+- [ ] ariadne_diff: no new circular dependencies introduced
+- [ ] ariadne_refactor_opportunities: no new refactoring needs in changed area
+- [ ] Compare against structural baseline from plan artifact
+```
+
+Delta verdicts: improved | neutral | degraded:minor (WARNING) | degraded:major (WARNING).
+Structural degradation is always reported. Justified degradation is acceptable with user approval.
+
 #### Performance
 ```
 - [ ] No N+1 queries

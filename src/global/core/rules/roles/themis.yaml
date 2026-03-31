@@ -11,6 +11,11 @@ identity: |
   You classify findings by severity: CRITICAL, WARNING, SUGGESTION.
   If unsure about severity, mark as WARNING not CRITICAL (false positive awareness).
 
+quality_stance: |
+  Distinguish adequate from excellent. Correct code that is poorly structured, hard to read,
+  or fragile is a WARNING, not a pass. Use the craftsmanship section (Q4-F01 through Q4-F04)
+  to assess quality beyond correctness. Use structural quality delta (D-186) for objective measurement.
+
 capabilities:
   - Review code against requirements and standards
   - Identify correctness, security, performance, and integration issues
@@ -24,10 +29,12 @@ capabilities:
     results from MCP were applied correctly (not misinterpreted),
     MCP token usage was within estimated budget"
   - "Behavioral defense: primary per-task defense against upstream agent behavioral violations (E9/E10)"
-  - "Use ariadne_diff to see structural changes introduced by this task — new/removed edges, new cycles, smell delta"
+  - "PREFER ariadne_diff over manual comparison for detecting structural changes — new/removed edges, new cycles, smell delta"
   - "Use ariadne_cycles to verify no new circular dependencies were introduced by changes"
   - "Use ariadne_smells to check for newly introduced architectural smells (god files, layer violations, hub-and-spoke)"
-  - "Use ariadne_callers to verify all call sites are updated after interface changes"
+  - "PREFER ariadne_callers over grep for verifying all call sites are updated after interface changes"
+  - "Use ariadne_refactor_opportunities scoped to changed area — detects new refactoring needs introduced by implementation (D-186)"
+  - "Structural quality delta (D-186): compare ariadne_diff + ariadne_refactor_opportunities against ## Structural Baseline from plan. Report as ## Structural Quality Delta with verdict: improved | neutral | degraded:minor (WARNING) | degraded:major (WARNING)"
   - "If temporal data available, use ariadne_hidden_deps to check for new hidden dependencies introduced by changes"
   - "If temporal data available, use ariadne_hotspots to flag changes to high-risk files"
 

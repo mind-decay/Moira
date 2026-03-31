@@ -1864,3 +1864,121 @@ Gate recording stays manual — no hookable event for user gate decisions. Open 
 - Template-filling approach (agents fill structured YAML) — too rigid, inhibits natural reasoning; section headers are the right granularity
 - Epistemic enforcement only at architecture gate — leaves plan/implementation/final unprotected against fabrication
 **Reasoning:** Required sections are the minimum granularity that forces real thinking without being so rigid that agents game the template. Grep-based validation is zero-cost and deterministic. Context injection makes traceability structural — agents can't ignore scope/criteria when they're injected into their context. The UNVERIFIED propagation chain extends D-165/D-172 epistemic enforcement from architecture-only to full pipeline coverage. Each layer reinforces the others: contracts define what's needed, hooks enforce it exists, injection ensures agents have the data to fill it honestly.
+
+## D-185: Craftsmanship Identity — Quality Ownership by Agents
+
+**Date:** 2026-03-31
+**Status:** Accepted
+**Context:** Agent prompts are constraint-heavy (34 NEVER rules across all agents) but quality-light. Agents have detailed instructions on what NOT to do, but minimal guidance on what GOOD work looks like. This creates checkbox mentality: agents produce minimum viable output that satisfies constraints and passes checklists, then exit. Hephaestus's identity is "implement EXACTLY what the plan specifies — no more, no less" — the identity of a bureaucrat, not a craftsman. The implementer has `quality_checklist: null`. Themis checks correctness but has no mechanism to distinguish "correct but mediocre" from "correct and well-crafted". KISS (Q4-S03) and YAGNI (Q4-S04) exist without counterbalance — they're interpreted as license for minimal effort rather than discipline against scope creep.
+**Decision:** Three changes:
+
+**1. Quality stance in agent identity (all executing agents):**
+Each agent gets a `quality_stance` section in its role definition that defines what quality means for THAT role. Not a checklist — a mindset directive. Scope remains controlled by plan; quality is owned by the agent.
+
+- Hermes: "Thoroughness — report the full picture, not just the first matches. A context report that misses key files wastes downstream budget."
+- Athena: "Precision — requirements that leave ambiguity create implementation guesswork. Every criterion must be mechanically testable."
+- Metis: "Seek the best solution, not the first valid one. Alternatives exist to be genuinely evaluated, not to fill a template. Pre-mortem must find real weaknesses."
+- Daedalus: "A plan that enables quality implementation — include context that helps Hephaestus write better code, not just correct code."
+- Hephaestus: "You own the quality of HOW code is written. The plan controls WHAT you build; you control the craftsmanship — clarity, efficiency, maintainability. Code should be good enough that you wouldn't need to explain it with comments."
+- Themis: "Distinguish adequate from excellent. Correct code that is poorly structured, hard to read, or fragile is a WARNING, not a pass."
+- Aletheia: "Tests that only verify happy path are incomplete. Tests that test implementation details are brittle. Find the balance."
+
+**2. Craftsmanship section in Q4 checklist (Themis):**
+New `craftsmanship` section in q4-correctness.yaml:
+- Q4-F01: "Solution approach is appropriate for the problem complexity — not over-engineered, not under-engineered" (required)
+- Q4-F02: "Code is readable without requiring comments to explain intent — clear naming, linear flow, small functions" (required)
+- Q4-F03: "Error handling is meaningful — errors are specific, actionable, and propagated appropriately, not swallowed or generically caught" (required)
+- Q4-F04: "No unnecessary complexity — no premature abstractions, no wrapper functions that add no value, no indirection without purpose" (required)
+
+Severity: WARNING (not CRITICAL). These don't block the pipeline but are reported and tracked.
+
+**3. Reframe Hephaestus identity:**
+Change from "implement EXACTLY what the plan specifies — no more, no less" to "implement the plan faithfully with craftsmanship. The plan defines WHAT to build; you own HOW it's built — code clarity, efficiency, and maintainability. Do not add scope beyond the plan, but within scope, write code you'd be proud of."
+
+**Alternatives rejected:**
+- Quality checklist only (no identity change) — checklists are checkboxes; LLMs can pass them without changing behavior
+- Detailed quality rubrics with scoring — too rigid, creates gaming behavior
+- Separate quality review agent — adds pipeline latency and budget; Themis already reviews
+- Remove YAGNI/KISS — wrong direction; they're correct principles, they just need counterbalance
+**Reasoning:** LLM agents optimize for what the prompt emphasizes. Currently prompts emphasize constraints (NEVER) and compliance (checklists). Adding quality stance to identity shifts the optimization target. The dual approach (identity for motivation + checklist for verification) mirrors how human teams work: craftsman culture + code review standards. Scope discipline (YAGNI) and quality (craftsmanship) are not in conflict — YAGNI means don't add unnecessary features, craftsmanship means write the necessary features well.
+
+## D-186: Structural Quality Delta — Ariadne-Based Quality Measurement
+
+**Date:** 2026-03-31
+**Status:** Accepted
+**Context:** Quality assessment in Themis is currently subjective — checklist items like "SOLID principles respected" and "KISS — simplest solution that works" are prompt-level judgments that LLMs can satisfy superficially. There's no objective before/after measurement of whether code quality improved or degraded. Ariadne already provides structural metrics (smells, cycles, coupling, Martin metrics) and is used by Themis for regression checks (ariadne_diff, ariadne_cycles, ariadne_smells), but only to detect new problems — not to measure quality delta. `ariadne_refactor_opportunities` is available but unused by any agent.
+**Decision:** Three-phase structural quality measurement integrated into the pipeline:
+
+**Phase 1 — Baseline capture (Daedalus, during planning):**
+When graph data is available, Daedalus captures structural baseline for files in scope:
+- Current smell count and types in affected area (from `ariadne_smells`)
+- Martin metrics for affected clusters (from `ariadne_metrics`)
+- Known refactoring opportunities in affected area (from `ariadne_refactor_opportunities`)
+Baseline is recorded in the plan artifact as `## Structural Baseline` section and propagated to Hephaestus and Themis instruction files as structural context.
+
+**Phase 2 — Structural awareness (Hephaestus, during implementation):**
+Hephaestus receives structural baseline in instructions. This is active context, not passive info:
+- Files with existing smells → don't make worse, improve if natural
+- Clusters in Zone of Pain → minimize new coupling when writing code
+- High-churn files (already in capabilities) → extra care confirmed by baseline data
+No additional Ariadne queries required from Hephaestus — baseline context is sufficient.
+
+**Phase 3 — Quality delta measurement (Themis, during review):**
+After graph auto-updates post-implementation, Themis computes structural quality delta:
+- `ariadne_diff` → new/resolved smells, cycles, edges (already used, now framed as delta)
+- `ariadne_refactor_opportunities` scoped to changed area → new refactoring needs introduced
+- Compare against baseline from plan: smell delta, cycle delta, coupling changes
+- Report as `## Structural Quality Delta` in review artifact
+
+**Delta verdict classification:**
+- `improved` — resolved smells/cycles, no new ones → no action
+- `neutral` — no structural change → no action
+- `degraded:minor` — minor coupling increase, no new smells → WARNING
+- `degraded:major` — new smells, new cycles, or new refactoring needs → WARNING with details
+- Structural degradation is WARNING severity, not CRITICAL — sometimes degradation is justified by the task. But it's always reported and tracked.
+
+**Alternatives rejected:**
+- Automated quality scoring formula (composite number) — creates Goodhart's Law risk; agents optimize for the score, not actual quality
+- CRITICAL severity for any degradation — too rigid; some tasks legitimately increase complexity
+- Hephaestus running its own Ariadne queries for quality — burns implementer budget on metrics; better to receive baseline from planner
+- Skipping baseline (only measure after) — without baseline, can't distinguish "was already bad" from "made it bad"
+**Reasoning:** Ariadne data is objective, mechanical, and unfakeable — LLMs cannot negotiate with graph metrics. Before/after comparison provides clear signal. WARNING severity means the pipeline reports degradation without blocking — the user decides whether it's acceptable. Daedalus captures baseline once, downstream agents reuse — no duplicated graph queries. The key insight: quality is not just "no new bugs" — it's "the codebase is at least as healthy as before."
+
+## D-187: Graph-First Navigation — Ariadne as Primary Context Source
+
+**Date:** 2026-03-31
+**Status:** Accepted
+**Context:** Agents spend significant budget on "orientation" — grep/glob searches to find files, manual import tracing to understand dependencies, breadth-first directory scanning to map project structure. Ariadne already indexes all of this (symbols, dependencies, clusters, reading order, context assembly) and agents have these tools listed in capabilities, but they're framed as optional alternatives ("Use ariadne_X when..."). LLMs default to familiar patterns (grep/glob/read) when the alternative is presented as equivalent. Estimated budget waste: Hermes ~40-50%, Hephaestus ~25-35%, Themis ~15-20% spent on search that Ariadne can answer in one call. This budget waste directly reduces capacity for quality work (D-185).
+**Decision:** Three changes to make Ariadne the primary navigation tool:
+
+**1. Hermes exploration strategy — graph-first:**
+Redefine exploration workflow:
+- Step 1: `ariadne_context(seed_files, task_type, budget)` → ranked file list with relevance scores. This replaces the breadth-first directory scan.
+- Step 2: Read files by relevance ranking from ariadne_context, not by directory structure.
+- Step 3: For deeper exploration, use `ariadne_subgraph` / `ariadne_callees` / `ariadne_reading_order` instead of grep-based import tracing.
+- Step 4: Grep/glob as FALLBACK — for non-structural queries (text in comments, config values, string literals) or when graph data is unavailable.
+Identity update: "You navigate the codebase graph-first. Ariadne gives you the map — use it before exploring blind."
+
+**2. Daedalus pre-assembled context in instruction files:**
+Daedalus already uses `ariadne_context` for budget estimation. Extend: include the context assembly result directly in Hephaestus instruction files as `## Pre-assembled Context`:
+- Ranked file list with relevance scores and token estimates
+- Key symbols per file (from `ariadne_symbols` via context output)
+- Dependency relationships (from `ariadne_subgraph`)
+This means Hephaestus starts with a structural map instead of discovering it through grep.
+
+**3. Capability language — PREFER over WHEN:**
+Change all agent Ariadne capability descriptions from "Use ariadne_X when..." to "PREFER ariadne_X over grep/glob for...". Specific changes:
+- Hermes: "PREFER ariadne_symbol_search over grep for finding functions, classes, or types"
+- Hermes: "PREFER ariadne_dependencies over manual import tracing for mapping file relationships"
+- Hephaestus: "PREFER ariadne_symbols over Read+grep for finding symbol locations and verifying exports"
+- Hephaestus: "PREFER ariadne_callers over grep for finding all usage sites of a changed function"
+- Themis: "PREFER ariadne_diff over manual comparison for detecting structural changes"
+
+**Fallback clause:** All agents retain full grep/glob/read access. Graph-first is the preferred strategy, not the only one. When graph data is unavailable (no .ariadne/ directory), agents fall back to traditional exploration. When searching for non-structural content (string literals, comments, config values), grep is the correct tool.
+
+**Alternatives rejected:**
+- Remove grep/glob from agent capabilities — too extreme; some searches are genuinely non-structural
+- Mandatory Ariadne-only (fail if no graph) — graph may not exist for new projects or unsupported languages
+- Full context pre-assembly by orchestrator — violates D-001 (orchestrator never executes); Daedalus is the right agent for this
+- Ariadne queries at every step — over-querying wastes MCP budget; one context call + targeted follow-ups is optimal
+**Reasoning:** The budget freed by graph-first navigation directly enables quality craftsmanship (D-185). Estimated savings: Hermes 25-30k tokens, Hephaestus 20-25k tokens, Themis 10-15k tokens per task. Pre-assembled context in instructions follows the existing pattern (Daedalus already writes instruction files) — it's a natural extension, not a new mechanism. PREFER language is proven more effective than WHEN for LLM behavior — it creates a default, not an option.

@@ -30,6 +30,7 @@ The system owner (the engineer who designed this with the original Claude sessio
 - **No vibe coding.** This is an engineering tool, not a toy. Engineers approve every important decision.
 - **No rationalization.** If the system is designed to spawn an Explorer agent, it spawns an Explorer agent. It doesn't "just quickly read the file" because it seems faster.
 - **Quality code, not clever code.** SOLID, KISS, DRY. No over-engineering. No premature optimization. No magic.
+- **Craftsmanship, not compliance.** Agents own the quality of their work. Constraints (NEVER rules) set the floor; quality stance sets the aspiration. YAGNI means don't add unnecessary scope — it doesn't mean write minimal-effort code within scope. (D-185)
 - **Evidence over opinion.** The system doesn't "improve" things based on speculation. Changes require evidence from multiple tasks.
 - **The system must be self-contained.** No dependencies on external Claude Code skill systems (GSD, Superpowers, etc.). They can change and break us.
 

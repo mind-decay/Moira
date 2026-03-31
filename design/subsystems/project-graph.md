@@ -498,7 +498,12 @@ The `task` parameter adjusts which file types are prioritized during selection:
 
 ### Moira Agent Usage
 
+- **Hermes (explorer, D-187):** Uses `ariadne_context` as the primary exploration entry point — ranked file list with relevance scores replaces breadth-first directory scan. PREFER over grep/glob for structural queries. Fallback to grep/glob for non-structural content (comments, string literals, config values) or when graph data unavailable.
 - **Daedalus (planner):** Uses `ariadne_context` for instruction assembly — replaces manual assembly from 4-6 separate queries. Token estimates from the response enable precise budget allocation per implementation batch.
+- **Daedalus (planner, D-186):** Captures structural baseline for files in scope: `ariadne_smells` (current smell count/types), `ariadne_metrics` (Martin metrics for affected clusters), `ariadne_refactor_opportunities` (existing refactoring needs). Baseline recorded as `## Structural Baseline` in plan artifact and propagated to instruction files.
+- **Daedalus (planner, D-187):** Includes `ariadne_context` results directly in Hephaestus instruction files as `## Pre-assembled Context`: ranked file list with relevance scores, key symbols, dependency relationships. Hephaestus starts with structural map instead of discovering via grep.
+- **Hephaestus (implementer, D-186/D-187):** Receives pre-assembled context and structural baseline from instruction files. Uses structural awareness for quality decisions (existing smells → don't worsen, Zone of Pain → minimize coupling). PREFER `ariadne_symbols` and `ariadne_callers` over grep for symbol location and usage finding.
+- **Themis (reviewer, D-186):** Computes structural quality delta post-implementation: `ariadne_diff` (smell/cycle/edge delta), `ariadne_refactor_opportunities` (new refactoring needs), comparison against baseline. Reports as `## Structural Quality Delta` with verdict: improved | neutral | degraded:minor | degraded:major.
 - **Pre-planning agents (D-155):** Dispatch step 4b uses `ariadne_context` with `budget_tokens: 1000` and `task: "understand"` to provide task-relevant structural context. Falls back to L0 view on failure.
 - **Post-planning agents:** Receive context via pre-assembled instruction files (assembled by Daedalus).
 
