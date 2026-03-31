@@ -23,6 +23,28 @@ _moira_schema_dir() {
   fi
 }
 
+# ── _moira_yaml_split_key <key> ──────────────────────────────────────
+# Split a dot-path key into positional parameters (bash + zsh compatible).
+# Sets: _yp1, _yp2, _yp3, _ydepth
+_moira_yaml_split_key() {
+  local _key="$1"
+  _yp1="" _yp2="" _yp3="" _ydepth=0
+  if [[ -n "${ZSH_VERSION:-}" ]]; then
+    local -a _parts=()
+    IFS='.' read -rA _parts <<< "$_key"
+    _yp1="${_parts[1]:-}" _yp2="${_parts[2]:-}" _yp3="${_parts[3]:-}"
+    _ydepth=${#_parts[@]}
+  else
+    local _old_ifs="${IFS:-}"
+    IFS='.'
+    # shellcheck disable=SC2086
+    set -- $_key
+    _yp1="${1:-}" _yp2="${2:-}" _yp3="${3:-}"
+    _ydepth=$#
+    IFS="${_old_ifs}"
+  fi
+}
+
 # ── moira_yaml_get <file> <dot.path.key> ─────────────────────────────
 # Read a value from a YAML file by dot-path key.
 # Supports 1-level (step), 2-level (project.stack), 3-level (budgets.per_agent.classifier)
@@ -36,11 +58,9 @@ moira_yaml_get() {
     return 1
   fi
 
-  # Split key into parts
-  local IFS='.'
-  set -- $key
-  local p1="${1:-}" p2="${2:-}" p3="${3:-}"
-  local depth=$#
+  # Split key into parts (compatible with both bash and zsh)
+  _moira_yaml_split_key "$key"
+  local p1="$_yp1" p2="$_yp2" p3="$_yp3" depth="$_ydepth"
 
   local result
   result=$(awk -v depth="$depth" \
@@ -153,10 +173,8 @@ moira_yaml_set() {
     return 1
   fi
 
-  local IFS='.'
-  set -- $key
-  local p1="${1:-}" p2="${2:-}" p3="${3:-}"
-  local depth=$#
+  _moira_yaml_split_key "$key"
+  local p1="$_yp1" p2="$_yp2" p3="$_yp3" depth="$_ydepth"
 
   # Format value for YAML
   local yaml_value="$value"
@@ -244,10 +262,8 @@ _moira_yaml_append() {
   local key="$2"
   local value="$3"
 
-  local IFS='.'
-  set -- $key
-  local p1="${1:-}" p2="${2:-}" p3="${3:-}"
-  local depth=$#
+  _moira_yaml_split_key "$key"
+  local p1="$_yp1" p2="$_yp2" p3="$_yp3" depth="$_ydepth"
 
   if [[ $depth -eq 1 ]]; then
     echo "$p1: $value" >> "$file"
@@ -592,11 +608,8 @@ moira_yaml_block_append() {
   sed -i.bak "s/^\([[:space:]]*\)\(${parent_key##*.}\):[[:space:]]*\[\]/\1\2:/" "$file"
   rm -f "${file}.bak"
 
-  local IFS='.'
-  set -- $parent_key
-  local p1="${1:-}"
-  local p2="${2:-}"
-  local depth=$#
+  _moira_yaml_split_key "$parent_key"
+  local p1="$_yp1" p2="$_yp2" depth="$_ydepth"
 
   # Note: yaml_text is passed via ENVIRON to avoid AWK -v newline limitation.
   # AWK's -v flag does not support embedded newlines in values.

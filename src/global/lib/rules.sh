@@ -8,7 +8,7 @@
 set -euo pipefail
 
 # Source dependencies from the same directory
-_MOIRA_RULES_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_MOIRA_RULES_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 # shellcheck source=yaml-utils.sh
 source "${_MOIRA_RULES_LIB_DIR}/yaml-utils.sh"
 # shellcheck source=knowledge.sh
@@ -101,7 +101,7 @@ moira_rules_load_layer() {
         local fname
         fname=$(basename "$rule_file" .yaml)
         echo ""
-        echo "--- ${fname^^} ---"
+        echo "--- $(printf '%s' "$fname" | tr '[:lower:]' '[:upper:]') ---"
         cat "$rule_file"
       done
       ;;
@@ -467,7 +467,7 @@ moira_rules_assemble_instruction() {
 
     # D-115: Infrastructure MCP injection — all agents, all pipelines
     local infra_mcp_section
-    infra_mcp_section=$(moira_mcp_format_infrastructure_section "$project_root" 2>/dev/null)
+    infra_mcp_section=$(moira_mcp_format_infrastructure_section "${project_root:-$(pwd)}" 2>/dev/null)
     if [[ -n "$infra_mcp_section" ]]; then
       echo ""
       echo "$infra_mcp_section"
@@ -509,13 +509,31 @@ moira_rules_assemble_instruction() {
 
 # ── CPM (Critical Path Method) Batch Scheduling ─────────────────────
 # Pure-bash DAG scheduling for Daedalus planner.
-# All functions use parallel indexed arrays (bash 3.2+ compatible).
+# All functions use parallel indexed arrays (0-based, bash 3.2+ compatible).
+# zsh requires KSH_ARRAYS for 0-based indexing — set inside each function.
+
+# Helper: find index of target in node_ids array (0-based).
+# Relies on caller's node_ids[] and node_count via dynamic scoping.
+_moira_cpm_node_index() {
+  local target="$1"
+  local i
+  for (( i=0; i<node_count; i++ )); do
+    if [[ "${node_ids[$i]}" == "$target" ]]; then
+      echo "$i"
+      return 0
+    fi
+  done
+  return 1
+}
 
 # ── moira_rules_cpm_schedule <dep_graph_yaml> ────────────────────────
 # Takes a dependency graph YAML file (nodes + dependencies).
 # Outputs phase assignments as "node_id: phase_N" lines.
 # Algorithm: topological sort -> forward pass (earliest_start) -> group by phase.
 moira_rules_cpm_schedule() {
+  # zsh: enable 0-based array indexing for this function
+  [[ -n "${ZSH_VERSION:-}" ]] && setopt localoptions KSH_ARRAYS
+
   local dep_graph_yaml="$1"
 
   if [[ ! -f "$dep_graph_yaml" ]]; then
@@ -588,19 +606,7 @@ moira_rules_cpm_schedule() {
   ' "$dep_graph_yaml")
 
   local dep_count=${#dep_from[@]}
-
-  # Helper: find index of node_id in node_ids array
-  _moira_cpm_node_index() {
-    local target="$1"
-    local i
-    for (( i=0; i<node_count; i++ )); do
-      if [[ "${node_ids[$i]}" == "$target" ]]; then
-        echo "$i"
-        return 0
-      fi
-    done
-    return 1
-  }
+  local to_idx from_idx current
 
   # Compute in-degree for each node
   local in_degree=()
@@ -608,7 +614,6 @@ moira_rules_cpm_schedule() {
     in_degree+=( 0 )
   done
   for (( e=0; e<dep_count; e++ )); do
-    local to_idx
     to_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
     in_degree[$to_idx]=$(( ${in_degree[$to_idx]} + 1 ))
   done
@@ -623,16 +628,14 @@ moira_rules_cpm_schedule() {
   done
 
   while [[ ${#queue[@]} -gt 0 ]]; do
-    local current="${queue[0]}"
+    current="${queue[0]}"
     queue=("${queue[@]:1}")
     topo_order+=( "$current" )
 
     # For each edge from current
     for (( e=0; e<dep_count; e++ )); do
-      local from_idx
       from_idx=$(_moira_cpm_node_index "${dep_from[$e]}") || continue
       if [[ $from_idx -eq $current ]]; then
-        local to_idx
         to_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
         in_degree[$to_idx]=$(( ${in_degree[$to_idx]} - 1 ))
         if [[ ${in_degree[$to_idx]} -eq 0 ]]; then
@@ -651,17 +654,17 @@ moira_rules_cpm_schedule() {
   # earliest_finish[u] = earliest_start[u] + estimated_tokens[u]
   local earliest_start=()
   local earliest_finish=()
+  local max_pred_finish pred_idx idx min_succ_start succ_idx
   for (( i=0; i<node_count; i++ )); do
     earliest_start+=( 0 )
     earliest_finish+=( 0 )
   done
 
   for idx in "${topo_order[@]}"; do
-    local max_pred_finish=0
+    max_pred_finish=0
     # Check all edges where dep_to == node_ids[idx]
     for (( e=0; e<dep_count; e++ )); do
       if [[ "${dep_to[$e]}" == "${node_ids[$idx]}" ]]; then
-        local pred_idx
         pred_idx=$(_moira_cpm_node_index "${dep_from[$e]}") || continue
         if [[ ${earliest_finish[$pred_idx]} -gt $max_pred_finish ]]; then
           max_pred_finish=${earliest_finish[$pred_idx]}
@@ -692,12 +695,11 @@ moira_rules_cpm_schedule() {
   # Reverse topological order
   local rev_count=${#topo_order[@]}
   for (( r=rev_count-1; r>=0; r-- )); do
-    local idx="${topo_order[$r]}"
-    local min_succ_start=$project_end
+    idx="${topo_order[$r]}"
+    min_succ_start=$project_end
     # Check all edges where dep_from == node_ids[idx]
     for (( e=0; e<dep_count; e++ )); do
       if [[ "${dep_from[$e]}" == "${node_ids[$idx]}" ]]; then
-        local succ_idx
         succ_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
         if [[ ${latest_start[$succ_idx]} -lt $min_succ_start ]]; then
           min_succ_start=${latest_start[$succ_idx]}
@@ -712,15 +714,18 @@ moira_rules_cpm_schedule() {
   # Nodes with the same earliest_start go in the same phase
   # Collect unique earliest_start values, sorted ascending
   local unique_starts=()
+  local already
   for idx in "${topo_order[@]}"; do
-    local es=${earliest_start[$idx]}
-    local already=false
-    for us in "${unique_starts[@]+"${unique_starts[@]}"}"; do
-      if [[ $us -eq $es ]]; then
-        already=true
-        break
-      fi
-    done
+    es=${earliest_start[$idx]}
+    already=false
+    if [[ ${#unique_starts[@]} -gt 0 ]]; then
+      for us in "${unique_starts[@]}"; do
+        if [[ "$us" == "$es" ]]; then
+          already=true
+          break
+        fi
+      done
+    fi
     if ! $already; then
       unique_starts+=( "$es" )
     fi
@@ -733,9 +738,10 @@ moira_rules_cpm_schedule() {
   done < <(printf '%s\n' "${unique_starts[@]}" | sort -n)
 
   # Assign phases
+  local es phase_num
   for idx in "${topo_order[@]}"; do
-    local es=${earliest_start[$idx]}
-    local phase_num=0
+    es=${earliest_start[$idx]}
+    phase_num=0
     for (( p=0; p<${#sorted_starts[@]}; p++ )); do
       if [[ ${sorted_starts[$p]} -eq $es ]]; then
         phase_num=$(( p + 1 ))
@@ -752,6 +758,9 @@ moira_rules_cpm_schedule() {
 # Returns nodes on the critical path (zero slack).
 # Slack = latest_start - earliest_start. Output: one node ID per line.
 moira_rules_cpm_critical_path() {
+  # zsh: enable 0-based array indexing for this function
+  [[ -n "${ZSH_VERSION:-}" ]] && setopt localoptions KSH_ARRAYS
+
   local dep_graph_yaml="$1"
 
   if [[ ! -f "$dep_graph_yaml" ]]; then
@@ -824,18 +833,7 @@ moira_rules_cpm_critical_path() {
   ' "$dep_graph_yaml")
 
   local dep_count=${#dep_from[@]}
-
-  _moira_cpm_node_index() {
-    local target="$1"
-    local i
-    for (( i=0; i<node_count; i++ )); do
-      if [[ "${node_ids[$i]}" == "$target" ]]; then
-        echo "$i"
-        return 0
-      fi
-    done
-    return 1
-  }
+  local to_idx from_idx current max_pred_finish pred_idx idx min_succ_start succ_idx slack
 
   # In-degree + topological sort
   local in_degree=()
@@ -843,7 +841,6 @@ moira_rules_cpm_critical_path() {
     in_degree+=( 0 )
   done
   for (( e=0; e<dep_count; e++ )); do
-    local to_idx
     to_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
     in_degree[$to_idx]=$(( ${in_degree[$to_idx]} + 1 ))
   done
@@ -857,14 +854,12 @@ moira_rules_cpm_critical_path() {
   done
 
   while [[ ${#queue[@]} -gt 0 ]]; do
-    local current="${queue[0]}"
+    current="${queue[0]}"
     queue=("${queue[@]:1}")
     topo_order+=( "$current" )
     for (( e=0; e<dep_count; e++ )); do
-      local from_idx
       from_idx=$(_moira_cpm_node_index "${dep_from[$e]}") || continue
       if [[ $from_idx -eq $current ]]; then
-        local to_idx
         to_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
         in_degree[$to_idx]=$(( ${in_degree[$to_idx]} - 1 ))
         if [[ ${in_degree[$to_idx]} -eq 0 ]]; then
@@ -888,10 +883,9 @@ moira_rules_cpm_critical_path() {
   done
 
   for idx in "${topo_order[@]}"; do
-    local max_pred_finish=0
+    max_pred_finish=0
     for (( e=0; e<dep_count; e++ )); do
       if [[ "${dep_to[$e]}" == "${node_ids[$idx]}" ]]; then
-        local pred_idx
         pred_idx=$(_moira_cpm_node_index "${dep_from[$e]}") || continue
         if [[ ${earliest_finish[$pred_idx]} -gt $max_pred_finish ]]; then
           max_pred_finish=${earliest_finish[$pred_idx]}
@@ -919,11 +913,10 @@ moira_rules_cpm_critical_path() {
 
   local rev_count=${#topo_order[@]}
   for (( r=rev_count-1; r>=0; r-- )); do
-    local idx="${topo_order[$r]}"
-    local min_succ_start=$project_end
+    idx="${topo_order[$r]}"
+    min_succ_start=$project_end
     for (( e=0; e<dep_count; e++ )); do
       if [[ "${dep_from[$e]}" == "${node_ids[$idx]}" ]]; then
-        local succ_idx
         succ_idx=$(_moira_cpm_node_index "${dep_to[$e]}") || continue
         if [[ ${latest_start[$succ_idx]} -lt $min_succ_start ]]; then
           min_succ_start=${latest_start[$succ_idx]}
@@ -936,7 +929,7 @@ moira_rules_cpm_critical_path() {
 
   # Output nodes with zero slack
   for (( i=0; i<node_count; i++ )); do
-    local slack=$(( ${latest_start[$i]} - ${earliest_start[$i]} ))
+    slack=$(( ${latest_start[$i]} - ${earliest_start[$i]} ))
     if [[ $slack -eq 0 ]]; then
       echo "${node_ids[$i]}"
     fi

@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # Source yaml-utils from the same directory
-_MOIRA_AUDIT_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_MOIRA_AUDIT_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 # shellcheck source=yaml-utils.sh
 source "${_MOIRA_AUDIT_LIB_DIR}/yaml-utils.sh"
 

@@ -8,7 +8,7 @@
 set -euo pipefail
 
 # Source yaml-utils from the same directory
-_MOIRA_METRICS_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_MOIRA_METRICS_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 # shellcheck source=yaml-utils.sh
 source "${_MOIRA_METRICS_LIB_DIR}/yaml-utils.sh"
 
@@ -247,17 +247,17 @@ moira_metrics_aggregate_monthly() {
       elif [[ "$line" =~ "redone: true" ]]; then
         redos=$(( redos + 1 ))
       elif [[ "$line" =~ "retries:" ]]; then
-        local val="${line#*retries: }"
-        val="${val## }"
-        retries=$(( retries + val ))
+        local _val="${line#*retries: }"
+        _val="${_val## }"
+        retries=$(( retries + _val ))
       elif [[ "$line" =~ "reviewer_criticals:" ]]; then
-        local val="${line#*reviewer_criticals: }"
-        val="${val## }"
-        criticals=$(( criticals + val ))
+        local _cval="${line#*reviewer_criticals: }"
+        _cval="${_cval## }"
+        criticals=$(( criticals + _cval ))
       elif [[ "$line" =~ "orchestrator_pct:" ]]; then
-        local val="${line#*orchestrator_pct: }"
-        val="${val## }"
-        orch_sum=$(( orch_sum + val ))
+        local _oval="${line#*orchestrator_pct: }"
+        _oval="${_oval## }"
+        orch_sum=$(( orch_sum + _oval ))
       fi
     fi
   done < "$monthly_file"
@@ -429,7 +429,7 @@ moira_metrics_drilldown() {
     return 1
   fi
 
-  echo "═══ ${section^^} DRILL-DOWN (${current_month}) ═══"
+  echo "═══ $(printf '%s' "$section" | tr '[:lower:]' '[:upper:]') DRILL-DOWN (${current_month}) ═══"
   echo ""
 
   # Parse task_records for drill-down
@@ -594,7 +594,10 @@ moira_metrics_export() {
 
   local section
   for section in tasks quality accuracy efficiency knowledge evolution; do
-    echo "### ${section^}"
+    local _first _rest
+    _first=$(printf '%s' "${section:0:1}" | tr '[:lower:]' '[:upper:]')
+    _rest="${section:1}"
+    echo "### ${_first}${_rest}"
     echo ""
     echo '```'
     moira_metrics_drilldown "$section" "$state_dir"

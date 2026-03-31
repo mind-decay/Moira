@@ -396,7 +396,7 @@ moira_reflection_auto_defer_stale() {
   local threshold=$(( now_epoch - 30 * 86400 ))
 
   # Extract pending proposal IDs with old dates, then resolve each
-  local stale_ids=""
+  local -a stale_ids=()
   local current_id="" current_status="" current_created=""
 
   while IFS= read -r line; do
@@ -413,7 +413,7 @@ moira_reflection_auto_defer_stale() {
         fi
 
         if [[ "$created_epoch" -lt "$threshold" ]]; then
-          stale_ids="${stale_ids} ${current_id}"
+          stale_ids+=("$current_id")
         fi
       fi
 
@@ -448,7 +448,7 @@ moira_reflection_auto_defer_stale() {
   fi
 
   # Resolve each stale proposal
-  for pid in $stale_ids; do
+  for pid in "${stale_ids[@]}"; do
     moira_reflection_resolve_proposal "$state_dir" "$pid" "deferred"
   done
 

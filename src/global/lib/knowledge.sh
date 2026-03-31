@@ -209,7 +209,7 @@ _moira_knowledge_get_lambda() {
   local ktype="$1"
   # Convert hyphen to underscore for variable lookup
   local var_name="_MOIRA_KNOWLEDGE_LAMBDA_${ktype//-/_}"
-  echo "${!var_name:-5}"
+  eval "echo \"\${${var_name}:-5}\""
 }
 
 # ── _moira_knowledge_exp_decay <lambda_x100> <distance>
@@ -298,8 +298,8 @@ moira_knowledge_freshness_score() {
   local tag_lambda
   tag_lambda=$(echo "$tag" | sed -n 's/.*λ=\([0-9.]*\).*/\1/p')
   if [[ -n "$tag_lambda" ]]; then
-    # Convert decimal λ to × 100 integer
-    lambda=$(echo "$tag_lambda" | sed 's/0\.\([0-9]*\)/\1/' | sed 's/^0*//')
+    # Convert decimal λ to × 100 integer (e.g. 0.05 → 5, 0.10 → 10)
+    lambda=$(awk -F'.' '{printf "%d", $2 + 0}' <<< "$tag_lambda")
     lambda=${lambda:-5}
   else
     lambda=$(_moira_knowledge_get_lambda "$ktype")

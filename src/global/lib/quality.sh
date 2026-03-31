@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # Source yaml-utils from the same directory
-_MOIRA_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_MOIRA_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 # shellcheck source=yaml-utils.sh
 source "${_MOIRA_LIB_DIR}/yaml-utils.sh"
 
@@ -159,7 +159,7 @@ moira_quality_aggregate_task() {
     total_na=$((total_na + na))
     total_items=$((total_items + total))
 
-    gate_verdicts="${gate_verdicts}  - gate: ${gate}\n    agent: ${agent}\n    verdict: ${verdict}\n    critical: ${cc}\n    warning: ${wc}\n    suggestion: ${sc}\n"
+    gate_verdicts="${gate_verdicts}  - gate: ${gate}"$'\n'"    agent: ${agent}"$'\n'"    verdict: ${verdict}"$'\n'"    critical: ${cc}"$'\n'"    warning: ${wc}"$'\n'"    suggestion: ${sc}"$'\n'
   done <<< "$findings_files"
 
   # Derive overall verdict
@@ -175,7 +175,7 @@ moira_quality_aggregate_task() {
 # Do not edit manually
 
 gates:
-$(echo -e "$gate_verdicts")
+${gate_verdicts}
 totals:
   items: ${total_items}
   passed: ${total_passed}

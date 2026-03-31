@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-_MOIRA_BENCH_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_MOIRA_BENCH_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 # shellcheck source=yaml-utils.sh
 source "${_MOIRA_BENCH_LIB_DIR}/yaml-utils.sh"
 # shellcheck source=judge.sh
@@ -136,7 +136,7 @@ moira_bench_run_tier() {
     1)
       # Tier 1: delegate to existing run-all.sh
       local run_all
-      run_all="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/tests/tier1/run-all.sh"
+      run_all="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")/../.." && pwd)/tests/tier1/run-all.sh"
       if [[ -f "$run_all" ]]; then
         bash "$run_all"
       else
@@ -146,7 +146,7 @@ moira_bench_run_tier() {
       ;;
     2|3)
       local cases_dir
-      cases_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/tests/bench/cases"
+      cases_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")/../.." && pwd)/tests/bench/cases"
 
       if [[ ! -d "$cases_dir" ]]; then
         echo "Error: bench cases directory not found: $cases_dir" >&2
@@ -713,6 +713,9 @@ moira_bench_cusum_state() {
 # Output: space-separated indices (0-based) of significant results surviving correction.
 # If none survive, outputs "none".
 moira_bench_bh_correct() {
+  # zsh: enable 0-based array indexing for this function
+  [[ -n "${ZSH_VERSION:-}" ]] && setopt localoptions KSH_ARRAYS
+
   local p_values_csv="$1"
   local alpha="${2:-500}"  # 500 = 5.00% (scaled by 100)
 
@@ -720,7 +723,11 @@ moira_bench_bh_correct() {
   local p_vals=()
   local indices=()
   local i=0
-  IFS=',' read -ra raw_vals <<< "$p_values_csv"
+  if [[ -n "${ZSH_VERSION:-}" ]]; then
+    IFS=',' read -rA raw_vals <<< "$p_values_csv"
+  else
+    IFS=',' read -ra raw_vals <<< "$p_values_csv"
+  fi
   for val in "${raw_vals[@]}"; do
     val=$(echo "$val" | tr -d ' ')
     p_vals+=("$val")

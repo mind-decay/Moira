@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # Source yaml-utils from the same directory
-_MOIRA_BUDGET_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_MOIRA_BUDGET_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 # shellcheck source=yaml-utils.sh
 source "${_MOIRA_BUDGET_LIB_DIR}/yaml-utils.sh"
 
@@ -64,7 +64,7 @@ _moira_budget_get_agent_budget() {
   # Hardcoded defaults fallback
   if [[ -z "$budget" ]]; then
     local var_name="_MOIRA_BUDGET_DEFAULTS_${role}"
-    budget="${!var_name:-0}"
+    eval "budget=\"\${${var_name}:-0}\""
   fi
 
   echo "$budget"

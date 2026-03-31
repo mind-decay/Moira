@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # Source yaml-utils from the same directory
-_CHECKPOINT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_CHECKPOINT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 # shellcheck source=yaml-utils.sh
 source "${_CHECKPOINT_DIR}/yaml-utils.sh"
 

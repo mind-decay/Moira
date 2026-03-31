@@ -8,7 +8,7 @@
 set -euo pipefail
 
 # Source yaml-utils from the same directory
-_EPIC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_EPIC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 # shellcheck source=yaml-utils.sh
 source "${_EPIC_DIR}/yaml-utils.sh"
 
@@ -16,6 +16,8 @@ source "${_EPIC_DIR}/yaml-utils.sh"
 # Read state/tasks/{task_id}/queue.yaml, validate required fields,
 # output parsed task list (id, description, size, status, depends_on).
 moira_epic_parse_queue() {
+  [[ -n "${ZSH_VERSION:-}" ]] && setopt localoptions KSH_ARRAYS
+
   local task_id="$1"
   local state_dir="${2:-.claude/moira/state}"
   local queue_file="${state_dir}/tasks/${task_id}/queue.yaml"
@@ -111,6 +113,8 @@ moira_epic_parse_queue() {
 # Check all depends_on references are valid task IDs and no self-references.
 # Returns: echo "valid" or "cycle_detected:{path}"
 moira_epic_validate_dag() {
+  [[ -n "${ZSH_VERSION:-}" ]] && setopt localoptions KSH_ARRAYS
+
   local task_id="$1"
   local state_dir="${2:-.claude/moira/state}"
 
@@ -133,7 +137,7 @@ moira_epic_validate_dag() {
     local tid=""
     local deps=""
     # Parse fields from pipe-delimited record
-    IFS='|' read -ra fields <<< "$record"
+    if [[ -n "${ZSH_VERSION:-}" ]]; then IFS='|' read -rA fields <<< "$record"; else IFS='|' read -ra fields <<< "$record"; fi
     for field in "${fields[@]}"; do
       case "$field" in
         id:*) tid="${field#id:}" ;;
@@ -156,7 +160,7 @@ moira_epic_validate_dag() {
     if [[ -z "$deps" ]]; then
       continue
     fi
-    IFS=',' read -ra dep_list <<< "$deps"
+    if [[ -n "${ZSH_VERSION:-}" ]]; then IFS=',' read -rA dep_list <<< "$deps"; else IFS=',' read -ra dep_list <<< "$deps"; fi
     for dep in "${dep_list[@]}"; do
       dep="${dep## }"
       dep="${dep%% }"
@@ -203,7 +207,7 @@ moira_epic_validate_dag() {
       continue
     fi
     local count=0
-    IFS=',' read -ra dep_list <<< "$deps"
+    if [[ -n "${ZSH_VERSION:-}" ]]; then IFS=',' read -rA dep_list <<< "$deps"; else IFS=',' read -ra dep_list <<< "$deps"; fi
     for dep in "${dep_list[@]}"; do
       dep="${dep## }"
       dep="${dep%% }"
@@ -238,7 +242,7 @@ moira_epic_validate_dag() {
       if [[ -z "$deps" ]]; then
         continue
       fi
-      IFS=',' read -ra dep_list <<< "$deps"
+      if [[ -n "${ZSH_VERSION:-}" ]]; then IFS=',' read -rA dep_list <<< "$deps"; else IFS=',' read -ra dep_list <<< "$deps"; fi
       for dep in "${dep_list[@]}"; do
         dep="${dep## }"
         dep="${dep%% }"
@@ -278,6 +282,8 @@ moira_epic_validate_dag() {
 # Sort by transitive dependency depth (fewest deps first).
 # Output eligible task IDs, one per line.
 moira_epic_next_tasks() {
+  [[ -n "${ZSH_VERSION:-}" ]] && setopt localoptions KSH_ARRAYS
+
   local task_id="$1"
   local state_dir="${2:-.claude/moira/state}"
 
@@ -296,7 +302,7 @@ moira_epic_next_tasks() {
 
   while IFS= read -r record; do
     local tid="" status="" deps=""
-    IFS='|' read -ra fields <<< "$record"
+    if [[ -n "${ZSH_VERSION:-}" ]]; then IFS='|' read -rA fields <<< "$record"; else IFS='|' read -ra fields <<< "$record"; fi
     for field in "${fields[@]}"; do
       case "$field" in
         id:*) tid="${field#id:}" ;;
@@ -333,7 +339,7 @@ moira_epic_next_tasks() {
           echo 0
           return 0
         fi
-        IFS=',' read -ra dep_list <<< "$deps"
+        if [[ -n "${ZSH_VERSION:-}" ]]; then IFS=',' read -rA dep_list <<< "$deps"; else IFS=',' read -ra dep_list <<< "$deps"; fi
         for dep in "${dep_list[@]}"; do
           dep="${dep## }"
           dep="${dep%% }"
@@ -367,7 +373,7 @@ moira_epic_next_tasks() {
     local all_deps_met=true
 
     if [[ -n "$deps" ]]; then
-      IFS=',' read -ra dep_list <<< "$deps"
+      if [[ -n "${ZSH_VERSION:-}" ]]; then IFS=',' read -rA dep_list <<< "$deps"; else IFS=',' read -ra dep_list <<< "$deps"; fi
       for dep in "${dep_list[@]}"; do
         dep="${dep## }"
         dep="${dep%% }"
@@ -416,6 +422,8 @@ moira_epic_next_tasks() {
 # Update subtask status in queue.yaml using moira_yaml_set.
 # Recalculate progress.completed/in_progress/pending/failed.
 moira_epic_update_progress() {
+  [[ -n "${ZSH_VERSION:-}" ]] && setopt localoptions KSH_ARRAYS
+
   local task_id="$1"
   local subtask_id="$2"
   local new_status="$3"
@@ -477,7 +485,7 @@ moira_epic_update_progress() {
 
   while IFS= read -r record; do
     local status=""
-    IFS='|' read -ra fields <<< "$record"
+    if [[ -n "${ZSH_VERSION:-}" ]]; then IFS='|' read -rA fields <<< "$record"; else IFS='|' read -ra fields <<< "$record"; fi
     for field in "${fields[@]}"; do
       case "$field" in
         status:*) status="${field#status:}" ;;
@@ -505,6 +513,8 @@ moira_epic_update_progress() {
 # Find subtask's depends_on list, check each dependency status.
 # Returns: echo "ready" or "blocked:{incomplete_deps}"
 moira_epic_check_dependencies() {
+  [[ -n "${ZSH_VERSION:-}" ]] && setopt localoptions KSH_ARRAYS
+
   local task_id="$1"
   local subtask_id="$2"
   local state_dir="${3:-.claude/moira/state}"
@@ -525,7 +535,7 @@ moira_epic_check_dependencies() {
 
   while IFS= read -r record; do
     local tid="" status="" deps=""
-    IFS='|' read -ra fields <<< "$record"
+    if [[ -n "${ZSH_VERSION:-}" ]]; then IFS='|' read -rA fields <<< "$record"; else IFS='|' read -ra fields <<< "$record"; fi
     for field in "${fields[@]}"; do
       case "$field" in
         id:*) tid="${field#id:}" ;;
@@ -563,7 +573,7 @@ moira_epic_check_dependencies() {
 
   # Check each dependency
   local incomplete=""
-  IFS=',' read -ra dep_list <<< "$target_deps"
+  if [[ -n "${ZSH_VERSION:-}" ]]; then IFS=',' read -rA dep_list <<< "$target_deps"; else IFS=',' read -ra dep_list <<< "$target_deps"; fi
   for dep in "${dep_list[@]}"; do
     dep="${dep## }"
     dep="${dep%% }"
