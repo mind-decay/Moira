@@ -6,7 +6,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 1: Foundation — File Structure & State Management
+## Phase 1: Foundation — File Structure & State Management — COMPLETED
 
 **Goal:** Moira directory structure exists, state can be read/written/resumed.
 
@@ -33,7 +33,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 2: Core Agent Definitions
+## Phase 2: Core Agent Definitions — COMPLETED
 
 **Goal:** All 10 agents have working prompt definitions.
 
@@ -56,7 +56,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 3: Pipeline Engine (Orchestrator Skill)
+## Phase 3: Pipeline Engine (Orchestrator Skill) — COMPLETED
 
 **Goal:** Orchestrator can execute all 4 pipeline types (Quick/Standard/Full/Decomposition).
 
@@ -79,7 +79,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 4: Rules Assembly & Knowledge System
+## Phase 4: Rules Assembly & Knowledge System — COMPLETED
 
 **Goal:** Planner can assemble multi-layer rules. Knowledge base can be read/written at correct levels.
 
@@ -95,7 +95,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 5: Bootstrap Engine (/moira init)
+## Phase 5: Bootstrap Engine (/moira init) — COMPLETED
 
 **Goal:** `/moira init` fully works — scans project, generates config, creates knowledge base.
 
@@ -117,7 +117,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 6: Quality Gates & Review System
+## Phase 6: Quality Gates & Review System — COMPLETED
 
 **Goal:** Full quality gate system with checklists, severity classification, retry logic.
 
@@ -140,7 +140,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 7: Context Budget Tracking
+## Phase 7: Context Budget Tracking — COMPLETED
 
 **Goal:** Budget estimation, tracking, reporting, and overflow handling.
 
@@ -156,7 +156,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 8: Hooks & Self-Monitoring
+## Phase 8: Hooks & Self-Monitoring — COMPLETED
 
 **Goal:** PostToolUse hooks detect violations and track budget. `allowed-tools` provides primary prevention (D-031).
 
@@ -172,7 +172,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 9: MCP Integration
+## Phase 9: MCP Integration — COMPLETED
 
 **Goal:** MCP tools are registered, allocated per step, tracked, and cached.
 
@@ -187,7 +187,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 10: Reflection Engine
+## Phase 10: Reflection Engine — COMPLETED
 
 **Goal:** Post-task reflection, pattern detection, rule change proposals.
 
@@ -208,7 +208,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 11: Metrics & Audit
+## Phase 11: Metrics & Audit — COMPLETED
 
 **Goal:** Full metrics dashboard, audit system, trend analysis.
 
@@ -228,7 +228,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 12: Advanced Features
+## Phase 12: Advanced Features — COMPLETED
 
 **Goal:** Checkpoint/resume, multi-developer, epic decomposition, tweak/redo.
 
@@ -252,7 +252,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 13: Ariadne Integration — Project Graph in Moira Pipelines
+## Phase 13: Ariadne Integration — Project Graph in Moira Pipelines — COMPLETED
 
 **Goal:** Ariadne (external project graph engine) fully integrated into Moira pipelines — agents use graph data (including architectural intelligence), commands available, MCP server optionally configured.
 
@@ -291,7 +291,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 14: Analytical Pipeline
+## Phase 14: Analytical Pipeline — COMPLETED
 
 **Goal:** Analytical tasks (architecture review, audits, weakness analysis, documentation, research, decision analysis) execute through a dedicated pipeline with progressive depth, CS-based rigor methods, and Ariadne as primary analytical tool.
 
@@ -331,6 +331,130 @@ Based on dependency analysis. Each phase builds on previous.
 **Why Phase 14:** Requires working pipeline engine (Phase 3) and Ariadne integration (Phase 13). Analytical pipeline is an extension of core Moira, not a prerequisite for code-producing workflows.
 
 ---
+
+## Phase 15: Ariadne-Driven Bootstrap & Quality-Map Fix
+
+**Goal:** Ariadne structural data flows mechanically into knowledge base at init/refresh. Quality-map populated with real evidence instead of keyword heuristics. Scanner budgets cut ~46% via hybrid bash pre-collect + lighter agents.
+
+**Depends on:** Phase 5 (bootstrap engine), Phase 13 (Ariadne integration), Phase 6 (quality gates — quality-map schema).
+
+**Context (D-188):** Three bugs discovered in init/refresh → quality-map connectivity: (1) keyword matching trap — scanner prohibited from subjective words that quality-map classifier expects, (2) append-only quality-map — existing entries never updated, (3) no category migration — patterns stuck in initial classification forever. Additionally, Ariadne graph built during init but data never flows into knowledge base.
+
+### Chunk 1: Ariadne → Knowledge Pipeline (bash/jq)
+
+New function `moira_graph_populate_knowledge()` in `graph.sh`. Runs after `moira_graph_build()` during init. All queries use `ariadne query <cmd> --json | jq` — zero LLM tokens.
+
+**Tasks:**
+- [ ] 1.1: `ariadne query smells --json` → parse smell array → write each as `### {smell_type}: {file}` entry in `quality-map/full.md` under `## 🔴 Problematic Patterns`, with fields: Category (smell type), Evidence (ariadne structural analysis), File(s), Confidence (high — structural), Observation count (1), Lifecycle (🆕 NEW)
+- [ ] 1.2: `ariadne query cycles --json` → parse cycle array → write each as `### Circular dependency: {members}` in quality-map Problematic, with cycle member files as evidence
+- [ ] 1.3: `ariadne query refactor-opportunities --json` → parse Pareto-ranked list → write top N as quality-map Problematic entries with effort/impact/rank metadata
+- [ ] 1.4: `ariadne query hotspots --json` → if temporal available, parse hotspot array → write as quality-map Problematic entries (files with high churn × complexity × blast_radius)
+- [ ] 1.5: `ariadne query coupling --json` → if temporal available, parse coupling pairs above threshold → write as quality-map Adequate entries (structural coupling with co-change evidence)
+- [ ] 1.6: `ariadne query centrality --json` → parse top-N bottleneck files → append `## Structural Bottlenecks` section to `project-model/full.md` with file paths, betweenness centrality scores
+- [ ] 1.7: `ariadne query layers --json` → parse layer assignments → append `## Architectural Layers` section to `project-model/full.md` with layer name → file list mapping
+- [ ] 1.8: `ariadne query metrics --json` → parse Martin metrics per cluster → append `## Cluster Metrics` section to `project-model/full.md` with instability, abstractness, distance-from-main-sequence per cluster
+- [ ] 1.9: `ariadne query boundaries --json` → parse boundary list → merge with `boundaries.yaml` (ariadne-detected boundaries supplement scanner-detected, don't overwrite)
+- [ ] 1.10: `ariadne query overview --json` → parse summary → append `## Graph Summary` section to `project-model/full.md` (node/edge/cluster/cycle/smell counts, monolith score, temporal availability)
+- [ ] 1.11: Regenerate L0/L1 condensed files for project-model and quality-map after all writes
+- [ ] 1.12: Graceful degradation — if ariadne binary absent or any query fails, skip silently (quality-map stays empty, project-model gets scanner data only)
+- [ ] 1.13: Remove `_moira_bootstrap_gen_quality_map()` keyword matching function from `bootstrap.sh` — replaced by this pipeline
+
+**Files:** `src/global/lib/graph.sh` (new function), `src/global/lib/bootstrap.sh` (remove keyword function), `src/global/lib/knowledge.sh` (L0/L1 regeneration)
+
+### Chunk 2: Quality-Map Observation Count & Category Migration
+
+Fix `moira_knowledge_update_quality_map()` in `knowledge.sh` to properly accumulate evidence and migrate categories.
+
+**Tasks:**
+- [ ] 2.1: On IF FOUND (existing entry matches): increment `Observation count` field, append new evidence line (`task-{id} {date}` or `refresh {date}` or `ariadne-init {date}`), update freshness marker
+- [ ] 2.2: Category migration logic — after updating observation count, check:
+  - Strong pattern with 3+ failed findings → move to `## ⚠️ Adequate Patterns` section, update Lifecycle to `⬇️ DEMOTED`
+  - Adequate pattern with 3+ failed findings → move to `## 🔴 Problematic Patterns`, Lifecycle `⬇️ DEMOTED`
+  - Problematic pattern resolved in ariadne diff (smell gone) → move to `## ✅ Strong Patterns`, Lifecycle `⬆️ PROMOTED`
+  - Adequate pattern with 3+ consecutive passes (no failures) → move to `## ✅ Strong Patterns`, Lifecycle `⬆️ PROMOTED`
+- [ ] 2.3: Migration mechanics — parse full.md, find entry by `### {name}` header, remove from old section, insert into new section with updated metadata
+- [ ] 2.4: After migration, regenerate `summary.md` via `_moira_knowledge_regen_quality_summary()`
+- [ ] 2.5: Unit tests in `src/tests/tier1/` — test observation increment, test demotion at 3 observations, test promotion on resolution, test migration preserves evidence history
+
+**Files:** `src/global/lib/knowledge.sh` (fix existing function), `src/tests/tier1/test-quality-map-lifecycle.sh` (new)
+
+### Chunk 3: Ariadne Diff at Refresh
+
+New function `moira_graph_diff_to_knowledge()` in `graph.sh`. Runs after `moira_graph_update()` during refresh.
+
+**Tasks:**
+- [ ] 3.1: `ariadne query diff --json` → parse new/removed/changed smells, new/broken cycles
+- [ ] 3.2: New smells → append to quality-map as Problematic (same format as Chunk 1.1)
+- [ ] 3.3: Resolved smells → find matching entry in quality-map, trigger promotion via Chunk 2 migration logic
+- [ ] 3.4: New cycles → append to quality-map as Problematic (same format as Chunk 1.2)
+- [ ] 3.5: Broken cycles → find matching entry, trigger promotion
+- [ ] 3.6: Re-query changed metrics (centrality, hotspots) → update project-model sections (overwrite, not append)
+- [ ] 3.7: Update refresh.md Step 2b to call `moira_graph_diff_to_knowledge()` after graph update
+- [ ] 3.8: Graceful degradation — if no prior graph exists (first refresh without init graph), skip diff, run full populate instead
+
+**Files:** `src/global/lib/graph.sh` (new function), `src/commands/moira/refresh.md` (update Step 2b)
+
+### Chunk 4: Hybrid Scanner Pre-Collection
+
+Bash pre-collects raw data into files, agents receive pre-collected data instead of scanning from scratch.
+
+**Tasks:**
+- [ ] 4.1: New bash function `moira_scan_precollect_tech()` in `bootstrap.sh` — reads package.json, tsconfig.json, .eslintrc*, .prettierrc*, Dockerfile, docker-compose*, .github/workflows/*.yml, .env.example, go.mod, pyproject.toml, Cargo.toml, Gemfile (whichever exist). Writes concatenated contents with file headers to `.claude/moira/state/init/raw-configs.md`. Checks lock file existence (package-lock.json, yarn.lock, pnpm-lock.yaml, etc.) and appends existence flags
+- [ ] 4.2: New bash function `moira_scan_precollect_structure()` in `bootstrap.sh` — runs `ls` depth 1-2 for top-level + source dirs, runs `ariadne query overview --json`, `ariadne query clusters --json`, `ariadne query layers --json` (if available). Writes combined output to `.claude/moira/state/init/raw-structure.md`
+- [ ] 4.3: Update tech-scan.md template — add `## Pre-Collected Data` section at top: "Raw config files have been pre-collected at `.claude/moira/state/init/raw-configs.md`. Read that file FIRST. Only use Read/Glob for files NOT included in pre-collection." Reduce budget from 140k to 50k
+- [ ] 4.4: Update structure-scan.md template — add `## Pre-Collected Data` section: "Project structure and Ariadne graph data pre-collected at `.claude/moira/state/init/raw-structure.md`. Read that file FIRST. Focus on interpreting the structure — directory roles, entry points, test organization — not on discovery." Reduce budget from 140k to 50k
+- [ ] 4.5: Update init.md Step 4 — before dispatching scanner agents, run `moira_scan_precollect_tech` and `moira_scan_precollect_structure` via Bash. Then dispatch 4 agents (2 lightweight + 2 full)
+- [ ] 4.6: Convention-scan.md and pattern-scan.md — reduce budget from 140k to 100k (no pre-collection, but tighter limit)
+- [ ] 4.7: Update refresh.md Step 2 — same pre-collection before re-scan agents
+
+**Files:** `src/global/lib/bootstrap.sh` (new functions), `src/global/templates/scanners/tech-scan.md`, `src/global/templates/scanners/structure-scan.md`, `src/commands/moira/init.md`, `src/commands/moira/refresh.md`
+
+### Chunk 5: Deep Scanner Ariadne Pre-Context
+
+Deep scanners receive Ariadne structural data as pre-context file, freeing budget for semantic analysis.
+
+**Tasks:**
+- [ ] 5.1: New bash function `moira_deepscan_prepare_context()` in `graph.sh` — queries `ariadne query overview`, `clusters`, `cycles`, `boundaries`, `layers`, `centrality` (top 20), writes combined markdown to `.claude/moira/state/init/ariadne-context.md`
+- [ ] 5.2: Update deep-architecture-scan.md — add `## Pre-Context (Ariadne Data)` section: "Structural map at `.claude/moira/state/init/ariadne-context.md` contains clusters, layers, cycles, boundaries from static analysis. Read it first. Focus your file reading on SEMANTIC understanding: business logic, data flow between services, API contracts, middleware chains. Do NOT spend budget rediscovering structure that Ariadne already mapped."
+- [ ] 5.3: Update deep-dependency-scan.md — add pre-context section: "Ariadne pre-context contains cycles and structural dependencies. Focus on: package versions/freshness, unused packages (declared but never imported), duplicate functionality, version constraint analysis."
+- [ ] 5.4: Update deep-test-coverage-scan.md — add pre-context section with note: "Use `ariadne_tests_for` data in pre-context for source→test mapping. Focus on: test quality, assertion density, mock patterns, missing coverage for critical paths."
+- [ ] 5.5: Update deep-security-scan.md — add pre-context section: "Ariadne boundaries and centrality data show system entry points and high-impact files. Focus security analysis on these boundaries first."
+- [ ] 5.6: Graceful fallback — each template includes: "If pre-context file does not exist, proceed with full manual scanning as before."
+- [ ] 5.7: Wire into init: call `moira_deepscan_prepare_context()` after graph build (step 4b), before deep scans trigger on first task
+
+**Files:** `src/global/lib/graph.sh` (new function), `src/global/templates/scanners/deep/deep-architecture-scan.md`, `deep-dependency-scan.md`, `deep-test-coverage-scan.md`, `deep-security-scan.md`, `src/commands/moira/init.md`
+
+### Chunk 6: Integration Testing
+
+**Tasks:**
+- [ ] 6.1: Test init WITH ariadne binary → verify quality-map has Problematic entries from smells/cycles, project-model has layers/centrality/metrics sections
+- [ ] 6.2: Test init WITHOUT ariadne binary → verify graceful degradation (quality-map empty, scanners work at full budget as fallback)
+- [ ] 6.3: Test refresh with ariadne diff → verify new smells appear in quality-map, resolved smells trigger promotion
+- [ ] 6.4: Test quality-map lifecycle: create entry → 3 failed findings → verify demotion → resolve smell → verify promotion
+- [ ] 6.5: Test pre-collected scanner budgets → verify tech/structure agents stay under 50k
+- [ ] 6.6: Test deep scanner pre-context → verify agents read ariadne-context.md and focus on semantics
+- [ ] 6.7: Verify total init token usage < 340k (target: 46% reduction from ~560k baseline)
+- [ ] 6.8: Run `/moira:bench` on existing fixture project to verify no regressions
+
+**Files:** `src/tests/tier1/test-ariadne-knowledge-pipeline.sh`, `src/tests/tier1/test-quality-map-lifecycle.sh`, `src/tests/tier1/test-hybrid-scanners.sh`
+
+**Token Budget Impact:**
+| Component | Before | After | Savings |
+|-----------|--------|-------|---------|
+| Tech scanner | 140k (agent) | ~50k (bash pre-collect + light agent) | -90k |
+| Structure scanner | 140k (agent) | ~50k (ariadne + bash pre-collect + light agent) | -90k |
+| Convention scanner | 140k (agent) | 100k (tighter budget) | -40k |
+| Pattern scanner | 140k (agent) | 100k (tighter budget) | -40k |
+| Ariadne → knowledge | — | ~0 (bash/jq) | free |
+| Quality-map fixes | — | ~0 (bash) | free |
+| **Total init** | **~560k** | **~300k** | **-46%** |
+
+**Risk classification:** ORANGE (knowledge structure changes, bootstrap flow changes). Requires regression check + design doc update.
+
+**Key decisions:** D-188 (Ariadne-driven bootstrap).
+
+**Why Phase 15:** Requires working bootstrap (Phase 5), Ariadne integration (Phase 13), and quality gates (Phase 6). This phase fixes known bugs and maximizes the value already built in those phases.
+
 
 ## Testing Strategy
 
@@ -377,7 +501,11 @@ System is complete when:
 - [ ] Ariadne (project graph) integration works with/without binary (graceful degradation)
 - [ ] Agents use graph data for navigation and impact analysis
 - [ ] Explorer token usage reduced by 50%+ with graph
-- [ ] Analytical tasks execute through Analytical Pipeline with correct subtype routing
-- [ ] Progressive depth produces convergence metrics that inform user decisions
-- [ ] Calliope writes/updates documents without touching source code
-- [ ] QA1-QA4 gates catch substantive analytical weaknesses (not just cosmetic issues)
+- [ ] Quality-map populated with real structural evidence (smells, cycles, refactoring needs) at init — not empty templates
+- [ ] Quality-map entries accumulate observations and migrate between categories (Strong/Adequate/Problematic)
+- [ ] Init token budget < 340k (46% reduction from 560k baseline) via hybrid bash pre-collect + lighter agents
+- [ ] Init/refresh work identically with and without Ariadne binary (graceful degradation)
+- [x] Analytical tasks execute through Analytical Pipeline with correct subtype routing
+- [x] Progressive depth produces convergence metrics that inform user decisions
+- [x] Calliope writes/updates documents without touching source code
+- [x] QA1-QA4 gates catch substantive analytical weaknesses (not just cosmetic issues)

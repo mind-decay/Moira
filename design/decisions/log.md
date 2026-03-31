@@ -1982,3 +1982,55 @@ Change all agent Ariadne capability descriptions from "Use ariadne_X when..." to
 - Full context pre-assembly by orchestrator — violates D-001 (orchestrator never executes); Daedalus is the right agent for this
 - Ariadne queries at every step — over-querying wastes MCP budget; one context call + targeted follow-ups is optimal
 **Reasoning:** The budget freed by graph-first navigation directly enables quality craftsmanship (D-185). Estimated savings: Hermes 25-30k tokens, Hephaestus 20-25k tokens, Themis 10-15k tokens per task. Pre-assembled context in instructions follows the existing pattern (Daedalus already writes instruction files) — it's a natural extension, not a new mechanism. PREFER language is proven more effective than WHEN for LLM behavior — it creates a default, not an option.
+
+## D-188: Ariadne-Driven Bootstrap — Mechanical Knowledge Population
+
+**Date:** 2026-03-31
+**Status:** Accepted
+**Context:** Three bugs in init/refresh quality-map connectivity:
+1. **Keyword matching trap:** `_moira_bootstrap_gen_quality_map()` classifies patterns by searching scanner text for subjective words ("consistent" → Strong, "broken" → Problematic), but scanners are explicitly prohibited from using subjective language ("NO opinions, NO recommendations"). Quality-map after init is empty or random.
+2. **Append-only quality-map:** `moira_knowledge_update_quality_map()` adds new entries but never updates existing ones (IF FOUND → NO ACTION). Observation counts don't accumulate, evidence doesn't grow.
+3. **No category migration:** Entries never move between Strong/Adequate/Problematic regardless of evidence. A pattern classified as Adequate at init stays Adequate forever.
+
+Additionally, Ariadne builds a full project graph during init (step 4b) but this data never flows into the knowledge base — it's only available per-task via MCP queries. Agents start their first task with an empty quality-map and no structural intelligence in knowledge.
+
+**Decision:** Replace keyword-based quality-map population with mechanical Ariadne-to-knowledge pipeline. Three layers:
+
+**Layer 1 — Ariadne → Knowledge (bash/jq, 0 LLM tokens):**
+New bash function `moira_graph_populate_knowledge()` runs after `moira_graph_build()` during init. Queries Ariadne CLI with `--json` and transforms results via jq:
+- `ariadne query smells` → quality-map Problematic entries (with smell type, file, description)
+- `ariadne query cycles` → quality-map Problematic entries (with cycle members)
+- `ariadne query refactor-opportunities` → quality-map Problematic entries (with Pareto rank, effort/impact)
+- `ariadne query hotspots` → quality-map Problematic entries (churn × complexity, if temporal available)
+- `ariadne query coupling` → quality-map Adequate/Problematic entries (above threshold, if temporal)
+- `ariadne query centrality` → project-model (bottleneck files, structural importance)
+- `ariadne query layers` → project-model (architectural layer map)
+- `ariadne query metrics` → project-model (Martin metrics per cluster: instability, abstractness, distance)
+- `ariadne query boundaries` → enriches boundaries.yaml (structural boundaries supplement scanner-detected ones)
+- `ariadne query overview` → project-model (node/edge/cluster/cycle/smell counts)
+Graceful degradation: if Ariadne binary absent, skip entirely — quality-map starts empty (honest) instead of keyword-guessed (misleading).
+
+**Layer 2 — Ariadne diff at refresh (bash/jq, 0 LLM tokens):**
+New bash function `moira_graph_diff_to_knowledge()` runs after `moira_graph_update()` during refresh:
+- `ariadne query diff` → new smells appended to quality-map as Problematic; resolved smells trigger migration to Strong
+- Existing entries: increment observation count, append evidence (task ID / refresh date)
+- Category migration: 3+ observations of failure → demote (Strong → Adequate → Problematic); smell resolved in diff → promote
+
+**Layer 3 — Hybrid scanners (bash pre-collect + lighter agents):**
+- **Tech scanner:** Bash pre-collects all config files (package.json, tsconfig, CI, Dockerfile, etc.) into a single `raw-configs.md`. Agent receives pre-collected data, interprets without Read calls. Budget: ~50k (was 140k).
+- **Structure scanner:** Ariadne clusters/layers/overview + bash `ls` → `raw-structure.md`. Agent interprets structural map. Budget: ~50k (was 140k).
+- **Convention/Pattern scanners:** Unchanged (need LLM for semantic code reading). Budget: 100k each.
+- **Deep scanners:** Receive Ariadne pre-context file (`ariadne-context.md`) with overview, clusters, cycles, boundaries. Focus budget on semantics (business logic, data flow, API contracts) instead of structure discovery. Graceful fallback: if pre-context file absent, scan as before.
+
+**Quality-map lifecycle fix (in `moira_knowledge_update_quality_map`):**
+- IF FOUND: increment `Observation count`, append evidence, update timestamp (was: NO ACTION)
+- Category migration: 3+ failed findings on Strong → demote to Adequate; 3+ on Adequate → Problematic; 3+ consecutive passes without failures → promote one level
+- Freshness: update `<!-- moira:freshness -->` tag on every modification
+
+**Alternatives rejected:**
+- Pure bash for all scanners — fragile for framework detection (LLM understands "next" in package.json means Next.js; bash needs hardcoded heuristics per framework)
+- Dispatch extra Ariadne-analysis agent — wastes tokens on data transformation that's pure jq
+- Keep keyword matching with expanded word list — fundamental design flaw (objective scanner + subjective keywords = unreliable)
+- Quality-map populated by LLM interpretation of Ariadne JSON — unnecessary; structured data transforms mechanically
+
+**Reasoning:** Ariadne data is structured JSON with stable schema — transforming it to markdown via jq is reliable and costs 0 LLM tokens. This replaces the most fragile part of bootstrap (keyword heuristics) with the most robust data source (static analysis). Token savings: ~220k per init (~46% reduction) from hybrid scanners. Quality-map starts with real structural evidence instead of empty templates. The 3-observation migration threshold reuses the existing Art 5.2 pattern (evidence-based change), maintaining consistency with rule proposal system.
