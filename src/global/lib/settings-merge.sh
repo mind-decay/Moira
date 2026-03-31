@@ -145,6 +145,10 @@ moira_settings_merge_hooks() {
           },
           {
             "type": "command",
+            "command": "bash ~/.claude/moira/hooks/artifact-validate.sh"
+          },
+          {
+            "type": "command",
             "command": "bash ~/.claude/moira/hooks/agent-done.sh"
           }
         ]
@@ -187,6 +191,7 @@ HOOKJSON
      grep -q 'moira/hooks/compact-reinject.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/agent-inject.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/agent-output-validate.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/artifact-validate.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/agent-done.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/graph-update.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/graph-validate.sh' "$settings_file" 2>/dev/null && \
@@ -418,6 +423,10 @@ _moira_settings_merge_fallback() {
           {
             "type": "command",
             "command": "bash ~/.claude/moira/hooks/agent-output-validate.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/artifact-validate.sh"
           },
           {
             "type": "command",

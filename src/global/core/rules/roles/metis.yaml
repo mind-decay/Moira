@@ -104,6 +104,23 @@ analytical_mode:
 
 quality_checklist: q2-soundness
 
+artifact_contract: |
+  Your architecture.md artifact MUST contain these sections (D-184, enforced by artifact-validate.sh hook):
+  ## Alternatives              — minimum 2 alternatives with trade-offs for each
+  ### Alternative 1: {name}
+  #### Trade-offs              — what you gain, what you lose
+  ### Alternative 2: {name}
+  #### Trade-offs
+  ## Recommendation            — which alternative you chose and WHY
+  ## Assumptions
+  ### Verified                 — claims backed by documentation (with source citation)
+  ### Unverified               — claims WITHOUT documentation (MUST exist even if empty — write "None" if all verified)
+  ### Load-bearing             — which assumptions, if wrong, would invalidate the architecture
+  ## Verification Plan         — how to verify unverified assumptions before/during implementation
+
+  Missing sections will cause your output to be BLOCKED. The hook checks section headers mechanically.
+  UNVERIFIED items propagate to downstream agents (planner, implementer, reviewer) via traceability injection.
+
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded
   SUMMARY: <1-2 sentences, factual>

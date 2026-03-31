@@ -381,4 +381,147 @@ else
   fail "agent-output-validate.sh: should skip on re-entry to prevent infinite loop"
 fi
 
+# artifact-validate.sh skips on re-entry (prevent infinite loop)
+if grep -q 'stop_hook_active.*exit 0' "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null; then
+  pass "artifact-validate.sh: correctly skips validation on re-entry"
+else
+  fail "artifact-validate.sh: should skip on re-entry to prevent infinite loop"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Apollo missing sections → block (D-184)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-apollo-miss" "standard")
+task_dir="$state/tasks/test-artifact-apollo-miss"
+mkdir -p "$task_dir"
+
+# Create incomplete classification.md (missing ## Acceptance Criteria)
+cat > "$task_dir/classification.md" << 'CLASSEOF'
+## Problem Statement
+Fix the login bug.
+
+## Scope
+### In Scope
+- Login endpoint
+### Out of Scope
+- Registration
+CLASSEOF
+
+# Run artifact-validate.sh with apollo agent description
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Apollo (classifier) — classify task\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: size=medium, confidence=high\nARTIFACTS: [tasks/test-artifact-apollo-miss/classification.md]\nNEXT: explore\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "artifact-validate: Apollo blocked for missing ## Acceptance Criteria"
+else
+  fail "artifact-validate: Apollo should be blocked for missing ## Acceptance Criteria"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Apollo complete artifact → pass (D-184)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-apollo-ok" "standard")
+task_dir="$state/tasks/test-artifact-apollo-ok"
+mkdir -p "$task_dir"
+
+cat > "$task_dir/classification.md" << 'CLASSEOF'
+## Problem Statement
+Fix the login bug that causes 500 errors.
+
+## Scope
+### In Scope
+- Login endpoint error handling
+### Out of Scope
+- Registration flow
+
+## Acceptance Criteria
+1. Login endpoint returns 200 for valid credentials
+2. Login endpoint returns 401 for invalid credentials
+CLASSEOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Apollo (classifier) — classify task\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: size=medium, confidence=high\nARTIFACTS: [tasks/test-artifact-apollo-ok/classification.md]\nNEXT: explore\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  fail "artifact-validate: Apollo should pass with complete artifact"
+else
+  pass "artifact-validate: Apollo passes with complete artifact"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Metis < 2 alternatives → block (D-184)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-metis-miss" "standard")
+task_dir="$state/tasks/test-artifact-metis-miss"
+mkdir -p "$task_dir"
+
+cat > "$task_dir/architecture.md" << 'ARCHEOF'
+## Alternatives
+### Alternative 1: Service Pattern
+#### Trade-offs
+Clean but more code.
+
+## Recommendation
+Use service pattern.
+
+## Assumptions
+### Verified
+- Express.js supports middleware chaining
+### Unverified
+None
+### Load-bearing
+None
+ARCHEOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Metis (architect) — design solution\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: service pattern\nARTIFACTS: [tasks/test-artifact-metis-miss/architecture.md]\nNEXT: plan\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "artifact-validate: Metis blocked for < 2 alternatives"
+else
+  fail "artifact-validate: Metis should be blocked for < 2 alternatives"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Daedalus conditional UNVERIFIED check (D-184)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-daedalus-unverified" "standard")
+task_dir="$state/tasks/test-artifact-daedalus-unverified"
+mkdir -p "$task_dir"
+
+# Architecture has UNVERIFIED items
+cat > "$task_dir/architecture.md" << 'ARCHEOF'
+## Assumptions
+### Unverified
+- Stripe webhook retry policy — UNVERIFIED
+ARCHEOF
+
+# Plan WITHOUT ## Unverified Dependencies
+cat > "$task_dir/plan.md" << 'PLANEOF'
+## Scope Check
+### Added to scope
+None
+### Removed from scope
+None
+
+## Acceptance Test
+Run integration tests.
+
+## Risks
+- API rate limits — plan B: implement retry backoff
+PLANEOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Daedalus (planner) — create plan\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: plan complete\nARTIFACTS: [tasks/test-artifact-daedalus-unverified/plan.md]\nNEXT: implement\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "artifact-validate: Daedalus blocked for missing ## Unverified Dependencies (architecture has UNVERIFIED)"
+else
+  fail "artifact-validate: Daedalus should be blocked when architecture has UNVERIFIED and plan lacks ## Unverified Dependencies"
+fi
+
 test_summary

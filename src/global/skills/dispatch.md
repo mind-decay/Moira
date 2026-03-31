@@ -119,6 +119,54 @@ The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_in
 
    Token cost: 3-15k tokens per fetched system. For tasks with 0 external system references, this step is a no-op (zero cost).
 
+4g. **Cross-gate traceability injection (D-184):** Inject focused context from previous pipeline gates into the current agent's prompt. This makes cross-gate traceability structural — agents receive scope, acceptance criteria, and UNVERIFIED assumptions from prior steps and MUST address them in their output.
+
+   **Injection map:**
+
+   | Current Agent | Receives From | Sections Extracted |
+   |---------------|---------------|-------------------|
+   | Metis (architect) | classification.md | `## Scope` (full In/Out), `## Acceptance Criteria` (full list) |
+   | Daedalus (planner) | classification.md, architecture.md | `## Scope`, `## Acceptance Criteria`, `## Recommendation`, `## Assumptions` (full, including Unverified + Load-bearing) |
+   | Hephaestus (implementer) | classification.md, architecture.md | `## Acceptance Criteria`, `## Assumptions / ### Unverified` (if any) |
+   | Themis (reviewer) | classification.md, architecture.md | `## Acceptance Criteria`, `## Assumptions / ### Unverified` (full list for audit) |
+
+   **Assembly process:**
+   1. Read the artifact files listed in the injection map for the current agent's role
+   2. Extract the specified sections (grep from `## Section` to next `## ` or EOF)
+   3. Assemble into a `## Traceability Context (system-injected)` block
+   4. Place this block after the Task section and before the Quality Checklist section in the prompt
+
+   **Traceability prompt template:**
+   ```
+   ## Traceability Context (system-injected)
+
+   The following data is from previous pipeline gates. You MUST address these in your output.
+
+   ### Task Scope (from Classification)
+   {extracted ## Scope content — In Scope / Out of Scope}
+
+   ### Acceptance Criteria (from Classification)
+   {extracted ## Acceptance Criteria content}
+
+   {If architecture.md exists and agent is daedalus/hephaestus/themis:}
+   ### Architecture Decision (from Architecture)
+   {extracted ## Recommendation content}
+
+   {If architecture.md contains UNVERIFIED items:}
+   ### Unverified Assumptions (from Architecture)
+   {extracted ## Assumptions / ### Unverified content}
+   {extracted ## Assumptions / ### Load-bearing content}
+
+   ### Your Obligations
+   - Your artifact MUST reference the scope above (Daedalus: ## Scope Check, Metis: stay within scope)
+   - Your artifact MUST address acceptance criteria (Daedalus: ## Acceptance Test, Themis: verify each)
+   - If UNVERIFIED items listed: you MUST address each one (verify, mitigate, or justify proceeding)
+   ```
+
+   **Skip conditions:** If the required artifact files don't exist yet (e.g., classification.md not yet written when dispatching Apollo), skip this step. This is a no-op for Apollo, Hermes, and Athena (they run before any gates produce output).
+
+   **Dual injection path:** For pre-planning agents (Metis, Daedalus), traceability is injected via simplified assembly (step 4g). For post-planning agents (Hephaestus, Themis, Aletheia), Daedalus includes the relevant traceability data in pre-assembled instruction files. The `agent-inject.sh` hook provides a lightweight backup injection for UNVERIFIED items only (see hook design in D-184).
+
 5. **Quality checklist injection:** Check if this agent has a quality gate assignment (per Agent-to-Gate Mapping table in this document). If yes:
    - Read quality checklist from `~/.claude/moira/core/rules/quality/q{N}-*.yaml`
    - Append Quality Checklist section to prompt (using Checklist Prompt Appendix template from this document)
@@ -275,9 +323,10 @@ If the response does not contain a valid `STATUS:` line:
 1. Record agent completion:
    - Write the equivalent of `moira_state_agent_done()` updates to `current.yaml` and `status.yaml` (see `lib/state.sh` for field logic) (see orchestrator.md Section 4 — When to Write State table for field logic)
 1b. Post-agent guard check (D-099, D-116): If agent role is implementer, explorer, or calliope, run guard verification against protected paths (see orchestrator.md Section 2, step d1). If violation → present Guard Violation Gate (per `gates.md`) before any approval gate.
+1c. **Artifact contract validation (D-184):** Performed by `artifact-validate.sh` hook at SubagentStop — validates that the agent's artifact contains required sections per role. If sections are missing, the hook blocks the agent with specific feedback. By the time the orchestrator processes the response, artifact contracts are guaranteed to be satisfied. See orchestrator.md Section 2, step d2.
 2. If a gate follows this step (per pipeline definition):
    - Set `gate_pending` in `current.yaml`
-   - Present gate (per `gates.md`)
+   - Present gate (per `gates.md`) — gate content is extracted from artifact required sections
 3. If no gate follows:
    - Advance to next step
 

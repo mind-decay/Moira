@@ -47,6 +47,16 @@ NEXT: explore+analyze
 
 Note: Classifier does NOT return `pipeline=` — pipeline selection is the orchestrator's responsibility (Art 2.1, D-062).
 
+**Artifact output contract (D-184):** Classification artifact (`classification.md`) MUST contain these sections:
+```
+## Problem Statement       — task restated in agent's own words (not copy-paste from user input)
+## Scope
+### In Scope               — explicit list of what this task covers
+### Out of Scope            — explicit list of what is excluded
+## Acceptance Criteria      — mechanical, testable conditions for "done" (not subjective quality)
+```
+Validated by `artifact-validate.sh` hook — missing sections block agent completion. These sections propagate through the pipeline via cross-gate traceability injection: Metis and Daedalus receive scope + criteria as system-injected context; final gate checks acceptance results against these criteria.
+
 **Rules:**
 - Classification is a pure function of task analysis (Art 2.1)
 - Does NOT read project source code
@@ -143,6 +153,22 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 **Analytical pipeline mode (D-126):** In the Analytical Pipeline, Metis role rules include an `analytical_mode` section with CS method templates (CS-3 hypothesis-driven, CS-4 abductive reasoning, CS-5 information gain). Activated by orchestrator when pipeline=analytical.
 
+**Artifact output contract (D-184):** Architecture artifact (`architecture.md`) MUST contain these sections:
+```
+## Alternatives              — minimum 2, for ALL pipelines (not just Full)
+### Alternative 1: {name}
+#### Trade-offs              — what you gain, what you lose
+### Alternative 2: {name}
+#### Trade-offs
+## Recommendation            — which alternative chosen and WHY
+## Assumptions
+### Verified                 — claims backed by documentation (with source)
+### Unverified               — claims without documentation (MUST exist even if empty)
+### Load-bearing             — which assumptions, if wrong, would invalidate the architecture
+## Verification Plan         — how to verify unverified assumptions
+```
+Validated by `artifact-validate.sh` hook — missing sections block agent completion. Structural checks: `## Alternatives` must contain ≥2 `### Alternative` subsections. `## Assumptions` must contain `### Unverified` subsection (even if empty — explicit "nothing unverified"). Cross-gate: receives classification scope + acceptance criteria via traceability injection; UNVERIFIED items propagate downstream to Daedalus, Hephaestus, Themis, and final gate.
+
 **Rules:**
 - Every decision must have: CONTEXT, DECISION, ALTERNATIVES REJECTED, REASONING
 - Does NOT write implementation code
@@ -180,6 +206,17 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 
 **Input:** Architecture decision
 **Output:** Step-by-step plan with files, batches, dependencies, budget estimates
+
+**Artifact output contract (D-184):** Plan artifact (`plan.md`) MUST contain these sections:
+```
+## Scope Check               — comparison with classification scope
+### Added to scope           — what expanded beyond classification (with justification)
+### Removed from scope       — what was dropped (with justification)
+## Acceptance Test            — concrete test derived from classification acceptance criteria
+## Risks                      — blocking risks with plan B for each
+## Unverified Dependencies    — CONDITIONAL: required when architecture has UNVERIFIED items
+```
+Validated by `artifact-validate.sh` hook — missing sections block agent completion. `## Unverified Dependencies` is conditionally required: hook checks architecture artifact for "UNVERIFIED" string; if found, this section must exist and address each UNVERIFIED item (verification step in plan, or risk acceptance justification). Cross-gate: receives classification scope + criteria + architecture recommendation + assumptions via traceability injection.
 
 **Rules:**
 - Does NOT make architectural decisions, only decomposes
@@ -269,6 +306,7 @@ Note: Classifier does NOT return `pipeline=` — pipeline selection is the orche
 - Checks conformance with project quality-map
 - Reviews architecture epistemic integrity — verifies factual premises about external systems are verified or marked UNVERIFIED (D-171)
 - Evaluates Q4-E01 through Q4-E05 epistemic integrity checklist items
+- **UNVERIFIED audit (D-184):** Receives full UNVERIFIED list via traceability injection. For each UNVERIFIED assumption: checks if implementation verified it (Context7/WebFetch evidence or code comment `// UNVERIFIED: {assumption}`). Reports unresolved UNVERIFIED items as WARNING findings.
 - Verifies MCP calls were used correctly
 - False positive awareness: if unsure, mark as WARNING not CRITICAL
 

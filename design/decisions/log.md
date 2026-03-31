@@ -1830,3 +1830,37 @@ Gate recording stays manual — no hookable event for user gate decisions. Open 
 - Removing orchestrator boundaries from CLAUDE.md entirely — would weaken orchestrator enforcement
 - Separate CLAUDE.md for subagents — Claude Code doesn't support per-agent CLAUDE.md
 **Reasoning:** Three-layer defense: (1) hook-level `agent_id` bypass is structural and deterministic, (2) `agent-inject.sh` role clarification reinforces at prompt level, (3) CLAUDE.md scope marker provides guidance if agent reads it. The hook layer is the primary enforcement; prompt layers are defense-in-depth.
+
+## D-184: Gate Output Contracts with Mechanical Enforcement
+
+**Date:** 2026-03-31
+**Status:** Accepted
+**Context:** Gates are passive summaries — agent does work, gate shows "Summary + Key points + Impact", user approves. This creates three problems: (1) agents optimize for "pass pipeline" not "solve problem well" — minimum viable output that fills the template, (2) users can't make informed decisions because gates don't present alternatives, trade-offs, or uncertainty, (3) no cross-gate traceability — scope defined at classification is never mechanically checked at plan or final, allowing silent scope drift. Additionally, epistemic enforcement (D-165, D-172) only covers architecture gate — fabrication at plan or implementation steps goes undetected until review.
+**Decision:** Three-layer enforcement system:
+
+**Layer 1 — Output contracts (per-role required artifact sections):**
+- Apollo: `## Problem Statement`, `## Scope` (In/Out), `## Acceptance Criteria` (mechanical, testable)
+- Metis: `## Alternatives` (min 2 with trade-offs, for ALL pipelines not just Full), `## Recommendation` (with reasoning), `## Assumptions` (Verified/Unverified/Load-bearing subsections), `## Verification Plan`
+- Daedalus: `## Scope Check` (vs classification — Added/Removed with justification), `## Acceptance Test` (from classification criteria), `## Risks` (blocking risks with plan B), `## Unverified Dependencies` (conditional — required when architecture has UNVERIFIED items)
+- Final gate (orchestrator-assembled): `## Acceptance Results` (per-criterion pass/fail + evidence), `## Scope Delivery` (delivered vs deferred), `## Deferred Items` (each justified), `## Epistemic Status` (UNVERIFIED resolution chain)
+
+**Layer 2 — Mechanical validation hook (`artifact-validate.sh`, SubagentStop):**
+- Parses role from agent description, reads artifact file from ARTIFACTS line
+- Per-role lookup table of required section headers
+- `grep` for `^## Section Name` — mechanical, not LLM judgment
+- Missing sections → `decision: "block"` with specific feedback listing missing sections
+- Structural checks: `## Alternatives` must contain ≥2 `### Alternative` subsections; `## Assumptions` must contain `### Unverified` (even if empty — explicit "nothing unverified")
+- Conditional checks: `## Unverified Dependencies` required in Daedalus artifact only when Metis artifact contains "UNVERIFIED"
+
+**Layer 3 — Cross-gate context injection (extends `agent-inject.sh`):**
+- At SubagentStart, hook reads previous gate artifacts and injects focused traceability context as `additionalContext`
+- Injection map: Metis receives classification scope + acceptance criteria; Daedalus receives classification scope + criteria + architecture recommendation + assumptions; Hephaestus receives acceptance criteria + UNVERIFIED list; Themis receives acceptance criteria + full UNVERIFIED list for verification audit
+- Injected as `## TRACEABILITY CONTEXT (system-injected)` — targeted extraction of key fields, not full artifact dump
+- UNVERIFIED claims propagate through entire pipeline: architecture → plan (must address each) → implementation (must verify or mark) → review (must audit) → final gate (resolution status)
+
+**Alternatives rejected:**
+- Prompt-only enforcement (tell agents to write better artifacts) — proven insufficient (D-175: prompts don't guarantee compliance)
+- LLM-based validation (dispatch reviewer to check artifact quality) — expensive, unreliable, adds latency
+- Template-filling approach (agents fill structured YAML) — too rigid, inhibits natural reasoning; section headers are the right granularity
+- Epistemic enforcement only at architecture gate — leaves plan/implementation/final unprotected against fabrication
+**Reasoning:** Required sections are the minimum granularity that forces real thinking without being so rigid that agents game the template. Grep-based validation is zero-cost and deterministic. Context injection makes traceability structural — agents can't ignore scope/criteria when they're injected into their context. The UNVERIFIED propagation chain extends D-165/D-172 epistemic enforcement from architecture-only to full pipeline coverage. Each layer reinforces the others: contracts define what's needed, hooks enforce it exists, injection ensures agents have the data to fill it honestly.

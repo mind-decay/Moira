@@ -8,31 +8,36 @@ This skill defines how the orchestrator presents approval gates and error gates 
 
 ## Standard Gate Template
 
-Every gate follows this template structure:
+Every gate follows this template structure. Gate content is **extracted from agent artifact required sections** (D-184), not summarized by the orchestrator. This ensures gates present the agent's actual reasoning, not a lossy summary.
 
 ```
 ═══════════════════════════════════════════
  GATE: {Gate Name}
 ═══════════════════════════════════════════
 
- Summary:
- {1-3 sentences from agent artifact}
-
- Key points:
- • {bullet 1}
- • {bullet 2}
- • {bullet 3}
+ {GATE-SPECIFIC CONTENT — extracted from artifact required sections, per gate type below}
 
  Impact: {files affected, estimated budget usage}
 
  Details:
  → {path to full artifact file}
 
+ {TRACEABILITY — cross-references to previous gates, if applicable}
+
+ {EPISTEMIC STATUS — UNVERIFIED items, if applicable}
+
  {HEALTH REPORT}
 
  {OPTIONS}
 ═══════════════════════════════════════════
 ```
+
+**Gate content rules (D-184):**
+- Gate-specific content is extracted directly from the agent artifact's required sections — the orchestrator reads the section text and presents it, does not re-summarize
+- Each gate type below specifies which artifact sections map to which gate display sections
+- If a required section is missing from the artifact, `artifact-validate.sh` would have already blocked the agent — the orchestrator should never encounter missing sections at gate presentation time
+- Traceability section appears when cross-gate references exist (plan gate references classification scope, final gate references acceptance criteria)
+- Epistemic status section appears when UNVERIFIED items exist in the pipeline
 
 ---
 
@@ -96,19 +101,41 @@ Note: These are per-agent thresholds, distinct from the orchestrator context thr
 
 After Apollo (classifier) completes.
 
-**Summary source:** classification artifact — size, confidence, pipeline type, reasoning.
+**Artifact sections displayed (D-184):** Content extracted from `classification.md` required sections.
 
-**Display specifics:**
-- Show: task size, confidence level, recommended pipeline type
-- Show: classifier's reasoning for the classification
-- If user provided size hint and classifier disagrees: highlight the override with reasoning
+**Template:**
+```
+═══════════════════════════════════════════
+ GATE: Classification
+═══════════════════════════════════════════
 
-**Options:**
+ Problem Statement:
+ {extracted from ## Problem Statement — agent's own words, not user copy-paste}
+
+ Classification: {size} | Confidence: {confidence} | Pipeline: {pipeline_type}
+ {If user hint disagrees: "⚠ User suggested {hint}, classifier chose {size}: {reasoning}"}
+
+ Scope:
+ ├─ In:  {extracted from ## Scope / ### In Scope}
+ └─ Out: {extracted from ## Scope / ### Out of Scope}
+
+ Acceptance Criteria:
+ {extracted from ## Acceptance Criteria — numbered list of testable conditions}
+
+ Impact: {estimated pipeline budget usage}
+
+ Details:
+ → {path to classification.md}
+
+ {HEALTH REPORT}
+
+ 1) proceed — Classification correct, continue with {pipeline_type} Pipeline
+ 2) modify  — Provide different classification (size: small/medium/large/epic)
+ 3) abort   — Cancel task
+═══════════════════════════════════════════
 ```
-1) proceed — Classification correct, continue with {pipeline_type} Pipeline
-2) modify  — Provide different classification (size: small/medium/large/epic)
-3) abort   — Cancel task
-```
+
+**Why this matters:** Scope and acceptance criteria defined here propagate to all subsequent gates. Architecture must stay within scope. Plan is checked against scope. Final gate tests acceptance criteria. Getting these wrong here means the entire pipeline optimizes for the wrong target.
 
 **Gate state:** Record gate: write equivalent of `moira_state_gate("classification_gate", decision)` to `current.yaml` and `status.yaml`
 
@@ -118,17 +145,64 @@ After Apollo (classifier) completes.
 
 After Metis (architect) completes.
 
-**Summary source:** architecture artifact — decision summary, alternatives rejected, impact.
+**Artifact sections displayed (D-184):** Content extracted from `architecture.md` required sections. All pipelines now show alternatives — not just Full Pipeline.
 
-**Display specifics:**
-- Show: primary architecture decision with brief reasoning
-- Show: alternatives considered and why rejected
-- Show: impact on files and components
-- For Full Pipeline: present alternatives as choices (user CHOOSES, not just approves)
+**Template (Standard/Decomposition Pipeline):**
+```
+═══════════════════════════════════════════
+ GATE: Architecture
+═══════════════════════════════════════════
 
-**Note:** The Decomposition Pipeline architecture gate uses the proceed/details/modify/abort option set (same as the Standard Pipeline variant above), not the alternatives-selection variant used by the Full Pipeline.
+ Recommendation: {extracted from ## Recommendation — chosen approach + reasoning}
 
-**Epistemic flags (D-172):** If epistemic checks (orchestrator.md step e3) produced any flags, include an EPISTEMIC FLAGS section in the gate display. This section appears after the "Details" line and before the Health Report.
+ Alternatives considered:
+ ┌─ {Alt 1 name}: {brief description}
+ │  Trade-offs: {extracted from ### Alternative 1 / #### Trade-offs}
+ ├─ {Alt 2 name}: {brief description}
+ │  Trade-offs: {extracted from ### Alternative 2 / #### Trade-offs}
+ └─ {if more alternatives exist, list them}
+
+ Assumptions:
+ ✅ Verified: {count} ({extracted from ### Verified — summarized})
+ ⚠  Unverified: {count}
+ {per unverified item:}
+    • {assumption} {if load-bearing: "⚡ LOAD-BEARING: {consequence if wrong}"}
+ Verification plan: {extracted from ## Verification Plan — summarized}
+
+ Impact: {files affected, estimated budget usage}
+
+ Details:
+ → {path to architecture.md}
+
+ ─── Traceability ────
+ Classification scope: {In Scope summary from classification gate}
+ Acceptance criteria: {criteria list from classification gate}
+
+ {EPISTEMIC FLAGS — if any, from orchestrator e3 checks}
+
+ {HEALTH REPORT}
+
+ 1) proceed — Architecture approved, continue
+ 2) details — Show full architecture reasoning
+ 3) modify  — Provide feedback for revision
+ 4) abort   — Cancel task
+═══════════════════════════════════════════
+```
+
+**Template (Full Pipeline — user chooses):**
+Same structure as above, but options present alternatives as choices:
+```
+ 1) {Alternative 1 name}: {brief description + key trade-off}
+ 2) {Alternative 2 name}: {brief description + key trade-off}
+ 3) {Alternative 3 name}: {brief description + key trade-off}
+ 4) details — Show full reasoning for all alternatives
+ 5) modify  — Provide feedback, request different approaches
+ 6) abort   — Cancel task
+```
+
+When a user selects an alternative by number, record gate decision as `proceed` with the selected alternative number noted in the `note` field (e.g., `note: 'Selected alternative 2'`).
+
+**Epistemic flags (D-172):** If epistemic checks (orchestrator.md step e3) produced any flags, include an EPISTEMIC FLAGS section in the gate display. This section appears after the Traceability section and before the Health Report.
 
 ```
 ─── Epistemic Flags ────
@@ -145,26 +219,6 @@ Rules:
 - Maximum 5 flags displayed; if more, show count and direct user to artifact: "... and {N} more — see {artifact_path}"
 - Effectiveness simulation results (D-170) shown as 📊 lines
 
-**Options (Standard Pipeline):**
-```
-1) proceed — Architecture approved, continue
-2) details — Show full architecture reasoning
-3) modify  — Provide feedback for revision
-4) abort   — Cancel task
-```
-
-**Options (Full Pipeline — user chooses architecture):**
-```
-1) {Alternative 1 name}: {brief description}
-2) {Alternative 2 name}: {brief description}
-3) {Alternative 3 name}: {brief description}
-4) details — Show full reasoning for all alternatives
-5) modify  — Provide feedback, request different approaches
-6) abort   — Cancel task
-```
-
-When a user selects an alternative by number, record gate decision as `proceed` with the selected alternative number noted in the `note` field (e.g., `note: 'Selected alternative 2'`).
-
 **Gate state:** Record gate: write equivalent of `moira_state_gate("architecture_gate", decision)` to `current.yaml` and `status.yaml`
 
 ---
@@ -173,39 +227,58 @@ When a user selects an alternative by number, record gate decision as `proceed` 
 
 After Daedalus (planner) completes.
 
-**Summary source:** plan artifact — step count, batch count, estimated budget, file list.
+**Artifact sections displayed (D-184):** Content extracted from `plan.md` required sections.
 
-**Display specifics:**
-- Show: number of implementation steps/batches
-- Show: estimated total budget usage (from plan artifact budget estimates section)
-- Show: budget risk — number of steps near 70% limit (from plan artifact)
-- Show: files to be created/modified
-- Show: dependency graph summary (if batched)
-
-**Budget preview** (from Daedalus plan artifact):
+**Template:**
 ```
- Estimated total budget: ~{N}k tokens
+═══════════════════════════════════════════
+ GATE: Plan
+═══════════════════════════════════════════
+
+ Plan: {step count} steps in {batch count} batches
+ Files: {file count} ({new count} new, {modified count} modified)
+
+ Scope Check (vs Classification):
+ {extracted from ## Scope Check}
+ {if ### Added to scope is non-empty:}
+    ⚠ Added: {items with justification}
+ {if ### Removed from scope is non-empty:}
+    ⚠ Removed: {items with justification}
+ {if both empty:}
+    ✅ Scope unchanged from classification
+
+ Acceptance Test:
+ {extracted from ## Acceptance Test — how acceptance criteria will be verified}
+
+ Risks:
+ {extracted from ## Risks — each risk with plan B}
+
+ Budget:
+ Estimated total: ~{N}k tokens
  Budget risk: {none | N steps near limit}
+
+ Details:
+ → {path to plan.md}
+
+ ─── Traceability ────
+ Classification scope: {In Scope summary}
+ Architecture: {recommendation summary}
+
+ {UNVERIFIED DEPENDENCIES — if ## Unverified Dependencies section exists in plan:}
+ ─── Unverified Dependencies ────
+ {per item: assumption, impact on plan, mitigation}
+
+ {HEALTH REPORT}
+
+ 1) proceed      — Plan approved, continue to implementation
+ 2) details      — Show full plan details
+ 3) modify       — Provide feedback for revision
+ 4) rearchitect  — Return to architecture gate (when feedback implies different technical approach)
+ 5) abort        — Cancel task
+═══════════════════════════════════════════
 ```
 
-**Inherited epistemic flags (D-172):** If the architecture gate had UNVERIFIED claims that the user chose to proceed with, display a reminder:
-
-```
-─── Epistemic Reminder ────
-This plan is based on an architecture with {N} UNVERIFIED claims about external systems.
-See architecture artifact for details: → {architecture_artifact_path}
-```
-
-Only display if N > 0. This is informational — no behavioral change to plan gate options.
-
-**Options:**
-```
-1) proceed      — Plan approved, continue to implementation
-2) details      — Show full plan details
-3) modify       — Provide feedback for revision
-4) rearchitect  — Return to architecture gate (when feedback implies different technical approach)
-5) abort        — Cancel task
-```
+**Why this matters:** The scope check makes scope drift visible — if the plan covers more or less than classification promised, the user sees it explicitly. The acceptance test shows HOW criteria will be verified, not just WHAT they are. Unverified dependencies surface epistemic risk before implementation begins.
 
 **Option handling:**
 - `rearchitect` — Re-enter pipeline at architecture step. Preserves Explorer and Analyst data. Metis (architect) receives original exploration/analysis data plus user's architectural feedback.
@@ -413,23 +486,52 @@ After pipeline completion (after review/testing in Quick/Standard, after integra
 
 **IMPORTANT (D-037):** The final gate is recorded as `proceed` via `moira_state_gate()`. Completion actions (done/tweak/redo/diff/test) are NOT gate decisions — they trigger separate orchestrator flows after the gate is recorded.
 
-**Summary source:** completion summary from all pipeline artifacts.
+**Assembly (D-184):** The orchestrator assembles the final gate content mechanically from pipeline artifacts — no agent dispatch needed. It reads classification.md (scope, acceptance criteria), review.md (findings), test results, and implementation artifacts to build the display.
 
-**Display specifics:**
-- Show: what was accomplished (1-3 sentences)
-- Show: files created/modified
-- Show: review findings summary (if any)
-- Show: test results summary (if tests were run)
-- Show: full budget report
+**Template:**
+```
+═══════════════════════════════════════════
+ GATE: Final Review
+═══════════════════════════════════════════
 
-**Options:**
+ Completed: {1-3 sentences — what was built/changed}
+ Files: {list of created/modified files}
+
+ Acceptance Results:
+ {per criterion from classification ## Acceptance Criteria:}
+    {✅|❌} {criterion text} — {evidence: test name, file path, or "not tested"}
+
+ Scope Delivery:
+ {comparison of classification ## Scope / ### In Scope vs what was actually delivered}
+ ├─ Delivered: {items completed}
+ {if any deferred:}
+ └─ Deferred: {count} items (see below)
+
+ {if deferred items exist:}
+ Deferred Items:
+ {per item: what was deferred + justification}
+
+ Review: {findings summary — N critical, N warning, N suggestion}
+ Tests: {test results summary — N passed, N failed, N skipped}
+
+ {if UNVERIFIED items existed in pipeline:}
+ ─── Epistemic Status ────
+ {per UNVERIFIED item from architecture:}
+    {✅ VERIFIED|⚠ UNVERIFIED|🛡 MITIGATED}: {assumption} — {resolution detail}
+
+ {BUDGET REPORT}
+
+ {HEALTH REPORT}
+
+ 1) done  — Accept all changes
+ 2) tweak — Targeted modification (describe what to change)
+ 3) redo  — Full rollback (choose re-entry point: architecture/plan/implement)
+ 4) diff  — Show full git diff
+ 5) test  — Run full test suite
+═══════════════════════════════════════════
 ```
-1) done  — Accept all changes
-2) tweak — Targeted modification (describe what to change)
-3) redo  — Full rollback (choose re-entry point: architecture/plan/implement)
-4) diff  — Show full git diff
-5) test  — Run full test suite
-```
+
+**Why this matters:** The user sees exactly which acceptance criteria passed/failed, what scope was delivered vs deferred, and whether UNVERIFIED assumptions were resolved. This replaces "what was accomplished" summaries that hide gaps.
 
 **Completion action flows:**
 - `tweak` triggers the tweak pipeline (orchestrator Section 7)

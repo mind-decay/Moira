@@ -185,6 +185,47 @@ for agent in "${AGENTS[@]}"; do
   done
 done
 
+# ── Artifact output contracts (D-184) ──────────────────────────────
+CONTRACT_AGENTS="apollo metis daedalus"
+for agent in $CONTRACT_AGENTS; do
+  role_file="$SRC_ROLES/${agent}.yaml"
+  if [[ ! -f "$role_file" ]]; then
+    role_file="$ROLES_DIR/${agent}.yaml"
+  fi
+  if [[ -f "$role_file" ]]; then
+    if grep -q "^artifact_contract:" "$role_file" 2>/dev/null; then
+      pass "D-184: ${agent} has artifact_contract field"
+    else
+      fail "D-184: ${agent} missing artifact_contract field"
+    fi
+  fi
+done
+
+# Apollo contract must mention Problem Statement, Scope, Acceptance Criteria
+apollo_role="$SRC_ROLES/apollo.yaml"
+[[ ! -f "$apollo_role" ]] && apollo_role="$ROLES_DIR/apollo.yaml"
+if [[ -f "$apollo_role" ]]; then
+  assert_file_contains "$apollo_role" "Problem Statement" "D-184: apollo artifact_contract mentions Problem Statement"
+  assert_file_contains "$apollo_role" "Acceptance Criteria" "D-184: apollo artifact_contract mentions Acceptance Criteria"
+fi
+
+# Metis contract must mention Alternatives, Assumptions, Unverified
+metis_role="$SRC_ROLES/metis.yaml"
+[[ ! -f "$metis_role" ]] && metis_role="$ROLES_DIR/metis.yaml"
+if [[ -f "$metis_role" ]]; then
+  assert_file_contains "$metis_role" "Alternatives" "D-184: metis artifact_contract mentions Alternatives"
+  assert_file_contains "$metis_role" "Unverified" "D-184: metis artifact_contract mentions Unverified"
+fi
+
+# Daedalus contract must mention Scope Check, Acceptance Test, Risks
+daedalus_role="$SRC_ROLES/daedalus.yaml"
+[[ ! -f "$daedalus_role" ]] && daedalus_role="$ROLES_DIR/daedalus.yaml"
+if [[ -f "$daedalus_role" ]]; then
+  assert_file_contains "$daedalus_role" "Scope Check" "D-184: daedalus artifact_contract mentions Scope Check"
+  assert_file_contains "$daedalus_role" "Acceptance Test" "D-184: daedalus artifact_contract mentions Acceptance Test"
+  assert_file_contains "$daedalus_role" "Unverified Dependencies" "D-184: daedalus artifact_contract mentions Unverified Dependencies"
+fi
+
 # ── Quality checklists ──────────────────────────────────────────────
 quality_files=(q1-completeness q2-soundness q3-feasibility q4-correctness q5-coverage)
 for qfile in "${quality_files[@]}"; do

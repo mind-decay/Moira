@@ -126,6 +126,7 @@ COMPLIANCE_HOOKS=(
   "compact-reinject.sh"
   "agent-inject.sh"
   "agent-output-validate.sh"
+  "artifact-validate.sh"
   "agent-done.sh"
   "session-cleanup.sh"
   "task-submit.sh"
@@ -166,8 +167,17 @@ assert_file_contains "$MOIRA_HOME/hooks/guard.sh" "agent_id" "guard.sh: checks a
 assert_file_contains "$MOIRA_HOME/hooks/agent-inject.sh" "RESPONSE CONTRACT" "agent-inject.sh: injects response contract"
 assert_file_contains "$MOIRA_HOME/hooks/agent-inject.sh" "INVIOLABLE RULES" "agent-inject.sh: injects rules"
 assert_file_contains "$MOIRA_HOME/hooks/agent-inject.sh" "AGENT ROLE" "agent-inject.sh: injects agent role clarification"
+assert_file_contains "$MOIRA_HOME/hooks/agent-inject.sh" "TRACEABILITY" "agent-inject.sh: injects cross-gate traceability (D-184)"
+assert_file_contains "$MOIRA_HOME/hooks/agent-inject.sh" "UNVERIFIED" "agent-inject.sh: propagates UNVERIFIED assumptions (D-184)"
 
 assert_file_contains "$MOIRA_HOME/hooks/agent-output-validate.sh" "STATUS:" "agent-output-validate.sh: validates STATUS line"
+
+# Artifact validation hook (D-184)
+assert_file_contains "$MOIRA_HOME/hooks/artifact-validate.sh" "ARTIFACT CONTRACT VIOLATION" "artifact-validate.sh: reports contract violations"
+assert_file_contains "$MOIRA_HOME/hooks/artifact-validate.sh" "Problem Statement" "artifact-validate.sh: checks Apollo sections"
+assert_file_contains "$MOIRA_HOME/hooks/artifact-validate.sh" "Alternatives" "artifact-validate.sh: checks Metis sections"
+assert_file_contains "$MOIRA_HOME/hooks/artifact-validate.sh" "Scope Check" "artifact-validate.sh: checks Daedalus sections"
+assert_file_contains "$MOIRA_HOME/hooks/artifact-validate.sh" "UNVERIFIED" "artifact-validate.sh: conditional check for UNVERIFIED"
 
 assert_file_contains "$MOIRA_HOME/hooks/compact-reinject.sh" "CONTEXT RECOVERY" "compact-reinject.sh: injects context recovery"
 
@@ -203,6 +213,7 @@ ALL_HOOKS=(
   "compact-reinject.sh"
   "agent-inject.sh"
   "agent-output-validate.sh"
+  "artifact-validate.sh"
   "agent-done.sh"
   "session-cleanup.sh"
   "task-submit.sh"
@@ -231,6 +242,7 @@ if [[ -f "$SRC_DIR/global/lib/settings-merge.sh" ]]; then
   assert_file_contains "$SRC_DIR/global/lib/settings-merge.sh" "SessionStart" "settings-merge.sh: registers SessionStart hooks"
   assert_file_contains "$SRC_DIR/global/lib/settings-merge.sh" "SubagentStart" "settings-merge.sh: registers SubagentStart hooks"
   assert_file_contains "$SRC_DIR/global/lib/settings-merge.sh" "SubagentStop" "settings-merge.sh: registers SubagentStop hooks"
+  assert_file_contains "$SRC_DIR/global/lib/settings-merge.sh" "artifact-validate.sh" "settings-merge.sh: registers artifact-validate.sh hook (D-184)"
 fi
 
 test_summary

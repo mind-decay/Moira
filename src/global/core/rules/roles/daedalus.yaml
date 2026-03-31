@@ -68,6 +68,19 @@ knowledge_access:
 
 quality_checklist: q3-feasibility
 
+artifact_contract: |
+  Your plan.md artifact MUST contain these sections (D-184, enforced by artifact-validate.sh hook):
+  ## Scope Check               — comparison with classification scope (from traceability context)
+  ### Added to scope           — what expanded beyond classification (with justification). Write "None" if unchanged.
+  ### Removed from scope       — what was dropped (with justification). Write "None" if unchanged.
+  ## Acceptance Test            — concrete test derived from classification acceptance criteria
+  ## Risks                      — blocking risks with plan B for each
+  ## Unverified Dependencies    — CONDITIONAL: required when architecture has UNVERIFIED items.
+                                  Address each UNVERIFIED item: add verification step to plan, or justify risk acceptance.
+
+  Missing sections will cause your output to be BLOCKED. The hook checks section headers mechanically.
+  ## Unverified Dependencies is only required when the architecture artifact contains UNVERIFIED claims.
+
 output_structure: |
   Your plan.md artifact MUST include these sections:
   1. Step-by-step execution plan with files, dependencies, and budget per step

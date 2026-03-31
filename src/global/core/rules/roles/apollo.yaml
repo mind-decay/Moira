@@ -77,6 +77,17 @@ analytical_signals:
     6. If NEITHER → mode=implementation (default), determine size as before
     7. For analytical mode: subtype is determined by the strongest matching keyword. "review" in isolation is analytical, but "review my PR" with implementation context may be ambiguous — weigh signals in context.
 
+artifact_contract: |
+  Your classification.md artifact MUST contain these sections (D-184, enforced by artifact-validate.sh hook):
+  ## Problem Statement         — restate the task in YOUR OWN WORDS (do not copy-paste user input)
+  ## Scope
+  ### In Scope                 — explicit list of what this task covers
+  ### Out of Scope             — explicit list of what is excluded
+  ## Acceptance Criteria        — mechanical, testable conditions for "done" (not subjective quality statements)
+
+  Missing sections will cause your output to be BLOCKED. These sections propagate through the entire pipeline:
+  scope is checked at plan gate and final gate; acceptance criteria are tested at final gate.
+
 quality_checklist: null
 
 # NOTE: SUMMARY/ARTIFACTS intentionally diverge from canonical response-contract.yaml per role-specific design (D-145)

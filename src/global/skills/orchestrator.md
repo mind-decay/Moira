@@ -330,7 +330,18 @@ Before entering the main loop:
           - `.claude/moira/state/queue.yaml`
           - All project source files
        3. If violation found → log to `state/violations.log` (format: `timestamp AGENT_VIOLATION agent_role file_path`), then present Guard Violation Gate (per `gates.md`)
-       4. If clean → proceed to step (e)
+       4. If clean → proceed to step (d2)
+   d2. **Artifact contract validation (D-184):** Performed automatically by `artifact-validate.sh` hook at SubagentStop (fires before orchestrator processes the response). The hook:
+       1. Parses agent role from the agent description
+       2. Reads the artifact file path from the `ARTIFACTS:` line in agent output
+       3. Checks for required sections per role (lookup table):
+          - Apollo: `## Problem Statement`, `## Scope`, `## Acceptance Criteria`
+          - Metis: `## Alternatives` (with ≥2 `### Alternative` subsections), `## Recommendation`, `## Assumptions` (with `### Unverified` subsection)
+          - Daedalus: `## Scope Check`, `## Acceptance Test`, `## Risks`, conditionally `## Unverified Dependencies` (required when architecture artifact contains "UNVERIFIED")
+       4. If missing → hook returns `decision: "block"` with specific feedback listing missing sections. Agent retries and adds them.
+       5. If all sections present → hook exits cleanly, orchestrator proceeds to step (e)
+       
+       By the time the orchestrator processes the agent response, artifact contracts are guaranteed satisfied. The orchestrator can safely extract section content for gate display.
    e. Check STATUS:
       - `success` → read SUMMARY, record completion, check quality gate then approval gate
       - `failure` → trigger E6 recovery (per `errors.md`)
