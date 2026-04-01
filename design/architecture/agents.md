@@ -98,6 +98,19 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
 
 **Q1 Gap Analysis (D-189):** In Standard and Full pipelines, Hermes includes a `## Gap Analysis` section in exploration.md covering the Q1 completeness checklist: happy path coverage, error cases, edge cases, input validation, output format, performance expectations, security implications, backwards compatibility. This is fact-reporting ("this edge case has no handler"), not requirements proposal. When gap analysis reveals requirements ambiguity that Hermes cannot resolve from code inspection, Hermes reports STATUS: blocked with specific questions — or the user can dispatch Athena via plan gate `analyze` option.
 
+**Artifact output contract (D-197):** Exploration artifact (`exploration.md`) MUST contain these sections:
+```
+## Relevant Files            — files examined with brief purpose of each
+## Key Findings              — factual observations about the codebase
+## Gap Analysis              — Q1 completeness gaps (D-189, Standard/Full only)
+```
+Quick pipeline variant (`context.md`) MUST contain:
+```
+## Context Summary           — brief overview of relevant code area
+## Key Files                 — files relevant to the task
+```
+Validated by `artifact-validate.sh` hook — missing sections block agent completion.
+
 **Rules:**
 - Reports FACTS, not opinions or recommendations
 - Does not propose solutions
@@ -135,6 +148,14 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
 - Hermes STATUS: blocked on requirements — when exploration reveals ambiguity that Hermes cannot resolve from code inspection
 - Decomposition pipeline — Athena remains default for epic-level requirement breakdown
 This saves ~56k tokens per pipeline run while preserving the ability to use Athena when needed.
+
+**Artifact output contract (D-197):** Scope artifact (`scope.md`) MUST contain these sections:
+```
+## Requirements              — formalized requirements list
+## Constraints               — technical and business constraints
+## Dependencies              — external dependencies and assumptions
+```
+Validated by `artifact-validate.sh` hook — missing sections block agent completion.
 
 **Input:** Task description + project-model summary + exploration.md (when available)
 **Output:** Formal requirements document
@@ -293,6 +314,13 @@ Hephaestus runs the verify command after each task. Plan-check (Themis) validate
 
 **Quality stance (D-185):** You own the quality of HOW code is written. The plan controls WHAT you build; you control the craftsmanship — clarity, efficiency, maintainability. Code should be good enough that you wouldn't need to explain it with comments.
 
+**Artifact output contract (D-197):** Implementation artifact (`implementation.md`) MUST contain these sections:
+```
+## Changes Made              — list of files modified/created with description of change
+## Verification Results      — results of running <verify> commands per task
+```
+Validated by `artifact-validate.sh` hook — missing sections block agent completion.
+
 **Input:** Assembled instructions (from Planner) + conventions + specific files to modify + pre-assembled context (D-187) + structural baseline (D-186)
 **Output:** Code changes in project files
 
@@ -331,6 +359,18 @@ Hephaestus runs the verify command after each task. Plan-check (Themis) validate
 **Quality stance (D-185):** Distinguish adequate from excellent. Correct code that is poorly structured, hard to read, or fragile is a WARNING, not a pass.
 
 **Behavioral defense role:** Primary per-task defense against upstream agent behavioral violations (E9/E10). Catches role boundary violations, factual errors, and semantic correctness failures.
+
+**Artifact output contract (D-197):** Review artifact (`review.md`) MUST contain these sections:
+```
+## Review Findings           — list of findings with severity classification
+## Verdict                   — overall verdict (approve/request_changes/reject)
+```
+Plan-check variant (`plan-check.md`) MUST contain:
+```
+## Plan Check Findings       — validation results per check category
+## Verdict                   — overall verdict (approve/request_changes/reject)
+```
+Validated by `artifact-validate.sh` hook — missing sections block agent completion.
 
 **Input (code review mode):** Written code + plan + requirements + conventions + structural baseline (D-186)
 **Output (code review mode):** Issue list with severity (critical/warning/suggestion) + structural quality delta (D-186)
@@ -389,6 +429,13 @@ Output: plan-check findings with severity classification. Critical findings bloc
 
 Aletheia remains as an agent definition available for explicit user dispatch when specialized test work is needed.
 
+**Artifact output contract (D-197):** Testing artifact (`testing.md`) MUST contain these sections:
+```
+## Test Cases                — tests written/run with descriptions
+## Results Summary           — pass/fail counts and coverage assessment
+```
+Validated by `artifact-validate.sh` hook — missing sections block agent completion.
+
 **Input:** Code + requirements + acceptance criteria
 **Output:** Tests + execution results
 
@@ -420,6 +467,13 @@ Aletheia remains as an agent definition available for explicit user dispatch whe
 **Purpose:** Analyzes completed tasks for learning.
 
 **Behavioral defense role:** Primary defense against systemic behavioral drift. Detects patterns of agent boundary violations, recurring factual errors, and constraint degradation over time.
+
+**Artifact output contract (D-197):** Reflection artifact (`reflection.md`) MUST contain these sections:
+```
+## Analysis                  — assessment across 6 dimensions (accuracy, efficiency, predictions, architecture, gaps, orchestrator)
+## Recommendations           — concrete observations and proposals
+```
+Validated by `artifact-validate.sh` hook — missing sections block agent completion.
 
 **Input:** Full task history (all state files)
 **Output:** Lessons learned, pattern observations, rule change proposals
@@ -467,6 +521,13 @@ RULE_PROPOSALS: [{proposal with 3+ evidence citations}] (if any)
 
 **Purpose:** Independent system health verification.
 
+**Artifact output contract (D-197):** Audit artifact (`audit-findings.md`) MUST contain these sections:
+```
+## Findings                  — per-domain findings with evidence
+## Risk Assessment           — risk classification per finding (low/medium/high)
+```
+Validated by `artifact-validate.sh` hook — missing sections block agent completion.
+
 **Input:** All moira files (rules, knowledge, config, state, metrics)
 **Output:** Audit report with findings and recommendations
 
@@ -507,6 +568,13 @@ Rationale:
 ## Calliope (scribe)
 
 **Purpose:** Synthesizes analytical findings into deliverable markdown documents. Participates only in the Analytical Pipeline (D-118).
+
+**Artifact output contract (D-197):** Deliverables artifact (`deliverables.md`) MUST contain these sections:
+```
+## Sources                   — finding sources cited with evidence references
+## Content                   — synthesized content organized per synthesis plan
+```
+Validated by `artifact-validate.sh` hook — missing sections block agent completion.
 
 **Input:** Structured findings (lattice-organized) from analysis phase + existing documents to update
 **Output:** New and/or updated markdown documentation in project

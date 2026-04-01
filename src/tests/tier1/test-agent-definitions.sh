@@ -185,6 +185,52 @@ for agent in "${AGENTS[@]}"; do
   done
 done
 
+# ── Role schema completeness (D-196) ──────────────────────────────
+# Every role file must have all required keys from role.schema.yaml
+REQUIRED_KEYS=("_meta:" "identity:" "capabilities:" "never:" "knowledge_access:" "response_format:")
+
+for agent in "${AGENTS[@]}"; do
+  role_file="$SRC_ROLES/${agent}.yaml"
+  if [[ ! -f "$role_file" ]]; then
+    role_file="$ROLES_DIR/${agent}.yaml"
+  fi
+  [[ -f "$role_file" ]] || continue
+
+  for key in "${REQUIRED_KEYS[@]}"; do
+    # Check for top-level key (no leading whitespace, or under _meta for sub-keys)
+    if [[ "$key" == "_meta:" ]]; then
+      if grep -q "^_meta:" "$role_file" 2>/dev/null; then
+        pass "D-196: ${agent} has required key ${key}"
+      else
+        fail "D-196: ${agent} missing required key ${key}"
+      fi
+    else
+      if grep -q "^${key}" "$role_file" 2>/dev/null; then
+        pass "D-196: ${agent} has required key ${key}"
+      else
+        fail "D-196: ${agent} missing required key ${key}"
+      fi
+    fi
+  done
+
+  # Verify _meta sub-keys
+  for subkey in "name:" "role:" "purpose:" "budget:"; do
+    if sed -n '/^_meta:/,/^[^ ]/p' "$role_file" | grep -q "$subkey" 2>/dev/null; then
+      pass "D-196: ${agent} has _meta.${subkey%:}"
+    else
+      fail "D-196: ${agent} missing _meta.${subkey%:}"
+    fi
+  done
+done
+
+# ── Role schema: verify schema file exists ──────────────────────────
+ROLE_SCHEMA="$SRC_DIR/schemas/role.schema.yaml"
+assert_file_exists "$ROLE_SCHEMA" "role.schema.yaml exists"
+if [[ -f "$ROLE_SCHEMA" ]]; then
+  assert_file_contains "$ROLE_SCHEMA" "required_keys:" "role.schema.yaml has required_keys section"
+  assert_file_contains "$ROLE_SCHEMA" "optional_keys:" "role.schema.yaml has optional_keys section"
+fi
+
 # ── Artifact output contracts (D-184) ──────────────────────────────
 CONTRACT_AGENTS="apollo metis daedalus"
 for agent in $CONTRACT_AGENTS; do

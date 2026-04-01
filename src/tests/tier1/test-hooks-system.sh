@@ -154,7 +154,7 @@ assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "full:classifier" 
 assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "decomposition:classifier" "pipeline-dispatch.sh: has decomposition transition table"
 assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "analytical:classifier" "pipeline-dispatch.sh: has analytical transition table"
 
-assert_file_contains "$MOIRA_HOME/hooks/pipeline-tracker.sh" "pipeline-tracker.state" "pipeline-tracker.sh: writes tracker state"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-tracker.sh" "current.yaml" "pipeline-tracker.sh: writes tracker state to current.yaml (D-198)"
 assert_file_contains "$MOIRA_HOME/hooks/pipeline-tracker.sh" "additionalContext" "pipeline-tracker.sh: injects guidance"
 assert_file_contains "$MOIRA_HOME/hooks/pipeline-tracker.sh" "subtask_mode" "pipeline-tracker.sh: tracks sub-task mode"
 

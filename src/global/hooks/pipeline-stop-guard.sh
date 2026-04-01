@@ -39,26 +39,26 @@ else
 fi
 [[ "$stop_hook_active" == "true" ]] && exit 0
 
-# --- Read tracker state ---
-tracker_file="$state_dir/pipeline-tracker.state"
-[[ ! -f "$tracker_file" ]] && exit 0
+# --- Read tracker state from current.yaml (D-198: consolidated) ---
+current_file="$state_dir/current.yaml"
+[[ ! -f "$current_file" ]] && exit 0
 
-subtask_mode=$(grep '^subtask_mode=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+subtask_mode=$(grep '^subtask_mode:' "$current_file" 2>/dev/null | sed 's/^subtask_mode:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
 
 # Per-subtask state: check ALL active subtask files for pending flags
 review_pending="false"
 test_pending="false"
 if [[ "$subtask_mode" == "true" ]]; then
-  for sub_file in "$state_dir"/pipeline-tracker-sub-*.state; do
+  for sub_file in "$state_dir"/subtasks/*.yaml; do
     [[ -f "$sub_file" ]] || continue
-    sub_review=$(grep '^review_pending=' "$sub_file" 2>/dev/null | cut -d= -f2) || true
-    sub_test=$(grep '^test_pending=' "$sub_file" 2>/dev/null | cut -d= -f2) || true
+    sub_review=$(grep '^review_pending:' "$sub_file" 2>/dev/null | sed 's/^review_pending:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+    sub_test=$(grep '^test_pending:' "$sub_file" 2>/dev/null | sed 's/^test_pending:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
     [[ "$sub_review" == "true" ]] && review_pending="true"
     [[ "$sub_test" == "true" ]] && test_pending="true"
   done
 else
-  review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+  review_pending=$(grep '^review_pending:' "$current_file" 2>/dev/null | sed 's/^review_pending:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+  test_pending=$(grep '^test_pending:' "$current_file" 2>/dev/null | sed 's/^test_pending:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
 fi
 
 # --- Block stop if mandatory steps are pending ---

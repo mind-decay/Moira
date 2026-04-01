@@ -10,12 +10,12 @@
 #   L3: Transition table — each role can only transition to specific next roles per pipeline
 #
 # After validation passes:
-#   - Writes dispatched_role to pipeline-tracker.state (for agent-done.sh)
+#   - Writes dispatched_role to current.yaml (for agent-done.sh)
 #   - Writes step transition to current.yaml via state.sh
 #
 # Fires: PreToolUse (matcher: Agent)
-# Reads: .claude/moira/state/pipeline-tracker.state
-# Writes: .claude/moira/state/current.yaml (step transition), pipeline-tracker.state (dispatched_role)
+# Reads: .claude/moira/state/current.yaml (tracker fields: last_role, review_pending, test_pending, subtask_mode, current_subtask)
+# Writes: .claude/moira/state/current.yaml (step transition + dispatched_role)
 # MUST NOT fail — exits 0 silently on any error.
 
 input=$(cat 2>/dev/null) || exit 0
@@ -61,8 +61,25 @@ case "$role" in
   reflector|auditor) exit 0 ;;
 esac
 
-# --- Read tracker state ---
-tracker_file="$state_dir/pipeline-tracker.state"
+# --- Inline YAML field updater (D-198: no library dependency) ---
+_yaml_set() {
+  local file="$1" key="$2" value="$3"
+  local escaped_value
+  escaped_value=$(printf '%s' "$value" | sed 's|[&/\\|]|\\&|g' 2>/dev/null) || escaped_value="$value"
+  if grep -q "^${key}:" "$file" 2>/dev/null; then
+    sed -i.bak "s|^${key}:.*|${key}: ${escaped_value}|" "$file" 2>/dev/null
+    rm -f "${file}.bak" 2>/dev/null
+  else
+    printf '%s: %s\n' "$key" "$value" >> "$file" 2>/dev/null
+  fi
+}
+
+_yaml_get() {
+  grep "^${2}:" "$1" 2>/dev/null | sed "s/^${2}:[[:space:]]*//" | tr -d '"' | tr -d "'" 2>/dev/null
+}
+
+# --- Read tracker state from current.yaml (D-198: consolidated) ---
+current_file="$state_dir/current.yaml"
 
 pipeline=""
 last_role=""
@@ -70,38 +87,31 @@ review_pending="false"
 test_pending="false"
 subtask_mode="false"
 current_subtask=""
-if [[ -f "$tracker_file" ]]; then
-  pipeline=$(grep '^pipeline=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  subtask_mode=$(grep '^subtask_mode=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  current_subtask=$(grep '^current_subtask=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+if [[ -f "$current_file" ]]; then
+  pipeline=$(_yaml_get "$current_file" "pipeline") || true
+  subtask_mode=$(_yaml_get "$current_file" "subtask_mode") || true
+  current_subtask=$(_yaml_get "$current_file" "current_subtask") || true
 
   # Per-subtask state isolation: in decomposition subtask mode, read from per-subtask file
-  if [[ "$subtask_mode" == "true" && -n "$current_subtask" ]]; then
-    subtask_file="$state_dir/pipeline-tracker-sub-${current_subtask}.state"
+  if [[ "$subtask_mode" == "true" && -n "$current_subtask" && "$current_subtask" != "null" ]]; then
+    subtask_file="$state_dir/subtasks/${current_subtask}.yaml"
     if [[ -f "$subtask_file" ]]; then
-      last_role=$(grep '^last_role=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
-      review_pending=$(grep '^review_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
-      test_pending=$(grep '^test_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+      last_role=$(_yaml_get "$subtask_file" "last_role") || true
+      review_pending=$(_yaml_get "$subtask_file" "review_pending") || true
+      test_pending=$(_yaml_get "$subtask_file" "test_pending") || true
     fi
   else
-    last_role=$(grep '^last_role=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-    review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-    test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  fi
-fi
-
-# If no tracker yet, read pipeline from current.yaml
-if [[ -z "$pipeline" || "$pipeline" == "null" ]]; then
-  if [[ -f "$state_dir/current.yaml" ]]; then
-    pipeline=$(grep '^pipeline:' "$state_dir/current.yaml" 2>/dev/null | sed 's/^pipeline:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+    last_role=$(_yaml_get "$current_file" "last_role") || true
+    review_pending=$(_yaml_get "$current_file" "review_pending") || true
+    test_pending=$(_yaml_get "$current_file" "test_pending") || true
   fi
 fi
 
 # No pipeline = probably first dispatch (classifier) — allow and write transition
 [[ -z "$pipeline" || "$pipeline" == "null" ]] && {
   # Write dispatched_role for agent-done.sh
-  if [[ -n "$state_dir" ]]; then
-    echo "dispatched_role=$role" >> "$tracker_file" 2>/dev/null || true
+  if [[ -f "$current_file" ]]; then
+    _yaml_set "$current_file" "dispatched_role" "$role"
   fi
   exit 0
 }
@@ -290,15 +300,9 @@ if [[ -n "$step" ]]; then
   fi
 fi
 
-# Write dispatched_role to tracker state (for agent-done.sh to read)
-# Append/update the dispatched_role line
-if [[ -f "$tracker_file" ]]; then
-  # Remove existing dispatched_role line and add new one
-  grep -v '^dispatched_role=' "$tracker_file" > "${tracker_file}.tmp" 2>/dev/null || true
-  echo "dispatched_role=$role" >> "${tracker_file}.tmp"
-  mv "${tracker_file}.tmp" "$tracker_file" 2>/dev/null || true
-else
-  echo "dispatched_role=$role" > "$tracker_file" 2>/dev/null || true
+# Write dispatched_role to current.yaml (D-198: consolidated, for agent-done.sh to read)
+if [[ -f "$current_file" ]]; then
+  _yaml_set "$current_file" "dispatched_role" "$role"
 fi
 
 exit 0

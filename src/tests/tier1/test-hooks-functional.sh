@@ -31,13 +31,30 @@ setup_state() {
 }
 
 # Helper: run pipeline-dispatch.sh with given state and agent description
+# D-198: tracker fields now in current.yaml (key=value format converted to YAML inline)
 run_dispatch() {
   local state_dir="$1"
   local description="$2"
   local tracker_content="${3:-}"
 
   if [[ -n "$tracker_content" ]]; then
-    echo "$tracker_content" > "$state_dir/pipeline-tracker.state"
+    # Convert key=value tracker content to YAML fields appended to current.yaml
+    while IFS='=' read -r key value; do
+      [[ -z "$key" ]] && continue
+      # Skip 'active' field (implicit in current.yaml existence)
+      [[ "$key" == "active" ]] && continue
+      # Skip 'pipeline' — already in current.yaml from setup_state
+      [[ "$key" == "pipeline" ]] && continue
+      # Append or update field in current.yaml
+      if grep -q "^${key}:" "$state_dir/current.yaml" 2>/dev/null; then
+        local escaped_val
+        escaped_val=$(printf '%s' "$value" | sed 's|[&/\\|]|\\&|g' 2>/dev/null) || escaped_val="$value"
+        sed -i.bak "s|^${key}:.*|${key}: ${escaped_val}|" "$state_dir/current.yaml" 2>/dev/null
+        rm -f "$state_dir/current.yaml.bak" 2>/dev/null
+      else
+        echo "${key}: ${value}" >> "$state_dir/current.yaml"
+      fi
+    done <<< "$tracker_content"
   fi
 
   local json="{\"tool_name\":\"Agent\",\"tool_input\":{\"description\":\"$description\",\"run_in_background\":false}}"
@@ -124,10 +141,11 @@ test_pending=true
 subtask_mode=true
 current_subtask=1
 subtask_counter=1")
-# Also need per-subtask file
-echo "last_role=reviewer
-review_pending=false
-test_pending=true" > "$state/pipeline-tracker-sub-1.state"
+# Also need per-subtask file (D-198: YAML format in subtasks/ dir)
+mkdir -p "$state/subtasks" 2>/dev/null
+echo "last_role: reviewer
+review_pending: false
+test_pending: true" > "$state/subtasks/1.yaml"
 result=$(run_dispatch "$state" "Hephaestus (implementer) — fix review findings" "active=true
 pipeline=decomposition
 last_role=reviewer
@@ -147,9 +165,10 @@ fi
 # ═══════════════════════════════════════════════════════════════════════
 
 state=$(setup_state "dc-explorer" "decomposition")
-echo "last_role=explorer
-review_pending=false
-test_pending=false" > "$state/pipeline-tracker-sub-1.state"
+mkdir -p "$state/subtasks" 2>/dev/null
+echo "last_role: explorer
+review_pending: false
+test_pending: false" > "$state/subtasks/1.yaml"
 result=$(run_dispatch "$state" "Hephaestus (implementer) — implement feature" "active=true
 pipeline=decomposition
 subtask_mode=true
@@ -167,14 +186,15 @@ fi
 
 # Subtask 1 has review_pending=true, subtask 2 should not be blocked
 state=$(setup_state "subtask-iso" "decomposition")
+mkdir -p "$state/subtasks" 2>/dev/null
 # Subtask 1: review pending
-echo "last_role=implementer
-review_pending=true
-test_pending=false" > "$state/pipeline-tracker-sub-1.state"
+echo "last_role: implementer
+review_pending: true
+test_pending: false" > "$state/subtasks/1.yaml"
 # Subtask 2: clean state, last role was tester
-echo "last_role=tester
-review_pending=false
-test_pending=false" > "$state/pipeline-tracker-sub-2.state"
+echo "last_role: tester
+review_pending: false
+test_pending: false" > "$state/subtasks/2.yaml"
 
 # Dispatch classifier for subtask 2 (should use subtask 2's state)
 result=$(run_dispatch "$state" "Apollo (classifier) — classify next sub-task" "active=true
@@ -305,15 +325,16 @@ state=$(setup_state "scribe-pending" "analytical")
 tracker_json="{\"tool_name\":\"Agent\",\"tool_input\":{\"description\":\"Calliope (scribe) — synthesize findings\",\"run_in_background\":false}}"
 (cd "$(dirname "$(dirname "$state")")" && echo "$tracker_json" | bash "$SRC_DIR/global/hooks/pipeline-tracker.sh" 2>/dev/null) || true
 
-if [[ -f "$state/pipeline-tracker.state" ]]; then
-  review_pending=$(grep '^review_pending=' "$state/pipeline-tracker.state" 2>/dev/null | cut -d= -f2) || true
+# D-198: tracker fields now in current.yaml
+if [[ -f "$state/current.yaml" ]]; then
+  review_pending=$(grep '^review_pending:' "$state/current.yaml" 2>/dev/null | sed 's/^review_pending:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
   if [[ "$review_pending" == "true" ]]; then
     pass "pipeline-tracker: scribe sets review_pending=true"
   else
     fail "pipeline-tracker: scribe should set review_pending=true (got: $review_pending)"
   fi
 else
-  fail "pipeline-tracker: no state file after scribe dispatch"
+  fail "pipeline-tracker: no current.yaml after scribe dispatch"
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -362,7 +383,7 @@ assert_file_contains "$SRC_DIR/global/hooks/compact-reinject.sh" "timeout" "comp
 # Per-subtask cleanup in session-cleanup
 # ═══════════════════════════════════════════════════════════════════════
 
-assert_file_contains "$SRC_DIR/global/hooks/session-cleanup.sh" "pipeline-tracker-sub-" "session-cleanup.sh: cleans per-subtask state files"
+assert_file_contains "$SRC_DIR/global/hooks/session-cleanup.sh" "subtasks" "session-cleanup.sh: cleans per-subtask state files"
 
 # ═══════════════════════════════════════════════════════════════════════
 # agent-done.sh allows re-entry (no stop_hook_active skip)
@@ -522,6 +543,397 @@ if echo "$result" | grep -q '"decision".*"block"'; then
   pass "artifact-validate: Daedalus blocked for missing ## Unverified Dependencies (architecture has UNVERIFIED)"
 else
   fail "artifact-validate: Daedalus should be blocked when architecture has UNVERIFIED and plan lacks ## Unverified Dependencies"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Hermes missing sections → block (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-hermes-miss" "standard")
+task_dir="$state/tasks/test-artifact-hermes-miss"
+mkdir -p "$task_dir"
+
+# Incomplete exploration.md (missing ## Key Findings and ## Gap Analysis)
+cat > "$task_dir/exploration.md" << 'EOF'
+## Relevant Files
+- src/main.ts — entry point
+- src/utils.ts — utility functions
+EOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Hermes (explorer) — explore codebase\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: explored codebase\nARTIFACTS: [tasks/test-artifact-hermes-miss/exploration.md]\nNEXT: architecture\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "artifact-validate: Hermes blocked for missing ## Key Findings"
+else
+  fail "artifact-validate: Hermes should be blocked for missing ## Key Findings"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Hermes complete artifact → pass (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-hermes-ok" "standard")
+task_dir="$state/tasks/test-artifact-hermes-ok"
+mkdir -p "$task_dir"
+
+cat > "$task_dir/exploration.md" << 'EOF'
+## Relevant Files
+- src/main.ts — entry point
+
+## Key Findings
+- Application uses Express.js framework
+
+## Gap Analysis
+- No error handling for database timeouts
+EOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Hermes (explorer) — explore codebase\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: explored codebase\nARTIFACTS: [tasks/test-artifact-hermes-ok/exploration.md]\nNEXT: architecture\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  fail "artifact-validate: Hermes should pass with complete artifact"
+else
+  pass "artifact-validate: Hermes passes with complete artifact"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Hephaestus missing sections → block (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-heph-miss" "standard")
+task_dir="$state/tasks/test-artifact-heph-miss"
+mkdir -p "$task_dir"
+
+# Missing ## Verification Results
+cat > "$task_dir/implementation.md" << 'EOF'
+## Changes Made
+- Modified src/main.ts to add error handling
+EOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Hephaestus (implementer) — implement feature\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: implemented feature\nARTIFACTS: [tasks/test-artifact-heph-miss/implementation.md]\nNEXT: review\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "artifact-validate: Hephaestus blocked for missing ## Verification Results"
+else
+  fail "artifact-validate: Hephaestus should be blocked for missing ## Verification Results"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Themis missing sections → block (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-themis-miss" "standard")
+task_dir="$state/tasks/test-artifact-themis-miss"
+mkdir -p "$task_dir"
+
+# Missing ## Verdict
+cat > "$task_dir/review.md" << 'EOF'
+## Review Findings
+- Code follows conventions
+EOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Themis (reviewer) — review code\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: reviewed code\nARTIFACTS: [tasks/test-artifact-themis-miss/review.md]\nNEXT: complete\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "artifact-validate: Themis blocked for missing ## Verdict"
+else
+  fail "artifact-validate: Themis should be blocked for missing ## Verdict"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Themis complete review → pass (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-themis-ok" "standard")
+task_dir="$state/tasks/test-artifact-themis-ok"
+mkdir -p "$task_dir"
+
+cat > "$task_dir/review.md" << 'EOF'
+## Review Findings
+- Code follows conventions
+- No security issues found
+
+## Verdict
+Approve — all checks pass.
+EOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Themis (reviewer) — review code\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: reviewed code\nARTIFACTS: [tasks/test-artifact-themis-ok/review.md]\nNEXT: complete\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  fail "artifact-validate: Themis should pass with complete artifact"
+else
+  pass "artifact-validate: Themis passes with complete artifact"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Calliope missing sections → block (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-calliope-miss" "analytical")
+task_dir="$state/tasks/test-artifact-calliope-miss"
+mkdir -p "$task_dir"
+
+# Missing ## Content
+cat > "$task_dir/deliverables.md" << 'EOF'
+## Sources
+- architecture.md: structural analysis findings
+EOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Calliope (scribe) — synthesize findings\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: synthesized findings\nARTIFACTS: [tasks/test-artifact-calliope-miss/deliverables.md]\nNEXT: review\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "artifact-validate: Calliope blocked for missing ## Content"
+else
+  fail "artifact-validate: Calliope should be blocked for missing ## Content"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Mnemosyne missing sections → block (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-mnemosyne-miss" "standard")
+task_dir="$state/tasks/test-artifact-mnemosyne-miss"
+mkdir -p "$task_dir"
+
+# Missing ## Recommendations
+cat > "$task_dir/reflection.md" << 'EOF'
+## Analysis
+Accuracy: match. Budget usage efficient.
+EOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Mnemosyne (reflector) — reflect on task\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: reflection complete\nARTIFACTS: [tasks/test-artifact-mnemosyne-miss/reflection.md]\nNEXT: complete\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "artifact-validate: Mnemosyne blocked for missing ## Recommendations"
+else
+  fail "artifact-validate: Mnemosyne should be blocked for missing ## Recommendations"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Argus missing sections → block (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-argus-miss" "standard")
+task_dir="$state/tasks/test-artifact-argus-miss"
+mkdir -p "$task_dir"
+
+# Missing ## Risk Assessment
+cat > "$task_dir/audit-findings.md" << 'EOF'
+## Findings
+- Knowledge base is stale (>30 days)
+EOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Argus (auditor) — audit system\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: audit complete\nARTIFACTS: [tasks/test-artifact-argus-miss/audit-findings.md]\nNEXT: complete\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "artifact-validate: Argus blocked for missing ## Risk Assessment"
+else
+  fail "artifact-validate: Argus should be blocked for missing ## Risk Assessment"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Artifact validation: Hermes quick pipeline context.md (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "artifact-hermes-quick" "quick")
+task_dir="$state/tasks/test-artifact-hermes-quick"
+mkdir -p "$task_dir"
+
+# Quick pipeline uses context.md, missing ## Key Files
+cat > "$task_dir/context.md" << 'EOF'
+## Context Summary
+Quick overview of the login module.
+EOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Hermes (explorer) — quick context\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: context gathered\nARTIFACTS: [tasks/test-artifact-hermes-quick/context.md]\nNEXT: implement\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "artifact-validate: Hermes quick blocked for missing ## Key Files in context.md"
+else
+  fail "artifact-validate: Hermes quick should be blocked for missing ## Key Files in context.md"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Findings validation: invalid verdict derivation → block (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "findings-bad-verdict" "standard")
+task_dir="$state/tasks/test-findings-bad-verdict"
+mkdir -p "$task_dir/findings"
+
+# Create complete architecture.md
+cat > "$task_dir/architecture.md" << 'ARCHEOF'
+## Alternatives
+### Alternative 1: Direct approach
+#### Trade-offs
+Simple but limited
+### Alternative 2: Service pattern
+#### Trade-offs
+Flexible but complex
+
+## Recommendation
+Use service pattern.
+
+## Assumptions
+### Verified
+- Express.js supports middleware
+### Unverified
+None
+ARCHEOF
+
+# Create findings with inconsistent verdict (critical_count > 0 but verdict=pass)
+cat > "$task_dir/findings/metis-Q2.yaml" << 'FINDEOF'
+_meta:
+  task_id: test-findings-bad-verdict
+  gate: Q2
+  agent: metis
+  timestamp: 2026-04-01T10:00:00Z
+  mode: conform
+checklist:
+  items:
+    - id: Q2-C01
+      check: "Follows existing patterns"
+      result: fail
+      severity: critical
+      detail: "Breaks existing service pattern"
+summary:
+  total: 1
+  passed: 0
+  failed: 1
+  na: 0
+  critical_count: 1
+  warning_count: 0
+  suggestion_count: 0
+  verdict: pass
+FINDEOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Metis (architect) — design solution\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: architecture complete\nARTIFACTS: [tasks/test-findings-bad-verdict/architecture.md]\nNEXT: plan\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "findings-validate: Metis blocked for verdict/critical_count inconsistency"
+else
+  fail "findings-validate: Metis should be blocked when critical_count>0 but verdict=pass"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Findings validation: valid findings → pass (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "findings-valid" "standard")
+task_dir="$state/tasks/test-findings-valid"
+mkdir -p "$task_dir/findings"
+
+# Create complete architecture.md
+cat > "$task_dir/architecture.md" << 'ARCHEOF'
+## Alternatives
+### Alternative 1: Direct approach
+#### Trade-offs
+Simple but limited
+### Alternative 2: Service pattern
+#### Trade-offs
+Flexible but complex
+
+## Recommendation
+Use service pattern.
+
+## Assumptions
+### Verified
+- Express.js supports middleware
+### Unverified
+None
+ARCHEOF
+
+# Create valid findings
+cat > "$task_dir/findings/metis-Q2.yaml" << 'FINDEOF'
+_meta:
+  task_id: test-findings-valid
+  gate: Q2
+  agent: metis
+  timestamp: 2026-04-01T10:00:00Z
+  mode: conform
+checklist:
+  items:
+    - id: Q2-C01
+      check: "Follows existing patterns"
+      result: pass
+summary:
+  total: 1
+  passed: 1
+  failed: 0
+  na: 0
+  critical_count: 0
+  warning_count: 0
+  suggestion_count: 0
+  verdict: pass
+FINDEOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Metis (architect) — design solution\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: architecture complete\nARTIFACTS: [tasks/test-findings-valid/architecture.md]\nNEXT: plan\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  fail "findings-validate: Metis should pass with valid findings"
+else
+  pass "findings-validate: Metis passes with valid findings"
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Findings validation: invalid verdict enum → block (D-197)
+# ═══════════════════════════════════════════════════════════════════════
+
+state=$(setup_state "findings-bad-enum" "standard")
+task_dir="$state/tasks/test-findings-bad-enum"
+mkdir -p "$task_dir/findings"
+
+cat > "$task_dir/architecture.md" << 'ARCHEOF'
+## Alternatives
+### Alternative 1: A
+#### Trade-offs
+T1
+### Alternative 2: B
+#### Trade-offs
+T2
+## Recommendation
+A
+## Assumptions
+### Verified
+v1
+### Unverified
+None
+ARCHEOF
+
+# Create findings with invalid verdict value
+cat > "$task_dir/findings/metis-Q2.yaml" << 'FINDEOF'
+_meta:
+  task_id: test-findings-bad-enum
+  gate: Q2
+  agent: metis
+  timestamp: 2026-04-01T10:00:00Z
+  mode: conform
+summary:
+  total: 1
+  passed: 1
+  failed: 0
+  critical_count: 0
+  warning_count: 0
+  verdict: approved
+FINDEOF
+
+artifact_json="{\"agent_type\":\"general-purpose\",\"agent_description\":\"Metis (architect) — design solution\",\"last_assistant_message\":\"STATUS: success\nSUMMARY: done\nARTIFACTS: [tasks/test-findings-bad-enum/architecture.md]\nNEXT: plan\",\"stop_hook_active\":false}"
+result=$(cd "$(dirname "$(dirname "$state")")" && echo "$artifact_json" | bash "$SRC_DIR/global/hooks/artifact-validate.sh" 2>/dev/null) || true
+
+if echo "$result" | grep -q '"decision".*"block"'; then
+  pass "findings-validate: Metis blocked for invalid verdict enum 'approved'"
+else
+  fail "findings-validate: Metis should be blocked for invalid verdict enum"
 fi
 
 test_summary

@@ -57,10 +57,18 @@ esac
 # Description format: "Name (role) — task description"
 role=""
 case "$agent_desc" in
-  *"(classifier)"*|*"Apollo"*|*"apollo"*) role="apollo" ;;
-  *"(architect)"*|*"Metis"*|*"metis"*)   role="metis" ;;
-  *"(planner)"*|*"Daedalus"*|*"daedalus"*) role="daedalus" ;;
-  *) exit 0 ;;  # Other roles don't have artifact contracts yet
+  *"(classifier)"*|*"Apollo"*|*"apollo"*)           role="apollo" ;;
+  *"(explorer)"*|*"Hermes"*|*"hermes"*)             role="hermes" ;;
+  *"(analyst)"*|*"Athena"*|*"athena"*)              role="athena" ;;
+  *"(architect)"*|*"Metis"*|*"metis"*)              role="metis" ;;
+  *"(planner)"*|*"Daedalus"*|*"daedalus"*)          role="daedalus" ;;
+  *"(implementer)"*|*"Hephaestus"*|*"hephaestus"*)  role="hephaestus" ;;
+  *"(reviewer)"*|*"Themis"*|*"themis"*)             role="themis" ;;
+  *"(tester)"*|*"Aletheia"*|*"aletheia"*)           role="aletheia" ;;
+  *"(scribe)"*|*"Calliope"*|*"calliope"*)           role="calliope" ;;
+  *"(reflector)"*|*"Mnemosyne"*|*"mnemosyne"*)      role="mnemosyne" ;;
+  *"(auditor)"*|*"Argus"*|*"argus"*)                role="argus" ;;
+  *) exit 0 ;;  # Unknown role — skip validation
 esac
 
 [[ -z "$role" ]] && exit 0
@@ -138,6 +146,37 @@ case "$role" in
     check_subsection "$resolved_path" "Out of Scope"
     check_section "$resolved_path" "Acceptance Criteria"
     ;;
+  hermes)
+    # Check which artifact type based on filename
+    case "$artifact_path" in
+      *context.md)
+        # Quick pipeline variant
+        check_section "$resolved_path" "Context Summary"
+        check_section "$resolved_path" "Key Files"
+        ;;
+      *)
+        # Standard/Full exploration
+        check_section "$resolved_path" "Relevant Files"
+        check_section "$resolved_path" "Key Findings"
+        # Gap Analysis required in Standard/Full pipelines
+        # Read pipeline type from current.yaml
+        pipeline_type=""
+        if [[ -f "$state_dir/current.yaml" ]]; then
+          pipeline_type=$(grep '^pipeline:' "$state_dir/current.yaml" 2>/dev/null | sed 's/^pipeline:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+        fi
+        case "$pipeline_type" in
+          standard|full|decomposition|analytical)
+            check_section "$resolved_path" "Gap Analysis"
+            ;;
+        esac
+        ;;
+    esac
+    ;;
+  athena)
+    check_section "$resolved_path" "Requirements"
+    check_section "$resolved_path" "Constraints"
+    check_section "$resolved_path" "Dependencies"
+    ;;
   metis)
     check_section "$resolved_path" "Alternatives"
     check_section "$resolved_path" "Recommendation"
@@ -163,14 +202,98 @@ case "$role" in
         if [[ "$unverified_count" -gt 0 ]]; then
           check_section "$resolved_path" "Unverified Dependencies"
           # Amend last missing entry with context if it was added
-          if [[ "${missing[-1]:-}" == "## Unverified Dependencies" ]]; then
-            missing[-1]="## Unverified Dependencies (required: architecture has $unverified_count UNVERIFIED claims)"
+          last_idx=$(( ${#missing[@]} - 1 ))
+          if [[ "${missing[$last_idx]:-}" == "## Unverified Dependencies" ]]; then
+            missing[$last_idx]="## Unverified Dependencies (required: architecture has $unverified_count UNVERIFIED claims)"
           fi
         fi
       fi
     fi
     ;;
+  hephaestus)
+    check_section "$resolved_path" "Changes Made"
+    check_section "$resolved_path" "Verification Results"
+    ;;
+  themis)
+    # Check which artifact type based on filename
+    case "$artifact_path" in
+      *plan-check.md)
+        check_section "$resolved_path" "Plan Check Findings"
+        check_section "$resolved_path" "Verdict"
+        ;;
+      *)
+        check_section "$resolved_path" "Review Findings"
+        check_section "$resolved_path" "Verdict"
+        ;;
+    esac
+    ;;
+  aletheia)
+    check_section "$resolved_path" "Test Cases"
+    check_section "$resolved_path" "Results Summary"
+    ;;
+  calliope)
+    check_section "$resolved_path" "Sources"
+    check_section "$resolved_path" "Content"
+    ;;
+  mnemosyne)
+    check_section "$resolved_path" "Analysis"
+    check_section "$resolved_path" "Recommendations"
+    ;;
+  argus)
+    check_section "$resolved_path" "Findings"
+    check_section "$resolved_path" "Risk Assessment"
+    ;;
 esac
+
+# --- Findings YAML validation for gate agents (D-197) ---
+# Gate agents must produce a findings YAML alongside their artifact
+findings_gate=""
+case "$role" in
+  athena)    findings_gate="Q1" ;;
+  metis)     findings_gate="Q2" ;;
+  daedalus)  findings_gate="Q3" ;;
+  themis)    findings_gate="Q4" ;;
+  aletheia)  findings_gate="Q5" ;;
+esac
+
+if [[ -n "$findings_gate" && -n "$task_id" ]]; then
+  findings_dir="$state_dir/tasks/$task_id/findings"
+  # Find matching findings file (agent-gate pattern)
+  # Findings filename uses lowercase role name (matches agent naming convention)
+  findings_file="$findings_dir/${role}-${findings_gate}.yaml"
+
+  if [[ -f "$findings_file" ]]; then
+    # Validate required fields exist
+    if ! grep -q '^_meta:' "$findings_file" 2>/dev/null; then
+      missing+=("findings/${agent_name}-${findings_gate}.yaml: missing _meta section")
+    fi
+    if ! grep -q 'task_id:' "$findings_file" 2>/dev/null; then
+      missing+=("findings/${agent_name}-${findings_gate}.yaml: missing _meta.task_id")
+    fi
+    if ! grep -q 'gate:' "$findings_file" 2>/dev/null; then
+      missing+=("findings/${agent_name}-${findings_gate}.yaml: missing _meta.gate")
+    fi
+    if ! grep -q 'verdict:' "$findings_file" 2>/dev/null; then
+      missing+=("findings/${agent_name}-${findings_gate}.yaml: missing summary.verdict")
+    else
+      # Validate verdict enum
+      verdict=$(grep 'verdict:' "$findings_file" 2>/dev/null | tail -1 | sed 's/.*verdict:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+      case "$verdict" in
+        pass|fail_critical|fail_warning) ;;
+        *) missing+=("findings/${agent_name}-${findings_gate}.yaml: invalid verdict '$verdict' (must be pass|fail_critical|fail_warning)") ;;
+      esac
+
+      # Cross-validate verdict derivation
+      critical_count=$(grep 'critical_count:' "$findings_file" 2>/dev/null | tail -1 | sed 's/.*critical_count:[[:space:]]*//' | tr -d '"' 2>/dev/null) || critical_count="0"
+      [[ "$critical_count" =~ ^[0-9]+$ ]] || critical_count="0"
+      if [[ "$critical_count" -gt 0 && "$verdict" != "fail_critical" ]]; then
+        missing+=("findings/${agent_name}-${findings_gate}.yaml: verdict=$verdict but critical_count=$critical_count (should be fail_critical)")
+      fi
+    fi
+  fi
+  # Note: findings file not existing is OK — agent may not have written it yet,
+  # or this role doesn't produce findings in all pipelines (e.g., Athena on-demand)
+fi
 
 # --- Report results ---
 if [[ ${#missing[@]} -eq 0 ]]; then

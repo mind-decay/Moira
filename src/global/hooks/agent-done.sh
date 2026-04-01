@@ -50,15 +50,14 @@ find_state_dir() {
 state_dir=$(find_state_dir) || exit 0
 [[ ! -f "$state_dir/.guard-active" ]] && exit 0
 
-# --- Read dispatched_role from tracker ---
-tracker_file="$state_dir/pipeline-tracker.state"
+# --- Read dispatched_role from current.yaml (D-198: consolidated) ---
 role=""
-if [[ -f "$tracker_file" ]]; then
-  role=$(grep '^dispatched_role=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+if [[ -f "$state_dir/current.yaml" ]]; then
+  role=$(grep '^dispatched_role:' "$state_dir/current.yaml" 2>/dev/null | sed 's/^dispatched_role:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
 fi
 
 # No dispatched role = not a tracked pipeline dispatch
-[[ -z "$role" ]] && exit 0
+[[ -z "$role" || "$role" == "null" ]] && exit 0
 
 # Skip non-pipeline roles
 case "$role" in
@@ -124,10 +123,12 @@ if [[ -f "$moira_home/lib/state.sh" ]]; then
   fi
 fi
 
-# --- Clear dispatched_role from tracker ---
-if [[ -f "$tracker_file" ]]; then
-  grep -v '^dispatched_role=' "$tracker_file" > "${tracker_file}.tmp" 2>/dev/null || true
-  mv "${tracker_file}.tmp" "$tracker_file" 2>/dev/null || true
+# --- Clear dispatched_role from current.yaml (D-198: consolidated) ---
+if [[ -f "$state_dir/current.yaml" ]]; then
+  if grep -q '^dispatched_role:' "$state_dir/current.yaml" 2>/dev/null; then
+    sed -i.bak 's|^dispatched_role:.*|dispatched_role: null|' "$state_dir/current.yaml" 2>/dev/null
+    rm -f "$state_dir/current.yaml.bak" 2>/dev/null
+  fi
 fi
 
 # --- Read budget state for injection ---

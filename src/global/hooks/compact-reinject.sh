@@ -44,29 +44,32 @@ fi
 
 [[ -z "$pipeline" || "$pipeline" == "null" ]] && exit 0
 
-# --- Read tracker state ---
-tracker_file="$state_dir/pipeline-tracker.state"
+# --- Read tracker state from current.yaml (D-198: consolidated) ---
+_yaml_get() {
+  grep "^${2}:" "$1" 2>/dev/null | sed "s/^${2}:[[:space:]]*//" | tr -d '"' | tr -d "'" 2>/dev/null
+}
+
 last_role=""
 review_pending="false"
 test_pending="false"
 subtask_mode="false"
 current_subtask=""
-if [[ -f "$tracker_file" ]]; then
-  subtask_mode=$(grep '^subtask_mode=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  current_subtask=$(grep '^current_subtask=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+if [[ -f "$state_dir/current.yaml" ]]; then
+  subtask_mode=$(_yaml_get "$state_dir/current.yaml" "subtask_mode") || true
+  current_subtask=$(_yaml_get "$state_dir/current.yaml" "current_subtask") || true
 
   # Per-subtask state isolation
-  if [[ "$subtask_mode" == "true" && -n "$current_subtask" ]]; then
-    subtask_file="$state_dir/pipeline-tracker-sub-${current_subtask}.state"
+  if [[ "$subtask_mode" == "true" && -n "$current_subtask" && "$current_subtask" != "null" ]]; then
+    subtask_file="$state_dir/subtasks/${current_subtask}.yaml"
     if [[ -f "$subtask_file" ]]; then
-      last_role=$(grep '^last_role=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
-      review_pending=$(grep '^review_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
-      test_pending=$(grep '^test_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+      last_role=$(_yaml_get "$subtask_file" "last_role") || true
+      review_pending=$(_yaml_get "$subtask_file" "review_pending") || true
+      test_pending=$(_yaml_get "$subtask_file" "test_pending") || true
     fi
   else
-    last_role=$(grep '^last_role=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-    review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-    test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+    last_role=$(_yaml_get "$state_dir/current.yaml" "last_role") || true
+    review_pending=$(_yaml_get "$state_dir/current.yaml" "review_pending") || true
+    test_pending=$(_yaml_get "$state_dir/current.yaml" "test_pending") || true
   fi
 fi
 

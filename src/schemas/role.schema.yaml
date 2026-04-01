@@ -1,0 +1,125 @@
+_meta:
+  name: role
+  file: "{agent_name}.yaml"
+  location: src/global/core/rules/roles/
+  git: committed
+  description: Agent role definition — identity, capabilities, constraints, knowledge access
+
+# Required keys — every role file MUST have these
+required_keys:
+  _meta:
+    description: "Agent metadata (name, role, purpose, budget)"
+    required_fields:
+      name:
+        type: string
+        required: true
+        description: "Agent name (lowercase, greek mythology)"
+      role:
+        type: string
+        required: true
+        description: "Agent role identifier"
+      purpose:
+        type: string
+        required: true
+        description: "One-line purpose statement"
+      budget:
+        type: number
+        required: true
+        description: "Token budget allocation"
+  identity:
+    type: block
+    required: true
+    description: "Agent identity block — who am I, what do I do, key behavioral principles"
+  capabilities:
+    type: array
+    required: true
+    description: "List of agent capabilities"
+    min_items: 1
+  never:
+    type: array
+    required: true
+    description: "NEVER constraints per Art 1.2"
+    min_items: 3
+  knowledge_access:
+    type: block
+    required: true
+    description: "Knowledge type → access level (L0/L1/L2/null) map"
+  response_format:
+    type: block
+    required: true
+    description: "Expected response format (STATUS/SUMMARY/ARTIFACTS/NEXT)"
+
+# Optional keys — documented purpose, not required
+optional_keys:
+  quality_stance:
+    type: block
+    description: "Agent's quality philosophy — what aspect of quality this agent owns (D-185)"
+  quality_checklist:
+    type: string
+    description: "Reference to Q1-Q5 or QA1-QA4 checklist, or null if agent has no gate"
+  artifact_contract:
+    type: block
+    description: "Required sections in agent's output artifact (D-184, D-197)"
+  write_access:
+    type: block
+    description: "Knowledge types this agent can write (default: none)"
+  analytical_mode:
+    type: block
+    description: "Analytical pipeline variant configuration"
+  analysis_paralysis_guard:
+    type: block
+    description: "Read-only tool usage limit (D-192)"
+  embedded_verification:
+    type: block
+    description: "Verify/Done pattern for task-level verification (D-191)"
+  exploration_strategy:
+    type: block
+    description: "Navigation strategy (graph-first, grep-fallback) — Hermes specific"
+  gap_analysis:
+    type: block
+    description: "Q1 gap analysis instructions — Hermes specific (D-189)"
+  valid_values:
+    type: block
+    description: "Enum constraints for agent output fields — Apollo specific"
+  analytical_signals:
+    type: block
+    description: "Mode detection keywords and mapping — Apollo specific"
+  analysis_dimensions:
+    type: block
+    description: "Reflection analysis dimensions — Mnemosyne specific"
+  exit_criteria:
+    type: array
+    description: "Minimum required output conditions — Mnemosyne specific"
+  minimum_output_structure:
+    type: block
+    description: "Required output structure template — Mnemosyne specific"
+  audit_domains:
+    type: array
+    description: "Audit coverage domains — Argus specific"
+  risk_classification:
+    type: block
+    description: "Finding risk classification rules — Argus specific"
+  severity:
+    type: block
+    description: "Finding severity classification rules — Themis specific"
+  plan_check_mode:
+    type: block
+    description: "Plan validation mode configuration — Themis specific (D-190)"
+  upstream_verification:
+    type: block
+    description: "Cross-agent behavioral verification — Themis specific"
+  post_implementation:
+    type: block
+    description: "Post-implementation validation commands — Hephaestus specific (D-063)"
+  always_check:
+    type: array
+    description: "Directories/patterns to always examine — Hermes specific"
+  output_structure:
+    type: block
+    description: "Detailed output structure specification — Daedalus specific"
+  package_scoped_exploration:
+    type: block
+    description: "Monorepo scoping instructions — Hermes specific"
+  monorepo_scope_reporting:
+    type: block
+    description: "Monorepo E2-SCOPE reporting — Hermes specific"

@@ -2,9 +2,10 @@
 # Pipeline Tracker — PostToolUse hook for Agent dispatches
 # Tracks which agents have been dispatched and injects next-step guidance.
 # Part of Pipeline Compliance system (D-175).
+# D-198: writes to current.yaml (consolidated from pipeline-tracker.state).
 #
 # Fires: PostToolUse (matcher: Agent)
-# Writes: .claude/moira/state/pipeline-tracker.state
+# Writes: .claude/moira/state/current.yaml (tracker fields), .claude/moira/state/subtasks/{N}.yaml
 # Outputs: hookSpecificOutput.additionalContext with next-step instructions
 #
 # MUST NOT fail — exits 0 silently on any error.
@@ -65,8 +66,25 @@ if [[ -f "$state_dir/current.yaml" ]]; then
 fi
 [[ -z "$pipeline" || "$pipeline" == "null" ]] && exit 0
 
-# --- Tracker state file ---
-tracker_file="$state_dir/pipeline-tracker.state"
+# --- Inline YAML field updater (D-198: no library dependency) ---
+_yaml_set() {
+  local file="$1" key="$2" value="$3"
+  local escaped_value
+  escaped_value=$(printf '%s' "$value" | sed 's|[&/\\|]|\\&|g' 2>/dev/null) || escaped_value="$value"
+  if grep -q "^${key}:" "$file" 2>/dev/null; then
+    sed -i.bak "s|^${key}:.*|${key}: ${escaped_value}|" "$file" 2>/dev/null
+    rm -f "${file}.bak" 2>/dev/null
+  else
+    printf '%s: %s\n' "$key" "$value" >> "$file" 2>/dev/null
+  fi
+}
+
+_yaml_get() {
+  grep "^${2}:" "$1" 2>/dev/null | sed "s/^${2}:[[:space:]]*//" | tr -d '"' | tr -d "'" 2>/dev/null
+}
+
+# --- Read tracker state from current.yaml (D-198: consolidated) ---
+current_file="$state_dir/current.yaml"
 
 # Read current global state (defaults if file doesn't exist)
 last_role=""
@@ -75,23 +93,23 @@ test_pending="false"
 subtask_mode="false"
 current_subtask=""
 subtask_counter="0"
-if [[ -f "$tracker_file" ]]; then
-  subtask_mode=$(grep '^subtask_mode=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  current_subtask=$(grep '^current_subtask=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-  subtask_counter=$(grep '^subtask_counter=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+if [[ -f "$current_file" ]]; then
+  subtask_mode=$(_yaml_get "$current_file" "subtask_mode") || true
+  current_subtask=$(_yaml_get "$current_file" "current_subtask") || true
+  subtask_counter=$(_yaml_get "$current_file" "subtask_counter") || true
 
   # Per-subtask state isolation: read from per-subtask file when in subtask mode
-  if [[ "$subtask_mode" == "true" && -n "$current_subtask" ]]; then
-    subtask_file="$state_dir/pipeline-tracker-sub-${current_subtask}.state"
+  if [[ "$subtask_mode" == "true" && -n "$current_subtask" && "$current_subtask" != "null" ]]; then
+    subtask_file="$state_dir/subtasks/${current_subtask}.yaml"
     if [[ -f "$subtask_file" ]]; then
-      last_role=$(grep '^last_role=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
-      review_pending=$(grep '^review_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
-      test_pending=$(grep '^test_pending=' "$subtask_file" 2>/dev/null | cut -d= -f2) || true
+      last_role=$(_yaml_get "$subtask_file" "last_role") || true
+      review_pending=$(_yaml_get "$subtask_file" "review_pending") || true
+      test_pending=$(_yaml_get "$subtask_file" "test_pending") || true
     fi
   else
-    last_role=$(grep '^last_role=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-    review_pending=$(grep '^review_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
-    test_pending=$(grep '^test_pending=' "$tracker_file" 2>/dev/null | cut -d= -f2) || true
+    last_role=$(_yaml_get "$current_file" "last_role") || true
+    review_pending=$(_yaml_get "$current_file" "review_pending") || true
+    test_pending=$(_yaml_get "$current_file" "test_pending") || true
   fi
 fi
 
@@ -155,32 +173,28 @@ if [[ "$pipeline" == "decomposition" ]]; then
   fi
 fi
 
-# --- Write tracker state ---
-# Global state file: pipeline-level fields
-cat > "$tracker_file" 2>/dev/null << EOF
-active=true
-pipeline=$pipeline
-subtask_mode=$new_subtask_mode
-subtask_counter=$new_subtask_counter
-current_subtask=$new_current_subtask
-EOF
+# --- Write tracker state to current.yaml (D-198: consolidated) ---
+if [[ -f "$current_file" ]]; then
+  _yaml_set "$current_file" "subtask_mode" "$new_subtask_mode"
+  _yaml_set "$current_file" "subtask_counter" "$new_subtask_counter"
+  _yaml_set "$current_file" "current_subtask" "$new_current_subtask"
 
-# Per-subtask or global role/pending state
-if [[ "$new_subtask_mode" == "true" && -n "$new_current_subtask" ]]; then
-  # Write per-subtask state file
-  subtask_state_file="$state_dir/pipeline-tracker-sub-${new_current_subtask}.state"
-  cat > "$subtask_state_file" 2>/dev/null << EOF
-last_role=$role
-review_pending=$new_review_pending
-test_pending=$new_test_pending
+  # Per-subtask or global role/pending state
+  if [[ "$new_subtask_mode" == "true" && -n "$new_current_subtask" ]]; then
+    # Write per-subtask state file
+    mkdir -p "$state_dir/subtasks" 2>/dev/null || true
+    subtask_state_file="$state_dir/subtasks/${new_current_subtask}.yaml"
+    cat > "$subtask_state_file" 2>/dev/null << EOF
+last_role: $role
+review_pending: $new_review_pending
+test_pending: $new_test_pending
 EOF
-else
-  # Non-decomposition: append role/pending to global state file
-  cat >> "$tracker_file" 2>/dev/null << EOF
-last_role=$role
-review_pending=$new_review_pending
-test_pending=$new_test_pending
-EOF
+  else
+    # Non-decomposition: update global tracker fields in current.yaml
+    _yaml_set "$current_file" "last_role" "$role"
+    _yaml_set "$current_file" "review_pending" "$new_review_pending"
+    _yaml_set "$current_file" "test_pending" "$new_test_pending"
+  fi
 fi
 
 # --- Inject next-step guidance via additionalContext ---

@@ -2257,3 +2257,44 @@ Aletheia agent definition remains in the system for explicit user dispatch but i
 - Keep Aletheia for Decomposition only — inconsistent with D-194 reasoning. Same work, same solution.
 - Remove Aletheia agent definition entirely — may be useful for future specialized scenarios.
 **Reasoning:** Consistency with D-194. Integration testing is either mechanical (bash) or implementation (Hephaestus). No pipeline needs a dedicated tester agent by default.
+
+## D-196: Role File Schema with Mechanical Validation
+
+**Date:** 2026-04-01
+**Status:** Accepted
+**Context:** 11 agent role files in `src/global/core/rules/roles/` evolved across phases 2-14. Each has a different set of top-level keys. `quality_stance` exists in 9/11 files. `capabilities` missing from Mnemosyne. `response_format` missing from Calliope. No schema file validates role structure — `test-agent-definitions.sh` checks some keys but not completeness.
+
+**Decision:** Create `src/schemas/role.schema.yaml` defining role file structure. Required keys: `_meta` (name, role, purpose, budget), `identity`, `capabilities`, `never`, `knowledge_access`, `response_format`. Optional keys documented with purpose: `quality_stance`, `quality_checklist`, `artifact_contract`, `write_access`, `analytical_mode`, `analysis_paralysis_guard`, `embedded_verification`. All 11 role files normalized to include all required keys. Validated by tier1 test.
+
+**Alternatives rejected:**
+- Keep role files ad-hoc, document conventions only — role files are consumed by scripts (rules.sh) and LLM prompts; inconsistency causes silent bugs when scripts expect keys that don't exist.
+- JSON Schema validator — adds external dependency; custom YAML schema system already exists and works.
+**Reasoning:** Role files are the most-read configuration files in the system — every agent dispatch assembles from them. Inconsistency between files is a source of subtle bugs. Schema + validation catches drift early.
+
+## D-197: Artifact Contracts for All Pipeline Agents
+
+**Date:** 2026-04-01
+**Status:** Accepted
+**Context:** D-184 introduced artifact output contracts for Apollo, Metis, and Daedalus — the three agents where wrong output is most costly. `artifact-validate.sh` enforces these via blocking SubagentStop hook. But 8 other agents (Hermes, Athena, Hephaestus, Themis, Aletheia, Calliope, Mnemosyne, Argus) have no mechanical validation of their artifact structure. Missing sections in exploration.md or review.md cause silent downstream failures.
+
+**Decision:** Define artifact section contracts for all pipeline agents. Extend `artifact-validate.sh` to validate all agents that produce artifacts (not just 3). Required sections per agent documented in `design/architecture/agents.md`. Validation is structural only (section headers exist) — same pattern as D-184. Agents not dispatched by default (Aletheia, Athena) still have contracts for when they are dispatched on-demand.
+
+Contracts are intentionally minimal — only sections that downstream consumers depend on. The goal is catching structural omissions, not enforcing quality (that's the quality gate system's job).
+
+**Alternatives rejected:**
+- Validate only agents dispatched by default — on-demand agents (Athena, Aletheia) still produce artifacts consumed by the pipeline. Missing sections cause the same problems.
+- Deep content validation (check section has N+ lines) — too fragile; sections vary by task complexity. Header-presence is the right mechanical boundary.
+**Reasoning:** Extending the proven D-184 pattern to all agents. artifact-validate.sh already handles the blocking/retry cycle. Adding more role cases is low-risk, high-value.
+
+## D-198: Pipeline Tracker Consolidation
+
+**Date:** 2026-04-01
+**Status:** Accepted
+**Context:** Pipeline state is tracked in two files: `current.yaml` (YAML, has schema, managed by state.sh) and `pipeline-tracker.state` (custom key=value format, no schema, separate parser). Both store pipeline name and overlap on state. Hooks read from both, creating dual source of truth. `pipeline-tracker.state` also spawns per-subtask variants (`pipeline-tracker-sub-{N}.state`).
+
+**Decision:** Eliminate `pipeline-tracker.state`. Merge all its fields into `current.yaml`: `last_role`, `review_pending`, `test_pending`, `dispatched_role`, `subtask_mode`, `current_subtask`, `subtask_counter`. Per-subtask state moves to `state/subtasks/{N}.yaml` using the same schema fields. All hooks updated to read/write `current.yaml` via `moira_yaml_get`/`moira_yaml_set`. Single file, single format, single parser, single schema.
+
+**Alternatives rejected:**
+- Keep pipeline-tracker.state, add schema — still two files, two parsers, two sources of truth. Complexity not justified.
+- Move everything to pipeline-tracker.state — would mean abandoning the YAML schema system that validates current.yaml.
+**Reasoning:** Dual state tracking is the #1 source of potential state inconsistency. YAML with schema validation is strictly better than ad-hoc key=value. Migration eliminates an entire class of bugs (state desync between files).

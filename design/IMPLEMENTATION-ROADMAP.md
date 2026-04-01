@@ -577,6 +577,51 @@ Pipeline YAML and orchestrator updated for new flow: fewer batches, no per-phase
 
 ---
 
+## Phase 17: System File Standardization & Mechanical Validation
+
+**Goal:** Standardize all system file contracts with mechanical enforcement. Every agent-written file validated at write-time by hooks. Single state format. Predictable, automatable contracts.
+
+**Depends on:** Phase 2 (agent definitions), Phase 8 (hooks), Phase 15+16 (current pipeline state).
+
+**Context (D-196, D-197, D-198):** System files evolved organically across 16 phases. Role files have inconsistent keys (quality_stance 9/11, capabilities 10/11, response_format 10/11). artifact-validate.sh covers only 3/11 agents. Dual state tracking (current.yaml + pipeline-tracker.state) creates potential desync. Findings YAML validated only at read-time. This phase closes all structural validation gaps.
+
+### Chunk 1: Design Docs & Decisions
+- D-196 (role schema), D-197 (artifact contracts for all agents), D-198 (tracker consolidation)
+- Update agents.md with artifact contracts for all agents
+- Add Phase 17 to roadmap
+
+### Chunk 2: Role File Schema & Normalization
+- Create `src/schemas/role.schema.yaml`
+- Normalize all 11 role files (add missing required keys)
+- Extend `test-agent-definitions.sh` with schema validation
+
+### Chunk 3: Artifact Contracts for All Agents
+- Extend `artifact-validate.sh` from 3 to all pipeline agents
+- Add tier1 tests for new artifact contracts
+
+### Chunk 4: Pipeline Tracker Consolidation
+- Merge pipeline-tracker.state fields into current.yaml
+- Per-subtask state to `state/subtasks/{N}.yaml`
+- Update all hooks to use current.yaml exclusively
+- Update tier1 tests
+
+### Chunk 5: Findings Write-Time Validation
+- Extend `artifact-validate.sh` to validate findings YAML for gate agents at SubagentStop
+- Add tier1 tests for findings validation
+
+**Testing:**
+- Role schema validation in test-agent-definitions.sh
+- Artifact contract tests for all agents in test-hooks-functional.sh
+- Pipeline tracker tests updated for current.yaml-only state
+- Findings validation tests (valid + invalid + derivation consistency)
+- Regression: full tier1 suite passes
+
+**Key decisions:** D-196 (role file schema), D-197 (artifact contracts for all agents), D-198 (pipeline tracker consolidation).
+
+**Risk classification:** YELLOW (threshold adjustments, hook behavior changes). No constitutional impact — gate structure unchanged.
+
+---
+
 ## Testing Strategy
 
 Three-layer architecture woven across phases (D-023):

@@ -113,6 +113,43 @@ fields:
     required: false
     default: []
     description: "Step IDs completed during analytical pipeline execution"
+  # Pipeline tracker fields (D-198: consolidated from pipeline-tracker.state)
+  last_role:
+    type: string
+    required: false
+    default: null
+    description: "Last dispatched agent role"
+  review_pending:
+    type: boolean
+    required: false
+    default: false
+    description: "Whether review must be dispatched before next step"
+  test_pending:
+    type: boolean
+    required: false
+    default: false
+    description: "Whether testing must be dispatched before next step"
+  dispatched_role:
+    type: string
+    required: false
+    default: null
+    description: "Currently dispatched agent role (cleared after agent completes)"
+  subtask_mode:
+    type: boolean
+    required: false
+    default: false
+    description: "Whether decomposition sub-task execution is active"
+  current_subtask:
+    type: number
+    required: false
+    default: null
+    description: "Current sub-task number (1-based)"
+  subtask_counter:
+    type: number
+    required: false
+    default: 0
+    description: "Total sub-tasks dispatched so far"
+
   bypass.active:
     type: boolean
     required: false
