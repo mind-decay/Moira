@@ -79,7 +79,7 @@ The system MUST NOT make decisions without either (a) following an explicit rule
 ### 3.1 All Decisions Are Traceable
 Every architectural decision, every plan, every implementation step MUST be written to state files. There must be no "invisible" steps.
 
-**Test:** Every pipeline step writes output to `.claude/moira/state/tasks/{id}/`. No step is fire-and-forget.
+**Test:** Every pipeline step writes output to `.moira/state/tasks/{id}/`. No step is fire-and-forget.
 
 ### 3.2 Budget Visibility
 Context budget usage MUST be reported to the user. Budget tracking cannot be disabled or hidden.
