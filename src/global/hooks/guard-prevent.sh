@@ -74,7 +74,15 @@ fi
 # ~/.claude/moira/ — global core/skills/hooks (read only)
 case "$file_path" in
   *".moira"*)  exit 0 ;; # project-local moira state — allowed
-  *".claude/"*) exit 0 ;; # Claude Code config — infrastructure, not project source
+  *".claude/"*)
+    case "$tool_name" in
+      Read) exit 0 ;; # read Claude Code config — allowed
+      Write|Edit)
+        echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"BOUNDARY VIOLATION: Orchestrator cannot write to .claude/ — Claude Code config is read-only for orchestrator.\"}}"
+        exit 0
+        ;;
+    esac
+    ;;
   *".ariadne/"*)
     case "$tool_name" in
       Read) exit 0 ;; # read graph data — allowed
