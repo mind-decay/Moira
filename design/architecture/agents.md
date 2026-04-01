@@ -96,6 +96,8 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
 3. For deeper exploration: `ariadne_subgraph` / `ariadne_callees` / `ariadne_reading_order` (replaces grep-based import tracing)
 4. Grep/glob as FALLBACK — for non-structural queries or when graph data unavailable
 
+**Q1 Gap Analysis (D-189):** In Standard and Full pipelines, Hermes includes a `## Gap Analysis` section in exploration.md covering the Q1 completeness checklist: happy path coverage, error cases, edge cases, input validation, output format, performance expectations, security implications, backwards compatibility. This is fact-reporting ("this edge case has no handler"), not requirements proposal. When gap analysis reveals requirements ambiguity that Hermes cannot resolve from code inspection, Hermes reports STATUS: blocked with specific questions — or the user can dispatch Athena via plan gate `analyze` option.
+
 **Rules:**
 - Reports FACTS, not opinions or recommendations
 - Does not propose solutions
@@ -107,6 +109,7 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
 - Does NOT silently expand exploration scope (reports E2-SCOPE)
 - Does NOT express opinions
 - Documents what it found AND what it looked for but didn't find
+- Gap analysis reports observed gaps as facts, does NOT propose how to fill them (D-189)
 
 **Analytical pipeline mode (D-125):** In the Analytical Pipeline gather step, Hermes also executes Ariadne baseline queries (overview, smells, metrics, layers, cycles, clusters) and writes results to `ariadne-baseline.md` alongside `exploration.md`. This is fact-gathering from a structural analysis tool — consistent with Hermes's core responsibility. If Ariadne is unavailable, Hermes notes it and continues with code-only exploration.
 
@@ -127,7 +130,13 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
 
 **Quality stance (D-185):** Precision — requirements that leave ambiguity create implementation guesswork. Every criterion must be mechanically testable.
 
-**Input:** Task description + project-model summary
+**Pipeline dispatch changes (D-189):** In Standard and Full pipelines, Athena is no longer dispatched by default. Hermes handles Q1 gap analysis as part of exploration (fact-reporting). Athena is dispatched on-demand via:
+- Plan gate `analyze` option — when user decides detailed requirements formalization is needed
+- Hermes STATUS: blocked on requirements — when exploration reveals ambiguity that Hermes cannot resolve from code inspection
+- Decomposition pipeline — Athena remains default for epic-level requirement breakdown
+This saves ~56k tokens per pipeline run while preserving the ability to use Athena when needed.
+
+**Input:** Task description + project-model summary + exploration.md (when available)
 **Output:** Formal requirements document
 
 **Rules:**
@@ -232,6 +241,13 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
 ```
 Validated by `artifact-validate.sh` hook — missing sections block agent completion. `## Unverified Dependencies` is conditionally required: hook checks architecture artifact for "UNVERIFIED" string; if found, this section must exist and address each UNVERIFIED item (verification step in plan, or risk acceptance justification). Cross-gate: receives classification scope + criteria + architecture recommendation + assumptions via traceability injection.
 
+**Analysis paralysis guard (D-192):** If 5+ consecutive read-only tool calls (Read, Grep, Glob) occur without a write action (Edit, Write, Bash), STOP. State the blocker in one sentence, then either produce the plan or report STATUS: blocked with what specific information is missing.
+
+**Embedded verification fields (D-191):** Every task in the plan MUST include:
+- `Verify:` — concrete command that proves the task was completed correctly (e.g., `bash src/tests/tier1/test-X.sh`, `grep -q 'function_name' src/file.sh`)
+- `Done:` — measurable success criteria (e.g., "all 34 tests pass", "function exists and returns JSON")
+Hephaestus runs the verify command after each task. Plan-check (Themis) validates that every task has these fields.
+
 **Rules:**
 - Does NOT make architectural decisions, only decomposes
 - Does NOT choose between technical alternatives (Architect's responsibility)
@@ -245,6 +261,7 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
   - [ ] No step requires knowledge that previous steps don't produce
   - [ ] Rollback path exists for each step
   - [ ] Contract interfaces defined for parallel batches
+  - [ ] Every task has `Verify:` and `Done:` fields (D-191)
 - Creates dependency graph for files
 - Clusters files into independent batches
 - Estimates context budget per batch
@@ -279,6 +296,10 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
 **Input:** Assembled instructions (from Planner) + conventions + specific files to modify + pre-assembled context (D-187) + structural baseline (D-186)
 **Output:** Code changes in project files
 
+**Embedded task verification (D-191):** Each task in the plan includes a `<verify>` command and `<done>` criteria. After completing each task, Hephaestus runs the verify command. If verification fails, Hephaestus fixes the issue (up to 2 attempts per task) before proceeding to the next task. Verification results are recorded in implementation.md per task. If a task fails verification after 2 fix attempts, Hephaestus reports the failure in implementation.md and proceeds — final review (Themis) will catch it.
+
+**Analysis paralysis guard (D-192):** If 5+ consecutive read-only tool calls (Read, Grep, Glob) occur without a write action (Edit, Write, Bash), STOP. State the blocker in one sentence, then either write code or report STATUS: blocked with what specific information is missing.
+
 **Rules:**
 - Implements the plan faithfully with craftsmanship — the plan defines WHAT to build; agent owns HOW it's built (D-185)
 - Does NOT add scope beyond the plan — but within scope, writes quality code
@@ -292,6 +313,7 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
 - Does NOT refactor code outside plan scope
 - Does NOT add comments/docstrings/annotations to unchanged code
 - Does NOT return STATUS: success when post-implementation validation commands have failed
+- Runs `<verify>` command after each task completion (D-191)
 - After code changes: runs post-implementation validation commands from `.claude/moira/config.yaml` → `tooling.post_implementation[]` (D-063). If commands fail, fixes errors before returning STATUS: success. If no commands configured, skips validation.
 
 **Phase 4/5 tools:** PREFER `ariadne_symbols` over Read+grep for finding symbol locations and verifying exports. PREFER `ariadne_callers` over grep for finding all usage sites of a changed function. Uses `ariadne_dependencies` to verify new imports respect existing dependency structure. Uses pre-assembled context from Daedalus instruction file (D-187) as primary structural map. (D-187: PREFER language for graph-first navigation.)
@@ -304,14 +326,23 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
 
 ## Themis (reviewer)
 
-**Purpose:** Checks code quality against standards and requirements.
+**Purpose:** Checks code quality against standards and requirements. Also validates plans before execution (D-190).
 
 **Quality stance (D-185):** Distinguish adequate from excellent. Correct code that is poorly structured, hard to read, or fragile is a WARNING, not a pass.
 
 **Behavioral defense role:** Primary per-task defense against upstream agent behavioral violations (E9/E10). Catches role boundary violations, factual errors, and semantic correctness failures.
 
-**Input:** Written code + plan + requirements + conventions + structural baseline (D-186)
-**Output:** Issue list with severity (critical/warning/suggestion) + structural quality delta (D-186)
+**Input (code review mode):** Written code + plan + requirements + conventions + structural baseline (D-186)
+**Output (code review mode):** Issue list with severity (critical/warning/suggestion) + structural quality delta (D-186)
+
+**Plan-check mode (D-190):** In Full pipeline, Themis is dispatched after Daedalus with a lightweight plan validation focus. Input: plan.md + architecture.md + exploration.md. Validates:
+1. Scope alignment — plan covers all acceptance criteria from classification
+2. File existence — every file in plan exists (or is explicitly new)
+3. Dependency ordering — no step requires output from a later step
+4. Contract completeness — batch interfaces are fully specified
+5. Verification coverage — every task has a concrete `<verify>` command (D-191)
+6. Budget feasibility — no batch exceeds agent limits
+Output: plan-check findings with severity classification. Critical findings block the plan gate; warnings and suggestions are presented alongside the plan summary. Budget: ~40k (lighter than full code review).
 
 **Rules:**
 - Does NOT fix code — only identifies issues
@@ -349,6 +380,14 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
 **Purpose:** Writes and runs tests.
 
 **Quality stance (D-185):** Tests that only verify happy path are incomplete. Tests that test implementation details are brittle. Find the balance.
+
+**Pipeline dispatch changes (D-194, D-195):** Aletheia is removed from all default pipeline flows (Quick, Standard, Full, Decomposition). Its responsibilities are redistributed:
+- **Running tests/build** → bash step (`tooling.post_implementation[]`, ~0 tokens)
+- **Writing tests** → Hephaestus (tests are code; Daedalus includes test tasks in the plan)
+- **Integration testing** → bash step + Hephaestus writes integration tests as plan tasks
+- **Ad-hoc testing at final gate** → Hephaestus dispatch
+
+Aletheia remains as an agent definition available for explicit user dispatch when specialized test work is needed.
 
 **Input:** Code + requirements + acceptance criteria
 **Output:** Tests + execution results

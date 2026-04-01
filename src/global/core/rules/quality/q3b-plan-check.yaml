@@ -1,0 +1,28 @@
+_meta:
+  name: q3b-plan-check
+  gate: Q3b
+  description: Plan Validation (pre-execution)
+  agent: themis  # D-190: Themis in plan-check mode
+  pipeline_step: plan_check
+
+items:
+  - id: Q3b-01
+    check: "Plan covers all acceptance criteria from classification"
+    required: true
+  - id: Q3b-02
+    check: "Every file in plan exists or is explicitly marked as new"
+    required: true
+  - id: Q3b-03
+    check: "Dependency ordering is valid — no step requires output from a later step"
+    required: true
+  - id: Q3b-04
+    check: "Contract interfaces fully specified for parallel batches"
+    required: true
+  - id: Q3b-05
+    check: "Every task has a concrete Verify: command (D-191)"
+    required: true
+  - id: Q3b-06
+    check: "No batch exceeds agent budget limits"
+    required: true
+
+on_missing: "Re-dispatch Daedalus with specific feedback on plan gaps"

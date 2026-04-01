@@ -5,16 +5,24 @@
 Quality is not a final gate. It's embedded at every pipeline level.
 
 ```
-Requirements ──→ [Q1: Completeness] ──→ Architecture
+Exploration  ──→ [Q1: Completeness] ──→ Architecture       (Hermes gap analysis, D-189)
 Architecture ──→ [Q2: Soundness]    ──→ Plan
-Plan         ──→ [Q3: Feasibility]  ──→ Implementation
-Implementation → [Q4: Correctness]  ──→ Tests
-Tests        ──→ [Q5: Coverage]     ──→ Done
+Plan         ──→ [Q3: Feasibility]  ──→ Plan Validation
+Plan         ──→ [Q3b: Plan-check]  ──→ Implementation     (Themis plan-check, D-190)
+Per-task     ──→ [Q4b: Verify]      ──→ (embedded, D-191)  (Hephaestus runs <verify> per task)
+All changes  ──→ [Q5: Build/Test]   ──→ Review             (bash step, D-191/D-194)
+All changes  ──→ [Q4: Correctness]  ──→ Done               (final Themis review, D-194)
 ```
+
+Note: Q5 (build/test) runs BEFORE Q4 (code review). Themis reviews code that is known to compile and pass tests — this produces better quality signal than reviewing potentially broken code (D-194).
+
+**Token optimization context (D-193):** The quality flow was restructured to front-load quality (plan-check before execution) and embed verification (per-task verify + test hook) instead of dispatching separate review/test agents per batch. Quality signals Q1-Q5 are all preserved — they execute more efficiently, not less thoroughly.
 
 ## Quality Gates
 
-### Q1: Requirements Completeness (Analyst)
+### Q1: Requirements Completeness (Explorer gap analysis / Analyst on-demand)
+
+Performed by Hermes as part of exploration (D-189). Athena dispatched on-demand when detailed formalization needed.
 
 ```
 - [ ] Happy path clearly defined
@@ -26,7 +34,7 @@ Tests        ──→ [Q5: Coverage]     ──→ Done
 - [ ] Security implications assessed
 - [ ] Backwards compatibility impact assessed
 
-MISSING ITEMS → STATUS: blocked, ask user
+MISSING ITEMS → STATUS: blocked, ask user (or dispatch Athena via plan gate 'analyze' option)
 ```
 
 ### Q2: Architecture Soundness (Architect)
@@ -134,16 +142,30 @@ Issue severity:
 
 **Cross-reference:** Q4 serves as the primary behavioral defense mechanism in the three-tier enforcement model (D-065). Behavioral constraints (NEVER rules, role boundaries, fabrication prohibition) cannot be structurally enforced — Reviewer's Q4 checklist is the primary per-task detection layer. See `fault-tolerance.md` § Enforcement Model for the full three-tier model.
 
-### Q5: Test Coverage (Tester)
+### Q5: Test Coverage (Build/test step + embedded verification)
 
+Testing is split between embedded verification and a bash build/test step (D-191, D-194). Aletheia is not dispatched in Standard/Full pipelines.
+
+**Embedded verification (per-task, D-191):**
 ```
-- [ ] Happy path tested
-- [ ] Each error case from requirements has a test
-- [ ] Edge cases have tests
-- [ ] Integration points tested
-- [ ] Tests actually run and pass
-- [ ] No brittle tests (testing implementation details)
-- [ ] Tests match project testing patterns
+- [ ] Each task's <verify> command passes
+- [ ] Hephaestus recorded verify results in implementation.md
+- [ ] Failed verifications were fixed (max 2 attempts per task)
+```
+
+**Build/test step (bash, runs BEFORE final review, D-194):**
+```
+- [ ] tooling.post_implementation[] commands run successfully (if configured)
+- [ ] Results written to test-results.md
+- [ ] If fail → Hephaestus retry with failure context (max 2 attempts)
+- [ ] If not configured → step skipped, embedded verify is sole coverage
+```
+
+**Test writing (when plan includes test deliverables):**
+```
+- [ ] Hephaestus writes tests as part of implementation (tests are code)
+- [ ] Test tasks have <verify> and <done> fields like any other task
+- [ ] Written tests follow project testing patterns
 ```
 
 ## Quality Criteria — Good vs Bad Code

@@ -4,7 +4,7 @@
 
 _meta:
   name: full
-  description: "Comprehensive pipeline for large tasks with phased implementation and per-phase gates"
+  description: "Comprehensive pipeline for large tasks with front-loaded quality and embedded verification (D-193)"
   trigger:
     size: large
     confidence: any
@@ -18,17 +18,15 @@ steps:
     reads_from: "tasks/{task_id}/input.md"
 
   - id: exploration
-    mode: parallel
-    agents:
-      - agent: hermes
-        role: explorer
-        writes_to: "tasks/{task_id}/exploration.md"
-      - agent: athena
-        role: analyst
-        writes_to: "tasks/{task_id}/requirements.md"
+    agent: hermes
+    role: explorer
+    mode: foreground
+    writes_to: "tasks/{task_id}/exploration.md"
     reads_from:
       - "tasks/{task_id}/classification.md"
       - "tasks/{task_id}/input.md"
+    # D-189: Hermes includes Q1 gap analysis in exploration.md
+    # Athena not dispatched by default; available on-demand via plan gate 'analyze' option
 
   - id: architecture
     agent: metis
@@ -39,7 +37,6 @@ steps:
       - "tasks/{task_id}/alternatives.md"
     reads_from:
       - "tasks/{task_id}/exploration.md"
-      - "tasks/{task_id}/requirements.md"
 
   - id: plan
     agent: daedalus
@@ -49,11 +46,26 @@ steps:
     reads_from:
       - "tasks/{task_id}/architecture.md"
       - "tasks/{task_id}/exploration.md"
-      - "tasks/{task_id}/requirements.md"
+    # D-191: Plan includes embedded verify fields per task
 
+  - id: plan_check
+    agent: themis
+    role: reviewer
+    mode: foreground
+    variant: plan_check  # D-190: lightweight plan validation mode
+    writes_to: "tasks/{task_id}/plan-check.md"
+    reads_from:
+      - "tasks/{task_id}/plan.md"
+      - "tasks/{task_id}/architecture.md"
+      - "tasks/{task_id}/exploration.md"
+
+  # D-193: Implementation batches with embedded verification per task
+  # Default: 2 batches. Mid-point gate only when >2 batches.
+  # Split threshold: if batch exceeds ~120 tool uses, auto-split.
   - id: implementation
     repeatable_group:
-      gate_per_iteration: true
+      gate_per_iteration: false  # D-193: no per-phase gate; mid-point gate conditional
+      mid_point_gate: true       # D-193: gate after ~50% of batches, only when >2 batches
       steps:
         - id: implementation
           agent: hephaestus
@@ -63,27 +75,30 @@ steps:
           reads_from:
             - "tasks/{task_id}/plan.md"
             - "tasks/{task_id}/architecture.md"
+          # D-191: Hephaestus runs <verify> per task within implementation
+          # D-192: Analysis paralysis guard active
 
-        - id: review
-          agent: themis
-          role: reviewer
-          mode: foreground
-          writes_to: "tasks/{task_id}/phases/{phase_n}/review.md"
-          reads_from: "tasks/{task_id}/phases/{phase_n}/implementation.md"
-
-        - id: testing
-          agent: aletheia
-          role: tester
-          mode: foreground
-          writes_to: "tasks/{task_id}/phases/{phase_n}/test-results.md"
-          reads_from: "tasks/{task_id}/phases/{phase_n}/implementation.md"
-
-  - id: integration
-    agent: aletheia
-    role: tester
+  # D-191, D-194: Bash build/test step runs BEFORE final review.
+  # Ensures Themis reviews code that compiles and passes tests.
+  # Uses config.yaml → tooling.post_implementation[]. If empty, step skipped.
+  # If fail → Hephaestus retry (max 2 attempts, then escalate to user).
+  - id: build_test
+    agent: null
+    role: build-test-runner
     mode: foreground
-    writes_to: "tasks/{task_id}/integration-results.md"
-    reads_from: "tasks/{task_id}/plan.md"
+    writes_to: "tasks/{task_id}/test-results.md"
+
+  - id: final_review
+    agent: themis
+    role: reviewer
+    mode: foreground
+    writes_to: "tasks/{task_id}/review.md"
+    reads_from:
+      - "tasks/{task_id}/plan.md"
+      - "tasks/{task_id}/architecture.md"
+      - "tasks/{task_id}/test-results.md"
+      # Reads all phases/{phase_n}/implementation.md
+      # D-194: Reviews code known to build and pass tests
 
   - id: completion
     agent: null
@@ -91,7 +106,8 @@ steps:
     mode: foreground
     writes_to: "tasks/{task_id}/telemetry.yaml"
     reads_from:
-      - "tasks/{task_id}/integration-results.md"  # Primary artifact; full completion data sourced from status.yaml per orchestrator.md Section 7
+      - "tasks/{task_id}/review.md"
+      - "tasks/{task_id}/test-results.md"
 
   # Dynamic checkpoint: Quality Checkpoint (see gates.md) — presented when quality-gate agent returns fail_warning
 gates:
@@ -122,33 +138,37 @@ gates:
       - id: abort
         description: "Cancel task"
 
+  # D-190, D-193: Plan gate now includes plan-check findings
   - id: plan_gate
-    after_step: plan
+    after_step: plan_check
     required: true
     options:
       - id: proceed
-        description: "Plan approved, begin phased implementation"
+        description: "Plan approved, begin implementation"
       - id: details
-        description: "Show full plan details"
+        description: "Show full plan details + plan-check findings"
       - id: modify
-        description: "Provide feedback for revision"
+        description: "Provide feedback for plan revision"
       - id: rearchitect
         description: "Return to architecture gate (different technical approach)"
+      - id: analyze
+        description: "Dispatch Athena for detailed requirements analysis (D-189)"
       - id: abort
         description: "Cancel task"
 
-  - id: phase_gate
-    after_step: "repeatable_group.testing"
-    required: true
-    repeating: true
+  # D-193: Conditional mid-point gate, only when >2 batches
+  - id: mid_point_gate
+    after_step: "repeatable_group.implementation"
+    required: false  # Only fires when >2 batches
+    condition: "batch_count > 2 AND current_batch == ceil(batch_count / 2)"
     options:
       - id: proceed
-        description: "Phase complete, continue to next"
+        description: "Continue to remaining batches"
       - id: checkpoint
         description: "Save progress and pause (resumable)"
       - id: modify
-        description: "Rework this phase"
-        action: "Re-dispatch phase agents with user feedback"
+        description: "Rework completed batches"
+        action: "Re-dispatch implementation agents with user feedback"
       - id: abort
         description: "Stop implementation"
 
@@ -166,7 +186,7 @@ gates:
       - id: diff
         description: "Show changes"
       - id: test
-        description: "Run additional tests"
+        description: "Run additional tests (dispatches Aletheia ad-hoc)"
 
   # max_attempts = total executions including original (not retry count)
   # e.g., max_attempts: 3 means original + 2 retries

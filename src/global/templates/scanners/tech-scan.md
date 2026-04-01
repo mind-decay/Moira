@@ -16,6 +16,11 @@ Identify the following technical facts about this project:
 8. **Deployment** — container technology, hosting platform
 9. **Package managers** — which lock file(s) exist
 
+## Pre-Collected Data
+
+Raw config files have been pre-collected at `.claude/moira/state/init/raw-configs.md`.
+Read that file FIRST. Only use Read/Glob for files NOT included in pre-collection.
+
 ## Scan Strategy
 
 Read files in this order. Stop after collecting sufficient data — do NOT exhaustively read every file.
@@ -122,5 +127,5 @@ Write the complete output to: `.claude/moira/state/init/tech-scan.md`
 - NO opinions, NO recommendations, NO proposals
 - Do NOT write `Not detected` or `unknown` in frontmatter — omit the field
 - In the markdown body, write "Not detected" for empty categories — do NOT guess
-- Budget: stay within 140k tokens — sample, don't exhaustively scan
+- Budget: stay within 50k tokens — sample, don't exhaustively scan
 - For each fact, note which file it was found in (e.g., "from package.json")

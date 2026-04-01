@@ -24,7 +24,14 @@ Read `.claude/moira/config.yaml`.
   Run /moira:init first.
   ```
 
-## Step 2: Project Re-scan
+## Step 2: Pre-Collect Data for Scanners
+
+Run via Bash (pre-collect config files and project structure to reduce scanner budgets):
+```bash
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_scan_precollect_tech "{project_root}" && moira_scan_precollect_structure "{project_root}"'
+```
+
+## Step 2a: Project Re-scan
 
 Dispatch 4 parallel Explorer agents with Layer 4 scanner instructions (same as init quick scan, D-032):
 
@@ -50,7 +57,7 @@ Dispatch 4 parallel Explorer agents with Layer 4 scanner instructions (same as i
 
 Wait for all 4 agents to complete. Process results using the same bootstrap scan processing as init: update `config.yaml` stack fields, merge knowledge files (additive — preserve user edits, add new findings, flag conflicts).
 
-## Step 2a: MCP Re-scan
+## Step 2b: MCP Re-scan
 
 Read the MCP scanner template and dispatch a single Explorer agent:
 - `~/.claude/moira/templates/scanners/mcp-scan.md`
@@ -64,7 +71,7 @@ Read the MCP scanner template and dispatch a single Explorer agent:
 
 Wait for completion.
 
-## Step 2b: Graph Update (unchanged)
+## Step 2c: Graph Update (unchanged)
 
 If the Ariadne binary is installed and a graph already exists, run an incremental update.
 
@@ -90,6 +97,16 @@ After update, extract summary for display:
 ```bash
 bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_summary'
 ```
+
+## Step 2d: Graph Diff to Knowledge (Phase 15)
+
+After graph update and views regenerate, run diff-to-knowledge to detect new/resolved smells and cycles, update quality-map entries, and refresh project-model structural sections:
+
+```bash
+bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_diff_to_knowledge "{project_root}" ".claude/moira/knowledge"'
+```
+
+Graceful degradation: if ariadne, jq, or snapshot are not available, this either falls back to full populate or returns silently.
 
 ## Step 3: Merge MCP Registry
 

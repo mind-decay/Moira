@@ -111,4 +111,4 @@ Write the complete output to: `.claude/moira/state/init/pattern-scan.md`
 - Focus on RECURRING patterns — ignore one-off implementations
 - Do NOT write `Not detected` or `unknown` in frontmatter — omit the field
 - In the markdown body, write "Not detected" for empty categories — do NOT guess
-- Budget: stay within 140k tokens — sample, don't exhaustively scan
+- Budget: stay within 100k tokens — sample, don't exhaustively scan

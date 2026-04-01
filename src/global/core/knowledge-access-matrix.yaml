@@ -12,7 +12,7 @@ _meta:
 
 read_access:
   apollo:      { project_model: L1, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null, libraries: null, graph: L0 }
-  hermes:      { project_model: L0, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null, libraries: null, graph: L0 }
+  hermes:      { project_model: L1, conventions: null, decisions: null,  patterns: null, quality_map: null, failures: null, libraries: null, graph: L0 } # D-189: L0→L1 for gap analysis context
   athena:      { project_model: L1, conventions: null, decisions: L0,    patterns: null, quality_map: null, failures: L0,   libraries: null, graph: L1 } # extras: blast_radius, smells
   metis:       { project_model: L1, conventions: L0,   decisions: L2,    patterns: L1,   quality_map: L1,   failures: L0,   libraries: L0,   graph: L1 } # extras: metrics, spectral
   daedalus:    { project_model: L1, conventions: L1,   decisions: L0,    patterns: L0,   quality_map: L2,   failures: null, libraries: L0,  graph: L1 } # extras: blast_radius, importance

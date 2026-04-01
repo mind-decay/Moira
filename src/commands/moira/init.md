@@ -51,7 +51,18 @@ bash -c 'source ~/.claude/moira/lib/scaffold.sh && moira_scaffold_project "{proj
 
 This creates all directories and copies knowledge templates. Idempotent — safe to re-run.
 
-## Step 4: Dispatch Scanner Agents
+## Step 4: Pre-Collect Data for Scanners
+
+Run via Bash (pre-collect config files and project structure to reduce scanner budgets):
+```bash
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_scan_precollect_tech "{project_root}" && moira_scan_precollect_structure "{project_root}"'
+```
+
+This creates:
+- `.claude/moira/state/init/raw-configs.md` — config files for tech scanner
+- `.claude/moira/state/init/raw-structure.md` — directory tree + Ariadne data for structure scanner
+
+## Step 4a: Dispatch Scanner Agents
 
 Read scanner instruction templates and dispatch 4 Explorer agents in PARALLEL.
 
@@ -166,6 +177,30 @@ Display:
 ```
 
 Continue without graph (graceful degradation per D-102).
+
+### 4b.5: Populate Knowledge from Graph (Phase 15)
+
+If graph was built successfully (4b.2 completed), populate quality-map and project-model with structural data from Ariadne:
+
+```bash
+bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_populate_knowledge "{project_root}" "{project_root}/.claude/moira/knowledge"'
+```
+
+This queries Ariadne for smells, cycles, hotspots, coupling, centrality, layers, metrics, and boundaries. Results are written to quality-map/full.md (Problematic/Adequate entries) and project-model/full.md (structural sections). A graph snapshot is saved to `.claude/moira/state/graph-snapshot.json` for future diff-based refresh.
+
+Graceful degradation: if ariadne or jq are not available, this returns silently with no output.
+
+### 4b.6: Prepare Deep Scanner Pre-Context (Phase 15)
+
+If graph was built successfully, generate Ariadne pre-context for deep scanner agents:
+
+```bash
+bash -c 'source ~/.claude/moira/lib/graph.sh && moira_deepscan_prepare_context "{project_root}"'
+```
+
+This writes clusters, cycles, boundaries, layers, centrality, and smells data to `.claude/moira/state/init/ariadne-context.md` for use by deep scanner templates.
+
+Graceful degradation: if ariadne or jq are not available, writes a placeholder file.
 
 ## Step 5: Generate Config and Rules
 

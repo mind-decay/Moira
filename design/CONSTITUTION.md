@@ -59,7 +59,7 @@ Every pipeline has a fixed set of approval gates. Gates MUST NOT be skipped, reo
 
 - Quick: classification gate + final gate
 - Standard: classification + architecture + plan + final
-- Full: classification + architecture + plan + per-phase + final
+- Full: classification + architecture + plan + mid-point (conditional, >2 batches) + final
 - Decomposition: classification + architecture + decomposition + per-task + final
 - Analytical: classification + scope + depth checkpoint(s) + final
 

@@ -126,7 +126,7 @@ entries:
       - file: "src/global/skills/dispatch.md"
         field: "moira_graph_read_view calls"
         sync_type: "function_must_exist"
-    values_tracked: "graph.sh function names (moira_graph_check_binary, moira_graph_build, moira_graph_update, moira_graph_query, moira_graph_views_generate, moira_graph_serve_start, moira_graph_serve_stop, moira_graph_is_fresh, moira_graph_summary, moira_graph_read_view, moira_graph_output_dir, moira_graph_views_dir, moira_graph_analytical_baseline)"
+    values_tracked: "graph.sh function names (moira_graph_check_binary, moira_graph_build, moira_graph_update, moira_graph_query, moira_graph_views_generate, moira_graph_serve_start, moira_graph_serve_stop, moira_graph_is_fresh, moira_graph_summary, moira_graph_read_view, moira_graph_output_dir, moira_graph_views_dir, moira_graph_analytical_baseline, moira_graph_populate_knowledge, moira_graph_diff_to_knowledge, moira_deepscan_prepare_context)"
 
   - id: xref-010
     description: "graph_available pipeline state field"
@@ -277,3 +277,84 @@ entries:
         field: "step e3 epistemic checks"
         sync_type: "logic_must_match"
     values_tracked: "Q4-E01 through Q4-E05 epistemic integrity checklist items (Q4-E01: epistemic_status_section_present, Q4-E02: unverified_claims_marked, Q4-E03: load_bearing_unverified_flagged, Q4-E04: verified_claims_have_evidence, Q4-E05: closed_world_compliance)"
+
+  - id: xref-021
+    description: "Bootstrap pre-collection functions"
+    canonical_source: "src/global/lib/bootstrap.sh"
+    dependents:
+      - file: "src/commands/moira/init.md"
+        field: "moira_scan_precollect_* calls"
+        sync_type: "function_must_exist"
+    values_tracked: "bootstrap.sh pre-collection function names (moira_scan_precollect_tech, moira_scan_precollect_structure)"
+
+  - id: xref-022
+    description: "Quality-map pass observation function"
+    canonical_source: "src/global/lib/knowledge.sh"
+    dependents:
+      - file: "src/global/lib/graph.sh"
+        field: "moira_knowledge_quality_map_pass_observation calls"
+        sync_type: "function_must_exist"
+    values_tracked: "moira_knowledge_quality_map_pass_observation function in knowledge.sh (used by graph diff pipeline for promotion tracking)"
+
+  - id: xref-023
+    description: "D-189 Q1 gap analysis agent assignment"
+    canonical_source: "src/global/core/rules/quality/q1-completeness.yaml"
+    dependents:
+      - file: "src/global/skills/dispatch.md"
+        field: "Agent-to-Gate Mapping table"
+        sync_type: "agent_name_must_match"
+      - file: "src/global/core/rules/roles/hermes.yaml"
+        field: "gap_analysis section"
+        sync_type: "must_exist"
+      - file: "src/global/core/knowledge-access-matrix.yaml"
+        field: "hermes project_model level"
+        sync_type: "must_be_L1"
+    values_tracked: "Q1 gate agent: hermes (was athena). Hermes project_model: L1 (was L0)"
+
+  - id: xref-024
+    description: "D-190 plan-check quality criteria"
+    canonical_source: "src/global/core/rules/quality/q3b-plan-check.yaml"
+    dependents:
+      - file: "src/global/skills/dispatch.md"
+        field: "Agent-to-Gate Mapping table"
+        sync_type: "gate_must_exist"
+      - file: "src/global/core/rules/roles/themis.yaml"
+        field: "plan_check_mode section"
+        sync_type: "must_exist"
+      - file: "src/global/core/pipelines/full.yaml"
+        field: "plan_check step"
+        sync_type: "step_must_exist"
+    values_tracked: "Q3b plan-check gate, Themis plan-check variant, full.yaml plan_check step"
+
+  - id: xref-025
+    description: "D-191 embedded task verification fields"
+    canonical_source: "src/global/core/rules/roles/daedalus.yaml"
+    dependents:
+      - file: "src/global/core/rules/roles/hephaestus.yaml"
+        field: "embedded_verification section"
+        sync_type: "must_exist"
+      - file: "src/global/core/rules/quality/q3-feasibility.yaml"
+        field: "Q3-07 verify/done check"
+        sync_type: "item_must_exist"
+      - file: "src/global/core/rules/quality/q3b-plan-check.yaml"
+        field: "Q3b-05 verify check"
+        sync_type: "item_must_exist"
+    values_tracked: "Verify: and Done: fields in plan tasks, Hephaestus verification protocol"
+
+  - id: xref-026
+    description: "D-192 analysis paralysis guard"
+    canonical_source: "src/global/core/rules/base.yaml"
+    dependents:
+      - file: "src/global/core/rules/roles/hephaestus.yaml"
+        field: "analysis_paralysis_guard section"
+        sync_type: "must_exist"
+      - file: "src/global/core/rules/roles/daedalus.yaml"
+        field: "analysis_paralysis_guard section"
+        sync_type: "must_exist"
+      - file: "src/global/core/rules/roles/themis.yaml"
+        field: "analysis_paralysis_guard section"
+        sync_type: "must_exist"
+      - file: "src/global/core/rules/roles/hermes.yaml"
+        field: "analysis_paralysis_guard section (10+ threshold)"
+        sync_type: "must_exist"
+    values_tracked: "Paralysis guard thresholds: 5+ for impl/plan/review agents, 10+ for explorer"

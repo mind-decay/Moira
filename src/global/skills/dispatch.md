@@ -394,11 +394,11 @@ For agents with quality gate assignments, append the quality checklist to their 
 
 | Agent | Gate | Checklist File |
 |-------|------|---------------|
-| Athena (analyst) | Q1 | q1-completeness.yaml |
+| Hermes (explorer) | Q1 | q1-completeness.yaml | <!-- D-189: gap analysis moved from Athena to Hermes -->
 | Metis (architect) | Q2 | q2-soundness.yaml |
 | Daedalus (planner) | Q3 | q3-feasibility.yaml |
+| Themis (reviewer, plan-check) | Q3b | q3b-plan-check.yaml | <!-- D-190: plan validation in Full pipeline -->
 | Themis (reviewer) | Q4 | q4-correctness.yaml |
-| Aletheia (tester) | Q5 | q5-coverage.yaml |
 
 **Analytical Pipeline Quality Gates** (used instead of Q1-Q5 when pipeline=analytical):
 
@@ -409,12 +409,14 @@ For agents with quality gate assignments, append the quality checklist to their 
 | Themis (reviewer) | QA3 | qa3-actionability.yaml |
 | Themis (reviewer) | QA4 | qa4-analytical-rigor.yaml |
 
-Agents not listed (Apollo, Hermes, Hephaestus, Mnemosyne, Argus, Calliope) have no quality gate assignment.
+<!-- D-194: Aletheia (Q5) removed from default pipeline — Q5 coverage via embedded verify + bash build/test step -->
+<!-- D-189: Athena no longer default-dispatched — Q1 handled by Hermes gap analysis -->
+Agents not listed (Apollo, Athena, Hephaestus, Aletheia, Mnemosyne, Argus, Calliope) have no quality gate assignment in default pipeline flows. Athena retains Q1 capability when dispatched on-demand.
 
 ### Injection Path
 
-- **Pre-planning agents** (Athena Q1, Metis Q2, Daedalus Q3): checklist injected via simplified assembly path — append to prompt template after Task section
-- **Post-planning agents** (Themis Q4, Aletheia Q5): checklist injected via instruction files written by Daedalus
+- **Pre-planning agents** (Hermes Q1, Metis Q2, Daedalus Q3): checklist injected via simplified assembly path — append to prompt template after Task section
+- **Post-planning agents** (Themis Q3b plan-check, Themis Q4 review): checklist injected via instruction files written by Daedalus (Q4) or simplified assembly (Q3b)
 
 ### Checklist Prompt Appendix
 

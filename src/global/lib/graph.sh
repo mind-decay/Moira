@@ -230,8 +230,9 @@ moira_graph_is_fresh() {
 # ── moira_graph_temporal_available <project_root> ────────────────────────────
 # Check if temporal (git history) data is available via Ariadne.
 # Returns 0 if temporal data is available, 1 otherwise.
-# Detection: queries ariadne overview and checks for "temporal" in output.
-# Reference: D-159
+# Detection: probes `ariadne query hotspots --format json --top 1` — if it
+# returns a non-empty JSON array, temporal data is available.
+# Reference: D-159, AD-3 (ariadne query overview does not exist as CLI subcommand)
 moira_graph_temporal_available() {
   local project_root="${1:-}"
 
@@ -244,19 +245,14 @@ moira_graph_temporal_available() {
     return 1
   fi
 
-  local overview_output
-  overview_output=$(ariadne query overview 2>/dev/null) || return 1
+  local probe_output
+  probe_output=$(ariadne query hotspots --format json --top 1 2>/dev/null) || return 1
 
-  if [[ -z "$overview_output" ]]; then
+  if [[ -z "$probe_output" ]] || [[ "$probe_output" == "[]" ]]; then
     return 1
   fi
 
-  # Check if overview output contains temporal data indicator
-  if echo "$overview_output" | grep -qi "temporal" 2>/dev/null; then
-    return 0
-  fi
-
-  return 1
+  return 0
 }
 
 # ── moira_graph_summary <graph_dir> ─────────────────────────────────────────
@@ -352,30 +348,26 @@ moira_graph_summary() {
   echo "monolith_score=${monolith_score}"
 
   # Temporal summary (if available)
+  # AD-3: ariadne query overview does not exist as CLI subcommand; use hotspots + coupling instead
   if moira_graph_temporal_available "${graph_dir%/*}" 2>/dev/null; then
-    local overview_output
-    overview_output=$(ariadne query overview 2>/dev/null) || overview_output=""
-    if [[ -n "$overview_output" ]]; then
-      local hotspot_count=0
-      local hidden_dep_count=0
-      local commits_30d=0
-      if command -v jq >/dev/null 2>&1; then
-        hotspot_count=$(echo "$overview_output" | jq '.temporal.hotspot_count // 0' 2>/dev/null) || hotspot_count=0
-        hidden_dep_count=$(echo "$overview_output" | jq '.temporal.hidden_dep_count // 0' 2>/dev/null) || hidden_dep_count=0
-        commits_30d=$(echo "$overview_output" | jq '.temporal.total_commits_30d // 0' 2>/dev/null) || commits_30d=0
-      else
-        hotspot_count=$(echo "$overview_output" | grep -o '"hotspot_count"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$' | head -1) || hotspot_count=0
-        hidden_dep_count=$(echo "$overview_output" | grep -o '"hidden_dep_count"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$' | head -1) || hidden_dep_count=0
-        commits_30d=$(echo "$overview_output" | grep -o '"total_commits_30d"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$' | head -1) || commits_30d=0
-      fi
-      hotspot_count="${hotspot_count:-0}"
-      hidden_dep_count="${hidden_dep_count:-0}"
-      commits_30d="${commits_30d:-0}"
-      echo "temporal_available=true"
-      echo "hotspot_count=${hotspot_count}"
-      echo "hidden_dep_count=${hidden_dep_count}"
-      echo "commits_30d=${commits_30d}"
+    local hotspot_count=0
+    local hidden_dep_count=0
+
+    if command -v jq >/dev/null 2>&1; then
+      local hotspot_output
+      hotspot_output=$(ariadne query hotspots --format json 2>/dev/null) || hotspot_output="[]"
+      hotspot_count=$(echo "$hotspot_output" | jq 'if type == "array" then length else 0 end' 2>/dev/null) || hotspot_count=0
+
+      local coupling_output
+      coupling_output=$(ariadne query coupling --format json 2>/dev/null) || coupling_output="[]"
+      hidden_dep_count=$(echo "$coupling_output" | jq '[.[] | select(.has_structural_link == false)] | length' 2>/dev/null) || hidden_dep_count=0
     fi
+
+    hotspot_count="${hotspot_count:-0}"
+    hidden_dep_count="${hidden_dep_count:-0}"
+    echo "temporal_available=true"
+    echo "hotspot_count=${hotspot_count}"
+    echo "hidden_dep_count=${hidden_dep_count}"
   else
     echo "temporal_available=false"
   fi
@@ -533,6 +525,888 @@ moira_graph_analytical_baseline() {
     echo "Phase 7 tools will return temporal_unavailable errors."
     echo ""
   fi
+
+  return 0
+}
+
+# ── moira_graph_populate_knowledge <project_root> <knowledge_dir> ──────────
+# Populate quality-map and project-model from Ariadne structural data.
+# Queries Ariadne CLI for smells, cycles, hotspots, coupling, centrality,
+# layers, metrics, and boundaries. Writes entries to quality-map/full.md
+# (Problematic/Adequate) and project-model/full.md (structural sections).
+# Saves graph snapshot to .claude/moira/state/graph-snapshot.json for diff.
+#
+# Preconditions: ariadne + jq in PATH, knowledge_dir exists.
+# Graceful degradation: returns 0 silently if ariadne absent; warns if jq absent.
+# Each ariadne query wrapped in `|| true` — individual failure does not abort.
+# Reference: Phase 15, AD-1 through AD-5
+moira_graph_populate_knowledge() {
+  local project_root="${1:-}"
+  local knowledge_dir="${2:-}"
+
+  if [[ -z "$project_root" ]] || [[ -z "$knowledge_dir" ]]; then
+    echo "Error: moira_graph_populate_knowledge requires <project_root> <knowledge_dir>" >&2
+    return 1
+  fi
+
+  # Precondition 1: ariadne binary
+  if ! command -v ariadne >/dev/null 2>&1; then
+    return 0
+  fi
+
+  # Precondition 2: jq binary
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "Warning: jq not found — skipping Ariadne-to-knowledge pipeline" >&2
+    return 0
+  fi
+
+  # Precondition 3: knowledge_dir exists
+  if [[ ! -d "$knowledge_dir" ]]; then
+    echo "Error: knowledge_dir does not exist: $knowledge_dir" >&2
+    return 1
+  fi
+
+  # Source knowledge.sh for moira_knowledge_write
+  source "$(dirname "${BASH_SOURCE[0]}")/knowledge.sh"
+
+  local today
+  today=$(date -u +%Y-%m-%d)
+  local graph_dir="${project_root}/${_MOIRA_GRAPH_DEFAULT_GRAPH_DIR}"
+
+  # ── Collect Ariadne data ──────────────────────────────────────────────
+
+  # 1. Smells
+  local smells_json
+  smells_json=$(ariadne query smells --format json 2>/dev/null) || true
+  local smells_valid="false"
+  if [[ -n "$smells_json" ]] && echo "$smells_json" | jq type 2>/dev/null | grep -q '"array"'; then
+    smells_valid="true"
+  fi
+
+  # 2. Cycles
+  local cycles_json
+  cycles_json=$(ariadne query cycles --format json 2>/dev/null) || true
+  local cycles_valid="false"
+  if [[ -n "$cycles_json" ]] && echo "$cycles_json" | jq type 2>/dev/null | grep -q '"array"'; then
+    cycles_valid="true"
+  fi
+
+  # 3. Hotspots (temporal only)
+  local hotspots_json="[]"
+  local hotspots_valid="false"
+  if moira_graph_temporal_available "$project_root" 2>/dev/null; then
+    hotspots_json=$(ariadne query hotspots --format json 2>/dev/null) || true
+    if [[ -n "$hotspots_json" ]] && echo "$hotspots_json" | jq type 2>/dev/null | grep -q '"array"'; then
+      hotspots_valid="true"
+    fi
+  fi
+
+  # 4. Coupling (temporal only, confidence >= 0.5)
+  local coupling_json="[]"
+  local coupling_valid="false"
+  if moira_graph_temporal_available "$project_root" 2>/dev/null; then
+    coupling_json=$(ariadne query coupling --format json 2>/dev/null) || true
+    if [[ -n "$coupling_json" ]] && echo "$coupling_json" | jq type 2>/dev/null | grep -q '"array"'; then
+      coupling_valid="true"
+    fi
+  fi
+
+  # 5. Centrality
+  local centrality_json
+  centrality_json=$(ariadne query centrality --format json 2>/dev/null) || true
+  local centrality_valid="false"
+  if [[ -n "$centrality_json" ]] && echo "$centrality_json" | jq type 2>/dev/null | grep -q '"object"'; then
+    centrality_valid="true"
+  fi
+
+  # 6. Layers
+  local layers_json
+  layers_json=$(ariadne query layers --format json 2>/dev/null) || true
+  local layers_valid="false"
+  if [[ -n "$layers_json" ]] && echo "$layers_json" | jq type 2>/dev/null | grep -q '"object"'; then
+    layers_valid="true"
+  fi
+
+  # 7. Metrics
+  local metrics_json
+  metrics_json=$(ariadne query metrics --format json 2>/dev/null) || true
+  local metrics_valid="false"
+  if [[ -n "$metrics_json" ]] && echo "$metrics_json" | jq type 2>/dev/null | grep -q '"object"'; then
+    metrics_valid="true"
+  fi
+
+  # 8. Boundaries
+  local boundaries_json
+  boundaries_json=$(ariadne query boundaries --format json 2>/dev/null) || true
+  local boundaries_valid="false"
+  if [[ -n "$boundaries_json" ]] && echo "$boundaries_json" | jq type 2>/dev/null | grep -qE '"object"|"array"'; then
+    boundaries_valid="true"
+  fi
+
+  # ── Write quality-map entries ─────────────────────────────────────────
+
+  local qm_tmp
+  qm_tmp=$(mktemp)
+
+  {
+    echo "<!-- moira:freshness ariadne-init ${today} -->"
+    echo "<!-- moira:mode conform -->"
+    echo ""
+    echo "# Quality Map"
+    echo ""
+    echo "## Problematic"
+    echo ""
+
+    # Smells -> Problematic
+    if [[ "$smells_valid" == "true" ]]; then
+      echo "$smells_json" | jq -r '.[] | "\(.smell_type)\t\(.files | join(", "))\t\(.files[0] // "unknown")"' 2>/dev/null | while IFS=$'\t' read -r smell_type file_list first_file; do
+        echo "### ${smell_type}: ${first_file}"
+        echo "- **Category**: ${smell_type}"
+        echo "- **Evidence**: ariadne structural analysis"
+        echo "- **File(s)**: ${file_list}"
+        echo "- **Confidence**: high"
+        echo "- **Observation count**: 1"
+        echo "- **Failed observations**: 0"
+        echo "- **Consecutive passes**: 0"
+        echo "- **Lifecycle**: NEW"
+        echo ""
+      done
+    fi
+
+    # Cycles -> Problematic
+    if [[ "$cycles_valid" == "true" ]]; then
+      local cycle_count
+      cycle_count=$(echo "$cycles_json" | jq 'length' 2>/dev/null) || cycle_count=0
+      if [[ "$cycle_count" -gt 0 ]]; then
+        echo "$cycles_json" | jq -r '.[] | join(", ")' 2>/dev/null | while IFS= read -r member_files; do
+          echo "### Circular dependency: ${member_files}"
+          echo "- **Category**: circular dependency"
+          echo "- **Evidence**: ariadne structural analysis"
+          echo "- **File(s)**: ${member_files}"
+          echo "- **Confidence**: high"
+          echo "- **Observation count**: 1"
+          echo "- **Failed observations**: 0"
+          echo "- **Consecutive passes**: 0"
+          echo "- **Lifecycle**: NEW"
+          echo ""
+        done
+      fi
+    fi
+
+    # Hotspots -> Problematic (temporal only)
+    if [[ "$hotspots_valid" == "true" ]]; then
+      echo "$hotspots_json" | jq -r '.[0:20] | .[] | .path' 2>/dev/null | while IFS= read -r hotspot_path; do
+        echo "### Hotspot: ${hotspot_path}"
+        echo "- **Category**: churn hotspot"
+        echo "- **Evidence**: ariadne temporal analysis"
+        echo "- **File(s)**: ${hotspot_path}"
+        echo "- **Confidence**: high"
+        echo "- **Observation count**: 1"
+        echo "- **Failed observations**: 0"
+        echo "- **Consecutive passes**: 0"
+        echo "- **Lifecycle**: NEW"
+        echo ""
+      done
+    fi
+
+    echo "## Adequate"
+    echo ""
+
+    # Coupling -> Adequate (temporal only, confidence >= 0.5)
+    if [[ "$coupling_valid" == "true" ]]; then
+      echo "$coupling_json" | jq -r '.[] | select(.confidence >= 0.5) | "\(.file_a)\t\(.file_b)\t\(.confidence)"' 2>/dev/null | while IFS=$'\t' read -r file_a file_b confidence; do
+        echo "### Co-change coupling: ${file_a} <-> ${file_b}"
+        echo "- **Category**: structural coupling"
+        echo "- **Evidence**: ariadne temporal analysis (confidence: ${confidence})"
+        echo "- **File(s)**: ${file_a}, ${file_b}"
+        echo "- **Confidence**: high"
+        echo "- **Observation count**: 1"
+        echo "- **Failed observations**: 0"
+        echo "- **Consecutive passes**: 0"
+        echo "- **Lifecycle**: NEW"
+        echo ""
+      done
+    fi
+
+    echo "## Strong"
+    echo ""
+    echo "(populated by observation — no entries at init)"
+    echo ""
+  } > "$qm_tmp"
+
+  mkdir -p "${knowledge_dir}/quality-map"
+  cp "$qm_tmp" "${knowledge_dir}/quality-map/full.md"
+  rm -f "$qm_tmp"
+
+  # ── Write project-model sections ──────────────────────────────────────
+
+  local pm_tmp
+  pm_tmp=$(mktemp)
+
+  {
+    echo "## Structural Bottlenecks"
+    echo ""
+
+    # Centrality: top 15 by value
+    if [[ "$centrality_valid" == "true" ]]; then
+      echo "| File | Centrality Score |"
+      echo "|------|-----------------|"
+      echo "$centrality_json" | jq -r 'to_entries | sort_by(-.value) | .[0:15] | .[] | "| \(.key) | \(.value) |"' 2>/dev/null || true
+    else
+      echo "(no centrality data available)"
+    fi
+    echo ""
+
+    echo "## Architectural Layers"
+    echo ""
+
+    # Layers
+    if [[ "$layers_valid" == "true" ]]; then
+      echo "| Layer | Files |"
+      echo "|-------|-------|"
+      echo "$layers_json" | jq -r 'to_entries | .[] | "| \(.key) | \(.value | join(", ") | if length > 120 then .[0:117] + "..." else . end) |"' 2>/dev/null || true
+    else
+      echo "(no layer data available)"
+    fi
+    echo ""
+
+    echo "## Cluster Metrics"
+    echo ""
+
+    # Metrics
+    if [[ "$metrics_valid" == "true" ]]; then
+      echo "| Cluster | Instability | Abstractness | Distance | Zone |"
+      echo "|---------|-------------|-------------|----------|------|"
+      echo "$metrics_json" | jq -r 'to_entries | .[] | "| \(.value.cluster_id) | \(.value.instability) | \(.value.abstractness) | \(.value.distance) | \(.value.zone) |"' 2>/dev/null || true
+    else
+      echo "(no cluster metrics available)"
+    fi
+    echo ""
+
+    echo "## Architectural Boundaries"
+    echo ""
+
+    # Boundaries
+    if [[ "$boundaries_valid" == "true" ]]; then
+      echo "$boundaries_json" | jq -r 'if type == "array" then .[] | tostring elif type == "object" then to_entries[] | "- \(.key): \(.value | tostring)" else tostring end' 2>/dev/null || true
+    else
+      echo "(no boundary data available)"
+    fi
+    echo ""
+
+    echo "## Graph Summary"
+    echo ""
+
+    # Graph summary from files (follow existing moira_graph_summary pattern)
+    local graph_file="${graph_dir}/graph.json"
+    local stats_file="${graph_dir}/stats.json"
+    local clusters_file="${graph_dir}/clusters.json"
+
+    local gs_nodes=0 gs_edges=0 gs_clusters=0 gs_cycles=0 gs_smells=0 gs_monolith=0
+
+    if [[ -f "$graph_file" ]]; then
+      gs_nodes=$(jq '(.nodes // {}) | length' "$graph_file" 2>/dev/null) || gs_nodes=0
+      gs_edges=$(jq '(.edges // []) | length' "$graph_file" 2>/dev/null) || gs_edges=0
+    fi
+    if [[ -f "$clusters_file" ]]; then
+      gs_clusters=$(jq '(.clusters // {}) | length' "$clusters_file" 2>/dev/null) || gs_clusters=0
+    fi
+    if [[ -f "$stats_file" ]]; then
+      gs_cycles=$(jq '[(.sccs // [])[] | select(length > 1)] | length' "$stats_file" 2>/dev/null) || gs_cycles=0
+      gs_monolith=$(jq '.monolith_score // 0' "$stats_file" 2>/dev/null) || gs_monolith=0
+    fi
+    if [[ "$smells_valid" == "true" ]]; then
+      gs_smells=$(echo "$smells_json" | jq 'length' 2>/dev/null) || gs_smells=0
+    fi
+
+    local temporal_status="unavailable"
+    if moira_graph_temporal_available "$project_root" 2>/dev/null; then
+      temporal_status="available"
+    fi
+
+    echo "- Nodes: ${gs_nodes}"
+    echo "- Edges: ${gs_edges}"
+    echo "- Clusters: ${gs_clusters}"
+    echo "- Cycles: ${gs_cycles}"
+    echo "- Smells: ${gs_smells}"
+    echo "- Monolith score: ${gs_monolith}"
+    echo "- Temporal: ${temporal_status}"
+    echo ""
+  } > "$pm_tmp"
+
+  # Append structural sections to project-model/full.md
+  local pm_full="${knowledge_dir}/project-model/full.md"
+  mkdir -p "$(dirname "$pm_full")"
+  if [[ -f "$pm_full" ]]; then
+    # Remove existing structural sections before appending fresh data
+    local pm_cleaned
+    pm_cleaned=$(mktemp)
+    # Use awk to strip sections we're replacing
+    awk '
+      /^## (Structural Bottlenecks|Architectural Layers|Cluster Metrics|Architectural Boundaries|Graph Summary)$/ { skip=1; next }
+      /^## / { skip=0 }
+      !skip { print }
+    ' "$pm_full" > "$pm_cleaned" 2>/dev/null || cp "$pm_full" "$pm_cleaned"
+    {
+      cat "$pm_cleaned"
+      echo ""
+      cat "$pm_tmp"
+    } > "$pm_full"
+    rm -f "$pm_cleaned"
+  else
+    {
+      echo "<!-- moira:freshness ariadne-init ${today} -->"
+      echo ""
+      echo "# Project Model"
+      echo ""
+      cat "$pm_tmp"
+    } > "$pm_full"
+  fi
+  rm -f "$pm_tmp"
+
+  # ── Snapshot persistence (AD-2) ───────────────────────────────────────
+
+  local state_dir="${project_root}/.claude/moira/state"
+  mkdir -p "$state_dir"
+
+  local snapshot_file="${state_dir}/graph-snapshot.json"
+  local timestamp
+  timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+  local snapshot_smells="[]"
+  if [[ "$smells_valid" == "true" ]]; then
+    snapshot_smells="$smells_json"
+  fi
+
+  local snapshot_cycles="[]"
+  if [[ "$cycles_valid" == "true" ]]; then
+    snapshot_cycles="$cycles_json"
+  fi
+
+  jq -n --arg ts "$timestamp" --argjson smells "$snapshot_smells" --argjson cycles "$snapshot_cycles" \
+    '{"timestamp": $ts, "smells": $smells, "cycles": $cycles}' > "$snapshot_file" 2>/dev/null || {
+    # Fallback if jq construction fails
+    echo "{\"timestamp\":\"${timestamp}\",\"smells\":[],\"cycles\":[]}" > "$snapshot_file"
+  }
+
+  # ── L0/L1 regeneration ───────────────────────────────────────────────
+
+  # Generate quality-map summary (L1) and index (L0)
+  local qm_full="${knowledge_dir}/quality-map/full.md"
+  if [[ -f "$qm_full" ]]; then
+    local qm_summary_tmp
+    qm_summary_tmp=$(mktemp)
+    {
+      echo "# Quality Map Summary"
+      echo ""
+      echo "## Problematic"
+      grep '^### ' "$qm_full" 2>/dev/null | sed 's/^### /- /' | head -30
+      echo ""
+    } > "$qm_summary_tmp"
+    moira_knowledge_write "$knowledge_dir" "quality-map" "L1" "$qm_summary_tmp" "ariadne-init" 2>/dev/null || true
+    rm -f "$qm_summary_tmp"
+
+    local qm_index_tmp
+    qm_index_tmp=$(mktemp)
+    {
+      echo "# Quality Map Index"
+      echo ""
+      grep '^## ' "$qm_full" 2>/dev/null || true
+    } > "$qm_index_tmp"
+    moira_knowledge_write "$knowledge_dir" "quality-map" "L0" "$qm_index_tmp" "ariadne-init" 2>/dev/null || true
+    rm -f "$qm_index_tmp"
+  fi
+
+  # Generate project-model summary (L1) and index (L0)
+  if [[ -f "$pm_full" ]]; then
+    local pm_summary_tmp
+    pm_summary_tmp=$(mktemp)
+    {
+      echo "# Project Model Summary"
+      echo ""
+      grep -E '^## |^- (Nodes|Edges|Clusters|Cycles|Smells|Monolith|Temporal)' "$pm_full" 2>/dev/null || true
+    } > "$pm_summary_tmp"
+    moira_knowledge_write "$knowledge_dir" "project-model" "L1" "$pm_summary_tmp" "ariadne-init" 2>/dev/null || true
+    rm -f "$pm_summary_tmp"
+
+    local pm_index_tmp
+    pm_index_tmp=$(mktemp)
+    {
+      echo "# Project Model Index"
+      echo ""
+      grep '^## ' "$pm_full" 2>/dev/null || true
+    } > "$pm_index_tmp"
+    moira_knowledge_write "$knowledge_dir" "project-model" "L0" "$pm_index_tmp" "ariadne-init" 2>/dev/null || true
+    rm -f "$pm_index_tmp"
+  fi
+
+  return 0
+}
+
+# ── moira_graph_diff_to_knowledge <project_root> <knowledge_dir> ─────────
+# Compare current Ariadne smells/cycles against saved snapshot and update
+# quality-map accordingly: new findings append, resolved findings trigger
+# pass observations. Overwrites project-model structural sections with fresh data.
+# Saves updated snapshot for future diffs.
+#
+# Preconditions: ariadne + jq in PATH, knowledge_dir exists.
+# Graceful degradation: returns 0 silently if ariadne absent; warns if jq absent.
+# Reference: Phase 15, AD-2 (snapshot-based diff)
+moira_graph_diff_to_knowledge() {
+  local project_root="${1:-}"
+  local knowledge_dir="${2:-}"
+
+  if [[ -z "$project_root" ]] || [[ -z "$knowledge_dir" ]]; then
+    echo "Error: moira_graph_diff_to_knowledge requires <project_root> <knowledge_dir>" >&2
+    return 1
+  fi
+
+  # Precondition 1: ariadne binary
+  if ! command -v ariadne >/dev/null 2>&1; then
+    return 0
+  fi
+
+  # Precondition 2: jq binary
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "Warning: jq not found — skipping Ariadne diff-to-knowledge pipeline" >&2
+    return 0
+  fi
+
+  # Precondition 3: knowledge_dir exists
+  if [[ ! -d "$knowledge_dir" ]]; then
+    echo "Error: knowledge_dir does not exist: $knowledge_dir" >&2
+    return 1
+  fi
+
+  # Source knowledge.sh for pass_observation and write functions
+  source "$(dirname "${BASH_SOURCE[0]}")/knowledge.sh"
+
+  local today
+  today=$(date -u +%Y-%m-%d)
+  local state_dir="${project_root}/.claude/moira/state"
+  local snapshot_file="${state_dir}/graph-snapshot.json"
+
+  # ── Load previous snapshot ───────────────────────────────────────────
+
+  if [[ ! -f "$snapshot_file" ]]; then
+    # No snapshot — fallback to full populate (AD-2 task 3.8)
+    moira_graph_populate_knowledge "$project_root" "$knowledge_dir"
+    return $?
+  fi
+
+  local snapshot_smells snapshot_cycles
+  snapshot_smells=$(jq '.smells // []' "$snapshot_file" 2>/dev/null) || snapshot_smells="[]"
+  snapshot_cycles=$(jq '.cycles // []' "$snapshot_file" 2>/dev/null) || snapshot_cycles="[]"
+
+  # ── Query current data ───────────────────────────────────────────────
+
+  local current_smells current_cycles
+  current_smells=$(ariadne query smells --format json 2>/dev/null) || true
+  current_cycles=$(ariadne query cycles --format json 2>/dev/null) || true
+
+  # Validate JSON
+  local smells_valid="false"
+  if [[ -n "$current_smells" ]] && echo "$current_smells" | jq type 2>/dev/null | grep -q '"array"'; then
+    smells_valid="true"
+  else
+    current_smells="[]"
+  fi
+
+  local cycles_valid="false"
+  if [[ -n "$current_cycles" ]] && echo "$current_cycles" | jq type 2>/dev/null | grep -q '"array"'; then
+    cycles_valid="true"
+  else
+    current_cycles="[]"
+  fi
+
+  # ── Compare smells: smell_type + sorted files as dedup key ───────────
+
+  local snapshot_smell_keys current_smell_keys
+  snapshot_smell_keys=$(echo "$snapshot_smells" | jq -r '[.[] | (.smell_type + ":" + (.files | sort | join(",")))] | sort | .[]' 2>/dev/null) || snapshot_smell_keys=""
+  current_smell_keys=$(echo "$current_smells" | jq -r '[.[] | (.smell_type + ":" + (.files | sort | join(",")))] | sort | .[]' 2>/dev/null) || current_smell_keys=""
+
+  # New smells = in current but not snapshot
+  local new_smell_keys resolved_smell_keys
+  if [[ -n "$current_smell_keys" ]] && [[ -n "$snapshot_smell_keys" ]]; then
+    new_smell_keys=$(comm -23 <(echo "$current_smell_keys") <(echo "$snapshot_smell_keys")) || new_smell_keys=""
+    resolved_smell_keys=$(comm -13 <(echo "$current_smell_keys") <(echo "$snapshot_smell_keys")) || resolved_smell_keys=""
+  elif [[ -n "$current_smell_keys" ]]; then
+    new_smell_keys="$current_smell_keys"
+    resolved_smell_keys=""
+  else
+    new_smell_keys=""
+    resolved_smell_keys="$snapshot_smell_keys"
+  fi
+
+  local qm_full="${knowledge_dir}/quality-map/full.md"
+  mkdir -p "$(dirname "$qm_full")"
+
+  # Append new smells to quality-map Problematic section
+  if [[ -n "$new_smell_keys" ]]; then
+    while IFS= read -r key; do
+      [[ -z "$key" ]] && continue
+      local smell_type="${key%%:*}"
+      local file_list="${key#*:}"
+      local first_file="${file_list%%,*}"
+
+      local entry_block
+      entry_block=$(printf '%s\n' \
+        "### ${smell_type}: ${first_file}" \
+        "- **Category**: ${smell_type}" \
+        "- **Evidence**: ariadne-refresh ${today}" \
+        "- **File(s)**: ${file_list}" \
+        "- **Confidence**: high" \
+        "- **Observation count**: 1" \
+        "- **Failed observations**: 0" \
+        "- **Consecutive passes**: 0" \
+        "- **Lifecycle**: NEW" \
+        "")
+
+      if [[ -f "$qm_full" ]] && grep -q "^## Problematic" "$qm_full" 2>/dev/null; then
+        local prob_line
+        prob_line=$(grep -n "^## Problematic" "$qm_full" | head -1 | cut -d: -f1)
+        if [[ -n "$prob_line" ]]; then
+          local head_part tail_part
+          head_part=$(head -n "$prob_line" "$qm_full")
+          tail_part=$(tail -n +"$((prob_line + 1))" "$qm_full")
+          printf '%s\n\n%s\n%s\n' "$head_part" "$entry_block" "$tail_part" > "$qm_full"
+        fi
+      elif [[ -f "$qm_full" ]]; then
+        printf '\n%s\n' "$entry_block" >> "$qm_full"
+      fi
+    done <<< "$new_smell_keys"
+  fi
+
+  # Resolved smells -> pass observation
+  if [[ -n "$resolved_smell_keys" ]]; then
+    while IFS= read -r key; do
+      [[ -z "$key" ]] && continue
+      local smell_type="${key%%:*}"
+      local file_list="${key#*:}"
+      local first_file="${file_list%%,*}"
+      local entry_name="${smell_type}: ${first_file}"
+      moira_knowledge_quality_map_pass_observation "${knowledge_dir}/quality-map" "$entry_name" "ariadne-refresh" 2>/dev/null || true
+    done <<< "$resolved_smell_keys"
+  fi
+
+  # ── Compare cycles ───────────────────────────────────────────────────
+
+  local snapshot_cycle_keys current_cycle_keys
+  snapshot_cycle_keys=$(echo "$snapshot_cycles" | jq -r '[.[] | sort | join(",")] | sort | .[]' 2>/dev/null) || snapshot_cycle_keys=""
+  current_cycle_keys=$(echo "$current_cycles" | jq -r '[.[] | sort | join(",")] | sort | .[]' 2>/dev/null) || current_cycle_keys=""
+
+  local new_cycle_keys resolved_cycle_keys
+  if [[ -n "$current_cycle_keys" ]] && [[ -n "$snapshot_cycle_keys" ]]; then
+    new_cycle_keys=$(comm -23 <(echo "$current_cycle_keys") <(echo "$snapshot_cycle_keys")) || new_cycle_keys=""
+    resolved_cycle_keys=$(comm -13 <(echo "$current_cycle_keys") <(echo "$snapshot_cycle_keys")) || resolved_cycle_keys=""
+  elif [[ -n "$current_cycle_keys" ]]; then
+    new_cycle_keys="$current_cycle_keys"
+    resolved_cycle_keys=""
+  else
+    new_cycle_keys=""
+    resolved_cycle_keys="$snapshot_cycle_keys"
+  fi
+
+  # Append new cycles
+  if [[ -n "$new_cycle_keys" ]]; then
+    while IFS= read -r member_files; do
+      [[ -z "$member_files" ]] && continue
+      local display_files
+      display_files=$(echo "$member_files" | sed 's/,/, /g')
+
+      local entry_block
+      entry_block=$(printf '%s\n' \
+        "### Circular dependency: ${display_files}" \
+        "- **Category**: circular dependency" \
+        "- **Evidence**: ariadne-refresh ${today}" \
+        "- **File(s)**: ${display_files}" \
+        "- **Confidence**: high" \
+        "- **Observation count**: 1" \
+        "- **Failed observations**: 0" \
+        "- **Consecutive passes**: 0" \
+        "- **Lifecycle**: NEW" \
+        "")
+
+      if [[ -f "$qm_full" ]] && grep -q "^## Problematic" "$qm_full" 2>/dev/null; then
+        local prob_line
+        prob_line=$(grep -n "^## Problematic" "$qm_full" | head -1 | cut -d: -f1)
+        if [[ -n "$prob_line" ]]; then
+          local head_part tail_part
+          head_part=$(head -n "$prob_line" "$qm_full")
+          tail_part=$(tail -n +"$((prob_line + 1))" "$qm_full")
+          printf '%s\n\n%s\n%s\n' "$head_part" "$entry_block" "$tail_part" > "$qm_full"
+        fi
+      elif [[ -f "$qm_full" ]]; then
+        printf '\n%s\n' "$entry_block" >> "$qm_full"
+      fi
+    done <<< "$new_cycle_keys"
+  fi
+
+  # Resolved cycles -> pass observation
+  if [[ -n "$resolved_cycle_keys" ]]; then
+    while IFS= read -r member_files; do
+      [[ -z "$member_files" ]] && continue
+      local display_files
+      display_files=$(echo "$member_files" | sed 's/,/, /g')
+      local entry_name="Circular dependency: ${display_files}"
+      moira_knowledge_quality_map_pass_observation "${knowledge_dir}/quality-map" "$entry_name" "ariadne-refresh" 2>/dev/null || true
+    done <<< "$resolved_cycle_keys"
+  fi
+
+  # ── Overwrite project-model structural sections ──────────────────────
+
+  local pm_full="${knowledge_dir}/project-model/full.md"
+
+  if [[ -f "$pm_full" ]]; then
+    # Re-query centrality for Structural Bottlenecks
+    local centrality_json
+    centrality_json=$(ariadne query centrality --format json 2>/dev/null) || true
+    local centrality_valid="false"
+    if [[ -n "$centrality_json" ]] && echo "$centrality_json" | jq type 2>/dev/null | grep -q '"object"'; then
+      centrality_valid="true"
+    fi
+
+    # Build new Structural Bottlenecks content
+    local bottleneck_content
+    bottleneck_content=$(mktemp)
+    {
+      echo "## Structural Bottlenecks"
+      echo ""
+      if [[ "$centrality_valid" == "true" ]]; then
+        echo "| File | Centrality Score |"
+        echo "|------|-----------------|"
+        echo "$centrality_json" | jq -r 'to_entries | sort_by(-.value) | .[0:15] | .[] | "| \(.key) | \(.value) |"' 2>/dev/null || true
+      else
+        echo "(no centrality data available)"
+      fi
+      echo ""
+    } > "$bottleneck_content"
+
+    # Section overwrite: find boundaries and replace
+    local start_line end_line
+    start_line=$(grep -n "^## Structural Bottlenecks" "$pm_full" 2>/dev/null | cut -d: -f1 | head -1)
+
+    if [[ -n "$start_line" ]]; then
+      # Find next ## section after start_line
+      end_line=$(tail -n +"$((start_line + 1))" "$pm_full" | grep -n "^## " | head -1 | cut -d: -f1)
+
+      local pm_tmp
+      pm_tmp=$(mktemp)
+      if [[ -n "$end_line" ]]; then
+        # end_line is relative to start_line+1, convert to absolute
+        local abs_end=$((start_line + end_line))
+        head -n "$((start_line - 1))" "$pm_full" > "$pm_tmp"
+        cat "$bottleneck_content" >> "$pm_tmp"
+        tail -n +"$abs_end" "$pm_full" >> "$pm_tmp"
+      else
+        # Section goes to EOF — replace everything from start_line to end
+        head -n "$((start_line - 1))" "$pm_full" > "$pm_tmp"
+        cat "$bottleneck_content" >> "$pm_tmp"
+      fi
+      cp "$pm_tmp" "$pm_full"
+      rm -f "$pm_tmp"
+    else
+      # Section doesn't exist — append at end
+      echo "" >> "$pm_full"
+      cat "$bottleneck_content" >> "$pm_full"
+    fi
+    rm -f "$bottleneck_content"
+  fi
+
+  # ── Save new snapshot ────────────────────────────────────────────────
+
+  mkdir -p "$state_dir"
+  local timestamp
+  timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+  jq -n --arg ts "$timestamp" --argjson smells "$current_smells" --argjson cycles "$current_cycles" \
+    '{"timestamp": $ts, "smells": $smells, "cycles": $cycles}' > "$snapshot_file" 2>/dev/null || {
+    echo "{\"timestamp\":\"${timestamp}\",\"smells\":[],\"cycles\":[]}" > "$snapshot_file"
+  }
+
+  # ── L0/L1 regeneration ──────────────────────────────────────────────
+
+  local qm_regen="${knowledge_dir}/quality-map/full.md"
+  if [[ -f "$qm_regen" ]]; then
+    local qm_summary_tmp
+    qm_summary_tmp=$(mktemp)
+    {
+      echo "# Quality Map Summary"
+      echo ""
+      echo "## Problematic"
+      grep '^### ' "$qm_regen" 2>/dev/null | sed 's/^### /- /' | head -30
+      echo ""
+    } > "$qm_summary_tmp"
+    moira_knowledge_write "$knowledge_dir" "quality-map" "L1" "$qm_summary_tmp" "ariadne-refresh" 2>/dev/null || true
+    rm -f "$qm_summary_tmp"
+
+    local qm_index_tmp
+    qm_index_tmp=$(mktemp)
+    {
+      echo "# Quality Map Index"
+      echo ""
+      grep '^## ' "$qm_regen" 2>/dev/null || true
+    } > "$qm_index_tmp"
+    moira_knowledge_write "$knowledge_dir" "quality-map" "L0" "$qm_index_tmp" "ariadne-refresh" 2>/dev/null || true
+    rm -f "$qm_index_tmp"
+  fi
+
+  if [[ -f "$pm_full" ]]; then
+    local pm_summary_tmp
+    pm_summary_tmp=$(mktemp)
+    {
+      echo "# Project Model Summary"
+      echo ""
+      grep -E '^## |^- (Nodes|Edges|Clusters|Cycles|Smells|Monolith|Temporal)' "$pm_full" 2>/dev/null || true
+    } > "$pm_summary_tmp"
+    moira_knowledge_write "$knowledge_dir" "project-model" "L1" "$pm_summary_tmp" "ariadne-refresh" 2>/dev/null || true
+    rm -f "$pm_summary_tmp"
+
+    local pm_index_tmp
+    pm_index_tmp=$(mktemp)
+    {
+      echo "# Project Model Index"
+      echo ""
+      grep '^## ' "$pm_full" 2>/dev/null || true
+    } > "$pm_index_tmp"
+    moira_knowledge_write "$knowledge_dir" "project-model" "L0" "$pm_index_tmp" "ariadne-refresh" 2>/dev/null || true
+    rm -f "$pm_index_tmp"
+  fi
+
+  return 0
+}
+
+# ── moira_deepscan_prepare_context <project_root> ────────────────────────
+# Generate Ariadne pre-context file for deep scanner agents.
+# Queries Ariadne for clusters, cycles, boundaries, layers, centrality, and smells.
+# Writes structured markdown to .claude/moira/state/init/ariadne-context.md.
+#
+# Preconditions: ariadne + jq in PATH. If absent, writes placeholder.
+# Each ariadne query wrapped in `|| true`.
+# Reference: Phase 15, architecture.md section 3.5
+moira_deepscan_prepare_context() {
+  local project_root="${1:-}"
+
+  if [[ -z "$project_root" ]]; then
+    echo "Error: moira_deepscan_prepare_context requires <project_root>" >&2
+    return 1
+  fi
+
+  local output_dir="${project_root}/.claude/moira/state/init"
+  local output_file="${output_dir}/ariadne-context.md"
+  mkdir -p "$output_dir"
+
+  # Precondition: ariadne + jq required
+  if ! command -v ariadne >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+    printf '%s\n%s\n' "# Ariadne Pre-Context" "(not available -- proceed with full manual scanning)" > "$output_file"
+    return 0
+  fi
+
+  local timestamp
+  timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  local graph_dir="${project_root}/${_MOIRA_GRAPH_DEFAULT_GRAPH_DIR}"
+
+  {
+    echo "# Ariadne Pre-Context"
+    echo "Generated: ${timestamp}"
+    echo ""
+
+    # ── Clusters (from file) ──────────────────────────────────────────
+    echo "## Clusters"
+    echo ""
+    local clusters_file="${graph_dir}/clusters.json"
+    if [[ -f "$clusters_file" ]]; then
+      jq -r '
+        .clusters // {} | to_entries | .[] |
+        "- **\(.key)**: \(.value.files // [] | length) files, \(.value.internal_edges // 0) internal edges"
+      ' "$clusters_file" 2>/dev/null || echo "(failed to parse clusters)"
+    else
+      echo "(clusters.json not found)"
+    fi
+    echo ""
+
+    # ── Cycles ────────────────────────────────────────────────────────
+    echo "## Cycles"
+    echo ""
+    local cycles_output
+    cycles_output=$(ariadne query cycles --format json 2>/dev/null) || true
+    if [[ -n "$cycles_output" ]] && echo "$cycles_output" | jq type 2>/dev/null | grep -q '"array"'; then
+      local cycle_count
+      cycle_count=$(echo "$cycles_output" | jq 'length' 2>/dev/null) || cycle_count=0
+      if [[ "$cycle_count" -gt 0 ]]; then
+        echo "$cycles_output" | jq -r '.[] | "- " + join(" → ")' 2>/dev/null || echo "(failed to parse cycles)"
+      else
+        echo "None detected"
+      fi
+    else
+      echo "None detected"
+    fi
+    echo ""
+
+    # ── Boundaries ────────────────────────────────────────────────────
+    echo "## Boundaries"
+    echo ""
+    local boundaries_output
+    boundaries_output=$(ariadne query boundaries --format json 2>/dev/null) || true
+    if [[ -n "$boundaries_output" ]] && echo "$boundaries_output" | jq type 2>/dev/null | grep -qE '"object"|"array"'; then
+      echo "$boundaries_output" | jq -r '
+        if type == "array" then
+          .[] | if type == "object" then to_entries[] | "- \(.key): \(.value)" else tostring end
+        elif type == "object" then
+          to_entries[] | "- \(.key): \(.value | tostring)"
+        else
+          tostring
+        end
+      ' 2>/dev/null || echo "(not available)"
+    else
+      echo "(not available)"
+    fi
+    echo ""
+
+    # ── Layers ────────────────────────────────────────────────────────
+    echo "## Layers"
+    echo ""
+    local layers_output
+    layers_output=$(ariadne query layers --format json 2>/dev/null) || true
+    if [[ -n "$layers_output" ]] && echo "$layers_output" | jq type 2>/dev/null | grep -q '"object"'; then
+      echo "$layers_output" | jq -r 'to_entries | .[] | "- **\(.key)**: \(.value | join(", ") | if length > 150 then .[0:147] + "..." else . end)"' 2>/dev/null || echo "(failed to parse layers)"
+    else
+      echo "(no layer data available)"
+    fi
+    echo ""
+
+    # ── High-Centrality Files (Top 20) ────────────────────────────────
+    echo "## High-Centrality Files (Top 20)"
+    echo ""
+    local centrality_output
+    centrality_output=$(ariadne query centrality --format json 2>/dev/null) || true
+    if [[ -n "$centrality_output" ]] && echo "$centrality_output" | jq type 2>/dev/null | grep -q '"object"'; then
+      echo "| File | Score |"
+      echo "|------|-------|"
+      echo "$centrality_output" | jq -r 'to_entries | sort_by(-.value) | .[:20] | .[] | "| \(.key) | \(.value) |"' 2>/dev/null || echo "(failed to parse centrality)"
+    else
+      echo "(no centrality data available)"
+    fi
+    echo ""
+
+    # ── Architectural Smells ──────────────────────────────────────────
+    echo "## Architectural Smells"
+    echo ""
+    local smells_output
+    smells_output=$(ariadne query smells --format json 2>/dev/null) || true
+    if [[ -n "$smells_output" ]] && echo "$smells_output" | jq type 2>/dev/null | grep -q '"array"'; then
+      local smell_count
+      smell_count=$(echo "$smells_output" | jq 'length' 2>/dev/null) || smell_count=0
+      if [[ "$smell_count" -gt 0 ]]; then
+        echo "$smells_output" | jq -r '.[] | "- **\(.smell_type)** (\(.severity // "unknown")): \(.files | join(", "))"' 2>/dev/null || echo "(failed to parse smells)"
+      else
+        echo "None detected"
+      fi
+    else
+      echo "None detected"
+    fi
+    echo ""
+  } > "$output_file"
 
   return 0
 }

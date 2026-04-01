@@ -12,6 +12,14 @@ Perform a comprehensive security surface scan. Identify potential security conce
 4. **Unsafe patterns** — eval, exec, dangerouslySetInnerHTML, SQL concatenation, shell injection vectors
 5. **Sensitive data handling** — logging of sensitive data, error message information leakage
 
+## Pre-Context (Ariadne Data)
+
+Review smells and boundaries for security-relevant structural issues.
+
+Pre-context data available at `.claude/moira/state/init/ariadne-context.md`. Read that file FIRST for structural context.
+
+If the pre-context file does not exist or is a placeholder, proceed with full manual scanning as before.
+
 ## Scan Strategy
 
 Read up to 50 files. Focus on system boundaries and security-critical code.

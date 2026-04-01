@@ -2034,3 +2034,226 @@ New bash function `moira_graph_diff_to_knowledge()` runs after `moira_graph_upda
 - Quality-map populated by LLM interpretation of Ariadne JSON — unnecessary; structured data transforms mechanically
 
 **Reasoning:** Ariadne data is structured JSON with stable schema — transforming it to markdown via jq is reliable and costs 0 LLM tokens. This replaces the most fragile part of bootstrap (keyword heuristics) with the most robust data source (static analysis). Token savings: ~220k per init (~46% reduction) from hybrid scanners. Quality-map starts with real structural evidence instead of empty templates. The 3-observation migration threshold reuses the existing Art 5.2 pattern (evidence-based change), maintaining consistency with rule proposal system.
+
+## D-189: Pipeline Token Optimization — Merged Research Step
+
+**Date:** 2026-04-01
+**Status:** Accepted
+**Context:** Phase 15 execution consumed ~1.1M tokens and ~115 minutes for ~1,780 lines of output (~730 tokens/line). Analysis revealed systematic waste: duplicate file reading across agents (~50-80k), per-batch review/test overhead (8 dispatches = ~384k for work a single review could cover), and 17 total dispatches generating ~174k orchestrator overhead. Comparable system GSD achieves similar quality with ~5-7 dispatches per task by front-loading quality in planning and embedding verification in execution.
+
+In the current Full pipeline, Hermes (explorer) and Athena (analyst) run in parallel. Hermes reads the codebase and reports facts. Athena formalizes requirements and runs Q1 completeness analysis. In practice, Athena's Q1 analysis depends on what Hermes finds — but Athena doesn't see Hermes's output (they run in parallel). This means Athena works from the task description alone, producing gap analysis that may miss codebase-specific edge cases.
+
+**Decision:** Expand Hermes's exploration instructions to include Q1 gap analysis as part of fact-gathering. Hermes already reports "what it found AND what it looked for but didn't find" — Q1 gap analysis ("these edge cases are not covered, these error paths are missing") is a natural extension of this reporting role. Hermes produces `exploration.md` that includes a `## Gap Analysis` section covering the Q1 completeness checklist items.
+
+Athena remains as a defined agent for cases where complex requirements formalization is needed (e.g., user explicitly requests detailed requirements, or classification indicates requirements ambiguity). In Standard and Full pipelines, Athena is no longer dispatched by default — Hermes handles gap analysis. Athena can be dispatched on-demand via plan gate `rearchitect` flow or when Hermes reports STATUS: blocked on requirements.
+
+This saves one agent dispatch (~56k tokens) and eliminates the parallel-but-disconnected problem where Athena and Hermes independently analyze the same task.
+
+**Constitutional impact:** Art 1.2 lists Analyst as a separate role. Hermes's expanded scope remains within "reads code, reports facts" — gap analysis is fact-reporting ("this edge case has no handler"), not requirements proposal. Athena's role definition is unchanged — she's available but not default-dispatched. No Art 1.2 violation.
+
+**Alternatives rejected:**
+- Merge Hermes and Athena into a single agent — violates Art 1.2 (agent single responsibility). Hermes explores, Athena analyzes requirements. Keeping them separate preserves the option to dispatch Athena independently.
+- Keep parallel dispatch but pass Hermes output to Athena — adds sequential dependency, eliminating the parallelism benefit that justified the separation. If they must be sequential, Hermes should just do both.
+- Remove Athena entirely — loses the ability to handle complex requirements scenarios where dedicated analysis is needed.
+**Reasoning:** The parallel Hermes+Athena dispatch was designed for independence, but Q1 analysis is more valuable when informed by codebase facts. Moving gap analysis into exploration produces better Q1 output and saves a dispatch. Athena remains available as a specialist tool.
+
+## D-190: Pipeline Token Optimization — Plan Validation Step
+
+**Date:** 2026-04-01
+**Status:** Accepted
+**Context:** In Phase 15, per-batch code review (Themis × 4 = 264k tokens) caught one real bug (tr no-op in Batch C) and generated mostly suggestions/warnings. The bug would have been caught equally well in a single final review. GSD's approach: validate the PLAN before execution (plan-checker), not the CODE after execution. Catching issues in a 2k plan is cheaper than catching them in 50k of implemented code.
+
+**Decision:** Add a plan validation step after Daedalus produces the plan. Themis is dispatched in a lightweight "plan-check" mode that validates:
+1. Scope alignment — plan covers all acceptance criteria from classification
+2. File existence — every file in plan exists (or is explicitly new)
+3. Dependency ordering — no step requires output from a later step
+4. Contract completeness — batch interfaces are fully specified
+5. Verification coverage — every task has a concrete `<verify>` command
+6. Budget feasibility — no batch exceeds agent limits
+
+This is a ~40k dispatch that catches planning errors before they become expensive implementation bugs. It replaces the need for per-batch review by ensuring the plan is solid upfront.
+
+Plan-check findings are presented at the plan gate alongside the plan summary. If plan-check finds critical issues, Daedalus is re-dispatched with feedback (same as current plan gate `modify` flow).
+
+**Alternatives rejected:**
+- Separate plan-checker agent — new agent violates Art 1.3 (no unnecessary components). Themis already reviews artifacts; plan-check is a review variant.
+- Skip plan validation, keep per-batch review — empirically shown to cost 3x more for marginal quality gain.
+- Automated plan validation only (no agent) — can check structural properties (file exists, dependency DAG valid) but can't assess semantic correctness (does this plan actually solve the problem?).
+**Reasoning:** Quality is cheaper to ensure at planning time than at implementation time. A 40k plan-check replaces 264k of per-batch review. Themis already has the review skillset — plan-check is a mode, not a new capability.
+
+## D-191: Pipeline Token Optimization — Embedded Task Verification
+
+**Date:** 2026-04-01
+**Status:** Accepted
+**Context:** Aletheia (tester) was dispatched 4 times in Phase 15 = 120k tokens. Each dispatch mostly runs `run-all.sh` and greps the output — a bash operation costing ~0 tokens when done mechanically. GSD embeds verification commands directly in task definitions: each task has `<verify>` (command to run) and `<done>` (success criteria). The executor runs verification itself.
+
+**Decision:** Two changes:
+
+**1. Embedded verification in Hephaestus tasks:**
+Daedalus includes a `<verify>` field in each task within the plan. Hephaestus runs the verify command after completing each task. If verification fails, Hephaestus fixes the issue (up to 2 attempts) before proceeding. Verification results are recorded in implementation.md.
+
+Format in plan:
+```
+### Task 1: Implement populate_knowledge()
+Files: src/global/lib/graph.sh
+Action: ...
+Verify: bash src/tests/tier1/test-ariadne-knowledge-pipeline.sh
+Done: All 34 tests pass, function exists and is callable
+```
+
+**2. Post-implementation build/test step (bash):**
+After all implementation batches complete and BEFORE final review, a bash step runs build and test commands from `config.yaml → tooling.post_implementation[]`. Results written to `tasks/{id}/test-results.md`. If build/tests fail → Hephaestus retry with failure context (max 2 attempts, then escalate to user).
+
+If `tooling.post_implementation[]` is empty or missing, the step is skipped — embedded per-task `<verify>` commands are the only test coverage. The onboarding flow (`/moira:init`) prompts users to configure their build/test commands.
+
+**3. Aletheia removed from Standard/Full pipelines (D-194):**
+Aletheia's responsibilities are redistributed:
+- "Run tests" → bash step (mechanical operation, 0 tokens)
+- "Write new tests" → Hephaestus (tests are code; Daedalus includes test tasks in plan)
+- "Build check" → bash step
+- Ad-hoc testing at final gate → Hephaestus dispatch (not a separate tester)
+
+Aletheia remains as an agent definition for Decomposition pipeline (cross-task integration testing) and specialized scenarios. But it is no longer part of Standard or Full pipeline flows.
+
+**Constitutional impact:** Art 2.2 gate list — "per-phase" gate in Full pipeline changes. Previously: implement → review → test → gate. Now: implement (with embedded verify) → build/test (bash) → review → gate. Requires Art 2.2 amendment. Art 1.2 — Tester remains a defined agent role; it's simply not dispatched in Standard/Full pipelines (same pattern as Analyst per D-189).
+
+**Alternatives rejected:**
+- Keep Aletheia for all testing — empirically costs 120k for what bash does in 0 tokens.
+- Aletheia fallback when no tests configured — adds conditional complexity for marginal benefit. Embedded `<verify>` covers per-task correctness; build step covers compilation. If users want comprehensive testing, they configure `tooling.post_implementation`.
+- Embedded verify only, no build/test step — misses regression testing and build verification.
+**Reasoning:** Testing decomposes into two operations: running tests (mechanical, bash) and writing tests (creative, code). Running tests doesn't need an agent. Writing tests is implementation work — Hephaestus already writes code per plan. A separate tester agent is an unnecessary intermediary.
+
+## D-192: Pipeline Token Optimization — Analysis Paralysis Guard
+
+**Date:** 2026-04-01
+**Status:** Accepted
+**Context:** In Phase 15, Daedalus's first dispatch hung for 21 minutes (likely in an exploration loop). GSD includes an explicit guard: "If 5+ consecutive Read/Grep/Glob calls occur without Edit/Write/Bash action: STOP. State the blocker in one sentence." This prevents agents from entering infinite investigation loops.
+
+**Decision:** Add analysis paralysis guard to all implementation-phase agents (Hephaestus, Themis, Daedalus). Injected as a base rule addition:
+
+```
+ANALYSIS PARALYSIS GUARD: If you make 5+ consecutive read-only tool calls (Read, Grep, Glob)
+without a write action (Edit, Write, Bash), STOP. State the blocker in one sentence, then
+either write code or report STATUS: blocked with what specific information is missing.
+```
+
+For exploration agents (Hermes), the threshold is higher (10+ consecutive reads) since their role IS exploration. But even Hermes should not loop indefinitely.
+
+This is a prompt-level behavioral guard, not a structural enforcement. Its effectiveness depends on LLM compliance — but it addresses the most common failure mode (agent enters an investigation spiral) with zero implementation cost.
+
+**Alternatives rejected:**
+- Hook-based enforcement (count tool calls, kill agent) — too aggressive, may kill agents doing legitimate deep exploration.
+- No guard (rely on budget limits) — budget limits catch the problem eventually but waste tokens in the process. A prompt guard catches it early.
+- Strict enforcement per tool call — requires shell hook complexity for marginal benefit over prompt guard.
+**Reasoning:** Zero implementation cost, addresses the most expensive failure mode (Daedalus 21-min hang). Even partial compliance saves significant tokens and time.
+
+## D-193: Pipeline Token Optimization — Optimized Full Pipeline Structure
+
+**Date:** 2026-04-01
+**Status:** Accepted
+**Context:** The Full pipeline currently runs 17 dispatches for a large task. After D-189 through D-192, the pipeline structure changes significantly. This decision captures the complete optimized pipeline definition.
+
+**Decision:** Optimized Full Pipeline:
+
+```
+classify(Apollo) → [GATE: classification] →
+research(Hermes, expanded with Q1 gap analysis) →
+architect(Metis) → [GATE: architecture] →
+plan(Daedalus, with embedded verify fields) →
+plan-check(Themis, lightweight plan validation) → [GATE: plan] →
+[per-batch: implement(Hephaestus, with embedded verify)] →
+  [GATE: mid-point review — only for >2 batches, after ~50% complete] →
+final-review(Themis, comprehensive) →
+test-hook(bash) →
+[GATE: final]
+```
+
+**Gate changes from current:**
+- Current: classification + architecture + plan + per-phase (repeating) + final
+- New: classification + architecture + plan + mid-point (conditional, for >2 batches) + final
+
+The per-phase gate (after every batch) is replaced by a conditional mid-point gate and a final gate. This reflects the shift from "catch issues per batch" to "prevent issues through plan validation + catch remaining issues in final review."
+
+**Batch count guidance:**
+- Default: 2 batches (natural split by dependency layers)
+- Maximum: 3 batches before mid-point gate triggers
+- Split threshold: if any batch exceeds ~120 tool uses (estimated), auto-split
+
+**Estimated token budget:**
+| Step | Agent | Tokens |
+|------|-------|--------|
+| Classify | Apollo | ~26k |
+| Research | Hermes (expanded) | ~100k |
+| Architect | Metis | ~100k |
+| Plan | Daedalus | ~60k |
+| Plan-check | Themis | ~40k |
+| Implement × 2 | Hephaestus | ~200k |
+| Final review | Themis | ~80k |
+| Test hook | bash | ~0k |
+| Orchestrator | — | ~60k |
+| **Total** | | **~666k** |
+
+With leaner prompts and artifact chain: **~530-570k** (vs 1.1M current = ~50% reduction).
+
+**Standard pipeline changes (symmetric):**
+- Athena no longer default-dispatched (D-189)
+- Aletheia removed from pipeline, build/test via bash (D-191, D-194)
+- Standard estimated budget: ~350-400k (vs current ~400-500k)
+
+**Alternatives rejected:**
+- Merge Metis + Daedalus into single dispatch — violates Art 1.2 (Architect "Does NOT decompose into tasks", Planner "Does NOT make architectural decisions"). The role boundary is meaningful.
+- Single batch for all work — risk of context overflow in Hephaestus for large tasks (>120 tool uses).
+- No mid-point gate — for 3+ batch tasks, user loses visibility until the end.
+- Remove final review entirely (rely only on embedded verify) — embedded verify catches task-level issues but misses cross-task architectural concerns. Final Themis review remains valuable.
+
+**Constitutional impact:** Art 2.2 amendment required — Full pipeline gate list changes from "classification + architecture + plan + per-phase + final" to "classification + architecture + plan + mid-point (conditional) + final".
+
+**Reasoning:** The optimization targets are achieved through three mechanisms: (1) fewer dispatches (17 → ~8), (2) front-loaded quality (plan-check instead of per-batch review), (3) mechanical verification (embedded verify + bash build/test instead of agent dispatches). Quality signals are preserved — Q1 through Q5 all still happen, just more efficiently.
+
+## D-194: Aletheia Removed from Standard/Full Pipelines
+
+**Date:** 2026-04-01
+**Status:** Accepted
+**Context:** During D-191 design, Aletheia was initially kept as a fallback for projects without configured test commands. But analysis shows Aletheia's responsibilities decompose into two categories: (1) running tests — a mechanical bash operation, (2) writing tests — implementation work that Hephaestus already does. A separate tester agent is an unnecessary intermediary in both cases.
+
+**Decision:** Remove Aletheia from Standard and Full pipeline flows entirely:
+- **Running tests/build** → bash step using `tooling.post_implementation[]`. If empty, step skipped (embedded `<verify>` provides per-task coverage).
+- **Writing tests** → Hephaestus. Tests are code. Daedalus includes test tasks in the plan with `Verify:` and `Done:` fields like any other task.
+- **Ad-hoc testing at final gate** → Hephaestus dispatch (user says "run these tests" → implementer runs them).
+
+Bash build/test step runs BEFORE final review (Themis). This ensures Themis reviews code that is known to compile and pass tests — better quality signal than reviewing potentially broken code.
+
+Pipeline flow becomes:
+```
+implement (Hephaestus, with embedded verify) →
+build/test step (bash, tooling.post_implementation[]) →
+  if fail → Hephaestus retry (max 2) →
+final review (Themis, reviews working code) →
+final gate
+```
+
+Aletheia remains as an agent definition but is not dispatched by default in any pipeline. Available for explicit user request for specialized test work.
+
+**Constitutional impact:** Art 1.2 — Tester remains a defined agent role. Not dispatching it is the same pattern as Analyst (D-189): role exists, dispatch is conditional on need.
+
+**Alternatives rejected:**
+- Keep Aletheia as fallback for unconfigured projects — adds conditional branching complexity. Embedded `<verify>` + build step covers correctness; full Aletheia dispatch for "discover and run tests" is overkill when the plan already specifies what to test.
+- Move test-writing to Themis — violates Art 1.2 (Reviewer "Does NOT fix code"). Writing tests is writing code.
+**Reasoning:** Agent dispatch should match the complexity of the work. Running `npm test` doesn't need 30k tokens of agent context. Writing tests is writing code — Hephaestus's job. The tester role served a separation-of-concerns purpose in the original design, but in practice it's a tax on every pipeline run for work that's either mechanical (bash) or already covered (implementer).
+
+## D-195: Aletheia Removed from Decomposition Pipeline
+
+**Date:** 2026-04-01
+**Status:** Accepted
+**Context:** D-194 removed Aletheia from Standard/Full pipelines but kept it in Decomposition for "cross-task integration testing." However, integration testing decomposes the same way as regular testing: running integration tests is bash, writing them is Hephaestus. The Decomposition pipeline already executes each sub-task through Standard/Full pipelines which now include build/test steps. Cross-task integration is either: (1) running an integration test suite (bash), or (2) writing integration tests as part of the final sub-task (Hephaestus).
+
+**Decision:** Remove Aletheia from Decomposition pipeline. Replace integration step with:
+- Bash build/test step using `tooling.post_implementation[]` (same as Standard/Full)
+- If integration tests need to be written, Daedalus includes them as tasks in the final sub-task's plan
+
+Aletheia agent definition remains in the system for explicit user dispatch but is no longer part of any default pipeline flow.
+
+**Alternatives rejected:**
+- Keep Aletheia for Decomposition only — inconsistent with D-194 reasoning. Same work, same solution.
+- Remove Aletheia agent definition entirely — may be useful for future specialized scenarios.
+**Reasoning:** Consistency with D-194. Integration testing is either mechanical (bash) or implementation (Hephaestus). No pipeline needs a dedicated tester agent by default.

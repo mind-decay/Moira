@@ -128,16 +128,11 @@ if [[ -f "$MOIRA_HOME/lib/completion.sh" ]]; then
   else
     fail "log rotation: expected 500 lines, got $_REMAINING"
   fi
-  if [[ -f "${_TEST_LOG}.archive" ]]; then
-    _ARCHIVED=$(wc -l < "${_TEST_LOG}.archive")
-    _ARCHIVED=${_ARCHIVED##* }
-    if [[ "$_ARCHIVED" -eq 700 ]]; then
-      pass "log rotation archives 700 lines"
-    else
-      fail "log rotation: expected 700 archived lines, got $_ARCHIVED"
-    fi
+  # Implementation discards older lines (no archive — stale data wastes context)
+  if [[ ! -f "${_TEST_LOG}.archive" ]]; then
+    pass "log rotation discards old lines (no archive file, by design)"
   else
-    fail "log rotation: archive file not created"
+    fail "log rotation: unexpected archive file created (implementation should discard, not archive)"
   fi
   # Test no-op when under threshold
   _TEST_LOG2="${_TEST_ROTATE_DIR}/small.log"

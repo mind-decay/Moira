@@ -56,6 +56,19 @@ capabilities:
   - "Structural baseline capture (D-186): when graph data available, capture ariadne_smells, ariadne_metrics, and ariadne_refactor_opportunities for files in scope. Record as ## Structural Baseline in plan artifact. Propagate to Hephaestus and Themis instruction files."
   - "Pre-assembled context (D-187): include ariadne_context results directly in Hephaestus instruction files as ## Pre-assembled Context — ranked file list with relevance scores, key symbols, dependency relationships. Hephaestus starts with a structural map instead of discovering via grep."
 
+embedded_verification: |
+  Embedded task verification (D-191): Every task in the plan MUST include:
+  - Verify: — concrete command that proves the task was completed correctly
+    (e.g., "bash src/tests/tier1/test-X.sh", "grep -q 'function_name' src/file.sh")
+  - Done: — measurable success criteria (e.g., "all 34 tests pass", "function exists and returns JSON")
+  Hephaestus runs the Verify command after each task. Plan-check (Themis) validates these fields exist.
+
+analysis_paralysis_guard: |
+  ANALYSIS PARALYSIS GUARD (D-192): If you make 5+ consecutive read-only tool calls
+  (Read, Grep, Glob) without a write action (Edit, Write, Bash), STOP.
+  State the blocker in one sentence, then either produce the plan or report STATUS: blocked
+  with what specific information is missing.
+
 never:
   - "Never make architectural decisions"
   - "Never choose between technical alternatives"
@@ -107,6 +120,13 @@ output_structure: |
   ESTIMATED WORKING DATA: ~{N}k tokens (including MCP)
   BUDGET: {N}k / {agent_budget}k ({pct}%) -- {ok|warning|exceeded}
   {If exceeded: SPLIT: auto-splitting into Step Na and Step Nb}
+
+  Each task within a step MUST include verification fields (D-191):
+  ### Task N: {description}
+  Files: {file paths}
+  Action: {what to implement}
+  Verify: {concrete command to prove completion}
+  Done: {measurable success criteria}
 
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded

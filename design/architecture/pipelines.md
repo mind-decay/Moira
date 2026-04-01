@@ -8,7 +8,7 @@ First step of ANY task. Classifier agent determines size and pipeline.
 |------|----------|----------|-------|
 | **Small** | 1-2 files, no architecture decisions, local context | Quick | 2 (classify + final) |
 | **Medium** | 3-10 files, needs project context, no new entities | Standard | 4 (classify, arch, plan, final) |
-| **Large** | New entities, architecture changes, >10 files | Full | 5+ (classify, arch, plan, per-phase, final) |
+| **Large** | New entities, architecture changes, >10 files | Full | 4-5 (classify, arch, plan, mid-point if >2 batches, final) |
 | **Epic** | Multiple related tasks, requires decomposition | Decomposition | Many (classify, arch, decomp, per-task, final) |
 | **Small (low confidence)** | 1-2 files, classification uncertain | Standard | 4 (classify, arch, plan, final) |
 | **Analytical** | Analysis, audit, documentation — no code output (D-117) | [Analytical](analytical-pipeline.md) | 3-5+ (classify, scope, depth checkpoint(s), final) |
@@ -46,7 +46,7 @@ USER → task description
       ├─ tweak  — targeted modification
       ├─ redo   — rollback
       ├─ diff   — show changes
-      └─ test   — run additional tests (dispatches Aletheia ad-hoc, not a pipeline step)
+      └─ test   — run additional tests (dispatches Hephaestus ad-hoc, D-194)
 
   Post: Orchestrator writes structured reflection note to
         `.claude/moira/state/tasks/{id}/reflection-note.yaml`:
@@ -74,18 +74,17 @@ USER → task description
   ├─ Classifier → medium
   │   └─ [GATE: confirm classification]
   │
-  ├─ PARALLEL (both foreground, sent in one message):
-  │   ├─ Explorer → codebase analysis → exploration.md
-  │   └─ Analyst → requirements formalization → requirements.md
+  ├─ Explorer → codebase analysis + Q1 gap analysis → exploration.md (D-189)
+  │   (Analyst not dispatched by default — gap analysis in exploration)
   │
-  ├─ Architect → reads both → architecture.md
+  ├─ Architect → reads exploration → architecture.md
   │   └─ [GATE: user approves architecture]
   │       ├─ proceed — continue
   │       ├─ details — show full reasoning
   │       ├─ modify  — provide feedback
   │       └─ abort   — cancel
   │
-  ├─ Planner → creates plan + assembles agent instructions → plan.md
+  ├─ Planner → creates plan with embedded verify fields → plan.md (D-191)
   │   └─ [GATE: user approves plan]
   │       ├─ proceed  — continue
   │       ├─ details  — show full plan
@@ -94,26 +93,33 @@ USER → task description
   │       │   └─ Metis receives original architecture + user's plan-gate feedback
   │       │   └─ After revised architecture → architecture gate presented again
   │       │   └─ Then Planner runs again with new architecture
+  │       ├─ analyze  — dispatch Athena for detailed requirements analysis (D-189)
+  │       │   └─ Athena receives exploration.md + task description
+  │       │   └─ After requirements.md produced → Planner runs again with requirements
   │       └─ abort    — cancel
   │
-  ├─ Implementation (batched):
+  ├─ Implementation (batched, with embedded verification per task, D-191):
   │   ├─ Phase 1 (parallel background):
-  │   │   ├─ Implementer-A → Batch A
-  │   │   ├─ Implementer-B → Batch B
-  │   │   └─ Implementer-C → Batch C
+  │   │   ├─ Implementer-A → Batch A (runs <verify> per task)
+  │   │   ├─ Implementer-B → Batch B (runs <verify> per task)
+  │   │   └─ Implementer-C → Batch C (runs <verify> per task)
   │   │
   │   └─ Phase 2 (dependent batches, after Phase 1):
-  │       ├─ Implementer-D → Batch D
-  │       └─ Implementer-E → Batch E (shared files)
+  │       ├─ Implementer-D → Batch D (runs <verify> per task)
+  │       └─ Implementer-E → Batch E (shared files, runs <verify> per task)
+  │
+  ├─ Build/test step (bash, D-191, D-194):
+  │   └─ Runs tooling.post_implementation[] (if configured, else skipped)
+  │   └─ Results written to tasks/{id}/test-results.md
+  │   └─ If fail → Implementer retry with failure context (max 2)
   │
   ├─ Reviewer → reviews all changes (foreground)
+  │   └─ Reviews code that is known to build and pass tests (D-194)
   │   └─ If CRITICAL → Implementer retry (max_attempts=3, D-095)
   │       After max_attempts exhausted → escalate to user
   │
-  ├─ Tester → writes + runs tests (foreground)
-  │
   └─ [GATE: user final review]
-      ├─ done / tweak / redo / diff / test
+      ├─ done / tweak / redo / diff / test (test dispatches Hephaestus ad-hoc)
 
   Post: Reflector (background, non-blocking)
   Budget report displayed.
@@ -129,36 +135,55 @@ USER → task description
   ├─ Classifier → large
   │   └─ [GATE: confirm classification]
   │
-  ├─ PARALLEL:
-  │   ├─ Explorer → deep analysis → exploration.md
-  │   └─ Analyst → deep requirements → requirements.md
+  ├─ Explorer → deep analysis + Q1 gap analysis → exploration.md (D-189)
+  │   (Analyst not dispatched by default — gap analysis in exploration)
   │
   ├─ Architect → architecture.md + alternatives.md
   │   └─ [GATE: user CHOOSES architecture from alternatives]
   │
-  ├─ Planner → phased plan with dependencies → plan.md
+  ├─ Planner → phased plan with embedded verify fields + dependencies → plan.md (D-191)
+  │
+  ├─ Plan-check → Reviewer validates plan (lightweight, D-190)
+  │   └─ If critical issues → Planner re-dispatched with feedback
   │   └─ [GATE: user approves plan]
   │       ├─ proceed  — continue
-  │       ├─ details  — show full plan
+  │       ├─ details  — show full plan + plan-check findings
   │       ├─ modify   — provide feedback for plan revision
   │       ├─ rearchitect — route back to Architect with feedback (max 1x per pipeline)
   │       │   └─ Metis receives original architecture + user's plan-gate feedback
   │       │   └─ After revised architecture → architecture gate presented again
   │       │   └─ Then Planner runs again with new architecture
+  │       ├─ analyze  — dispatch Athena for detailed requirements analysis (D-189)
+  │       │   └─ Athena receives exploration.md + task description
+  │       │   └─ After requirements.md produced → Planner runs again with requirements
   │       └─ abort    — cancel
   │
-  ├─ For each phase:
-  │   ├─ Implementers (batched, parallel where possible)
-  │   ├─ Reviewer → phase review
-  │   ├─ Tester → phase tests
-  │   └─ [GATE: phase approval]
-  │       (checkpoint saved — can resume in new session)
+  ├─ Implementation (batched, with embedded verification per task, D-191):
+  │   ├─ Batch 1: Implementers (parallel where possible, each runs <verify> per task)
+  │   ├─ [GATE: mid-point review — only when >2 batches] (D-193)
+  │   │   (checkpoint saved — can resume in new session)
+  │   ├─ Batch 2+: Implementers (dependent batches, each runs <verify> per task)
+  │   │
+  │   Batch count guidance (D-193):
+  │   - Default: 2 batches (natural split by dependency layers)
+  │   - Maximum: 3 batches before mid-point gate triggers
+  │   - Split threshold: if batch exceeds ~120 tool uses, auto-split
   │
-  ├─ Integration check (Tester on cross-phase boundaries)
+  ├─ Build/test step (bash, D-191, D-194):
+  │   └─ Runs tooling.post_implementation[] (if configured, else skipped)
+  │   └─ Results written to tasks/{id}/test-results.md
+  │   └─ If fail → Implementer retry with failure context (max 2)
+  │
+  ├─ Final review → Reviewer checks all changes (foreground, comprehensive)
+  │   └─ Reviews code that is known to build and pass tests (D-194)
+  │   └─ If CRITICAL → Implementer retry (max_attempts=3, D-095)
+  │       After max_attempts exhausted → escalate to user
   │
   └─ [GATE: final review]
+      ├─ done / tweak / redo / diff / test (test dispatches Hephaestus ad-hoc)
 
   Post: Deep Reflector analysis (background)
+  Budget report displayed.
 ```
 
 ---
@@ -198,7 +223,9 @@ USER → epic description (from YouTrack, Slack, etc.)
   │   └─ [GATE after each task]
   │   └─ Checkpoint saved (each task is resumable independently)
   │
-  ├─ Integration verification (cross-task)
+  ├─ Build/test step (bash, D-195):
+  │   └─ Runs tooling.post_implementation[] for cross-task integration
+  │   └─ If integration tests need writing → included in final sub-task plan
   │
   └─ Epic-level reflection
 

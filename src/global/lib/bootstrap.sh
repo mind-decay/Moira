@@ -475,11 +475,10 @@ moira_bootstrap_populate_knowledge() {
       "$knowledge_dir/patterns/index.md" "$today"
   fi
 
-  # --- quality-map (preliminary, from pattern-scan.md) ---
-  if [[ -f "$scan_results_dir/pattern-scan.md" ]]; then
-    _moira_bootstrap_gen_quality_map "$scan_results_dir/pattern-scan.md" \
-      "$knowledge_dir" "$today"
-  fi
+  # --- quality-map (from Ariadne structural data, if available) ---
+  # Phase 15: replaced keyword-matching with Ariadne-to-knowledge pipeline
+  source "$(dirname "${BASH_SOURCE[0]}")/graph.sh"
+  moira_graph_populate_knowledge "$project_root" "$knowledge_dir"
 
   # decisions/ and failures/ — leave as templates (no data yet)
 }
@@ -561,201 +560,9 @@ _condense_to_index() {
   } > "$target"
 }
 
-# ── Internal: generate quality map from pattern scan ───────────────────
-# Categorizes patterns into Strong/Adequate/Problematic based on scan observations.
-# All entries are medium confidence (from scan, not task evidence).
-_moira_bootstrap_gen_quality_map() {
-  local pattern_scan="$1"
-  local knowledge_dir="$2"
-  local today="$3"
 
-  local qm_full_tmp qm_summary_tmp
-  qm_full_tmp=$(mktemp)
-  qm_summary_tmp=$(mktemp)
 
-  # Parse pattern scan for consistency signals
-  # Patterns with "consistent" / "uniform" / "always" → Strong
-  # Patterns with "mixed" / "inconsistent" / "varies" / "some" → Adequate
-  # Patterns with "missing" / "broken" / "TODO" / "FIXME" / "deprecated" → Problematic
 
-  local strong_patterns="" adequate_patterns="" problematic_patterns=""
-  local current_pattern="" current_location="" current_evidence=""
-  local in_pattern=false
-  local loc_pat='Location:|Directory:|Path:'
-
-  while IFS= read -r line; do
-    # Detect pattern entries (### headers or table rows)
-    if [[ "$line" =~ ^###[[:space:]]+(.*) ]]; then
-      # Flush previous pattern
-      if [[ -n "$current_pattern" ]]; then
-        _classify_pattern "$current_pattern" "$current_location" "$current_evidence" \
-          "$pattern_scan" "$today"
-      fi
-      current_pattern="${BASH_REMATCH[1]}"
-      current_location=""
-      current_evidence="bootstrap scan"
-      in_pattern=true
-      continue
-    fi
-    if $in_pattern; then
-      if [[ "$line" =~ $loc_pat ]]; then
-        current_location=$(echo "$line" | sed 's/.*:\s*//')
-      fi
-    fi
-  done < "$pattern_scan"
-
-  # Flush last pattern
-  if [[ -n "$current_pattern" ]]; then
-    _classify_pattern "$current_pattern" "$current_location" "$current_evidence" \
-      "$pattern_scan" "$today"
-  fi
-
-  # Build quality map using classified patterns (from _classify_pattern output)
-  {
-    echo "<!-- moira:freshness init ${today} -->"
-    echo "<!-- moira:preliminary — deep scan required -->"
-    echo "<!-- moira:mode conform -->"
-    echo ""
-    echo "# Quality Map"
-    echo ""
-    echo "## ✅ Strong Patterns"
-    echo ""
-    _build_pattern_section "$pattern_scan" "consistent|uniform|always|standard"
-    echo ""
-    echo "## ⚠️ Adequate Patterns"
-    echo ""
-    _build_pattern_section "$pattern_scan" "mixed|inconsistent|varies|some|partial"
-    echo ""
-    echo "## 🔴 Problematic Patterns"
-    echo ""
-    _build_pattern_section "$pattern_scan" "missing|broken|TODO|FIXME|deprecated|hack"
-  } > "$qm_full_tmp"
-
-  _write_knowledge_file "$knowledge_dir/quality-map/full.md" "$qm_full_tmp" "$today"
-
-  # L1: summary
-  {
-    echo "<!-- moira:freshness init ${today} -->"
-    echo "<!-- moira:preliminary — deep scan required -->"
-    echo ""
-    echo "# Quality Map Summary"
-    echo ""
-    echo "## Strong (follow):"
-    _list_matching_patterns "$pattern_scan" "consistent|uniform|always|standard"
-    echo ""
-    echo "## Adequate (follow with notes):"
-    _list_matching_patterns "$pattern_scan" "mixed|inconsistent|varies|some|partial"
-    echo ""
-    echo "## Problematic (don't extend):"
-    _list_matching_patterns "$pattern_scan" "missing|broken|TODO|FIXME|deprecated|hack"
-  } > "$qm_summary_tmp"
-
-  _write_knowledge_file "$knowledge_dir/quality-map/summary.md" "$qm_summary_tmp" "$today"
-
-  rm -f "$qm_full_tmp" "$qm_summary_tmp"
-}
-
-# ── Internal: classify a pattern based on scan text ────────────────────
-_classify_pattern() {
-  # Used internally by _moira_bootstrap_gen_quality_map
-  # Classification happens in _build_pattern_section via grep
-  :
-}
-
-# ── Internal: build pattern section by keyword matching ────────────────
-_build_pattern_section() {
-  local scan_file="$1"
-  local keywords="$2"
-
-  # Find ### headers whose following text matches keywords
-  local current_header="" current_block="" found=false
-  while IFS= read -r line; do
-    if [[ "$line" =~ ^###[[:space:]]+(.*) ]]; then
-      # Flush previous
-      if $found && [[ -n "$current_header" ]]; then
-        echo "### $current_header"
-        echo "- **Category**: detected"
-        echo "- **Evidence**: bootstrap scan"
-        echo "- **Confidence**: medium"
-        echo ""
-      fi
-      current_header="${BASH_REMATCH[1]}"
-      current_block=""
-      found=false
-      continue
-    fi
-    if [[ -n "$current_header" ]]; then
-      current_block+="$line "
-      if echo "$line" | grep -qiE "$keywords" 2>/dev/null; then
-        found=true
-      fi
-    fi
-    # Stop at next ## header
-    if [[ "$line" =~ ^##[[:space:]] ]] && [[ -n "$current_header" ]]; then
-      if $found; then
-        echo "### $current_header"
-        echo "- **Category**: detected"
-        echo "- **Evidence**: bootstrap scan"
-        echo "- **Confidence**: medium"
-        echo ""
-      fi
-      current_header=""
-      current_block=""
-      found=false
-    fi
-  done < "$scan_file"
-
-  # Flush last
-  if $found && [[ -n "$current_header" ]]; then
-    echo "### $current_header"
-    echo "- **Category**: detected"
-    echo "- **Evidence**: bootstrap scan"
-    echo "- **Confidence**: medium"
-    echo ""
-  fi
-}
-
-# ── Internal: list pattern names matching keywords ─────────────────────
-_list_matching_patterns() {
-  local scan_file="$1"
-  local keywords="$2"
-
-  local current_header="" current_block="" found=false
-  local names=""
-  while IFS= read -r line; do
-    if [[ "$line" =~ ^###[[:space:]]+(.*) ]]; then
-      if $found && [[ -n "$current_header" ]]; then
-        if [[ -n "$names" ]]; then
-          names+=", "
-        fi
-        names+="$current_header"
-      fi
-      current_header="${BASH_REMATCH[1]}"
-      current_block=""
-      found=false
-      continue
-    fi
-    if [[ -n "$current_header" ]]; then
-      if echo "$line" | grep -qiE "$keywords" 2>/dev/null; then
-        found=true
-      fi
-    fi
-  done < "$scan_file"
-
-  # Flush last
-  if $found && [[ -n "$current_header" ]]; then
-    if [[ -n "$names" ]]; then
-      names+=", "
-    fi
-    names+="$current_header"
-  fi
-
-  if [[ -n "$names" ]]; then
-    echo "$names"
-  else
-    echo "None detected yet"
-  fi
-}
 
 # ── moira_bootstrap_inject_hooks <project_root> <moira_home> ───────────
 # Inject hook configuration into .claude/settings.json and create log files.
@@ -897,6 +704,261 @@ moira_bootstrap_setup_gitignore() {
         echo "$entry" >> "$gitignore"
       fi
     done
+  fi
+}
+
+# ── moira_scan_precollect_tech <project_root> ─────────────────────────
+# Pre-collect config files for the tech scanner to reduce agent budget.
+# Output: .claude/moira/state/init/raw-configs.md
+moira_scan_precollect_tech() {
+  local project_root="$1"
+  local output_dir="${project_root}/.claude/moira/state/init"
+  local output_file="${output_dir}/raw-configs.md"
+  local max_file_size=10240  # 10KB per file
+  local max_total_size=102400  # 100KB total
+  local total_size=0
+
+  mkdir -p "$output_dir"
+
+  echo "# Pre-Collected Config Files" > "$output_file"
+
+  # Hardcoded config file list
+  local config_files=(
+    "package.json"
+    "tsconfig.json"
+    ".eslintrc"
+    ".eslintrc.js"
+    ".eslintrc.json"
+    ".eslintrc.yml"
+    ".eslintrc.yaml"
+    ".prettierrc"
+    ".prettierrc.js"
+    ".prettierrc.json"
+    ".prettierrc.yml"
+    ".prettierrc.yaml"
+    ".stylelintrc"
+    ".stylelintrc.js"
+    ".stylelintrc.json"
+    "Dockerfile"
+    ".dockerignore"
+    ".env.example"
+    "go.mod"
+    "pyproject.toml"
+    "setup.py"
+    "setup.cfg"
+    "requirements.txt"
+    "Cargo.toml"
+    "Gemfile"
+    ".ruby-version"
+    "Makefile"
+    "justfile"
+    ".nvmrc"
+    ".node-version"
+    ".tool-versions"
+  )
+
+  # Safety exclusion patterns
+  _moira_precollect_is_safe() {
+    local fname="$1"
+    local base
+    base=$(basename "$fname")
+    # Skip .env files (except .env.example)
+    if [[ "$base" == .env* ]] && [[ "$base" != ".env.example" ]]; then
+      return 1
+    fi
+    # Skip files matching secret/credential/key/token patterns
+    case "$base" in
+      *secret*|*credential*|*key.json|*token*) return 1 ;;
+    esac
+    return 0
+  }
+
+  for cf in "${config_files[@]}"; do
+    if [[ $total_size -ge $max_total_size ]]; then
+      echo "" >> "$output_file"
+      echo "[REMAINING FILES OMITTED -- output cap reached]" >> "$output_file"
+      break
+    fi
+
+    local filepath="${project_root}/${cf}"
+    if [[ -f "$filepath" ]]; then
+      if ! _moira_precollect_is_safe "$cf"; then
+        continue
+      fi
+
+      local ext="${cf##*.}"
+      local file_size
+      file_size=$(wc -c < "$filepath" | tr -d ' ')
+
+      echo "" >> "$output_file"
+      echo "## ${cf}" >> "$output_file"
+      echo "\`\`\`${ext}" >> "$output_file"
+
+      if [[ $file_size -gt $max_file_size ]]; then
+        head -c "$max_file_size" "$filepath" >> "$output_file"
+        echo "" >> "$output_file"
+        echo "[TRUNCATED at 10KB -- read full file if needed]" >> "$output_file"
+        total_size=$(( total_size + max_file_size ))
+      else
+        cat "$filepath" >> "$output_file"
+        total_size=$(( total_size + file_size ))
+      fi
+
+      echo "\`\`\`" >> "$output_file"
+    fi
+  done
+
+  # Glob patterns: tsconfig.*.json, docker-compose*, .github/workflows/*.yml, .github/workflows/*.yaml
+  for pattern in "tsconfig.*.json" "docker-compose*"; do
+    for filepath in "${project_root}"/${pattern}; do
+      [[ -f "$filepath" ]] || continue
+      if [[ $total_size -ge $max_total_size ]]; then
+        echo "" >> "$output_file"
+        echo "[REMAINING FILES OMITTED -- output cap reached]" >> "$output_file"
+        break 2
+      fi
+      local fname
+      fname=$(basename "$filepath")
+      if ! _moira_precollect_is_safe "$fname"; then
+        continue
+      fi
+      local ext="${fname##*.}"
+      local file_size
+      file_size=$(wc -c < "$filepath" | tr -d ' ')
+
+      echo "" >> "$output_file"
+      echo "## ${fname}" >> "$output_file"
+      echo "\`\`\`${ext}" >> "$output_file"
+
+      if [[ $file_size -gt $max_file_size ]]; then
+        head -c "$max_file_size" "$filepath" >> "$output_file"
+        echo "" >> "$output_file"
+        echo "[TRUNCATED at 10KB -- read full file if needed]" >> "$output_file"
+        total_size=$(( total_size + max_file_size ))
+      else
+        cat "$filepath" >> "$output_file"
+        total_size=$(( total_size + file_size ))
+      fi
+
+      echo "\`\`\`" >> "$output_file"
+    done
+  done
+
+  # GitHub workflows
+  for filepath in "${project_root}"/.github/workflows/*.yml "${project_root}"/.github/workflows/*.yaml; do
+    [[ -f "$filepath" ]] || continue
+    if [[ $total_size -ge $max_total_size ]]; then
+      echo "" >> "$output_file"
+      echo "[REMAINING FILES OMITTED -- output cap reached]" >> "$output_file"
+      break
+    fi
+    local fname
+    fname=".github/workflows/$(basename "$filepath")"
+    local ext="${filepath##*.}"
+    local file_size
+    file_size=$(wc -c < "$filepath" | tr -d ' ')
+
+    echo "" >> "$output_file"
+    echo "## ${fname}" >> "$output_file"
+    echo "\`\`\`${ext}" >> "$output_file"
+
+    if [[ $file_size -gt $max_file_size ]]; then
+      head -c "$max_file_size" "$filepath" >> "$output_file"
+      echo "" >> "$output_file"
+      echo "[TRUNCATED at 10KB -- read full file if needed]" >> "$output_file"
+      total_size=$(( total_size + max_file_size ))
+    else
+      cat "$filepath" >> "$output_file"
+      total_size=$(( total_size + file_size ))
+    fi
+
+    echo "\`\`\`" >> "$output_file"
+  done
+
+  # Lock file detection
+  echo "" >> "$output_file"
+  echo "## Lock Files" >> "$output_file"
+  for lockfile in package-lock.json yarn.lock pnpm-lock.yaml go.sum Cargo.lock Gemfile.lock; do
+    if [[ -f "${project_root}/${lockfile}" ]]; then
+      echo "- ${lockfile}: exists" >> "$output_file"
+    else
+      echo "- ${lockfile}: not found" >> "$output_file"
+    fi
+  done
+}
+
+# ── moira_scan_precollect_structure <project_root> ────────────────────
+# Pre-collect project structure and Ariadne graph data for structure scanner.
+# Output: .claude/moira/state/init/raw-structure.md
+moira_scan_precollect_structure() {
+  local project_root="$1"
+  local output_dir="${project_root}/.claude/moira/state/init"
+  local output_file="${output_dir}/raw-structure.md"
+
+  mkdir -p "$output_dir"
+
+  echo "# Pre-Collected Structure" > "$output_file"
+
+  # Directory tree (maxdepth 2, excluding common noise)
+  echo "" >> "$output_file"
+  echo "## Directory Tree" >> "$output_file"
+  echo "\`\`\`" >> "$output_file"
+  (cd "$project_root" && find . -maxdepth 2 -type d \
+    ! -path './.git' ! -path './.git/*' \
+    ! -path './node_modules' ! -path './node_modules/*' \
+    ! -path './.ariadne' ! -path './.ariadne/*' \
+    ! -path './.claude' ! -path './.claude/*' \
+    2>/dev/null | sort) >> "$output_file"
+  echo "\`\`\`" >> "$output_file"
+
+  # Source directories
+  echo "" >> "$output_file"
+  echo "## Source Directories" >> "$output_file"
+  for src_dir in src lib app pkg cmd internal; do
+    local full_path="${project_root}/${src_dir}"
+    if [[ -d "$full_path" ]]; then
+      echo "" >> "$output_file"
+      echo "### ${src_dir}" >> "$output_file"
+      echo "\`\`\`" >> "$output_file"
+      (cd "$project_root" && find "./${src_dir}" -maxdepth 3 -type d 2>/dev/null | sort) >> "$output_file"
+      echo "" >> "$output_file"
+      ls -1 "$full_path" 2>/dev/null >> "$output_file"
+      echo "\`\`\`" >> "$output_file"
+    fi
+  done
+
+  # Ariadne clusters
+  echo "" >> "$output_file"
+  echo "## Ariadne Clusters" >> "$output_file"
+  if command -v ariadne >/dev/null 2>&1; then
+    local cluster_data
+    cluster_data=$(cd "$project_root" && ariadne query clusters --format json 2>/dev/null | jq '.' 2>/dev/null) || true
+    if [[ -n "$cluster_data" ]]; then
+      echo "\`\`\`json" >> "$output_file"
+      echo "$cluster_data" >> "$output_file"
+      echo "\`\`\`" >> "$output_file"
+    else
+      echo "(ariadne not available)" >> "$output_file"
+    fi
+  else
+    echo "(ariadne not available)" >> "$output_file"
+  fi
+
+  # Ariadne layers
+  echo "" >> "$output_file"
+  echo "## Ariadne Layers" >> "$output_file"
+  if command -v ariadne >/dev/null 2>&1; then
+    local layer_data
+    layer_data=$(cd "$project_root" && ariadne query layers --format json 2>/dev/null | jq '.' 2>/dev/null) || true
+    if [[ -n "$layer_data" ]]; then
+      echo "\`\`\`json" >> "$output_file"
+      echo "$layer_data" >> "$output_file"
+      echo "\`\`\`" >> "$output_file"
+    else
+      echo "(ariadne not available)" >> "$output_file"
+    fi
+  else
+    echo "(ariadne not available)" >> "$output_file"
   fi
 }
 

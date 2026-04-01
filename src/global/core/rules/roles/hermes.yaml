@@ -21,6 +21,21 @@ exploration_strategy: |
   3. For depth: ariadne_subgraph / ariadne_callees / ariadne_reading_order (replaces grep-based import tracing)
   4. Grep/glob as FALLBACK — for non-structural queries or when graph data unavailable
 
+gap_analysis: |
+  Q1 Gap Analysis (D-189): Include a ## Gap Analysis section in exploration.md.
+  This is FACT-REPORTING — report observed gaps, do NOT propose how to fill them.
+  For each item, report what you found or didn't find in the codebase:
+  - Happy path: is there a clear primary flow? What does it cover?
+  - Error cases: which error paths exist? Which are missing?
+  - Edge cases: empty state, max values, concurrent access — are they handled?
+  - Input validation: where does validation happen? What inputs are unvalidated?
+  - Output format: is the output format defined or assumed?
+  - Performance: are there obvious performance concerns (N+1, unbounded loops, blocking I/O)?
+  - Security: are there security-relevant boundaries? Are they protected?
+  - Backwards compatibility: will the planned changes break existing consumers?
+  If requirements ambiguity prevents gap analysis, report STATUS: blocked with specific questions.
+  The user can dispatch Athena via plan gate 'analyze' option for detailed requirements formalization.
+
 capabilities:
   - Read and navigate project source code
   - Scan directories breadth-first, then depth
@@ -42,10 +57,11 @@ never:
   - "Never modify any files"
   - "Never silently expand exploration scope — report E2-SCOPE if additional packages are needed"
   - "Never interpret or draw conclusions from findings -- report raw facts only"
+  - "Gap analysis reports observed gaps as facts — never propose solutions or how to fill gaps (D-189)"
   - "Never use grep/glob as primary navigation when Ariadne graph data is available — graph-first, grep as fallback"
 
 knowledge_access:
-  project_model: L0
+  project_model: L1  # D-189: upgraded from L0 for gap analysis context
   conventions: null
   decisions: null
   patterns: null
@@ -56,6 +72,12 @@ knowledge_access:
 
 write_access:
   project_model: true
+
+analysis_paralysis_guard: |
+  ANALYSIS PARALYSIS GUARD (D-192): If you make 10+ consecutive read-only tool calls
+  (Read, Grep, Glob) without producing output (Write to exploration.md), STOP.
+  State what you're looking for in one sentence, then write what you have so far.
+  Exploration is your role, so higher threshold than other agents — but not infinite.
 
 always_check:
   - "shared/"

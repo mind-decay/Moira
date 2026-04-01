@@ -647,13 +647,15 @@ moira_knowledge_read_library() {
   return 0
 }
 
-# ── moira_knowledge_update_quality_map <task_dir> <quality_map_dir> ───
+# ── moira_knowledge_update_quality_map <task_dir> <quality_map_dir> [source] ──
 # Update quality map based on Reviewer (Themis) findings from a completed task.
 # Uses structural keyword matching — NOT semantic analysis.
 # Called after task completion, before reflection.
+# source: context identifier for evidence lines (default: task-unknown)
 moira_knowledge_update_quality_map() {
   local task_dir="$1"
   local quality_map_dir="$2"
+  local source="${3:-task-unknown}"
 
   local findings_file="${task_dir}/findings/themis-Q4.yaml"
   local full_map="${quality_map_dir}/full.md"
@@ -701,6 +703,7 @@ moira_knowledge_update_quality_map() {
   cp "$full_map" "$tmpfile"
 
   local map_updated=false
+  local migration_needed=false
 
   while IFS='|' read -r fid fcheck; do
     [[ -z "$fid" ]] && continue
@@ -732,15 +735,28 @@ moira_knowledge_update_quality_map() {
       fi
     done < "$tmpfile"
 
-    if ! $match_found; then
+    if $match_found; then
+      # Existing entry found — update observation counts
+      _moira_quality_map_update_entry "$tmpfile" "$match_pattern" "$source" "$today" "fail"
+      map_updated=true
+      # Check for demotion
+      local failed_obs
+      failed_obs=$(_moira_quality_map_get_field "$tmpfile" "$match_pattern" "Failed observations")
+      if [[ "${failed_obs:-0}" -ge 3 ]]; then
+        _moira_quality_map_migrate_entry "$tmpfile" "$match_pattern"
+        migration_needed=true
+      fi
+    else
       # New finding — append as new entry
       echo "" >> "$tmpfile"
       echo "### ${fcheck}" >> "$tmpfile"
       echo "- **Category**: detected" >> "$tmpfile"
-      echo "- **Evidence**: task finding ${fid}" >> "$tmpfile"
+      echo "- **Evidence**: ${source} ${today}" >> "$tmpfile"
       echo "- **Confidence**: medium" >> "$tmpfile"
       echo "- **Observation count**: 1" >> "$tmpfile"
-      printf '- **Lifecycle**: \xF0\x9F\x86\x95 NEW\n' >> "$tmpfile"
+      echo "- **Failed observations**: 1" >> "$tmpfile"
+      echo "- **Consecutive passes**: 0" >> "$tmpfile"
+      echo "- **Lifecycle**: NEW" >> "$tmpfile"
       echo "" >> "$tmpfile"
       map_updated=true
     fi
@@ -748,14 +764,409 @@ moira_knowledge_update_quality_map() {
 
   if $map_updated; then
     # Update freshness marker
-    sed "s/<!-- moira:freshness [^>]* -->/<!-- moira:freshness task ${today} -->/" "$tmpfile" > "$full_map"
+    sed "s/<!-- moira:freshness [^>]* -->/<!-- moira:freshness ${source} ${today} -->/" "$tmpfile" > "$full_map"
 
-    # Regenerate summary
+    # Regenerate summary after any migration
     _moira_knowledge_regen_quality_summary "$full_map" "$summary_map" "$today"
   fi
 
   rm -f "$tmpfile"
   return 0
+}
+
+# ── moira_knowledge_quality_map_pass_observation <quality_map_dir> <entry_name> <source> ──
+# Record a passing observation for a quality-map entry.
+# Increments Observation count and Consecutive passes.
+# Triggers promotion if Consecutive passes >= 3.
+moira_knowledge_quality_map_pass_observation() {
+  local quality_map_dir="$1"
+  local entry_name="$2"
+  local source="${3:-task-unknown}"
+
+  local full_map="${quality_map_dir}/full.md"
+  local summary_map="${quality_map_dir}/summary.md"
+
+  if [[ ! -f "$full_map" ]]; then
+    return 0
+  fi
+
+  # Check if entry exists
+  if ! grep -q "^### ${entry_name}$" "$full_map" 2>/dev/null; then
+    # Entry not found — silently return (may have been manually removed)
+    return 0
+  fi
+
+  local today
+  today=$(date -u +%Y-%m-%d)
+
+  local tmpfile
+  tmpfile=$(mktemp)
+  cp "$full_map" "$tmpfile"
+
+  _moira_quality_map_update_entry "$tmpfile" "$entry_name" "$source" "$today" "pass"
+
+  # Check for promotion
+  local consec_passes
+  consec_passes=$(_moira_quality_map_get_field "$tmpfile" "$entry_name" "Consecutive passes")
+  local promoted=false
+  if [[ "${consec_passes:-0}" -ge 3 ]]; then
+    _moira_quality_map_promote_entry "$tmpfile" "$entry_name"
+    promoted=true
+  fi
+
+  # Update freshness marker
+  sed "s/<!-- moira:freshness [^>]* -->/<!-- moira:freshness ${source} ${today} -->/" "$tmpfile" > "$full_map"
+
+  # Regenerate summary if promoted
+  if $promoted; then
+    _moira_knowledge_regen_quality_summary "$full_map" "$summary_map" "$today"
+  fi
+
+  rm -f "$tmpfile"
+  return 0
+}
+
+# ── Internal: get a field value from a quality-map entry ─────────────
+_moira_quality_map_get_field() {
+  local file="$1"
+  local entry_name="$2"
+  local field_name="$3"
+
+  local in_entry=false
+  while IFS= read -r line; do
+    if [[ "$line" == "### ${entry_name}" ]]; then
+      in_entry=true
+      continue
+    fi
+    if $in_entry; then
+      # Stop at next entry or section
+      if [[ "$line" =~ ^###[[:space:]] ]] || [[ "$line" =~ ^##[[:space:]] ]]; then
+        break
+      fi
+      if [[ "$line" == *"**${field_name}**"* ]]; then
+        echo "$line" | sed "s/.*\*\*${field_name}\*\*:[[:space:]]*//"
+        return 0
+      fi
+    fi
+  done < "$file"
+  echo ""
+  return 0
+}
+
+# ── Internal: update observation fields on an existing entry ─────────
+# mode: "fail" or "pass"
+_moira_quality_map_update_entry() {
+  local file="$1"
+  local entry_name="$2"
+  local source="$3"
+  local today="$4"
+  local mode="$5"
+
+  local tmpfile2
+  tmpfile2=$(mktemp)
+
+  local in_entry=false
+  local obs_found=false
+  local failed_found=false
+  local consec_found=false
+  local evidence_found=false
+  local entry_done=false
+
+  while IFS= read -r line; do
+    if [[ "$line" == "### ${entry_name}" ]]; then
+      in_entry=true
+      echo "$line" >> "$tmpfile2"
+      continue
+    fi
+
+    if $in_entry && ! $entry_done; then
+      # Detect end of entry
+      if [[ "$line" =~ ^###[[:space:]] ]] || [[ "$line" =~ ^##[[:space:]] ]]; then
+        # Before leaving entry, add missing fields
+        if ! $obs_found; then
+          echo "- **Observation count**: 1" >> "$tmpfile2"
+        fi
+        if ! $failed_found; then
+          if [[ "$mode" == "fail" ]]; then
+            echo "- **Failed observations**: 1" >> "$tmpfile2"
+          else
+            echo "- **Failed observations**: 0" >> "$tmpfile2"
+          fi
+        fi
+        if ! $consec_found; then
+          if [[ "$mode" == "pass" ]]; then
+            echo "- **Consecutive passes**: 1" >> "$tmpfile2"
+          else
+            echo "- **Consecutive passes**: 0" >> "$tmpfile2"
+          fi
+        fi
+        entry_done=true
+        in_entry=false
+        echo "$line" >> "$tmpfile2"
+        continue
+      fi
+
+      # Update Observation count
+      if [[ "$line" == *"**Observation count**"* ]]; then
+        local count
+        count=$(echo "$line" | sed 's/.*\*\*Observation count\*\*:[[:space:]]*//')
+        count=$(( ${count:-0} + 1 ))
+        echo "- **Observation count**: ${count}" >> "$tmpfile2"
+        obs_found=true
+        continue
+      fi
+
+      # Update Failed observations
+      if [[ "$line" == *"**Failed observations**"* ]]; then
+        local fcount
+        fcount=$(echo "$line" | sed 's/.*\*\*Failed observations\*\*:[[:space:]]*//')
+        if [[ "$mode" == "fail" ]]; then
+          fcount=$(( ${fcount:-0} + 1 ))
+        fi
+        echo "- **Failed observations**: ${fcount}" >> "$tmpfile2"
+        failed_found=true
+        continue
+      fi
+
+      # Update Consecutive passes
+      if [[ "$line" == *"**Consecutive passes**"* ]]; then
+        local ccount
+        ccount=$(echo "$line" | sed 's/.*\*\*Consecutive passes\*\*:[[:space:]]*//')
+        if [[ "$mode" == "pass" ]]; then
+          ccount=$(( ${ccount:-0} + 1 ))
+        else
+          ccount=0
+        fi
+        echo "- **Consecutive passes**: ${ccount}" >> "$tmpfile2"
+        consec_found=true
+        continue
+      fi
+
+      # Append to Evidence line
+      if [[ "$line" == *"**Evidence**"* ]]; then
+        echo "${line}, ${source} ${today}" >> "$tmpfile2"
+        evidence_found=true
+        continue
+      fi
+    fi
+
+    echo "$line" >> "$tmpfile2"
+  done < "$file"
+
+  # Handle entry at EOF (no trailing section header)
+  if $in_entry && ! $entry_done; then
+    if ! $obs_found; then
+      echo "- **Observation count**: 1" >> "$tmpfile2"
+    fi
+    if ! $failed_found; then
+      if [[ "$mode" == "fail" ]]; then
+        echo "- **Failed observations**: 1" >> "$tmpfile2"
+      else
+        echo "- **Failed observations**: 0" >> "$tmpfile2"
+      fi
+    fi
+    if ! $consec_found; then
+      if [[ "$mode" == "pass" ]]; then
+        echo "- **Consecutive passes**: 1" >> "$tmpfile2"
+      else
+        echo "- **Consecutive passes**: 0" >> "$tmpfile2"
+      fi
+    fi
+  fi
+
+  cp "$tmpfile2" "$file"
+  rm -f "$tmpfile2"
+}
+
+# ── Internal: migrate (demote) an entry to a lower category ─────────
+# Strong -> Adequate, Adequate -> Problematic
+_moira_quality_map_migrate_entry() {
+  local file="$1"
+  local entry_name="$2"
+
+  # Determine current section
+  local current_section=""
+  local in_entry=false
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^### ]]; then
+      : # Skip h3 headers
+    elif [[ "$line" =~ ^##[[:space:]]+(.*) ]]; then
+      local section_name="${BASH_REMATCH[1]}"
+      if echo "$section_name" | grep -q "Strong" 2>/dev/null; then
+        current_section="strong"
+      elif echo "$section_name" | grep -q "Adequate" 2>/dev/null; then
+        current_section="adequate"
+      elif echo "$section_name" | grep -q "Problematic" 2>/dev/null; then
+        current_section="problematic"
+      fi
+    fi
+    if [[ "$line" == "### ${entry_name}" ]]; then
+      break
+    fi
+  done < "$file"
+
+  # Determine target section
+  local target_section=""
+  case "$current_section" in
+    strong) target_section="adequate" ;;
+    adequate) target_section="problematic" ;;
+    problematic) return 0 ;; # Already at lowest
+    *) return 0 ;; # Unknown section, skip
+  esac
+
+  # Extract entry block
+  local entry_block=""
+  local capturing=false
+  while IFS= read -r line; do
+    if [[ "$line" == "### ${entry_name}" ]]; then
+      capturing=true
+    fi
+    if $capturing; then
+      if [[ "$line" =~ ^###[[:space:]] ]] && [[ "$line" != "### ${entry_name}" ]]; then
+        break
+      fi
+      if [[ "$line" =~ ^##[[:space:]] ]] && ! [[ "$line" =~ ^### ]]; then
+        break
+      fi
+      entry_block+="${line}"$'\n'
+    fi
+  done < "$file"
+
+  # Update lifecycle in the extracted block
+  entry_block=$(echo "$entry_block" | sed 's/\*\*Lifecycle\*\*:.*/\*\*Lifecycle\*\*: DEMOTED/')
+
+  # Remove entry from current location and insert in target section
+  local tmpfile3
+  tmpfile3=$(mktemp)
+  local skip_entry=false
+  local target_marker=""
+  case "$target_section" in
+    adequate) target_marker="Adequate" ;;
+    problematic) target_marker="Problematic" ;;
+  esac
+
+  local inserted=false
+  while IFS= read -r line; do
+    if [[ "$line" == "### ${entry_name}" ]]; then
+      skip_entry=true
+      continue
+    fi
+    if $skip_entry; then
+      if [[ "$line" =~ ^##[[:space:]] ]] || [[ "$line" =~ ^###[[:space:]] ]]; then
+        skip_entry=false
+        # Fall through to write this line
+      else
+        continue
+      fi
+    fi
+
+    echo "$line" >> "$tmpfile3"
+
+    # Insert entry after target section header
+    if ! $inserted && [[ "$line" =~ ^##[[:space:]] ]] && echo "$line" | grep -q "$target_marker" 2>/dev/null; then
+      echo "" >> "$tmpfile3"
+      printf '%s' "$entry_block" >> "$tmpfile3"
+      inserted=true
+    fi
+  done < "$file"
+
+  cp "$tmpfile3" "$file"
+  rm -f "$tmpfile3"
+}
+
+# ── Internal: promote an entry to a higher category ──────────────────
+# Problematic -> Adequate, Adequate -> Strong
+_moira_quality_map_promote_entry() {
+  local file="$1"
+  local entry_name="$2"
+
+  # Determine current section
+  local current_section=""
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^### ]]; then
+      : # Skip h3 headers
+    elif [[ "$line" =~ ^##[[:space:]]+(.*) ]]; then
+      local section_name="${BASH_REMATCH[1]}"
+      if echo "$section_name" | grep -q "Strong" 2>/dev/null; then
+        current_section="strong"
+      elif echo "$section_name" | grep -q "Adequate" 2>/dev/null; then
+        current_section="adequate"
+      elif echo "$section_name" | grep -q "Problematic" 2>/dev/null; then
+        current_section="problematic"
+      fi
+    fi
+    if [[ "$line" == "### ${entry_name}" ]]; then
+      break
+    fi
+  done < "$file"
+
+  # Determine target section
+  local target_section=""
+  case "$current_section" in
+    problematic) target_section="adequate" ;;
+    adequate) target_section="strong" ;;
+    strong) return 0 ;; # Already at highest
+    *) return 0 ;; # Unknown section, skip
+  esac
+
+  # Extract entry block
+  local entry_block=""
+  local capturing=false
+  while IFS= read -r line; do
+    if [[ "$line" == "### ${entry_name}" ]]; then
+      capturing=true
+    fi
+    if $capturing; then
+      if [[ "$line" =~ ^###[[:space:]] ]] && [[ "$line" != "### ${entry_name}" ]]; then
+        break
+      fi
+      if [[ "$line" =~ ^##[[:space:]] ]] && ! [[ "$line" =~ ^### ]]; then
+        break
+      fi
+      entry_block+="${line}"$'\n'
+    fi
+  done < "$file"
+
+  # Update lifecycle and reset consecutive passes
+  entry_block=$(echo "$entry_block" | sed 's/\*\*Lifecycle\*\*:.*/\*\*Lifecycle\*\*: PROMOTED/')
+  entry_block=$(echo "$entry_block" | sed 's/\*\*Consecutive passes\*\*:.*/\*\*Consecutive passes\*\*: 0/')
+
+  # Remove entry from current location and insert in target section
+  local tmpfile3
+  tmpfile3=$(mktemp)
+  local target_marker=""
+  case "$target_section" in
+    strong) target_marker="Strong" ;;
+    adequate) target_marker="Adequate" ;;
+  esac
+
+  local skip_entry=false
+  local inserted=false
+  while IFS= read -r line; do
+    if [[ "$line" == "### ${entry_name}" ]]; then
+      skip_entry=true
+      continue
+    fi
+    if $skip_entry; then
+      if [[ "$line" =~ ^##[[:space:]] ]] || [[ "$line" =~ ^###[[:space:]] ]]; then
+        skip_entry=false
+      else
+        continue
+      fi
+    fi
+
+    echo "$line" >> "$tmpfile3"
+
+    # Insert entry after target section header
+    if ! $inserted && [[ "$line" =~ ^##[[:space:]] ]] && echo "$line" | grep -q "$target_marker" 2>/dev/null; then
+      echo "" >> "$tmpfile3"
+      printf '%s' "$entry_block" >> "$tmpfile3"
+      inserted=true
+    fi
+  done < "$file"
+
+  cp "$tmpfile3" "$file"
+  rm -f "$tmpfile3"
 }
 
 # ── Internal: regenerate quality map summary from full map ─────────────

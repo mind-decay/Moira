@@ -14,6 +14,11 @@ Map the project's directory layout and organization:
 6. **Configuration files** — config files at root with their purpose
 7. **Test organization** — test root, naming pattern, co-located vs separate
 
+## Pre-Collected Data
+
+Project structure and Ariadne graph data pre-collected at `.claude/moira/state/init/raw-structure.md`.
+Read that file FIRST. Focus on interpreting the structure — directory roles, entry points, test organization — not on discovery.
+
 ## Scan Strategy
 
 1. List top-level directories and files (depth 1)
@@ -118,5 +123,5 @@ Write the complete output to: `.claude/moira/state/init/structure-scan.md`
 - NO opinions, NO recommendations, NO proposals
 - Do NOT write `Not detected` or `unknown` in frontmatter — omit the field
 - In the markdown body, write "Not detected" for empty categories — do NOT guess
-- Budget: stay within 140k tokens — sample, don't exhaustively scan
+- Budget: stay within 50k tokens — sample, don't exhaustively scan
 - Use approximate file counts — do NOT count every file individually

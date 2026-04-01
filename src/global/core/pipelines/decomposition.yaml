@@ -65,12 +65,15 @@ steps:
             - "tasks/{task_id}/decomposition.md"
             - "tasks/{task_id}/epic-architecture.md"
 
-  - id: integration
-    agent: aletheia
-    role: tester
+  # D-195: Integration testing via bash build/test step (same as Standard/Full).
+  # If integration tests need writing, they're tasks in the final sub-task's plan.
+  - id: build_test
+    agent: null
+    role: build-test-runner
     mode: foreground
     writes_to: "tasks/{task_id}/integration-results.md"
-    reads_from: "tasks/{task_id}/decomposition.md"
+    # Uses config.yaml → tooling.post_implementation[]. If empty, step skipped.
+    # If fail → Hephaestus retry (max 2 attempts, then escalate to user).
 
   - id: completion
     agent: null
@@ -78,7 +81,7 @@ steps:
     mode: foreground
     writes_to: "tasks/{task_id}/telemetry.yaml"
     reads_from:
-      - "tasks/{task_id}/integration-results.md"  # Primary artifact; full completion data sourced from status.yaml per orchestrator.md Section 7
+      - "tasks/{task_id}/integration-results.md"
 
   # Dynamic checkpoint: Quality Checkpoint (see gates.md) — presented when quality-gate agent returns fail_warning
 gates:

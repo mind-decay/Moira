@@ -81,19 +81,21 @@ else
   fail "found $auto_proceed_count auto-proceed/skip-gate patterns"
 fi
 
-# ── Test: No conditional gate skip ──────────────────────────────────
+# ── Test: No unauthorized conditional gate skip ─────────────────────
+# D-193: conditional mid-point gates are allowed (required: false + condition:)
+# What's NOT allowed: skip_if, when:, if_condition patterns that bypass required gates
 conditional_skip=0
 for f in "$PIPELINES_DIR"/*.yaml; do
   if [[ -f "$f" ]]; then
-    count=$(grep -ci "skip_if\|when:\|if_condition\|conditional.*gate" "$f" 2>/dev/null || true)
+    count=$(grep -ci "skip_if\|when:\|if_condition" "$f" 2>/dev/null || true)
     count=${count:-0}
     conditional_skip=$((conditional_skip + count))
   fi
 done
 if [[ "$conditional_skip" -eq 0 ]]; then
-  pass "no conditional gate skip patterns in pipeline definitions"
+  pass "no unauthorized conditional gate skip patterns in pipeline definitions"
 else
-  fail "found $conditional_skip conditional gate skip patterns"
+  fail "found $conditional_skip unauthorized conditional gate skip patterns"
 fi
 
 # ── Test: Orchestrator purity (Art 1.1) ─────────────────────────────
@@ -155,14 +157,16 @@ else
   fail "orchestrator.md not found"
 fi
 
-# ── Test: All gates have required: true ─────────────────────────────
+# ── Test: All gates have required: true (conditional gates allowed, D-193) ──
 for pipeline in quick standard full decomposition; do
   required_count=$(grep -c "required: true" "$PIPELINES_DIR/${pipeline}.yaml" 2>/dev/null || echo 0)
+  conditional_count=$(grep -c "required: false" "$PIPELINES_DIR/${pipeline}.yaml" 2>/dev/null || echo 0)
   gate_count=$(awk '/^gates:/{found=1} found && /^  - id:/{count++} /^[a-z]/ && !/^gates:/ && found{exit} END{print count+0}' "$PIPELINES_DIR/${pipeline}.yaml")
-  if [[ "$required_count" -ge "$gate_count" ]]; then
-    pass "${pipeline}: all gates have required: true"
+  total_accounted=$((required_count + conditional_count))
+  if [[ "$total_accounted" -ge "$gate_count" ]]; then
+    pass "${pipeline}: all gates have required field ($required_count required, $conditional_count conditional)"
   else
-    fail "${pipeline}: not all gates have required: true ($required_count/$gate_count)"
+    fail "${pipeline}: not all gates have required field ($total_accounted/$gate_count)"
   fi
 done
 

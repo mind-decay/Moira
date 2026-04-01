@@ -12,6 +12,14 @@ Perform a comprehensive test coverage assessment. Map which source files have te
 4. **Test infrastructure** — fixtures, factories, mocks, test utilities
 5. **Coverage configuration** — coverage thresholds, excluded paths, report formats
 
+## Pre-Context (Ariadne Data)
+
+Review centrality and hotspots to prioritize test coverage for high-impact files.
+
+Pre-context data available at `.claude/moira/state/init/ariadne-context.md`. Read that file FIRST for structural context.
+
+If the pre-context file does not exist or is a placeholder, proceed with full manual scanning as before.
+
 ## Scan Strategy
 
 Read up to 50 files. Map source files to their test counterparts.

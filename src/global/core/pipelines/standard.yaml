@@ -4,7 +4,7 @@
 
 _meta:
   name: standard
-  description: "Full pipeline for medium tasks requiring exploration, architecture, and planning"
+  description: "Pipeline for medium tasks with front-loaded quality and embedded verification (D-193)"
   trigger:
     size: medium
     confidence: any
@@ -21,17 +21,15 @@ steps:
     reads_from: "tasks/{task_id}/input.md"
 
   - id: exploration
-    mode: parallel
-    agents:
-      - agent: hermes
-        role: explorer
-        writes_to: "tasks/{task_id}/exploration.md"
-      - agent: athena
-        role: analyst
-        writes_to: "tasks/{task_id}/requirements.md"
+    agent: hermes
+    role: explorer
+    mode: foreground
+    writes_to: "tasks/{task_id}/exploration.md"
     reads_from:
       - "tasks/{task_id}/classification.md"
       - "tasks/{task_id}/input.md"
+    # D-189: Hermes includes Q1 gap analysis in exploration.md
+    # Athena not dispatched by default; available on-demand via plan gate 'analyze' option
 
   - id: architecture
     agent: metis
@@ -40,7 +38,6 @@ steps:
     writes_to: "tasks/{task_id}/architecture.md"
     reads_from:
       - "tasks/{task_id}/exploration.md"
-      - "tasks/{task_id}/requirements.md"
 
   - id: plan
     agent: daedalus
@@ -50,9 +47,20 @@ steps:
     reads_from:
       - "tasks/{task_id}/architecture.md"
       - "tasks/{task_id}/exploration.md"
-      - "tasks/{task_id}/requirements.md"
+    # D-191: Plan includes embedded verify fields per task
+
+  # Bash plan validation (0 tokens): checks file existence, verify/done fields, DAG validity, budget limits.
+  # If fail → Daedalus re-dispatched with specific errors. If pass → proceed to implementation.
+  - id: plan_validate
+    agent: null
+    role: plan-validator
+    mode: foreground
+    writes_to: "tasks/{task_id}/plan-validate.md"
+    # Mechanical checks only — no LLM. Semantic plan-check (Themis) is Full pipeline only.
 
   # Single step definition — expanded at runtime by orchestrator into batches per Planner's plan.md output
+  # D-191: Hephaestus runs <verify> per task within implementation
+  # D-192: Analysis paralysis guard active
   - id: implementation
     agent: hephaestus
     role: implementer
@@ -61,6 +69,16 @@ steps:
     reads_from:
       - "tasks/{task_id}/plan.md"
       - "tasks/{task_id}/architecture.md"
+
+  # D-191, D-194: Bash build/test step runs BEFORE final review.
+  # Ensures Themis reviews code that compiles and passes tests.
+  # Uses config.yaml → tooling.post_implementation[]. If empty, step skipped.
+  # If fail → Hephaestus retry (max 2 attempts, then escalate to user).
+  - id: build_test
+    agent: null
+    role: build-test-runner
+    mode: foreground
+    writes_to: "tasks/{task_id}/test-results.md"
 
   - id: review
     agent: themis
@@ -71,15 +89,8 @@ steps:
       - "tasks/{task_id}/implementation.md"
       - "tasks/{task_id}/plan.md"
       - "tasks/{task_id}/architecture.md"
-
-  - id: testing
-    agent: aletheia
-    role: tester
-    mode: foreground
-    writes_to: "tasks/{task_id}/test-results.md"
-    reads_from:
-      - "tasks/{task_id}/implementation.md"
-      - "tasks/{task_id}/review.md"
+      - "tasks/{task_id}/test-results.md"
+      # D-194: Reviews code known to build and pass tests
 
   - id: completion
     agent: null
@@ -128,6 +139,8 @@ gates:
         description: "Provide feedback for revision"
       - id: rearchitect
         description: "Return to architecture gate (different technical approach)"
+      - id: analyze
+        description: "Dispatch Athena for detailed requirements analysis (D-189)"
       - id: abort
         description: "Cancel task"
 
@@ -145,7 +158,7 @@ gates:
       - id: diff
         description: "Show changes"
       - id: test
-        description: "Run additional tests"
+        description: "Run additional tests (dispatches Aletheia ad-hoc)"
 
   # max_attempts = total executions including original (not retry count)
   # e.g., max_attempts: 3 means original + 2 retries

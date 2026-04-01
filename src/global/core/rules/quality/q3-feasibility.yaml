@@ -24,5 +24,8 @@ items:
   - id: Q3-06
     check: "Contract interfaces defined for parallel batches"
     required: true
+  - id: Q3-07
+    check: "Every task has Verify: and Done: fields (D-191)"
+    required: true
 
 on_missing: "STATUS: blocked — plan has feasibility gaps"

@@ -62,6 +62,26 @@ severity:
   warning: "Should fix, can proceed with user approval"
   suggestion: "Logged for reflection, doesn't block"
 
+plan_check_mode: |
+  Plan-check mode (D-190): When dispatched with variant=plan_check in the Full pipeline,
+  validate the plan artifact against these criteria:
+  1. Scope alignment — plan covers all acceptance criteria from classification
+  2. File existence — every file in plan exists (or is explicitly marked as new)
+  3. Dependency ordering — no step requires output from a later step
+  4. Contract completeness — batch interfaces are fully specified
+  5. Verification coverage — every task has a concrete Verify: command (D-191)
+  6. Budget feasibility — no batch exceeds agent limits
+
+  Report findings with severity: CRITICAL (blocks plan gate), WARNING, SUGGESTION.
+  Budget for plan-check: ~40k (lighter than full code review).
+  Output: plan-check.md with findings list and overall verdict (pass/fail).
+
+analysis_paralysis_guard: |
+  ANALYSIS PARALYSIS GUARD (D-192): If you make 5+ consecutive read-only tool calls
+  (Read, Grep, Glob) without a write action (Edit, Write, Bash), STOP.
+  State the blocker in one sentence, then either produce your review or report STATUS: blocked
+  with what specific information is missing.
+
 analytical_mode:
   additional_instructions: |
     When operating in analytical mode (dispatched in the analytical pipeline),

@@ -456,6 +456,127 @@ Deep scanners receive Ariadne structural data as pre-context file, freeing budge
 **Why Phase 15:** Requires working bootstrap (Phase 5), Ariadne integration (Phase 13), and quality gates (Phase 6). This phase fixes known bugs and maximizes the value already built in those phases.
 
 
+## Phase 16: Pipeline Token Optimization
+
+**Goal:** Reduce Full pipeline token consumption by ~50% (from ~1.1M to ~530-570k) without losing quality signals. Inspired by GSD's architecture: front-load quality in planning, embed verification in execution, minimize dispatch count.
+
+**Depends on:** Phase 3 (pipeline engine), Phase 6 (quality gates), Phase 15 (execution data that motivated this optimization).
+
+**Context (D-189 through D-193):** Phase 15 execution report revealed ~1.1M tokens / ~115 min for ~1,780 lines of output. Root causes: duplicate file reading across agents (~50-80k wasted), per-batch review/test overhead (8 dispatches = ~384k for 1 real bug caught), 17 total dispatches generating ~174k orchestrator overhead. Benchmarking against GSD showed that comparable quality is achievable with ~5-7 dispatches through front-loaded plan validation and embedded task verification.
+
+### Chunk 1: Merged Research Step (D-189)
+
+Hermes's exploration instructions expanded to include Q1 gap analysis. Athena becomes on-demand.
+
+**Tasks:**
+- [ ] 1.1: Update Hermes role rules (`roles/hermes.yaml`) — add `## Gap Analysis` instruction block with Q1 completeness checklist items. Frame as fact-reporting: "report which edge cases have no handler, which error paths are missing."
+- [ ] 1.2: Update exploration Layer 4 templates — add gap analysis section to exploration output contract
+- [ ] 1.3: Update orchestrator dispatch logic — Standard and Full pipelines dispatch Hermes only (not parallel Hermes+Athena)
+- [ ] 1.4: Add `analyze` option to plan gate in orchestrator — dispatches Athena on-demand with exploration.md as input
+- [ ] 1.5: Update knowledge-access-matrix.yaml — Hermes gets L1 project-model (was L0) to support gap analysis context
+- [ ] 1.6: Verify Decomposition pipeline still dispatches Athena by default (unchanged for epics)
+
+**Files:** `src/global/core/rules/roles/hermes.yaml`, `src/global/skills/orchestrator.md`, `src/global/skills/dispatch.md`, `src/global/core/knowledge-access-matrix.yaml`
+
+### Chunk 2: Plan Validation Step (D-190)
+
+Themis gains plan-check mode. Dispatched after Daedalus in Full pipeline.
+
+**Tasks:**
+- [ ] 2.1: Add `plan_check` variant to Themis role rules (`roles/themis.yaml`) — scope/file/dependency/contract/verify/budget validation checklist
+- [ ] 2.2: Update Full pipeline orchestrator flow — dispatch Themis in plan-check mode after Daedalus, before plan gate
+- [ ] 2.3: Update plan gate presentation — include plan-check findings alongside plan summary
+- [ ] 2.4: Add plan-check re-dispatch logic — if critical findings, re-dispatch Daedalus with feedback before presenting gate
+- [ ] 2.5: Create plan-check quality criteria file (`core/rules/quality/q3b-plan-check.yaml`)
+
+**Files:** `src/global/core/rules/roles/themis.yaml`, `src/global/skills/orchestrator.md`, `src/global/core/rules/quality/q3b-plan-check.yaml`
+
+### Chunk 3: Embedded Task Verification (D-191)
+
+Daedalus produces `Verify:` and `Done:` fields per task. Hephaestus runs verification. Test hook replaces Aletheia.
+
+**Tasks:**
+- [ ] 3.1: Update Daedalus role rules — add verify/done field requirement to plan output contract
+- [ ] 3.2: Update Daedalus Layer 4 templates — verify field examples and guidance
+- [ ] 3.3: Update Hephaestus role rules — add embedded verification protocol (run verify, 2 fix attempts, record results)
+- [ ] 3.4: Update Hephaestus Layer 4 templates — verification execution instructions
+- [ ] 3.5: Implement bash build/test step in orchestrator — after all implementation batches, BEFORE final review: run `config.yaml → tooling.post_implementation[]`. If empty, skip. Write results to `test-results.md`. If fail → Hephaestus retry (max 2)
+- [ ] 3.6: Remove Aletheia dispatch from Standard/Full pipelines entirely (D-194)
+- [ ] 3.7: Update final gate `test` option — dispatch Hephaestus (not Aletheia) for ad-hoc testing
+- [ ] 3.8: Update onboarding — `/moira:init` prompts user to configure `tooling.post_implementation` with their build/test commands
+- [ ] 3.9: Ensure Daedalus includes test-writing tasks in plan when tests are a deliverable (Hephaestus writes tests)
+
+**Files:** `src/global/core/rules/roles/daedalus.yaml`, `src/global/core/rules/roles/hephaestus.yaml`, `src/global/skills/orchestrator.md`, `src/global/skills/dispatch.md`
+
+### Chunk 4: Analysis Paralysis Guard (D-192)
+
+Prompt-level guard added to Hephaestus, Daedalus, and Themis.
+
+**Tasks:**
+- [ ] 4.1: Add paralysis guard to base rules or per-agent role rules — 5+ consecutive reads without write → STOP
+- [ ] 4.2: Hermes threshold: 10+ consecutive reads (exploration role)
+- [ ] 4.3: Verify guard text is included in assembled instructions (dispatch.md check)
+
+**Files:** `src/global/core/rules/roles/hephaestus.yaml`, `src/global/core/rules/roles/daedalus.yaml`, `src/global/core/rules/roles/themis.yaml`, `src/global/core/rules/roles/hermes.yaml`
+
+### Chunk 5: Optimized Full Pipeline Flow (D-193)
+
+Pipeline YAML and orchestrator updated for new flow: fewer batches, no per-phase review/test, mid-point gate conditional.
+
+**Tasks:**
+- [ ] 5.1: Update full.yaml — already done in design docs, implement runtime support
+- [ ] 5.2: Update standard.yaml — already done in design docs, implement runtime support
+- [ ] 5.3: Update orchestrator batch logic — default 2 batches, split threshold at ~120 tool uses
+- [ ] 5.4: Implement conditional mid-point gate — fires only when >2 batches, after ~50% complete
+- [ ] 5.5: Update final review dispatch — Themis reads all implementation phases, not just last
+- [ ] 5.6: Remove per-phase Aletheia dispatch from orchestrator loop
+- [ ] 5.7: Update artifact-validate.sh — new plan-check artifact validation
+- [ ] 5.8: Update xref-manifest.yaml — new cross-references for plan-check, test-hook, verify fields
+
+**Files:** `src/global/skills/orchestrator.md`, `src/global/skills/dispatch.md`, `src/hooks/artifact-validate.sh`, `src/global/core/xref-manifest.yaml`
+
+### Chunk 6: Testing & Verification
+
+**Tasks:**
+- [ ] 6.1: Update existing Tier 1 tests — pipeline YAML validation (new steps, removed steps, gate changes)
+- [ ] 6.2: New test: verify Hermes role rules include gap analysis instructions
+- [ ] 6.3: New test: verify Daedalus role rules require verify/done fields
+- [ ] 6.4: New test: verify Hephaestus role rules include embedded verification protocol
+- [ ] 6.5: New test: verify Themis role rules include plan-check variant
+- [ ] 6.6: New test: verify paralysis guard in relevant agent rules
+- [ ] 6.7: New test: verify full.yaml has plan_check step and test_hook step
+- [ ] 6.8: New test: verify standard.yaml has test_hook step (no aletheia in pipeline)
+- [ ] 6.9: New test: verify plan gate has 'analyze' option
+- [ ] 6.10: Regression: run existing Tier 1 suite, verify no breakage
+- [ ] 6.11: Manual: run a task through optimized pipeline, measure token usage
+
+**Files:** `src/tests/tier1/` (new and updated test files)
+
+**Token Budget Impact:**
+| Component | Before (Phase 15) | After (Optimized) | Savings |
+|-----------|-------------------|-------------------|---------|
+| Exploration (Hermes) | 88k | ~100k (expanded with Q1) | -12k (larger, but replaces Athena) |
+| Analysis (Athena) | 56k | 0k (on-demand only) | +56k |
+| Architecture (Metis) | 88k | ~100k | -12k (reads exploration only) |
+| Planning (Daedalus) | 66k | ~60k | +6k |
+| Plan-check (Themis) | — | ~40k | -40k (new step) |
+| Implementation (Hephaestus × 4) | 314k | ~200k (× 2 batches) | +114k |
+| Review (Themis × 4) | 264k | ~80k (× 1 final) | +184k |
+| Testing (Aletheia × 4) | 120k | ~0k (bash build/test step, D-194) | +120k |
+| Integration (Aletheia) | — | — | — |
+| Orchestrator | 174k | ~60k (~8 dispatches) | +114k |
+| **Total** | **~1.1M** | **~530-570k** | **~50%** |
+
+**Risk classification:** RED (pipeline gate changes, agent role boundary changes per D-193). Requires constitutional amendment to Art 2.2.
+
+**Constitutional amendment required:** Art 2.2 — Full pipeline gate list changes from "classification + architecture + plan + per-phase + final" to "classification + architecture + plan + mid-point (conditional) + final". User must edit CONSTITUTION.md directly.
+
+**Key decisions:** D-189 (merged research step), D-190 (plan validation), D-191 (embedded verification), D-192 (paralysis guard), D-193 (optimized pipeline structure), D-194 (Aletheia removed from pipelines).
+
+**Why Phase 16:** Motivated by Phase 15 execution data showing ~730 tokens/line of output. Requires working pipeline engine (Phase 3) and quality gates (Phase 6) as foundation. Builds on GSD benchmarking insights to achieve comparable quality at ~50% token cost.
+
+---
+
 ## Testing Strategy
 
 Three-layer architecture woven across phases (D-023):

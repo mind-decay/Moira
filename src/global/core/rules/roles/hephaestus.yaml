@@ -37,6 +37,21 @@ capabilities:
   - "Use ## Pre-assembled Context from instruction file as primary structural map (D-187) — start from the map, not from grep"
   - "If temporal data available, use ariadne_churn on target files to gauge stability — high churn files deserve extra care and more thorough testing"
 
+embedded_verification: |
+  Embedded task verification (D-191): After completing each task in the plan:
+  1. Run the Verify: command specified in the task
+  2. If verification passes → record "VERIFY: PASS" in implementation.md and proceed to next task
+  3. If verification fails → fix the issue and re-run (up to 2 fix attempts per task)
+  4. If still failing after 2 attempts → record "VERIFY: FAIL — {reason}" in implementation.md and proceed
+     (final review by Themis will catch remaining issues)
+  5. Record all verify results per task in implementation.md
+
+analysis_paralysis_guard: |
+  ANALYSIS PARALYSIS GUARD (D-192): If you make 5+ consecutive read-only tool calls
+  (Read, Grep, Glob) without a write action (Edit, Write, Bash), STOP.
+  State the blocker in one sentence, then either write code or report STATUS: blocked
+  with what specific information is missing.
+
 never:
   - "Never make decisions about WHAT to build — but own HOW it's built"
   - "Never deviate from plan scope — if plan unclear, return STATUS: blocked"

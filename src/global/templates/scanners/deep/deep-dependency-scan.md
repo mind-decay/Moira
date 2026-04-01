@@ -12,6 +12,14 @@ Perform a comprehensive dependency analysis of this project. Identify:
 4. **Circular dependencies** — import chains that form cycles between modules
 5. **Duplicate functionality** — multiple packages serving the same purpose
 
+## Pre-Context (Ariadne Data)
+
+Review cycles, coupling, and centrality data for dependency hotspots.
+
+Pre-context data available at `.claude/moira/state/init/ariadne-context.md`. Read that file FIRST for structural context.
+
+If the pre-context file does not exist or is a placeholder, proceed with full manual scanning as before.
+
 ## Scan Strategy
 
 Read up to 50 files. Focus on dependency declarations and import statements.

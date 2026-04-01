@@ -2,8 +2,8 @@ _meta:
   name: q5-coverage
   gate: Q5
   description: Test Coverage
-  agent: aletheia
-  pipeline_step: testing
+  agent: null  # D-194: covered by embedded verify (Hephaestus) + bash build/test step; Aletheia on-demand only
+  pipeline_step: build_test
 
 items:
   - id: Q5-01

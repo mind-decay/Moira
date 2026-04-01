@@ -2,8 +2,8 @@ _meta:
   name: q1-completeness
   gate: Q1
   description: Requirements Completeness
-  agent: athena
-  pipeline_step: analysis
+  agent: hermes  # D-189: gap analysis moved to Hermes; Athena on-demand via plan gate 'analyze'
+  pipeline_step: exploration
 
 items:
   - id: Q1-01

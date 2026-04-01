@@ -81,7 +81,7 @@ gates:
         description: "Show changes"
       - id: test
         description: "Run additional tests"
-        # Dispatches Aletheia (tester) ad-hoc, outside the pipeline step sequence
+        # D-194: Dispatches Hephaestus ad-hoc, outside the pipeline step sequence
 
   # max_attempts = total executions including original (not retry count)
   # e.g., max_attempts: 3 means original + 2 retries

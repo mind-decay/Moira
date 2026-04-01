@@ -360,7 +360,8 @@ Before entering the main loop:
       - Record in status.yaml `warnings[]` (type: "convention_drift", entry: conventions path)
       - Non-blocking: continue pipeline
    e2. Quality Gate Check (after success, before approval gate):
-      If the agent has a quality gate assignment (Athena→Q1, Metis→Q2, Daedalus→Q3, Themis→Q4, Aletheia→Q5):
+      If the agent has a quality gate assignment (Hermes→Q1, Metis→Q2, Daedalus→Q3, Themis→Q3b/Q4):
+      <!-- D-189: Q1 moved from Athena to Hermes. D-190: Q3b plan-check added. D-194: Q5/Aletheia removed from pipelines -->
       - Read QUALITY line from agent response: `QUALITY: {gate}={verdict} ({C}C/{W}W/{S}S)`
       - Route by verdict:
         - `pass` → proceed to approval gate or next step
@@ -503,7 +504,11 @@ When a step has `mode: parallel`:
 
 When a step contains `repeatable_group`:
 - Execute the group's internal steps in sequence
-- After each iteration: present the phase/per-task gate
+- **Gate behavior** depends on pipeline configuration (D-193):
+  - If `gate_per_iteration: true` (decomposition.yaml): present gate after EACH iteration
+  - If `gate_per_iteration: false` AND `mid_point_gate: true` (full.yaml, D-193):
+    present gate only when >2 batches AND current batch reaches ~50% (ceil(batch_count/2))
+  - If neither: no per-iteration gates (proceed through all iterations, gate after group)
 - On `proceed` → start next iteration
 - On `checkpoint`:
   - Call `moira_checkpoint_create <task_id> <current_step> user_pause` — creates manifest.yaml with pipeline state, decisions, git info, resume context
@@ -512,6 +517,18 @@ When a step contains `repeatable_group`:
   - Stop pipeline execution (return from main loop)
 - On `abort` → stop
 - Continue until all iterations complete, then proceed to next pipeline step
+
+### Handling Build/Test Step
+
+When a step has `role: build-test-runner` (D-191, D-194):
+- This is an orchestrator-handled step (agent: null)
+- Read `config.yaml → tooling.post_implementation[]`
+- If non-empty: run each command via Bash, capture output
+  - Write results to `tasks/{task_id}/test-results.md`
+  - If any command fails: dispatch Hephaestus with failure context (max 2 retries)
+  - If still failing after retries: escalate to user at final gate
+- If empty or missing: skip step, write "No build/test commands configured" to test-results.md
+- Proceed to next step (final review)
 
 ### Sub-Pipeline Execution (Decomposition Pipeline)
 
