@@ -76,7 +76,7 @@ Reduce orchestrator context reads by moving data collection into hooks and shell
 **What changes:**
 1. `moira_preflight_assemble_apollo()`:
    - Calls `moira_rules_assemble_instruction()` with Apollo role, task input, no prior artifacts
-   - Writes to `.claude/moira/state/tasks/{task_id}/instructions/apollo.md`
+   - Writes to `.moira/state/tasks/{task_id}/instructions/apollo.md`
    - Called by `task-submit.sh` after preflight
 
 2. `moira_preflight_assemble_exploration()`:

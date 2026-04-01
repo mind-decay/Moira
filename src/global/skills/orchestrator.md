@@ -116,7 +116,7 @@ Details available on request (user says "details" at any gate).
 
 You are a pure orchestrator. Your job:
 - Dispatch specialized agents via the Agent tool
-- Read/write state files in `.claude/moira/state/` and `.claude/moira/config.yaml` (project-local)
+- Read/write state files in `.moira/state/` and `.moira/config.yaml` (project-local)
 - Read core definitions from `~/.claude/moira/core/` (global, read-only)
 - Present approval gates to the user
 - Track pipeline progress
@@ -126,9 +126,9 @@ You are a pure orchestrator. Your job:
 
 Two base paths exist:
 - **Global (read-only):** `~/.claude/moira/` — core rules, pipelines, templates, skills
-- **Project (read-write):** `.claude/moira/` — state, config, knowledge
+- **Project (read-write):** `.moira/` — state, config, knowledge
 
-State, config, and knowledge are ALWAYS project-local (`.claude/moira/`).
+State, config, and knowledge are ALWAYS project-local (`.moira/`).
 Core rules, role definitions, pipelines, and templates are ALWAYS global (`~/.claude/moira/`).
 
 You are NOT an executor. You NEVER:
@@ -215,7 +215,7 @@ The `task-submit.sh` hook injects a `MOIRA_PREFLIGHT:` block via `additionalCont
 
 Before starting the pipeline, check for concurrent sessions:
 
-1. Read `.claude/moira/state/.session-lock` (if exists)
+1. Read `.moira/state/.session-lock` (if exists)
 2. If lock exists and PID is alive and TTL hasn't expired → warn user: "Another Moira session is active (task {task_id}, started {started}). Running concurrent sessions on the same branch can corrupt state. Proceed anyway? (y/n)". If user declines → abort pipeline.
 3. If lock exists but PID is dead or TTL expired → stale lock, continue
 4. Create/overwrite `.session-lock` with: `{ pid: "session", started: "<current_timestamp>", task_id: "<task_id>", ttl: 3600 }`
@@ -225,17 +225,17 @@ Before starting the pipeline, check for concurrent sessions:
 
 Before starting the pipeline, check if a deep scan is pending:
 
-1. Read `.claude/moira/config.yaml` field `bootstrap.deep_scan_pending`
+1. Read `.moira/config.yaml` field `bootstrap.deep_scan_pending`
 2. If `true`:
    - Display: "Background deep scan triggered — knowledge base will update automatically."
-   - Update `.claude/moira/config.yaml`: set `bootstrap.deep_scan_pending` to `false`
+   - Update `.moira/config.yaml`: set `bootstrap.deep_scan_pending` to `false`
    - Dispatch 4 deep scan Explorer agents in BACKGROUND (do NOT wait):
      - Agent tool call 1: description "Hermes (explorer) — deep architecture scan", prompt from `~/.claude/moira/templates/scanners/deep/deep-architecture-scan.md`, run_in_background: true
      - Agent tool call 2: description "Hermes (explorer) — deep dependency scan", prompt from `~/.claude/moira/templates/scanners/deep/deep-dependency-scan.md`, run_in_background: true
      - Agent tool call 3: description "Hermes (explorer) — deep test coverage scan", prompt from `~/.claude/moira/templates/scanners/deep/deep-test-coverage-scan.md`, run_in_background: true
      - Agent tool call 4: description "Hermes (explorer) — deep security scan", prompt from `~/.claude/moira/templates/scanners/deep/deep-security-scan.md`, run_in_background: true
-   - After completion notifications arrive: call `moira_knowledge_update_quality_map <task_dir> <quality_map_dir>` (where task_dir = `.claude/moira/state/tasks/{task_id}`, quality_map_dir = `.claude/moira/knowledge/quality-map`) with deep scan results to enhance quality map
-   - Update `.claude/moira/config.yaml`: set `bootstrap.deep_scan_completed` to `true`
+   - After completion notifications arrive: call `moira_knowledge_update_quality_map <task_dir> <quality_map_dir>` (where task_dir = `.moira/state/tasks/{task_id}`, quality_map_dir = `.moira/knowledge/quality-map`) with deep scan results to enhance quality map
+   - Update `.moira/config.yaml`: set `bootstrap.deep_scan_completed` to `true`
    - Continue with pipeline — do NOT wait for deep scans to finish
 3. If `false` or field not present: continue silently
 
@@ -244,12 +244,12 @@ Before starting the pipeline, check if a deep scan is pending:
 After the deep scan check, determine if Ariadne graph data is available for this pipeline run:
 
 1. Use Read tool to check if `.ariadne/graph/graph.json` exists
-   - This is a Moira infrastructure file, not project source — same pattern as checking `.claude/moira/config.yaml`
+   - This is a Moira infrastructure file, not project source — same pattern as checking `.moira/config.yaml`
    - The orchestrator does NOT read graph content (Art 1.1) — checking file existence is metadata
-2. Read `.claude/moira/config.yaml` → `graph.enabled`
+2. Read `.moira/config.yaml` → `graph.enabled`
    - If `graph.enabled` is explicitly `false`: set `graph_available = false` regardless of file existence
    - If `graph.enabled` is `true` or not present: use file existence result
-3. Set `graph_available` in `.claude/moira/state/current.yaml` (boolean, per D13 schema)
+3. Set `graph_available` in `.moira/state/current.yaml` (boolean, per D13 schema)
 4. If graph.json exists but is stale (older than project source files):
    - Note staleness in `telemetry.yaml` under `graph.stale_at_start: true`
    - Do NOT block the pipeline — stale graph data is still useful
@@ -260,42 +260,42 @@ After the deep scan check, determine if Ariadne graph data is available for this
 
 After the graph availability check (or after preflight fast path), determine if Ariadne temporal data is available:
 
-1. If `graph_available` is `false`: set `temporal_available = false` in `.claude/moira/state/current.yaml`, skip remaining checks
+1. If `graph_available` is `false`: set `temporal_available = false` in `.moira/state/current.yaml`, skip remaining checks
 2. If `graph_available` is `true`: use the `ariadne_overview` MCP tool to check for temporal data
    - Call `ariadne_overview` (infrastructure MCP, always available when graph is available)
    - If the response contains a `temporal` field (any value): set `temporal_available = true`
    - If the response does not contain a `temporal` field, or the call fails: set `temporal_available = false`
-3. Set `temporal_available` in `.claude/moira/state/current.yaml` (boolean, per D-159 schema)
+3. Set `temporal_available` in `.moira/state/current.yaml` (boolean, per D-159 schema)
 4. This is a one-time check at task start — no per-step re-checking
 
 ### Pre-Pipeline Setup
 
 Before entering the main loop:
 
-0. **Activate guard enforcement:** Write `.claude/moira/state/.guard-active` marker file (empty file, content irrelevant). This scopes `guard.sh` PostToolUse hook to only fire during active pipeline runs (design/subsystems/self-monitoring.md Layer 2a). **(Skipped when preflight active — hook already wrote this.)**
-1. **Read quality mode:** Read `.claude/moira/config.yaml` → `quality.mode` (default: conform). Store for dispatch. **(Skipped when preflight active — value in MOIRA_PREFLIGHT.)**
+0. **Activate guard enforcement:** Write `.moira/state/.guard-active` marker file (empty file, content irrelevant). This scopes `guard.sh` PostToolUse hook to only fire during active pipeline runs (design/subsystems/self-monitoring.md Layer 2a). **(Skipped when preflight active — hook already wrote this.)**
+1. **Read quality mode:** Read `.moira/config.yaml` → `quality.mode` (default: conform). Store for dispatch. **(Skipped when preflight active — value in MOIRA_PREFLIGHT.)**
    - If mode is `evolve`: also read `quality.evolution.current_target`
    - Pass mode and target to dispatch for inclusion in agent instructions (per `dispatch.md` Quality Mode Communication)
-2. **Check bench mode:** Read `.claude/moira/state/current.yaml` → `bench_mode` **(Skipped when preflight active.)**
+2. **Check bench mode:** Read `.moira/state/current.yaml` → `bench_mode` **(Skipped when preflight active.)**
    - If `bench_mode: true`: read `bench_test_case` path from `current.yaml`
    - Load gate responses from the test case file for auto-responding at gates
    - All gate decisions are still recorded in state files (Art 3.1)
-3. **Check audit-pending flag:** Read `.claude/moira/state/audit-pending.yaml`
+3. **Check audit-pending flag:** Read `.moira/state/audit-pending.yaml`
    - If the file exists: read `audit_pending` field (depth: light or standard)
    - Display: "Audit due ({depth}). Run `/moira audit` before starting? [yes/skip]"
    - If user says yes: invoke `/moira audit` with appropriate depth. Wait for completion.
    - If user says skip: continue with pipeline.
    - Delete `audit-pending.yaml` after audit completes or is skipped.
-4. **Check for checkpointed task:** Read `.claude/moira/state/current.yaml` → `step_status`
+4. **Check for checkpointed task:** Read `.moira/state/current.yaml` → `step_status`
    - If `checkpointed`:
      - Read `task_id` and `step` from `current.yaml`
      - Display: "Task {task_id} was checkpointed at step {step}. Run `/moira resume` to continue."
      - Do NOT start a new pipeline — return to user prompt
      - User must explicitly run `/moira resume` or start a new task (which resets current.yaml)
 5. **Passive audit — task start checks:**
-   - Check `.claude/moira/config/locks.yaml` for stale locks (TTL expired) → if found, display passive audit warning (per `gates.md` Passive Audit Warning template). Informational only (D-068).
+   - Check `.moira/config/locks.yaml` for stale locks (TTL expired) → if found, display passive audit warning (per `gates.md` Passive Audit Warning template). Informational only (D-068).
    - Check `current.yaml` for orphaned `in_progress` state (task_id set but step_status not `checkpointed` and no active session) → if found, display warning, offer cleanup (reset current.yaml to idle).
-   - **Stale knowledge check:** Run `bash -c 'source ~/.claude/moira/lib/knowledge.sh && moira_knowledge_stale_entries .claude/moira/knowledge'` to detect knowledge entries with confidence ≤ 30%. If any stale entries are found, display:
+   - **Stale knowledge check:** Run `bash -c 'source ~/.claude/moira/lib/knowledge.sh && moira_knowledge_stale_entries .moira/knowledge'` to detect knowledge entries with confidence ≤ 30%. If any stale entries are found, display:
      ```
      ⚠ STALE KNOWLEDGE
        {count} knowledge entries below confidence threshold:
@@ -309,10 +309,10 @@ Before entering the main loop:
 1. Read the pipeline definition YAML for the current pipeline type from `~/.claude/moira/core/pipelines/{type}.yaml` (global)
 <!-- xref-013: canonical source is src/global/core/pipelines/*.yaml via state.sh:61 — keep in sync -->
 2. For each step in the pipeline `steps[]` array (note: steps with `agent: null` are orchestrator-handled — e.g., the final gate completion step — and are not dispatched to an agent):
-   a. Update state: set step and status to `in_progress` in `.claude/moira/state/current.yaml`
+   a. Update state: set step and status to `in_progress` in `.moira/state/current.yaml`
    a2. **Mid-pipeline workspace check** (D-114a): Before dispatching an agent, verify the workspace hasn't been modified externally:
        1. If this is NOT the first step in the pipeline (i.e., previous agent artifacts exist):
-          - Read `.claude/moira/state/current.yaml` → get the list of files from the previous agent's ARTIFACTS
+          - Read `.moira/state/current.yaml` → get the list of files from the previous agent's ARTIFACTS
           - Run `git status --porcelain` and check if any files in the pipeline's working set have new modifications not from a Moira agent
           - "Working set" = files listed in previous agent artifacts + files listed in the plan (if plan exists)
        2. If overlap detected (files in working set have external modifications):
@@ -339,15 +339,15 @@ Before entering the main loop:
        2. Check modified files against protected paths:
           - `design/CONSTITUTION.md` — absolute prohibition (Art 6.1)
           - `design/**` — design docs (Art 6.2)
-          - `.claude/moira/config/**` — system configuration
-          - `.claude/moira/core/**` — core rules and pipelines
+          - `.moira/config/**` — system configuration
+          - `.moira/core/**` — core rules and pipelines
           - `src/global/**` — Moira source code
           - `.ariadne/**` — Graph data — only ariadne CLI writes here (Art 1.2)
           Allowed exceptions (not violations):
-          - `.claude/moira/state/tasks/{current_task_id}/**`
-          - `.claude/moira/knowledge/**`
-          - `.claude/moira/state/current.yaml`
-          - `.claude/moira/state/queue.yaml`
+          - `.moira/state/tasks/{current_task_id}/**`
+          - `.moira/knowledge/**`
+          - `.moira/state/current.yaml`
+          - `.moira/state/queue.yaml`
           - All project source files
        3. If violation found → log to `state/violations.log` (format: `timestamp AGENT_VIOLATION agent_role file_path`), then present Guard Violation Gate (per `gates.md`)
        4. If clean → proceed to step (d2)
@@ -726,8 +726,8 @@ Present at classification gate for user confirmation.
 
 ### State Files
 
-- **`.claude/moira/state/current.yaml`** — live pipeline state (task_id, pipeline, step, step_status, gate_pending, history, context_budget)
-- **`.claude/moira/state/tasks/{task_id}/status.yaml`** — per-task record with task_id, description, developer, created_at, gates, retries
+- **`.moira/state/current.yaml`** — live pipeline state (task_id, pipeline, step, step_status, gate_pending, history, context_budget)
+- **`.moira/state/tasks/{task_id}/status.yaml`** — per-task record with task_id, description, developer, created_at, gates, retries
 
 ### When to Write State
 
@@ -740,7 +740,7 @@ Present at classification gate for user confirmation.
 | Pipeline complete | `current.yaml`: step=completion, step_status=completed |
 | Pipeline failed | `current.yaml`: step_status=failed |
 
-All state writes use the `.claude/moira/state/` project-local directory paths.
+All state writes use the `.moira/state/` project-local directory paths.
 
 ---
 
@@ -842,7 +842,7 @@ Violations come from two sources (D-099, D-116):
 
 Both write to `state/violations.log`. After each agent returns:
 1. Check for guard.sh violation warnings in context (hookSpecificOutput)
-2. Read `state/violations.log`, count lines by prefix: orchestrator violations = `VIOLATION` lines, agent violations = `AGENT_VIOLATION` lines. The orchestrator CAN read `.claude/moira/` files — this is within its allowed scope.
+2. Read `state/violations.log`, count lines by prefix: orchestrator violations = `VIOLATION` lines, agent violations = `AGENT_VIOLATION` lines. The orchestrator CAN read `.moira/` files — this is within its allowed scope.
 <!-- xref-015: canonical source is src/global/skills/gates.md:42-63 — keep in sync -->
 3. Include violation counts in health report at every gate (show separate counts)
 4. If either count > 0: add 🔴 indicator in health report
@@ -877,11 +877,11 @@ When the pipeline reaches the completion step:
      Task ID: {task_id}
      Pipeline Type: {pipeline_type}
      Pipeline YAML Path: ~/.claude/moira/core/pipelines/{pipeline_type}.yaml
-     Task Directory: .claude/moira/state/tasks/{task_id}/
-     Status YAML: .claude/moira/state/tasks/{task_id}/status.yaml
-     Current YAML: .claude/moira/state/current.yaml
-     Violations Log: .claude/moira/state/violations.log
-     Config YAML: .claude/moira/config.yaml
+     Task Directory: .moira/state/tasks/{task_id}/
+     Status YAML: .moira/state/tasks/{task_id}/status.yaml
+     Current YAML: .moira/state/current.yaml
+     Violations Log: .moira/state/violations.log
+     Config YAML: .moira/config.yaml
      Completion Action: done
      ```
   3. Dispatch via Agent tool (foreground): `description: "Completion processor — {task_id}"`, prompt = assembled content from steps 1-2

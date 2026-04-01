@@ -163,7 +163,7 @@ Problematic: Handler Structure
 
 Отработал корректно. Файл `.claude/CLAUDE.md` создан с маркерами `<!-- moira:start -->` / `<!-- moira:end -->` для идемпотентного обновления.
 
-**Замечание:** CLAUDE.md содержит секцию "Orchestrator Boundaries" с абсолютными запретами на чтение файлов вне `.claude/moira/`. Это правильно для pipeline-режима, но может сбивать с толку при обычной работе с Claude Code в том же проекте. Маркеры помогут при reinit, но пользователь может не понять, почему Claude вдруг отказывается читать его код.
+**Замечание:** CLAUDE.md содержит секцию "Orchestrator Boundaries" с абсолютными запретами на чтение файлов вне `.moira/`. Это правильно для pipeline-режима, но может сбивать с толку при обычной работе с Claude Code в том же проекте. Маркеры помогут при reinit, но пользователь может не понять, почему Claude вдруг отказывается читать его код.
 
 ### Step 8: Gitignore
 
@@ -173,7 +173,7 @@ Problematic: Handler Structure
 
 Корректно. `guard.sh` и `budget-track.sh` зарегистрированы в `.claude/settings.json` как `PostToolUse` hooks. Matcher пустой (`""`), что значит — хуки сработают на КАЖДЫЙ вызов инструмента. Это может замедлить работу.
 
-**Замечание:** Пустой matcher `""` означает, что даже `Read` на файл внутри `.claude/moira/` запустит guard.sh. Если guard.sh тяжёлый — это overhead на каждый tool call.
+**Замечание:** Пустой matcher `""` означает, что даже `Read` на файл внутри `.moira/` запустит guard.sh. Если guard.sh тяжёлый — это overhead на каждый tool call.
 
 ### Step 10: Review Gate
 
@@ -247,7 +247,7 @@ Convention-scan (50k токенов, 291s) — главный потребите
 
 ### О CLAUDE.md boundaries
 
-Секция "ABSOLUTE PROHIBITIONS" запрещает оркестратору читать файлы вне `.claude/moira/`. Но эта секция вставляется в `.claude/CLAUDE.md`, который читается ВСЕМИ сессиями Claude Code в этом проекте — не только pipeline-сессиями.
+Секция "ABSOLUTE PROHIBITIONS" запрещает оркестратору читать файлы вне `.moira/`. Но эта секция вставляется в `.claude/CLAUDE.md`, который читается ВСЕМИ сессиями Claude Code в этом проекте — не только pipeline-сессиями.
 
 Это может привести к ситуации, когда пользователь просит Claude Code прочитать файл, а Claude отказывается из-за Moira boundaries.
 
@@ -271,7 +271,7 @@ Convention-scan (50k токенов, 291s) — главный потребите
 ## Файлы, созданные init'ом
 
 ```
-.claude/moira/
+.moira/
 ├── config.yaml                          # 69 строк, корректный
 ├── project/rules/
 │   ├── stack.yaml                       # 5 строк, НЕПОЛНЫЙ (баг #2)

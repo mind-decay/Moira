@@ -61,7 +61,7 @@ Status emoji rules:
 
 Data sources:
 - Context: from `current.yaml` → `context_budget.orchestrator_percent` (updated by moira_budget_orchestrator_check)
-- Violations: count lines in `.claude/moira/state/violations.log` by prefix (D-099, D-116): `VIOLATION` = orchestrator violations (from guard.sh hook in orchestrator session), `AGENT_VIOLATION` = agent violations (from post-agent git diff check). Display as "{N} orchestrator, {M} agent" (or "0 ✅" if both are 0)
+- Violations: count lines in `.moira/state/violations.log` by prefix (D-099, D-116): `VIOLATION` = orchestrator violations (from guard.sh hook in orchestrator session), `AGENT_VIOLATION` = agent violations (from post-agent git diff check). Display as "{N} orchestrator, {M} agent" (or "0 ✅" if both are 0)
 - Agents dispatched: count of entries in `current.yaml` → `history[]`
 - Gates passed: count of entries in task's `status.yaml` → `gates[]`
 - Retries: sum of `status.yaml` → `retries.total`

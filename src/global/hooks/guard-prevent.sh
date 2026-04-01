@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Guard Prevent — PreToolUse hook for Read/Write/Edit boundary enforcement
-# DENY orchestrator access to project files outside .claude/moira/ and .ariadne/
+# DENY orchestrator access to project files outside .moira/ and .ariadne/
 # Upgrades guard.sh from detection (PostToolUse) to prevention (PreToolUse).
 # Part of Pipeline Compliance system (D-175).
 #
@@ -45,8 +45,8 @@ fi
 find_state_dir() {
   local dir="$PWD"
   while [[ "$dir" != "/" ]]; do
-    if [[ -f "$dir/.claude/moira/state/current.yaml" ]]; then
-      echo "$dir/.claude/moira/state"
+    if [[ -f "$dir/.moira/state/current.yaml" ]]; then
+      echo "$dir/.moira/state"
       return 0
     fi
     dir=$(dirname "$dir")
@@ -69,11 +69,11 @@ if [[ -f "$config_file" ]]; then
 fi
 
 # --- Allowed paths ---
-# .claude/moira/ — orchestrator state/config (read+write)
+# .moira/ — orchestrator state/config (read+write)
 # .ariadne/ — graph data (read only, D-105)
 # ~/.claude/moira/ — global core/skills/hooks (read only)
 case "$file_path" in
-  *".claude/moira"*)  exit 0 ;; # project-local moira state — allowed
+  *".moira"*)  exit 0 ;; # project-local moira state — allowed
   *".ariadne/"*)
     case "$tool_name" in
       Read) exit 0 ;; # read graph data — allowed

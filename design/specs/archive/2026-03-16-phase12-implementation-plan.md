@@ -505,7 +505,7 @@ Chunk 12: Tier 1 Tests + Regression (depends on all previous chunks)
        - Recommend `/moira audit`
     9. On `diff` → show per-file diff for all categories
     10. On `skip` → "Staying on v{current}"
-  - Version pinning check: read `.claude/moira/config.yaml` → `moira.version` and `moira.auto_upgrade`. If pinned → warning + extra confirmation
+  - Version pinning check: read `.moira/config.yaml` → `moira.version` and `moira.auto_upgrade`. If pinned → warning + extra confirmation
 - **Commit:** `moira(pipeline): implement upgrade command`
 
 ---

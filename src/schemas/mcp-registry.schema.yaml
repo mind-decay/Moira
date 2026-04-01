@@ -1,7 +1,7 @@
 _meta:
   name: mcp-registry
   file: mcp-registry.yaml
-  location: .claude/moira/config/
+  location: .moira/config/
   git: committed
   description: MCP tools registry — available servers and tool metadata
 

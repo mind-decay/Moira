@@ -6,7 +6,7 @@
 _meta:
   name: telemetry
   file: telemetry.yaml
-  location: .claude/moira/state/tasks/{task_id}/
+  location: .moira/state/tasks/{task_id}/
   git: gitignored
   version: "1.0"
   description: "Per-task execution telemetry for live metrics collection"

@@ -1,7 +1,7 @@
 _meta:
   name: budgets
   file: budgets.yaml
-  location: .claude/moira/config/
+  location: .moira/config/
   git: committed
   description: Context budget allocations per agent role
 

@@ -21,7 +21,7 @@ moira_checkpoint_create() {
   local task_id="$1"
   local step="$2"
   local reason="$3"
-  local state_dir="${4:-.claude/moira/state}"
+  local state_dir="${4:-.moira/state}"
 
   local task_dir="${state_dir}/tasks/${task_id}"
   local manifest_file="${task_dir}/manifest.yaml"
@@ -174,7 +174,7 @@ EOF
 #   external_changes:{file_list}
 moira_checkpoint_validate() {
   local task_id="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
 
   local task_dir="${state_dir}/tasks/${task_id}"
   local manifest_file="${task_dir}/manifest.yaml"
@@ -278,7 +278,7 @@ moira_checkpoint_validate() {
 #          Key decisions: {decisions}. Continue from: {step}."
 moira_checkpoint_build_resume_context() {
   local task_id="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
 
   local task_dir="${state_dir}/tasks/${task_id}"
   local current_file="${state_dir}/current.yaml"
@@ -365,7 +365,7 @@ moira_checkpoint_build_resume_context() {
 # Remove the checkpoint manifest for a completed/abandoned task.
 moira_checkpoint_cleanup() {
   local task_id="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
 
   local manifest_file="${state_dir}/tasks/${task_id}/manifest.yaml"
   rm -f "$manifest_file"

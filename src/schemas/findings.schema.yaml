@@ -1,7 +1,7 @@
 _meta:
   name: findings
   file: "{agent}-{gate}.yaml"
-  location: .claude/moira/state/tasks/{task_id}/findings/
+  location: .moira/state/tasks/{task_id}/findings/
   git: gitignored
   description: Quality gate findings from agent checklist evaluation
 

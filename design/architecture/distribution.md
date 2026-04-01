@@ -6,7 +6,7 @@ Moira has no compiled code, no runtime dependencies beyond bash 3.2+. It is a st
 
 | File type | Purpose | Location |
 |-----------|---------|----------|
-| Markdown (.md) | Agent prompts, skills, docs | `~/.claude/moira/` and `.claude/moira/` |
+| Markdown (.md) | Agent prompts, skills, docs | `~/.claude/moira/` and `.moira/` |
 | YAML (.yaml) | Rules, configs, state schemas | Same |
 | Shell scripts (.sh) | Hooks, libs, CLI | Same |
 
@@ -48,7 +48,7 @@ This means installation = putting the right files in the right places + symlinki
                │
 ┌──────────────▼───────────────┐
 │    PROJECT LAYER             │
-│    <project>/.claude/moira/  │
+│    <project>/.moira/  │
 │                              │
 │  Generated per project.      │
 │  Committed to project repo.  │
@@ -68,8 +68,8 @@ curl -fsSL https://raw.githubusercontent.com/<org>/moira/main/src/remote-install
 ### Option B: git clone (for contributors)
 
 ```bash
-git clone https://github.com/<org>/moira.git ~/.moira-source
-~/.moira-source/install.sh
+git clone https://github.com/<org>/moira.git ~/.claude/moira-source
+~/.claude/moira-source/install.sh
 ```
 
 ### What install.sh Does
@@ -335,7 +335,7 @@ claude                    # start Claude Code
   │    └─ Pattern scanner → reads representative files per layer
   │
   ├─ 4. GENERATE: Create project layer
-  │    .claude/moira/
+  │    .moira/
   │    ├─ config.yaml              (from scan results)
   │    ├─ project/rules/
   │    │   ├─ stack.yaml           (detected stack)
@@ -393,20 +393,20 @@ claude                    # start Claude Code
 
 ```
 # .gitignore additions by Moira
-.claude/moira/state/tasks/     # task execution state (per-developer)
-.claude/moira/state/bypass-log.yaml
+.moira/state/tasks/     # task execution state (per-developer)
+.moira/state/bypass-log.yaml
 
 # These ARE committed (shared with team):
-.claude/moira/config.yaml
-.claude/moira/project/rules/
-.claude/moira/config/
-.claude/moira/knowledge/
-.claude/moira/state/metrics/   # team-visible metrics
+.moira/config.yaml
+.moira/project/rules/
+.moira/config/
+.moira/knowledge/
+.moira/state/metrics/   # team-visible metrics
 ```
 
 ### Existing `.claude/` Compatibility
 
-1. **`.claude/` already exists** — Moira creates only `.claude/moira/` subdirectory. Does not touch anything outside `moira/`.
+1. **`.claude/` already exists** — Moira creates only `.moira/` subdirectory. Does not touch anything outside `moira/`.
 2. **`.claude/CLAUDE.md` already exists** — Moira appends its section wrapped in markers:
    ```markdown
    <!-- moira:start -->
@@ -494,7 +494,7 @@ curl -fsSL https://raw.githubusercontent.com/<org>/moira/main/src/remote-install
 Projects can pin Moira version:
 
 ```yaml
-# .claude/moira/config.yaml
+# .moira/config.yaml
 moira:
   version: "1.0.0"          # pinned
   auto_upgrade: false        # don't prompt for upgrades
@@ -516,7 +516,7 @@ rm -rf ~/.claude/moira
 ### Per-project (remove Moira from one project)
 
 ```bash
-rm -rf .claude/moira
+rm -rf .moira
 # Remove Moira sections from .claude/CLAUDE.md and .claude/AGENTS.md
 # Remove hook entries from .claude/settings.json
 ```
@@ -554,7 +554,7 @@ Moira does NOT require:
 2. cd project && claude                                     # open project
 3. /moira init                                              # bootstrap
 4. Review generated config                                  # 1-2 min
-5. git add .claude/moira && git commit                      # commit config
+5. git add .moira && git commit                      # commit config
 6. Push branch → merge PR                                   # team review
 ```
 
@@ -598,7 +598,7 @@ To match exactly: check project's config.yaml for pinned version.
 
 ```
 Check .claude/settings.json for hook entries.
-Verify hook files are executable: chmod +x .claude/moira/hooks/*.sh
+Verify hook files are executable: chmod +x .moira/hooks/*.sh
 ```
 
 ### "/moira init says already initialized but nothing works"

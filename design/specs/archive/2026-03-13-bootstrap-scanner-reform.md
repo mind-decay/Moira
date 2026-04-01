@@ -247,8 +247,8 @@ Schema change: `type: enum` → `type: string`. Scanner writes whatever framewor
 
 - Step 5 (Match Stack Preset): **deleted** — steps renumber (old 6→5, 7→6, etc.)
 - Step 5 (was 6) Generate Config and Rules: no longer passes preset path. Calls:
-  - `moira_bootstrap_generate_config "{project_root}" ".claude/moira/state/init/tech-scan.md"`
-  - `moira_bootstrap_generate_project_rules "{project_root}" ".claude/moira/state/init"`
+  - `moira_bootstrap_generate_config "{project_root}" ".moira/state/init/tech-scan.md"`
+  - `moira_bootstrap_generate_project_rules "{project_root}" ".moira/state/init"`
 - Step 9 (was 10) User Review: displays detected stack from config as before
 - All other steps: logic unchanged, numbers shift by -1 after old Step 5
 

@@ -12,7 +12,7 @@ set -euo pipefail
 # ── Resolve paths ────────────────────────────────────────────────────────
 MOIRA_HOME="${MOIRA_HOME:-$HOME/.claude/moira}"
 MOIRA_LIB="${MOIRA_HOME}/lib"
-MOIRA_PROJECT_STATE=".claude/moira"
+MOIRA_PROJECT_STATE=".moira"
 MOIRA_CONFIG="${MOIRA_PROJECT_STATE}/config.yaml"
 
 # ── Color support ────────────────────────────────────────────────────────
@@ -481,7 +481,7 @@ cmd_knowledge() {
   Knowledge files are markdown. You can edit them directly.
 
   Locations:
-  .claude/moira/knowledge/
+  .moira/knowledge/
   ├── project-model/
   │   ├── index.md       (L0 — topic list)
   │   ├── summary.md     (L1 — key facts)

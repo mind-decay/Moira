@@ -19,7 +19,7 @@ moira_epic_parse_queue() {
   [[ -n "${ZSH_VERSION:-}" ]] && setopt localoptions KSH_ARRAYS
 
   local task_id="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
   local queue_file="${state_dir}/tasks/${task_id}/queue.yaml"
 
   if [[ ! -f "$queue_file" ]]; then
@@ -116,7 +116,7 @@ moira_epic_validate_dag() {
   [[ -n "${ZSH_VERSION:-}" ]] && setopt localoptions KSH_ARRAYS
 
   local task_id="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
 
   local parsed
   parsed=$(moira_epic_parse_queue "$task_id" "$state_dir") || return $?
@@ -285,7 +285,7 @@ moira_epic_next_tasks() {
   [[ -n "${ZSH_VERSION:-}" ]] && setopt localoptions KSH_ARRAYS
 
   local task_id="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
 
   local parsed
   parsed=$(moira_epic_parse_queue "$task_id" "$state_dir") || return $?
@@ -427,7 +427,7 @@ moira_epic_update_progress() {
   local task_id="$1"
   local subtask_id="$2"
   local new_status="$3"
-  local state_dir="${4:-.claude/moira/state}"
+  local state_dir="${4:-.moira/state}"
   local queue_file="${state_dir}/tasks/${task_id}/queue.yaml"
 
   if [[ ! -f "$queue_file" ]]; then
@@ -517,7 +517,7 @@ moira_epic_check_dependencies() {
 
   local task_id="$1"
   local subtask_id="$2"
-  local state_dir="${3:-.claude/moira/state}"
+  local state_dir="${3:-.moira/state}"
 
   local parsed
   parsed=$(moira_epic_parse_queue "$task_id" "$state_dir") || return $?

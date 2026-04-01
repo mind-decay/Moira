@@ -233,11 +233,11 @@
 - **Target state:** Header should say "Reflection Mode" with mapping note.
 - **Fix:** Rename column header and add mapping note.
 
-### M-13: overview.md data flow shows wrong path prefix `.moira/` instead of `.claude/moira/`
+### M-13: overview.md data flow shows wrong path prefix `.moira/` instead of `.moira/`
 - **Files:**
   - `design/architecture/overview.md` line 67
 - **Current state:** Classifier data flow shows `.moira/state/tasks/{id}/classification.md`.
-- **Target state:** `.claude/moira/state/tasks/{id}/classification.md` per D-061.
+- **Target state:** `.moira/state/tasks/{id}/classification.md` per D-061.
 - **Fix:** Update path prefix.
 
 ### M-14: dispatch.md references shell functions as "patterns" the orchestrator can't call

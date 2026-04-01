@@ -16,7 +16,7 @@ Perform a comprehensive architecture analysis of this project. Enhance the exist
 
 Review clusters, boundaries, and layers data for architectural patterns.
 
-Pre-context data available at `.claude/moira/state/init/ariadne-context.md`. Read that file FIRST for structural context.
+Pre-context data available at `.moira/state/init/ariadne-context.md`. Read that file FIRST for structural context.
 
 If the pre-context file does not exist or is a placeholder, proceed with full manual scanning as before.
 
@@ -64,7 +64,7 @@ Write findings as structured markdown. Prepend a "Deep scan additions" section t
 
 ## Output Path
 
-Enhance existing file: `.claude/moira/knowledge/architecture/full.md`
+Enhance existing file: `.moira/knowledge/architecture/full.md`
 
 Prepend your findings as a new section. Do NOT replace existing content — add to it.
 

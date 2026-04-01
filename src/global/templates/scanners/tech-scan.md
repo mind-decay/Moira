@@ -18,7 +18,7 @@ Identify the following technical facts about this project:
 
 ## Pre-Collected Data
 
-Raw config files have been pre-collected at `.claude/moira/state/init/raw-configs.md`.
+Raw config files have been pre-collected at `.moira/state/init/raw-configs.md`.
 Read that file FIRST. Only use Read/Glob for files NOT included in pre-collection.
 
 ## Scan Strategy
@@ -116,7 +116,7 @@ After the frontmatter, write the detailed report using this format:
 
 ## Output Path
 
-Write the complete output to: `.claude/moira/state/init/tech-scan.md`
+Write the complete output to: `.moira/state/init/tech-scan.md`
 
 ## Constraints
 

@@ -252,7 +252,7 @@ In Phase 3, Daedalus produced only a plan. In Phase 4, Daedalus also WRITES the 
 
 Template knowledge files installed by `scaffold.sh` when a project is initialized. These are starter templates — Bootstrap (Phase 5) populates them with real data.
 
-**Files created in `.claude/moira/knowledge/`:**
+**Files created in `.moira/knowledge/`:**
 
 ```
 knowledge/

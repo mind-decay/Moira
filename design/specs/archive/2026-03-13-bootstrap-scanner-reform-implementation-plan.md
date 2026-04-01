@@ -325,8 +325,8 @@ Also update file header comment (line 3): remove "Preset matching" from descript
 - Step 5 (was 6): update bash code blocks — remove `$PRESET` variable, remove preset path from function calls:
   ```bash
   source ~/.claude/moira/lib/bootstrap.sh
-  moira_bootstrap_generate_config "{project_root}" ".claude/moira/state/init/tech-scan.md"
-  moira_bootstrap_generate_project_rules "{project_root}" ".claude/moira/state/init"
+  moira_bootstrap_generate_config "{project_root}" ".moira/state/init/tech-scan.md"
+  moira_bootstrap_generate_project_rules "{project_root}" ".moira/state/init"
   ```
 - Step 4 (scanner dispatch): update failure options — remove "skip (use preset defaults only)" option, replace with "skip (fields will be empty)"
 

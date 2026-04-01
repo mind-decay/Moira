@@ -90,14 +90,14 @@ PostToolUse hook that fires after every tool call during a Moira session. Provid
 **Responsibilities:**
 1. Parse hook input JSON (tool_name, tool_input)
 2. Log ALL tool usage to `tool-usage.log` for audit trail (Art 3.1)
-3. Detect violations: orchestrator accessing project files outside `.claude/moira/`
+3. Detect violations: orchestrator accessing project files outside `.moira/`
 4. On violation: write to `violations.log` AND inject warning into Claude context via `hookSpecificOutput`
 
 **Violation detection logic:**
 - Only active during Moira sessions (check: `current.yaml` exists in state directory)
 - Check `hooks.guard_enabled` in config (if available, default: true)
-- Violation condition: tool_name is Read/Write/Edit AND file_path does NOT contain `.claude/moira`
-  - **Design deviation (intentional):** `self-monitoring.md` guard.sh example includes Grep/Glob in the check. We omit them because `allowed-tools` in `task.md` physically prevents the orchestrator from using Grep/Glob — guard.sh cannot detect what `allowed-tools` already blocks. Guard only checks Read/Write/Edit because these are the tools the orchestrator legitimately has access to (for reading `.claude/moira/` state). See D-072 rationale.
+- Violation condition: tool_name is Read/Write/Edit AND file_path does NOT contain `.moira`
+  - **Design deviation (intentional):** `self-monitoring.md` guard.sh example includes Grep/Glob in the check. We omit them because `allowed-tools` in `task.md` physically prevents the orchestrator from using Grep/Glob — guard.sh cannot detect what `allowed-tools` already blocks. Guard only checks Read/Write/Edit because these are the tools the orchestrator legitimately has access to (for reading `.moira/` state). See D-072 rationale.
   - Agent tool calls are NOT violations — agents SHOULD use all tools
   - The guard cannot distinguish orchestrator vs. agent calls (both fire PostToolUse) — but `allowed-tools` prevents the orchestrator from even having these tools. Guard catches edge cases only.
 
@@ -116,7 +116,7 @@ PostToolUse hook that fires after every tool call during a Moira session. Provid
 {ISO8601} VIOLATION {tool_name} {file_path}
 ```
 
-**Log location:** Both logs in the project's `.claude/moira/state/` directory (gitignored, per-developer).
+**Log location:** Both logs in the project's `.moira/state/` directory (gitignored, per-developer).
 
 **Error handling:**
 - If `jq` is not available: fall back to grep-based JSON extraction
@@ -158,7 +158,7 @@ Where:
 - Write to log file via simple append (no locking needed — single process)
 - Exit 0 on any error
 
-**Log location:** `.claude/moira/state/budget-tool-usage.log` (gitignored)
+**Log location:** `.moira/state/budget-tool-usage.log` (gitignored)
 
 ### D3: Settings.json Merge Logic (`src/global/lib/settings-merge.sh`)
 
@@ -268,7 +268,7 @@ Replace the Phase 3 stub in `errors.md` with concrete detection and reporting.
 ### Detection
 
 Guard hook (`guard.sh`) detects violations in real-time:
-- Orchestrator uses Read/Write/Edit on files outside `.claude/moira/`
+- Orchestrator uses Read/Write/Edit on files outside `.moira/`
 - Violation logged to `state/violations.log`
 - Warning injected into orchestrator context via hookSpecificOutput
 
@@ -347,8 +347,8 @@ You are an ORCHESTRATOR. You are NOT an executor.
 ALL project interaction happens through dispatched agents.
 
 NEVER:
-- Use Read on files outside .claude/moira/
-- Use Edit or Write on files outside .claude/moira/
+- Use Read on files outside .moira/
+- Use Edit or Write on files outside .moira/
 - Use Bash for anything except agent dispatch
 - Use Grep or Glob on project files
 
@@ -377,7 +377,7 @@ Wire violation count into the orchestrator's health report display.
 
 **Section 6 (Budget Monitoring) — add violation monitoring subsection:**
 - After each agent returns, orchestrator reads violation count
-- **Mechanism:** Use Read tool on `.claude/moira/state/violations.log`, count lines (the orchestrator CAN read `.claude/moira/` files — this is within its allowed scope)
+- **Mechanism:** Use Read tool on `.moira/state/violations.log`, count lines (the orchestrator CAN read `.moira/` files — this is within its allowed scope)
 - Include in health report: `Violations: {count} {emoji}`
 - Emoji: ✅ if 0, 🔴 if > 0
 - If guard.sh injected a warning via hookSpecificOutput: acknowledge it in next output
@@ -390,7 +390,7 @@ Wire violation count into the orchestrator's health report display.
 #### D7b: Update `gates.md` Health Report Section
 
 Clarify data source for violations field:
-- Source: line count of `.claude/moira/state/violations.log` (0 if file doesn't exist)
+- Source: line count of `.moira/state/violations.log` (0 if file doesn't exist)
 - This is already in the template — Phase 8 provides the actual log file
 
 ### D8: Tier 1 Tests (`src/tests/tier1/test-hooks-system.sh`)
@@ -469,9 +469,9 @@ Note: `scaffold.sh` creates `state/` directories. Bootstrap creates initial file
 
 Update `moira_bootstrap_setup_gitignore` in `bootstrap.sh` to add entries for the new log files. Current gitignore entries cover specific `state/` files but NOT a `state/` wildcard — the new log files need explicit entries:
 
-- `.claude/moira/state/violations.log`
-- `.claude/moira/state/tool-usage.log`
-- `.claude/moira/state/budget-tool-usage.log`
+- `.moira/state/violations.log`
+- `.moira/state/tool-usage.log`
+- `.moira/state/budget-tool-usage.log`
 
 These are per-developer ephemeral data (D-074) and must not be committed.
 
@@ -496,7 +496,7 @@ These are per-developer ephemeral data (D-074) and must not be committed.
 
 Guard.sh and budget-track.sh do NOT source any Moira library files. They use only basic bash, `grep`, `sed`, and optionally `jq`.
 
-Guard.sh checks only Read/Write/Edit (not Grep/Glob as in `self-monitoring.md` example). This is an intentional narrowing: `allowed-tools` physically prevents the orchestrator from using Grep/Glob, so guard.sh cannot observe these calls. Guard only monitors tools the orchestrator legitimately has access to for reading `.claude/moira/` state.
+Guard.sh checks only Read/Write/Edit (not Grep/Glob as in `self-monitoring.md` example). This is an intentional narrowing: `allowed-tools` physically prevents the orchestrator from using Grep/Glob, so guard.sh cannot observe these calls. Guard only monitors tools the orchestrator legitimately has access to for reading `.moira/` state.
 
 **Rationale:**
 1. PostToolUse hooks fire after EVERY tool call — performance is critical (< 50ms)
@@ -569,7 +569,7 @@ Log files are created empty during bootstrap (via `moira_bootstrap_inject_hooks`
 ARTICLE 1: Separation of Concerns
 [✓] 1.1 — Guard hook detects orchestrator violations but does not prevent
          them (prevention is by allowed-tools). Hook operates on log files
-         in .claude/moira/state/ ONLY. Never reads project source.
+         in .moira/state/ ONLY. Never reads project source.
 [✓] 1.2 — Hooks do not expand agent roles. Guard hook is infrastructure,
          not an agent. No new agent responsibilities.
 [✓] 1.3 — Hooks are separate scripts, not merged into existing libraries.
@@ -581,7 +581,7 @@ ARTICLE 2: Determinism
 [✓] 2.2 — Hooks do not affect gate definitions. Hook-injected warnings
          are informational context, not gate decisions.
 [✓] 2.3 — Violation detection follows explicit rules: file_path outside
-         .claude/moira/ = violation. No heuristics, no judgment.
+         .moira/ = violation. No heuristics, no judgment.
 
 ARTICLE 3: Transparency
 [✓] 3.1 — All tool usage logged to tool-usage.log. All violations logged

@@ -85,7 +85,7 @@ After the frontmatter, write a summary:
 
 ## Output Path
 
-Write the complete output to: `.claude/moira/state/init/mcp-scan.md`
+Write the complete output to: `.moira/state/init/mcp-scan.md`
 
 ## Constraints
 

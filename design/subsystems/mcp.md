@@ -15,7 +15,7 @@ RIGHT: Planner determines which MCP tools are needed per step,
 Generated at `/moira init` by scanning available MCP servers.
 
 ```yaml
-# .claude/moira/config/mcp-registry.yaml
+# .moira/config/mcp-registry.yaml
 
 servers:
   context7:

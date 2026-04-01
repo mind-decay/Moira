@@ -37,7 +37,7 @@ When you need source code verification, include in your output:
 ```
 EXPLORER_DISPATCH_REQUEST:
   claim: "The project uses Express for routing"
-  source_file: ".claude/moira/knowledge/project-model/full.md"
+  source_file: ".moira/knowledge/project-model/full.md"
   verify_in: ["src/", "package.json"]
 ```
 

@@ -371,7 +371,7 @@ Depends on Chunk 2 (quality checkpoint rename reference).
 **Change:** Quick Pipeline section (line 44 "Post: lightweight reflection (file note, no agent)"). Add format specification:
 ```
 Post: lightweight reflection — orchestrator writes structured note to
-.claude/moira/state/tasks/{id}/reflection-note.yaml:
+.moira/state/tasks/{id}/reflection-note.yaml:
   task_id: {id}
   classification_correct: true|false
   implementation_accepted: true|false|tweaked

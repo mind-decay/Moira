@@ -2,7 +2,7 @@
 _meta:
   name: config
   file: config.yaml
-  location: .claude/moira/
+  location: .moira/
   git: committed
   description: Project configuration
 
@@ -205,4 +205,4 @@ fields:
     type: string
     required: false
     default: "state/archive"
-    description: "Directory for archived log files, relative to .claude/moira/"
+    description: "Directory for archived log files, relative to .moira/"

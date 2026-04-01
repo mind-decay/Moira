@@ -6,7 +6,7 @@
 _meta:
   name: metrics
   file: monthly-{YYYY-MM}.yaml
-  location: .claude/moira/state/metrics/
+  location: .moira/state/metrics/
   git: gitignored
   version: "1.0"
   description: "Monthly aggregated performance metrics with per-task drill-down records"

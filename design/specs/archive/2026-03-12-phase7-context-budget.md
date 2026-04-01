@@ -202,7 +202,7 @@ Write budget data to telemetry.yaml for the task.
 
 ### D2: Budget Configuration Template (`src/global/templates/budgets.yaml.tmpl`)
 
-Project-level budget configuration template. Copied to `.claude/moira/config/budgets.yaml` during `/moira:init`.
+Project-level budget configuration template. Copied to `.moira/config/budgets.yaml` during `/moira:init`.
 
 ```yaml
 # Context Budget Configuration
@@ -524,7 +524,7 @@ Add `test-budget-system.sh` to the test runner.
 
 ### D11: Scaffold Integration (`src/global/lib/scaffold.sh`)
 
-Update the scaffold process to copy `budgets.yaml.tmpl` to `.claude/moira/config/budgets.yaml` if it doesn't already exist. This makes budget configuration available immediately after init.
+Update the scaffold process to copy `budgets.yaml.tmpl` to `.moira/config/budgets.yaml` if it doesn't already exist. This makes budget configuration available immediately after init.
 
 **Function to update:** `moira_scaffold_project()` in `scaffold.sh` (bootstrap.sh delegates all scaffolding here)
 
@@ -608,7 +608,7 @@ MCP call token estimates come from `budgets.yaml` (`mcp_estimates` section), not
 
 ```
 ARTICLE 1: Separation of Concerns
-[✓] 1.1 — Budget tracking operates on .claude/moira/ state files ONLY.
+[✓] 1.1 — Budget tracking operates on .moira/ state files ONLY.
          Budget library reads config, state, and status files — never project source.
          Token estimation reads file sizes via `wc -c`, not file content.
 [✓] 1.2 — Budget functions do not expand agent roles.

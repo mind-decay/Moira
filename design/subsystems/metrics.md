@@ -42,7 +42,7 @@
 ## Metric Storage
 
 ```yaml
-# .claude/moira/state/metrics/monthly-{YYYY-MM}.yaml
+# .moira/state/metrics/monthly-{YYYY-MM}.yaml
 
 period: "2024-01"
 tasks:

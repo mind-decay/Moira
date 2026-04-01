@@ -71,10 +71,10 @@ Note: D-060 through D-071 in commit `876fde2` are architecture review decisions,
   - Parse JSON fields using `jq` if available, fallback to grep/sed:
     - `tool_name`: extract from `"tool_name"` field
     - `file_path`: extract from `"tool_input"."file_path"` or `"tool_input"."command"` field
-  - Session check: look for `.claude/moira/state/current.yaml` — if not present, `exit 0`
+  - Session check: look for `.moira/state/current.yaml` — if not present, `exit 0`
   - Config check: if config.yaml exists, check `hooks.guard_enabled` — if `false`, `exit 0`
   - Log ALL tool usage: append `{ISO8601} {tool_name} {file_path}` to `state/tool-usage.log`
-  - Violation check: if `tool_name` is Read/Write/Edit AND `file_path` is non-empty AND does NOT contain `.claude/moira`:
+  - Violation check: if `tool_name` is Read/Write/Edit AND `file_path` is non-empty AND does NOT contain `.moira`:
     - Note: `self-monitoring.md` example includes Grep/Glob but we omit them — `allowed-tools` blocks them so guard.sh can't observe them (see D-072)
     - Append `{ISO8601} VIOLATION {tool_name} {file_path}` to `state/violations.log`
     - Output JSON: `{"hookSpecificOutput":{"additionalContext":"CONSTITUTIONAL VIOLATION (Art 1.1): Orchestrator used {tool_name} on {file_path}. Direct project file operations are prohibited."}}`
@@ -84,8 +84,8 @@ Note: D-060 through D-071 in commit `876fde2` are architecture review decisions,
   - No `source` of any library files
   - No subshell spawns beyond necessary `jq` or `grep`
   - Date via `date -u +%Y-%m-%dT%H:%M:%SZ` (one fork)
-  - State directory path: check `.claude/moira/state/` relative to git root or home
-    - Use heuristic: walk up from CWD looking for `.claude/moira/state/current.yaml`
+  - State directory path: check `.moira/state/` relative to git root or home
+    - Use heuristic: walk up from CWD looking for `.moira/state/current.yaml`
     - Fallback: check `$HOME/.claude/moira/state/current.yaml`
 - **Commit:** `moira(hooks): create guard hook for violation detection and audit logging`
 
@@ -192,7 +192,7 @@ Note: D-060 through D-071 in commit `876fde2` are architecture review decisions,
       fi
 
       # Create empty log files (D-076: pre-create during bootstrap, not scaffold)
-      local state_dir="$project_root/.claude/moira/state"
+      local state_dir="$project_root/.moira/state"
       if [[ -d "$state_dir" ]]; then
         touch "$state_dir/violations.log" "$state_dir/tool-usage.log" "$state_dir/budget-tool-usage.log"
       fi
@@ -205,9 +205,9 @@ Note: D-060 through D-071 in commit `876fde2` are architecture review decisions,
   - **Also update `moira_bootstrap_setup_gitignore`** — add entries for the 3 new log files:
     ```bash
     # Add to the entries array in moira_bootstrap_setup_gitignore:
-    ".claude/moira/state/violations.log"
-    ".claude/moira/state/tool-usage.log"
-    ".claude/moira/state/budget-tool-usage.log"
+    ".moira/state/violations.log"
+    ".moira/state/tool-usage.log"
+    ".moira/state/budget-tool-usage.log"
     ```
     These are per-developer ephemeral data (D-074) and must not be committed.
 - **Commit:** `moira(hooks): integrate hook injection into bootstrap flow`
@@ -270,7 +270,7 @@ Note: D-060 through D-071 in commit `876fde2` are architecture review decisions,
     - "### Violation Monitoring"
     - "After each agent returns:"
     - "1. Check for violation warnings in context (guard.sh injects via hookSpecificOutput)"
-    - "2. Read violation count: use Read tool on `.claude/moira/state/violations.log`, count lines (0 if file empty or missing). The orchestrator CAN read `.claude/moira/` files — this is within its allowed scope."
+    - "2. Read violation count: use Read tool on `.moira/state/violations.log`, count lines (0 if file empty or missing). The orchestrator CAN read `.moira/` files — this is within its allowed scope."
     - "3. Include violation count in health report at every gate"
     - "4. If violation count > 0: add 🔴 indicator in health report"
   - **Section 7 (Completion Flow):** In the `done` action:
@@ -288,7 +288,7 @@ Note: D-060 through D-071 in commit `876fde2` are architecture review decisions,
     ```
     Data sources:
     - Context: from `current.yaml` → `context_budget.orchestrator_percent` (updated by moira_budget_orchestrator_check)
-    - Violations: line count of `.claude/moira/state/violations.log` (0 if file doesn't exist or is empty)
+    - Violations: line count of `.moira/state/violations.log` (0 if file doesn't exist or is empty)
     - Agents dispatched: count of entries in `current.yaml` → `history[]`
     - Gates passed: count of entries in task's `status.yaml` → `gates[]`
     - Retries: sum of `status.yaml` → `retries.total`
@@ -325,8 +325,8 @@ Note: D-060 through D-071 in commit `876fde2` are architecture review decisions,
     ALL project interaction happens through dispatched agents.
 
     NEVER:
-    - Use Read on files outside .claude/moira/
-    - Use Edit or Write on files outside .claude/moira/
+    - Use Read on files outside .moira/
+    - Use Edit or Write on files outside .moira/
     - Use Bash for anything except agent dispatch
     - Use Grep or Glob on project files
 

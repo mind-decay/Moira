@@ -13,7 +13,7 @@ Thumbs.db
 node_modules/
 
 # Moira runtime state (never committed — per-developer)
-.claude/moira/state/
+.moira/state/
 
 # Worktrees
 .worktrees/

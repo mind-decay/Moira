@@ -16,7 +16,7 @@ source "${_MOIRA_LIB_DIR}/yaml-utils.sh"
 # Read current pipeline state. Outputs key fields.
 # If no active task, outputs "idle".
 moira_state_current() {
-  local state_dir="${1:-.claude/moira/state}"
+  local state_dir="${1:-.moira/state}"
   local current_file="${state_dir}/current.yaml"
 
   if [[ ! -f "$current_file" ]]; then
@@ -49,7 +49,7 @@ moira_state_current() {
 moira_state_transition() {
   local new_step="$1"
   local new_status="$2"
-  local state_dir="${3:-.claude/moira/state}"
+  local state_dir="${3:-.moira/state}"
   local current_file="${state_dir}/current.yaml"
 
   if [[ ! -f "$current_file" ]]; then
@@ -141,7 +141,7 @@ moira_state_gate() {
   local gate_name="$1"
   local decision="$2"
   local note="${3:-}"
-  local state_dir="${4:-.claude/moira/state}"
+  local state_dir="${4:-.moira/state}"
   local current_file="${state_dir}/current.yaml"
 
   # Validate decision
@@ -193,7 +193,7 @@ moira_state_agent_done() {
   local duration_sec="$4"
   local tokens_used="$5"
   local result_summary="$6"
-  local state_dir="${7:-.claude/moira/state}"
+  local state_dir="${7:-.moira/state}"
   local current_file="${state_dir}/current.yaml"
 
   if [[ ! -f "$current_file" ]]; then
@@ -239,7 +239,7 @@ moira_state_agent_done() {
 moira_state_increment_retry() {
   local task_id="$1"
   local type="${2:-total}"
-  local state_dir="${3:-.claude/moira/state}"
+  local state_dir="${3:-.moira/state}"
   local status_file="${state_dir}/tasks/${task_id}/status.yaml"
 
   if [[ ! -f "$status_file" ]]; then
@@ -271,7 +271,7 @@ moira_state_write_warning() {
   local entry_path="$3"
   local last_task_id="$4"
   local distance="$5"
-  local state_dir="${6:-.claude/moira/state}"
+  local state_dir="${6:-.moira/state}"
   local status_file="${state_dir}/tasks/${task_id}/status.yaml"
 
   if [[ ! -f "$status_file" ]]; then
@@ -292,7 +292,7 @@ moira_state_write_warning() {
 moira_state_set_status() {
   local task_id="$1"
   local status="$2"
-  local state_dir="${3:-.claude/moira/state}"
+  local state_dir="${3:-.moira/state}"
   local status_file="${state_dir}/tasks/${task_id}/status.yaml"
 
   # Validate status enum
@@ -325,7 +325,7 @@ moira_state_record_completion() {
   local tweak_count="$3"
   local redo_count="$4"
   local final_review_passed="$5"
-  local state_dir="${6:-.claude/moira/state}"
+  local state_dir="${6:-.moira/state}"
   local status_file="${state_dir}/tasks/${task_id}/status.yaml"
 
   # Validate action enum

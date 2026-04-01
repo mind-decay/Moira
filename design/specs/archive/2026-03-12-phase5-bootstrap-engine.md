@@ -63,7 +63,7 @@ Each template follows this structure:
 {exact structure of the artifact file}
 
 ## Output Path
-{where to write: .claude/moira/knowledge/{type}/full.md}
+{where to write: .moira/knowledge/{type}/full.md}
 
 ## Constraints
 - Report ONLY observed facts with file path evidence
@@ -366,14 +366,14 @@ Generate `config.yaml` from preset + scan results.
   - `project.root`: `$project_root`
   - `project.stack`: preset's `stack_id`
   - Remaining fields: schema defaults from `config.schema.yaml`
-- Writes to `.claude/moira/config.yaml`
+- Writes to `.moira/config.yaml`
 
 #### `moira_bootstrap_generate_project_rules <project_root> <preset_path> <scan_results_dir>`
 Generate Layer 3 project rules from preset + all scanner results.
 
 - Reads preset for defaults
 - Reads all 4 scan artifacts for evidence-based overrides
-- Generates 4 files in `.claude/moira/project/rules/`:
+- Generates 4 files in `.moira/project/rules/`:
   - `stack.yaml` — from tech scan + preset `stack` section
   - `conventions.yaml` — from convention scan + preset `conventions` section (scan wins on conflict)
   - `patterns.yaml` — from pattern scan + preset `patterns` section
@@ -435,7 +435,7 @@ When executing as Moira orchestrator (via /moira:task):
 - NEVER read, write, or modify project source files directly
 - NEVER run bash commands on project files
 - ALL project interaction happens through dispatched agents
-- Read ONLY `.claude/moira/` state and config files
+- Read ONLY `.moira/` state and config files
 <!-- moira:end -->
 ```
 
@@ -446,10 +446,10 @@ Ensure Moira's gitignore entries are present.
 - If not present, append:
   ```
   # Moira orchestration state (per-developer)
-  .claude/moira/state/tasks/
-  .claude/moira/state/bypass-log.yaml
-  .claude/moira/state/current.yaml
-  .claude/moira/state/init/
+  .moira/state/tasks/
+  .moira/state/bypass-log.yaml
+  .moira/state/current.yaml
+  .moira/state/init/
   ```
 - Idempotent — check before appending
 - Note: `state/init/` contains temporary scanner output from bootstrap, should not be committed
@@ -482,7 +482,7 @@ Note: `init.md` is one of the few commands that needs `Bash` (for running scaffo
 - Store version for compatibility check
 
 #### Step 2: Check Existing Init
-- Check if `.claude/moira/config.yaml` exists
+- Check if `.moira/config.yaml` exists
 - If exists AND no `--force` flag: display "Already initialized. Use /moira:refresh to update, or /moira:init --force to reinitialize."
 - If exists AND `--force`: continue (reinit mode — preserves knowledge)
 - If not exists: continue (fresh init)
@@ -499,12 +499,12 @@ Note: `init.md` is one of the few commands that needs `Bash` (for running scaffo
   - Gets base inviolable rules (from base.yaml)
   - Gets scanner-specific L4 instructions (from template)
   - Gets response contract
-  - Writes detailed results to `.claude/moira/state/init/{scan_type}.md`
+  - Writes detailed results to `.moira/state/init/{scan_type}.md`
   - Returns status summary only
 
 Wait for all 4 to complete.
 
-Scan result storage: `.claude/moira/state/init/` (temporary, can be cleaned after init completes)
+Scan result storage: `.moira/state/init/` (temporary, can be cleaned after init completes)
 
 #### Step 5: Match Stack Preset
 - Call `moira_bootstrap_match_preset` with tech scan results
@@ -537,9 +537,9 @@ Present results to user:
   └─ CI: {ci platform}
 
   Generated:
-  ├─ Config: .claude/moira/config.yaml
-  ├─ Rules: .claude/moira/project/rules/ (4 files)
-  ├─ Knowledge: .claude/moira/knowledge/ (populated)
+  ├─ Config: .moira/config.yaml
+  ├─ Rules: .moira/project/rules/ (4 files)
+  ├─ Knowledge: .moira/knowledge/ (populated)
   └─ CLAUDE.md: updated with Moira section
 
   ▸ review  — inspect generated files
@@ -646,7 +646,7 @@ Tests for bootstrap engine:
 - All 4 scanner templates exist (`tech-scan.md`, `structure-scan.md`, `convention-scan.md`, `pattern-scan.md`)
 - Each template contains: Objective, Scan Strategy, Output Format, Output Path, Constraints sections
 - Each template contains Explorer NEVER constraints (no opinions, no recommendations)
-- Each template specifies an output path under `.claude/moira/`
+- Each template specifies an output path under `.moira/`
 
 **Stack preset tests:**
 - `generic.yaml` exists (required fallback)
@@ -694,7 +694,7 @@ Add `test-bootstrap.sh` to the test runner.
 
 ### AD-1: Scanner Results in Temporary Init Directory
 
-Scanner outputs are written to `.claude/moira/state/init/` rather than directly to knowledge files. This allows:
+Scanner outputs are written to `.moira/state/init/` rather than directly to knowledge files. This allows:
 1. All 4 scans to complete before any config/knowledge generation
 2. The config generator to cross-reference all scan results
 3. The temporary directory to be cleaned after init
@@ -718,7 +718,7 @@ Rationale: presets are generic defaults; scans observe the actual project. Evide
 
 ### AD-5: Init Step Order Differs from distribution.md
 
-The spec reorders `distribution.md`'s init flow: scaffold creation (Step 3) comes before scanning (Step 4), whereas `distribution.md` starts with scanning (its Step 3). Rationale: scanners write output to `.claude/moira/state/init/` — the directory must exist before agents write to it. Scaffold also copies knowledge templates that `--force` reinit needs to check against. Steps 7 (AGENTS.md) and 8 (Hooks) from `distribution.md` are deferred (see Non-Deliverables).
+The spec reorders `distribution.md`'s init flow: scaffold creation (Step 3) comes before scanning (Step 4), whereas `distribution.md` starts with scanning (its Step 3). Rationale: scanners write output to `.moira/state/init/` — the directory must exist before agents write to it. Scaffold also copies knowledge templates that `--force` reinit needs to check against. Steps 7 (AGENTS.md) and 8 (Hooks) from `distribution.md` are deferred (see Non-Deliverables).
 
 ### AD-6: AGENTS.md Generation Deferred
 
@@ -741,7 +741,7 @@ The spec reorders `distribution.md`'s init flow: scaffold creation (Step 3) come
 
 ### AD-10: Additional Gitignore Entry
 
-Added `.claude/moira/state/current.yaml` to gitignore entries (beyond what `distribution.md` lists). `current.yaml` is per-developer pipeline state and should not be committed. Also added `.claude/moira/state/init/` for temporary scanner output.
+Added `.moira/state/current.yaml` to gitignore entries (beyond what `distribution.md` lists). `current.yaml` is per-developer pipeline state and should not be committed. Also added `.moira/state/init/` for temporary scanner output.
 
 ### AD-8: Simplified Onboarding in Phase 5
 
@@ -789,7 +789,7 @@ ARTICLE 3: Transparency
 ARTICLE 4: Safety
 [✓] 4.1 — Scanners inherit anti-fabrication rules from base.yaml
 [✓] 4.2 — User approves generated config at review gate
-[✓] 4.3 — Init is reversible (delete .claude/moira/, restore CLAUDE.md from git)
+[✓] 4.3 — Init is reversible (delete .moira/, restore CLAUDE.md from git)
 [✓] 4.4 — N/A (no bypass in init)
 
 ARTICLE 5: Knowledge Integrity

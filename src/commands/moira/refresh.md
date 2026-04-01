@@ -16,7 +16,7 @@ This command re-scans the project to update knowledge, MCP registry, and graph d
 
 ## Step 1: Verify Initialization
 
-Read `.claude/moira/config.yaml`.
+Read `.moira/config.yaml`.
 
 - If not found: display error and stop:
   ```
@@ -103,7 +103,7 @@ bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_summary'
 After graph update and views regenerate, run diff-to-knowledge to detect new/resolved smells and cycles, update quality-map entries, and refresh project-model structural sections:
 
 ```bash
-bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_diff_to_knowledge "{project_root}" ".claude/moira/knowledge"'
+bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_diff_to_knowledge "{project_root}" ".moira/knowledge"'
 ```
 
 Graceful degradation: if ariadne, jq, or snapshot are not available, this either falls back to full populate or returns silently.
@@ -112,13 +112,13 @@ Graceful degradation: if ariadne, jq, or snapshot are not available, this either
 
 After scanner returns, merge new results with existing registry per D-084:
 
-1. Read existing registry from `.claude/moira/config/mcp-registry.yaml` (if exists)
-2. Read new scan results from `.claude/moira/state/init/mcp-scan.md`
+1. Read existing registry from `.moira/config/mcp-registry.yaml` (if exists)
+2. Read new scan results from `.moira/state/init/mcp-scan.md`
 3. Merge strategy:
    - **New servers** (in scan but not in registry): add them
    - **Existing servers** (in both): preserve user customizations to existing tool entries (when_to_use, when_NOT_to_use, token_estimate edits). Only update fields that were NOT user-edited.
    - **Removed servers** (in registry but not in scan): mark with `removed: true` — do NOT delete
-4. Write merged registry back to `.claude/moira/config/mcp-registry.yaml`
+4. Write merged registry back to `.moira/config/mcp-registry.yaml`
 5. If no MCP servers found at all: set `mcp.enabled: false` in config.yaml
 
 ## Step 4: Display Summary

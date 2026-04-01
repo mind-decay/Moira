@@ -36,7 +36,7 @@ moira_scaffold_global() {
 }
 
 # ── moira_scaffold_project <project_root> ─────────────────────────────
-# Create the project layer directory structure at <project_root>/.claude/moira/.
+# Create the project layer directory structure at <project_root>/.moira/.
 # Source: overview.md project layer tree (lines 131-222).
 # Does NOT create files — that's Phase 5 /moira:init.
 moira_scaffold_project() {
@@ -52,7 +52,7 @@ moira_scaffold_project() {
     return 1
   fi
 
-  local base="$project_root/.claude/moira"
+  local base="$project_root/.moira"
 
   # Core rules (copied from global, customized by init)
   mkdir -p "$base"/core/rules/roles

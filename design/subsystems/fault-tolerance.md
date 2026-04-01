@@ -347,7 +347,7 @@ When compound errors occur, handle the highest-priority error first. Lower-prior
 
 ## Session Concurrency Protection
 
-A session lock file (`.claude/moira/state/.session-lock`) prevents concurrent Moira pipeline executions on the same branch:
+A session lock file (`.moira/state/.session-lock`) prevents concurrent Moira pipeline executions on the same branch:
 
 1. **At pipeline start:** Create `.session-lock` containing `{ pid: <process_id>, started: <timestamp>, task_id: <id>, ttl: 3600 }`.
 2. **If lock exists:** Check if the PID is still alive and the TTL hasn't expired.

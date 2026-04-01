@@ -16,7 +16,7 @@ Perform a comprehensive dependency analysis of this project. Identify:
 
 Review cycles, coupling, and centrality data for dependency hotspots.
 
-Pre-context data available at `.claude/moira/state/init/ariadne-context.md`. Read that file FIRST for structural context.
+Pre-context data available at `.moira/state/init/ariadne-context.md`. Read that file FIRST for structural context.
 
 If the pre-context file does not exist or is a placeholder, proceed with full manual scanning as before.
 
@@ -71,7 +71,7 @@ Write findings as structured markdown:
 
 ## Output Path
 
-Enhance existing file: `.claude/moira/knowledge/dependencies/full.md`
+Enhance existing file: `.moira/knowledge/dependencies/full.md`
 
 Prepend your findings as a new section. Do NOT replace existing content — add to it.
 

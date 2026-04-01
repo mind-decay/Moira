@@ -35,7 +35,7 @@ Creates the 4 Layer 4 instruction templates that Explorer (Hermes) receives duri
   4. Env example (NEVER `.env`): `.env.example`, `.env.sample`
   5. Lock files (existence check only): `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `poetry.lock`, `go.sum`
 - Output format section: structured markdown per spec D1 with sections for Language & Runtime, Framework, Build & Tooling, Testing, Linting & Formatting, Database & ORM, CI/CD, Deployment
-- Output path: `.claude/moira/state/init/tech-scan.md`
+- Output path: `.moira/state/init/tech-scan.md`
 - Constraints section: FACTS ONLY, no opinions, "Not detected" for missing categories, 140k token budget
 - Include Explorer NEVER constraints inline: "Never propose solutions", "Never express opinions", "Never make recommendations"
 
@@ -56,7 +56,7 @@ Creates the 4 Layer 4 instruction templates that Explorer (Hermes) receives duri
   6. Identify test roots
   7. Count files per top-level dir (approximate)
 - Output format: per spec D1 — Project Root, Source Layout, Directory Roles table, Generated, Vendored, Configuration, Test Organization
-- Output path: `.claude/moira/state/init/structure-scan.md`
+- Output path: `.moira/state/init/structure-scan.md`
 - Same constraints as tech scanner
 
 ### Task 1.3: Create convention scanner template
@@ -74,7 +74,7 @@ Creates the 4 Layer 4 instruction templates that Explorer (Hermes) receives duri
   4. Look for shared patterns across samples
   5. NEVER read more than 30 files total
 - Output format: per spec D1 — tables for Naming Conventions, Import Style, Export Style, Error Handling, Logging, Code Organization — each with Evidence columns
-- Output path: `.claude/moira/state/init/convention-scan.md`
+- Output path: `.moira/state/init/convention-scan.md`
 - Constraints: evidence-based (every claim needs `file:line` evidence), no opinions
 
 ### Task 1.4: Create pattern scanner template
@@ -92,7 +92,7 @@ Creates the 4 Layer 4 instruction templates that Explorer (Hermes) receives duri
   4. Look for project-specific patterns
   5. NEVER read more than 25 files total
 - Output format: per spec D1 — Component Pattern, API Pattern, Data Access Pattern, State Management, Common Abstractions table, Recurring Structures table — each with Example path
-- Output path: `.claude/moira/state/init/pattern-scan.md`
+- Output path: `.moira/state/init/pattern-scan.md`
 - Constraints: same as other scanners
 
 **Commit message:** `moira(knowledge): add bootstrap scanner instruction templates`
@@ -262,7 +262,7 @@ Signal matching is intentionally simple: `grep -qi` of signal string in scan tex
 - Args: `project_root`, `preset_path`, `tech_scan_path`
 - Read preset YAML for `stack_id`
 - Extract project name: try `package.json` name field, else `go.mod` module name, else `basename $project_root`
-- Write `config.yaml` to `$project_root/.claude/moira/config.yaml`:
+- Write `config.yaml` to `$project_root/.moira/config.yaml`:
   ```yaml
   version: "1.0"
   project:
@@ -306,7 +306,7 @@ Signal matching is intentionally simple: `grep -qi` of signal string in scan tex
   - `pattern-scan.md` → overrides `patterns` section values
 - For each file, scan override means: if scan result provides a value for a field, use it instead of preset default
 - Scan parsing: extract values from the structured markdown output (e.g., `Primary: TypeScript 5.3` → `language: TypeScript`, `version: "5.3"`)
-- Write 4 files to `$project_root/.claude/moira/project/rules/`:
+- Write 4 files to `$project_root/.moira/project/rules/`:
   - `stack.yaml` — tech stack facts
   - `conventions.yaml` — coding conventions
   - `patterns.yaml` — recurring code patterns
@@ -389,10 +389,10 @@ Level condensation approach: L2 gets full scan output; L1 is produced by extract
 - Entries to add (per `distribution.md`):
   ```
   # Moira orchestration state (per-developer)
-  .claude/moira/state/tasks/
-  .claude/moira/state/bypass-log.yaml
-  .claude/moira/state/current.yaml
-  .claude/moira/state/init/
+  .moira/state/tasks/
+  .moira/state/bypass-log.yaml
+  .moira/state/current.yaml
+  .moira/state/init/
   ```
 - Check if each entry already exists (grep). Only append missing entries.
 - If `.gitignore` doesn't exist: create it with these entries.
@@ -450,7 +450,7 @@ Read `~/.claude/moira/.version`.
   ```
 
 ## Step 2: Check Existing Init
-Read `.claude/moira/config.yaml`.
+Read `.moira/config.yaml`.
 - If exists AND $ARGUMENTS does not contain "--force":
   Display: "Moira already initialized for this project."
   Suggest: "/moira:refresh to update, /moira:init --force to reinitialize"
@@ -509,7 +509,7 @@ If a scanner fails:
 Run via Bash:
 ```bash
 source ~/.claude/moira/lib/bootstrap.sh
-moira_bootstrap_match_preset ".claude/moira/state/init/tech-scan.md" "$HOME/.claude/moira/templates/stack-presets"
+moira_bootstrap_match_preset ".moira/state/init/tech-scan.md" "$HOME/.claude/moira/templates/stack-presets"
 ```
 Display: "Matched stack preset: {result}"
 
@@ -517,15 +517,15 @@ Display: "Matched stack preset: {result}"
 Run via Bash:
 ```bash
 source ~/.claude/moira/lib/bootstrap.sh
-moira_bootstrap_generate_config "{project_root}" "$HOME/.claude/moira/templates/stack-presets/{preset}" ".claude/moira/state/init/tech-scan.md"
-moira_bootstrap_generate_project_rules "{project_root}" "$HOME/.claude/moira/templates/stack-presets/{preset}" ".claude/moira/state/init"
+moira_bootstrap_generate_config "{project_root}" "$HOME/.claude/moira/templates/stack-presets/{preset}" ".moira/state/init/tech-scan.md"
+moira_bootstrap_generate_project_rules "{project_root}" "$HOME/.claude/moira/templates/stack-presets/{preset}" ".moira/state/init"
 ```
 
 ## Step 7: Populate Knowledge
 Run via Bash:
 ```bash
 source ~/.claude/moira/lib/bootstrap.sh
-moira_bootstrap_populate_knowledge "{project_root}" ".claude/moira/state/init"
+moira_bootstrap_populate_knowledge "{project_root}" ".moira/state/init"
 ```
 
 ## Step 8: Integrate CLAUDE.md
@@ -557,9 +557,9 @@ Display:
   └─ CI: {from tech scan — CI platform}
 
   Generated:
-  ├─ Config: .claude/moira/config.yaml
-  ├─ Rules: .claude/moira/project/rules/ (4 files)
-  ├─ Knowledge: .claude/moira/knowledge/ (3 types populated)
+  ├─ Config: .moira/config.yaml
+  ├─ Rules: .moira/project/rules/ (4 files)
+  ├─ Knowledge: .moira/knowledge/ (3 types populated)
   └─ CLAUDE.md: updated with Moira section
 
   ▸ review  — inspect generated files
@@ -572,9 +572,9 @@ Wait for user response.
 
 ### On "review":
 Read and display key files:
-- `.claude/moira/config.yaml` (full)
-- `.claude/moira/project/rules/stack.yaml` (full)
-- `.claude/moira/project/rules/conventions.yaml` (summary)
+- `.moira/config.yaml` (full)
+- `.moira/project/rules/stack.yaml` (full)
+- `.moira/project/rules/conventions.yaml` (summary)
 Then re-present the gate (review/accept/adjust).
 
 ### On "accept":
@@ -679,7 +679,7 @@ Find the section where pipeline execution begins (after reading task input, befo
 
 Before starting the pipeline, check if a deep scan is pending:
 
-1. Read `.claude/moira/config.yaml` field `bootstrap.deep_scan_pending`
+1. Read `.moira/config.yaml` field `bootstrap.deep_scan_pending`
 2. If `true`:
    - Display: "ℹ Background deep scan triggered — knowledge base will update automatically."
    - Update `config.yaml`: set `bootstrap.deep_scan_pending` to `false`
@@ -807,7 +807,7 @@ Creates new test files and extends existing ones for Phase 5 verification.
 - Each template contains "## Output Path" section
 - Each template contains "## Constraints" section
 - Each template contains Explorer NEVER constraints (grep for "Never propose" or "NO opinions")
-- Each template specifies output path under `.claude/moira/`
+- Each template specifies output path under `.moira/`
 
 **2. Stack preset tests:**
 - `generic.yaml` exists in `$MOIRA_HOME/templates/stack-presets/`

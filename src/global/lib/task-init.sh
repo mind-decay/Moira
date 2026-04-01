@@ -18,11 +18,11 @@ source "${_MOIRA_TASK_INIT_LIB_DIR}/task-id.sh"
 # Create a new task: generate ID, scaffold directory, write initial state.
 # Outputs task_id to stdout.
 # size_hint: "small", "medium", "large", "epic", or "" (classifier decides)
-# state_dir: defaults to .claude/moira/state
+# state_dir: defaults to .moira/state
 moira_task_init() {
   local description="$1"
   local size_hint="${2:-}"
-  local state_dir="${3:-.claude/moira/state}"
+  local state_dir="${3:-.moira/state}"
 
   # Generate task ID
   local task_id
@@ -126,7 +126,7 @@ EOF
 moira_preflight_collect() {
   local state_dir="$1"
   local project_dir
-  project_dir=$(dirname "$(dirname "$(dirname "$state_dir")")")
+  project_dir=$(dirname "$(dirname "$state_dir")")
 
   local config_file="${state_dir}/../config.yaml"
   local current_file="${state_dir}/current.yaml"

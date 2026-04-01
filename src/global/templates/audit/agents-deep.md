@@ -39,8 +39,8 @@ Perform all 5 standard checks (see agents-standard.md), PLUS:
 ## Files to Read
 
 - All files from standard audit, PLUS:
-- `.claude/moira/state/tasks/*/` (full task directories for failed/retried tasks)
-- `.claude/moira/config/budgets.yaml` (budget configuration)
+- `.moira/state/tasks/*/` (full task directories for failed/retried tasks)
+- `.moira/config/budgets.yaml` (budget configuration)
 
 ## Finding Format
 

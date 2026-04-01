@@ -5,7 +5,7 @@
 #
 # Responsibilities: MCP registry logic ONLY
 # Does NOT handle state transitions (that's state.sh)
-# Does NOT read project files (Art 1.1) — only .claude/moira/ config
+# Does NOT read project files (Art 1.1) — only .moira/ config
 
 set -euo pipefail
 
@@ -22,7 +22,7 @@ _MOIRA_MCP_DEFAULT_TOKEN_ESTIMATE=5000
 # Returns 0 if registry exists and has content, 1 otherwise.
 moira_mcp_registry_exists() {
   local project_root="$1"
-  local registry="${project_root}/.claude/moira/config/mcp-registry.yaml"
+  local registry="${project_root}/.moira/config/mcp-registry.yaml"
 
   if [[ -f "$registry" && -s "$registry" ]]; then
     return 0
@@ -35,7 +35,7 @@ moira_mcp_registry_exists() {
 # Returns 0 if enabled, 1 if disabled.
 moira_mcp_is_enabled() {
   local project_root="$1"
-  local config="${project_root}/.claude/moira/config.yaml"
+  local config="${project_root}/.moira/config.yaml"
 
   if [[ ! -f "$config" ]]; then
     return 1
@@ -54,7 +54,7 @@ moira_mcp_is_enabled() {
 # List all registered MCP server names (one per line).
 moira_mcp_list_servers() {
   local project_root="$1"
-  local registry="${project_root}/.claude/moira/config/mcp-registry.yaml"
+  local registry="${project_root}/.moira/config/mcp-registry.yaml"
 
   if [[ ! -f "$registry" ]]; then
     return 1
@@ -83,7 +83,7 @@ moira_mcp_get_tool_info() {
   local project_root="$1"
   local server="$2"
   local tool="$3"
-  local registry="${project_root}/.claude/moira/config/mcp-registry.yaml"
+  local registry="${project_root}/.moira/config/mcp-registry.yaml"
 
   if [[ ! -f "$registry" ]]; then
     return 1
@@ -138,7 +138,7 @@ moira_mcp_get_token_estimate() {
   local project_root="$1"
   local server="$2"
   local tool="$3"
-  local moira_dir="${project_root}/.claude/moira"
+  local moira_dir="${project_root}/.moira"
 
   # Try registry first
   local info
@@ -205,7 +205,7 @@ moira_mcp_get_token_estimate() {
 moira_mcp_generate_registry() {
   local project_root="$1"
   local scan_results_dir="$2"
-  local moira_dir="${project_root}/.claude/moira"
+  local moira_dir="${project_root}/.moira"
   local registry="${moira_dir}/config/mcp-registry.yaml"
   local scan_file="${scan_results_dir}/mcp-scan.md"
 
@@ -497,7 +497,7 @@ ARIADNE_EOF
 # Returns 0 if at least one infrastructure server exists, 1 otherwise.
 moira_mcp_has_infrastructure() {
   local project_root="$1"
-  local registry="${project_root}/.claude/moira/config/mcp-registry.yaml"
+  local registry="${project_root}/.moira/config/mcp-registry.yaml"
 
   if [[ ! -f "$registry" ]]; then
     return 1
@@ -510,7 +510,7 @@ moira_mcp_has_infrastructure() {
 # List infrastructure MCP server names (one per line).
 moira_mcp_list_infrastructure() {
   local project_root="$1"
-  local registry="${project_root}/.claude/moira/config/mcp-registry.yaml"
+  local registry="${project_root}/.moira/config/mcp-registry.yaml"
 
   if [[ ! -f "$registry" ]]; then
     return 1
@@ -537,10 +537,10 @@ moira_mcp_list_infrastructure() {
 # Returns 1 if no infrastructure servers found or MCP disabled.
 moira_mcp_format_infrastructure_section() {
   local project_root="$1"
-  local registry="${project_root}/.claude/moira/config/mcp-registry.yaml"
+  local registry="${project_root}/.moira/config/mcp-registry.yaml"
 
   # Check MCP enabled
-  local config="${project_root}/.claude/moira/config.yaml"
+  local config="${project_root}/.moira/config.yaml"
   if [[ -f "$config" ]]; then
     local mcp_enabled
     mcp_enabled=$(moira_yaml_get "$config" "mcp.enabled" 2>/dev/null || echo "false")

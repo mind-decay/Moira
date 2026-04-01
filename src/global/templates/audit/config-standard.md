@@ -10,12 +10,12 @@ Standard config audit: MCP registry, budgets, hooks, version, state health.
 
 ## Instructions
 
-1. **MCP registry** — Read `.claude/moira/config/mcp-registry.yaml`. Check for:
+1. **MCP registry** — Read `.moira/config/mcp-registry.yaml`. Check for:
    - Servers registered but never called (from telemetry MCP data)
    - Servers with low useful-call rate
    - Missing servers that agents reference
 
-2. **Budget configuration** — Read `.claude/moira/config/budgets.yaml`. Check for:
+2. **Budget configuration** — Read `.moira/config/budgets.yaml`. Check for:
    - Agents frequently hitting >70% budget (from metrics)
    - Budget allocations that don't match actual usage patterns
    - Default overrides that seem unnecessary
@@ -29,18 +29,18 @@ Standard config audit: MCP registry, budgets, hooks, version, state health.
 
 5. **State health** — Check for:
    - Orphaned task directories (tasks with no `status.yaml`)
-   - Stale locks in `.claude/moira/config/locks.yaml`
+   - Stale locks in `.moira/config/locks.yaml`
    - `current.yaml` consistency (task exists, status valid)
 
 ## Files to Read
 
-- `.claude/moira/config/mcp-registry.yaml`
-- `.claude/moira/config/budgets.yaml`
-- `.claude/moira/config/locks.yaml`
-- `.claude/moira/state/current.yaml`
+- `.moira/config/mcp-registry.yaml`
+- `.moira/config/budgets.yaml`
+- `.moira/config/locks.yaml`
+- `.moira/state/current.yaml`
 - `~/.claude/moira/.version`
 - `~/.claude/settings.json` (hooks registration)
-- `.claude/moira/state/metrics/monthly-*.yaml` (for MCP/budget analysis)
+- `.moira/state/metrics/monthly-*.yaml` (for MCP/budget analysis)
 
 ## Finding Format
 

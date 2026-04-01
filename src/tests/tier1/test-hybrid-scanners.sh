@@ -20,7 +20,7 @@ source "$MOIRA_HOME/lib/bootstrap.sh"
 
 setup_fixture_project() {
   local proj="$1"
-  mkdir -p "$proj/.claude/moira/state/init"
+  mkdir -p "$proj/.moira/state/init"
   mkdir -p "$proj/src/lib"
   mkdir -p "$proj/.github/workflows"
 
@@ -48,7 +48,7 @@ setup_fixture_project "$PROJ"
 
 moira_scan_precollect_tech "$PROJ"
 
-output_file="$PROJ/.claude/moira/state/init/raw-configs.md"
+output_file="$PROJ/.moira/state/init/raw-configs.md"
 assert_file_exists "$output_file" "raw-configs.md created"
 
 assert_file_contains "$output_file" "# Pre-Collected Config Files" "raw-configs.md has header"
@@ -76,7 +76,7 @@ echo '{"key": "secret"}' > "$PROJ2/service-key.json"
 
 moira_scan_precollect_tech "$PROJ2"
 
-output_file2="$PROJ2/.claude/moira/state/init/raw-configs.md"
+output_file2="$PROJ2/.moira/state/init/raw-configs.md"
 
 # .env should be excluded (not .env.example)
 if grep -q "## .env$" "$output_file2" 2>/dev/null; then
@@ -94,7 +94,7 @@ fi
 # .env.example should be included if present
 echo "DB_HOST=localhost" > "$PROJ2/.env.example"
 moira_scan_precollect_tech "$PROJ2"
-output_file2="$PROJ2/.claude/moira/state/init/raw-configs.md"
+output_file2="$PROJ2/.moira/state/init/raw-configs.md"
 assert_file_contains "$output_file2" "## .env.example" ".env.example is included"
 
 # ── 3. Test file size truncation ────────────────────────────────────
@@ -117,7 +117,7 @@ with open('$PROJ3/package.json', 'w') as f:
 
 moira_scan_precollect_tech "$PROJ3"
 
-output_file3="$PROJ3/.claude/moira/state/init/raw-configs.md"
+output_file3="$PROJ3/.moira/state/init/raw-configs.md"
 if grep -q "TRUNCATED at 10KB" "$output_file3" 2>/dev/null; then
   pass "Large file truncated with marker"
 else
@@ -133,7 +133,7 @@ mkdir -p "$PROJ4/app/routes"
 
 moira_scan_precollect_structure "$PROJ4"
 
-struct_file="$PROJ4/.claude/moira/state/init/raw-structure.md"
+struct_file="$PROJ4/.moira/state/init/raw-structure.md"
 assert_file_exists "$struct_file" "raw-structure.md created"
 
 assert_file_contains "$struct_file" "# Pre-Collected Structure" "raw-structure.md has header"

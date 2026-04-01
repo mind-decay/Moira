@@ -83,7 +83,7 @@
 **Files:** MODIFY `src/global/hooks/guard.sh`
 **Source:** Spec D14
 **Key points:**
-- Current violation check (line 68): condition checks if file path is outside `.claude/moira`
+- Current violation check (line 68): condition checks if file path is outside `.moira`
 - Add `.ariadne/` to allowed paths for Read operations only — Write/Edit to `.ariadne/` remains a violation
 - Split the check by tool_name so Read of `.ariadne/` is allowed while Write/Edit is not
 - Add comment: "# .ariadne/ is Ariadne graph output — orchestrator may check existence (D-105)"

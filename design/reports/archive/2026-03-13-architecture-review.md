@@ -80,7 +80,7 @@ D-049 adds a fifth field. agents.md still shows four fields.
 *Direction:* Update agents.md response contract section.
 
 **S-3: guard.sh will generate false positives for all agent file reads**
-The path check `file_path != *".claude/moira"*` triggers on agents reading project source files. No mechanism distinguishes orchestrator from agent tool calls.
+The path check `file_path != *".moira"*` triggers on agents reading project source files. No mechanism distinguishes orchestrator from agent tool calls.
 *Files:* `subsystems/self-monitoring.md:80-85`
 *Direction:* guard.sh only runs in orchestrator context (PostToolUse on the command, not on subagents). Clarify this in the design. If Claude Code's hook system fires on subagent tool calls too, this is a platform constraint to document.
 

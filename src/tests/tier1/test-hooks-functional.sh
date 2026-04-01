@@ -20,7 +20,7 @@ trap "rm -rf '$TMPDIR_BASE'" EXIT
 
 setup_state() {
   local test_dir="$TMPDIR_BASE/$1"
-  local state_dir="$test_dir/.claude/moira/state"
+  local state_dir="$test_dir/.moira/state"
   mkdir -p "$state_dir"
   echo "pipeline: $2" > "$state_dir/current.yaml"
   echo "task_id: test-$1" >> "$state_dir/current.yaml"
@@ -247,12 +247,12 @@ else
   fail "guard-prevent: Edit tool should be DENIED for project files"
 fi
 
-# Guard-prevent: Edit on .claude/moira/ allowed
-result=$(run_guard_prevent "$state" "Edit" "$(dirname "$(dirname "$state")")/.claude/moira/state/current.yaml")
+# Guard-prevent: Edit on .moira/ allowed
+result=$(run_guard_prevent "$state" "Edit" "$(dirname "$(dirname "$state")")/.moira/state/current.yaml")
 if echo "$result" | grep -q "permissionDecision.*deny"; then
-  fail "guard-prevent: Edit on .claude/moira/ should be ALLOWED"
+  fail "guard-prevent: Edit on .moira/ should be ALLOWED"
 else
-  pass "guard-prevent: Edit on .claude/moira/ allowed"
+  pass "guard-prevent: Edit on .moira/ allowed"
 fi
 
 # Guard-prevent: Read still works

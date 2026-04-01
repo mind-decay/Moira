@@ -278,7 +278,7 @@ New command wrapping `ariadne` CLI for interactive use within Claude Code sessio
 Minimal update to the orchestrator:
 
 1. In Section 1 (Bootstrap Checks), add after deep-scan check:
-   - Check if `.ariadne/graph/graph.json` exists via Read tool (this is a Moira infrastructure file, not project source — same as checking `.claude/moira/config.yaml`)
+   - Check if `.ariadne/graph/graph.json` exists via Read tool (this is a Moira infrastructure file, not project source — same as checking `.moira/config.yaml`)
    - Set `graph_available` flag for use in dispatch context
    - If graph exists and is stale (source files newer than graph.json): note in telemetry, don't block
 
@@ -416,7 +416,7 @@ Update the cross-reference manifest to include graph-related files and their dep
 
 ## Constitutional Compliance
 
-- **Art 1.1:** Orchestrator checks graph existence only (boolean flag via Read on `.ariadne/graph/graph.json`). This is metadata, not project source — same pattern as checking `.claude/moira/config.yaml`. Graph content is read by Daedalus (an agent) and passed to downstream agents via instruction files. Orchestrator never reads graph.json content, clusters.json, or stats.json.
+- **Art 1.1:** Orchestrator checks graph existence only (boolean flag via Read on `.ariadne/graph/graph.json`). This is metadata, not project source — same pattern as checking `.moira/config.yaml`. Graph content is read by Daedalus (an agent) and passed to downstream agents via instruction files. Orchestrator never reads graph.json content, clusters.json, or stats.json.
 - **Art 1.2:** Graph column in access matrix is read-only for all agents. No agent has write access. Graph is updated only by `ariadne` CLI (external tool). `.ariadne/**` added to protected paths to prevent agent writes.
 - **Art 2.1:** Graph data does not change pipeline selection logic. Classification remains a pure function of Apollo's output. Graph enriches Apollo's context but doesn't add conditional branches.
 - **Art 3.1:** Graph build/update are logged in telemetry. Graph availability is recorded in pipeline state (`current.yaml` `graph_available` field).

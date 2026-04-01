@@ -1,7 +1,7 @@
 _meta:
   name: queue
   file: queue.yaml
-  location: .claude/moira/state/
+  location: .moira/state/
   git: gitignored
   description: Epic task queue
 

@@ -9,10 +9,10 @@ set -euo pipefail
 
 # ── moira_task_id [state_dir] ─────────────────────────────────────────
 # Generate a unique task ID based on today's date and existing tasks.
-# state_dir defaults to .claude/moira/state (current project).
+# state_dir defaults to .moira/state (current project).
 # Outputs the new task ID to stdout.
 moira_task_id() {
-  local state_dir="${1:-.claude/moira/state}"
+  local state_dir="${1:-.moira/state}"
   local today
   today=$(date +%Y-%m-%d)
   local tasks_dir="${state_dir}/tasks"

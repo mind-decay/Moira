@@ -60,7 +60,7 @@ Layer 3: Live Telemetry
 ### File Structure
 
 ```
-.claude/moira/testing/
+.moira/testing/
 ├── bench/
 │   ├── results/              # per-run results (max 5 retained)
 │   │   ├── run-{NNN}/
@@ -773,7 +773,7 @@ RECORDED:                           NOT RECORDED:
 ### Per-Task Telemetry Format
 
 ```yaml
-# .claude/moira/state/tasks/{id}/telemetry.yaml (gitignored)
+# .moira/state/tasks/{id}/telemetry.yaml (gitignored)
 
 task_id: "t-2026-03-11-004"
 timestamp: "2026-03-11T14:32:00Z"

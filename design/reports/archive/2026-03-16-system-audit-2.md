@@ -183,12 +183,12 @@
 - **Fix:** Add parenthetical: `test -- run additional tests (dispatches Aletheia ad-hoc, not a pipeline step)`.
 - **Dependencies:** None.
 
-### F-015 | overview.md data flow shows `.moira/` instead of `.claude/moira/`
+### F-015 | overview.md data flow shows `.moira/` instead of `.moira/`
 
 - **Files:**
   - `design/architecture/overview.md` line 67
 - **Current state:** Data flow diagram shows `.moira/state/tasks/{id}/classification.md`.
-- **Target state:** `.claude/moira/state/tasks/{id}/classification.md` per D-061.
+- **Target state:** `.moira/state/tasks/{id}/classification.md` per D-061.
 - **Fix:** Update the path. Prior ref: M-13 from 2026-03-16 audit.
 - **Dependencies:** None.
 
@@ -365,7 +365,7 @@ All other findings are independent.
 - F-008: Add 14 NEVER constraints to agents.md
 - F-013: Align pipelines.md budget thresholds with orchestrator.md
 - F-014: Add ad-hoc test dispatch note to pipelines.md
-- F-015: Fix overview.md .moira/ path to .claude/moira/
+- F-015: Fix overview.md .moira/ path to .moira/
 - F-017: Add write access to knowledge.md matrix
 - F-018: Move blocker-resolution in SYSTEM-DESIGN.md
 - F-019: Add D-095/D-096 refs to roadmap

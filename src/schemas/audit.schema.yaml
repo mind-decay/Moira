@@ -8,7 +8,7 @@
 _meta:
   name: audit
   file: "{date}-audit.yaml"
-  location: .claude/moira/state/audits/
+  location: .moira/state/audits/
   git: gitignored
   version: "1.0"
   description: "Structured audit findings with risk classification and recommendations"

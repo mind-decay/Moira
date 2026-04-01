@@ -68,7 +68,7 @@ Some rules remain inviolable:
 
 ## Logging
 
-All bypasses logged in `.claude/moira/state/bypass-log.yaml`:
+All bypasses logged in `.moira/state/bypass-log.yaml`:
 
 ```yaml
 bypasses:

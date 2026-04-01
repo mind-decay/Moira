@@ -21,7 +21,7 @@ _MOIRA_METRICS_TREND_THRESHOLD=5
 # Called at pipeline completion (after telemetry write, before reflection).
 moira_metrics_collect_task() {
   local task_id="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
 
   local task_dir="${state_dir}/tasks/${task_id}"
   local telemetry_file="${task_dir}/telemetry.yaml"
@@ -188,7 +188,7 @@ moira_metrics_collect_task() {
 # Full recalculation of monthly aggregate from task_records.
 # Used for consistency check or monthly rollover.
 moira_metrics_aggregate_monthly() {
-  local state_dir="${1:-.claude/moira/state}"
+  local state_dir="${1:-.moira/state}"
 
   local month
   month=$(date +%Y-%m)
@@ -286,7 +286,7 @@ moira_metrics_aggregate_monthly() {
 # Generate the main dashboard display (last 30 days).
 # Reads current and previous month aggregates.
 moira_metrics_dashboard() {
-  local state_dir="${1:-.claude/moira/state}"
+  local state_dir="${1:-.moira/state}"
   local metrics_dir="${state_dir}/metrics"
 
   local current_month
@@ -411,7 +411,7 @@ moira_metrics_dashboard() {
 # Valid sections: tasks, quality, accuracy, efficiency, knowledge, evolution
 moira_metrics_drilldown() {
   local section="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
 
   local current_month
   current_month=$(date +%Y-%m)
@@ -492,7 +492,7 @@ moira_metrics_drilldown() {
 # ── moira_metrics_compare [state_dir] ─────────────────────────────────
 # Generate side-by-side comparison with previous period.
 moira_metrics_compare() {
-  local state_dir="${1:-.claude/moira/state}"
+  local state_dir="${1:-.moira/state}"
   local metrics_dir="${state_dir}/metrics"
 
   local current_month
@@ -571,7 +571,7 @@ moira_metrics_compare() {
 # ── moira_metrics_export [state_dir] ──────────────────────────────────
 # Generate markdown export of full dashboard + drill-down.
 moira_metrics_export() {
-  local state_dir="${1:-.claude/moira/state}"
+  local state_dir="${1:-.moira/state}"
 
   local current_month
   current_month=$(date +%Y-%m)

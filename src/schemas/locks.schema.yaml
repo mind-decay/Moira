@@ -1,7 +1,7 @@
 _meta:
   name: locks
   file: locks.yaml
-  location: .claude/moira/config/
+  location: .moira/config/
   git: committed
   description: Multi-developer file locks with TTL
 

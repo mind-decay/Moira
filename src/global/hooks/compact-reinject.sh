@@ -5,7 +5,7 @@
 # Part of Pipeline Compliance system (D-175).
 #
 # Fires: SessionStart (matcher: compact)
-# Reads: .claude/moira/state/current.yaml, pipeline-tracker.state
+# Reads: .moira/state/current.yaml, pipeline-tracker.state
 # Outputs: hookSpecificOutput.additionalContext with pipeline state
 #
 # MUST NOT fail — exits 0 silently on any error.
@@ -16,8 +16,8 @@ input=$(cat 2>/dev/null) || exit 0
 find_state_dir() {
   local dir="$PWD"
   while [[ "$dir" != "/" ]]; do
-    if [[ -f "$dir/.claude/moira/state/current.yaml" ]]; then
-      echo "$dir/.claude/moira/state"
+    if [[ -f "$dir/.moira/state/current.yaml" ]]; then
+      echo "$dir/.moira/state"
       return 0
     fi
     dir=$(dirname "$dir")

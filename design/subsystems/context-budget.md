@@ -58,7 +58,7 @@ For each agent type a:
 ## Budget Allocations Per Agent
 
 ```yaml
-# .claude/moira/config/budgets.yaml
+# .moira/config/budgets.yaml
 
 agent_budgets:
   classifier:

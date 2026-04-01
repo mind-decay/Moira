@@ -49,7 +49,7 @@ USER → task description
       └─ test   — run additional tests (dispatches Hephaestus ad-hoc, D-194)
 
   Post: Orchestrator writes structured reflection note to
-        `.claude/moira/state/tasks/{id}/reflection-note.yaml`:
+        `.moira/state/tasks/{id}/reflection-note.yaml`:
         ```yaml
         task_id: {id}
         classification_correct: true|false

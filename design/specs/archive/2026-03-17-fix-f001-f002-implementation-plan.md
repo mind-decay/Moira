@@ -82,14 +82,14 @@ d1. **Post-agent guard check** (D-099): If the agent's role can modify files (im
     2. Check modified files against protected paths:
        - `design/CONSTITUTION.md` — absolute prohibition (Art 6.1)
        - `design/**` — design docs (Art 6.2)
-       - `.claude/moira/config/**` — system configuration
-       - `.claude/moira/core/**` — core rules and pipelines
+       - `.moira/config/**` — system configuration
+       - `.moira/core/**` — core rules and pipelines
        - `src/global/**` — Moira source code
        Allowed exceptions (not violations):
-       - `.claude/moira/state/tasks/{current_task_id}/**`
-       - `.claude/moira/knowledge/**`
-       - `.claude/moira/state/current.yaml`
-       - `.claude/moira/state/queue.yaml`
+       - `.moira/state/tasks/{current_task_id}/**`
+       - `.moira/knowledge/**`
+       - `.moira/state/current.yaml`
+       - `.moira/state/queue.yaml`
        - All project source files
     3. If violation found → log to `state/violations.log` (same format as guard.sh: `timestamp AGENT_VIOLATION agent_role file_path`), then present Guard Violation Gate (per `gates.md`)
     4. If clean → proceed to step (e)

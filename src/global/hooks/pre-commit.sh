@@ -64,7 +64,14 @@ fi
 # Run existing Tier 1 xref test if available
 XREF_TEST="$PROJECT_ROOT/src/tests/tier1/test-xref-manifest.sh"
 if [[ -f "$XREF_TEST" ]]; then
-  if ! timeout 30 bash "$XREF_TEST" 2>/dev/null; then
+  if command -v timeout &>/dev/null; then
+    timeout_cmd="timeout 30"
+  elif command -v gtimeout &>/dev/null; then
+    timeout_cmd="gtimeout 30"
+  else
+    timeout_cmd=""
+  fi
+  if ! $timeout_cmd bash "$XREF_TEST" 2>/dev/null; then
     verification_failure "xref-manifest validation failed (test-xref-manifest.sh)"
   fi
 else

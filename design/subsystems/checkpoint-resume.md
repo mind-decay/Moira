@@ -9,7 +9,7 @@ Long tasks (large, epic) may exceed orchestrator context or require multiple ses
 Every task maintains a manifest tracking full execution state:
 
 ```yaml
-# .claude/moira/state/tasks/078/manifest.yaml
+# .moira/state/tasks/078/manifest.yaml
 
 task:
   id: "078"
@@ -176,7 +176,7 @@ If issues found → flag before continuing further steps.
 For epics, each sub-task is fully independent:
 
 ```yaml
-# .claude/moira/state/queue.yaml
+# .moira/state/queue.yaml
 
 epic:
   id: "E-012"

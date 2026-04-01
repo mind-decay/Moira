@@ -465,7 +465,7 @@ pub struct Export {
 - Clusters as object map (name → cluster data)
 - Includes: `files`, `file_count`, `internal_edges`, `external_edges`, `cohesion`
 
-**Output directory:** `--output` flag (default: `.claude/moira/graph/`). Create directory if it doesn't exist.
+**Output directory:** `--output` flag (default: `.moira/graph/`). Create directory if it doesn't exist.
 
 ### D16: Directory-based Clustering (`src/graph/cluster.rs`)
 
@@ -491,7 +491,7 @@ pub struct Export {
 ```
 moira-graph build <project-root> [--output <dir>]
     Parse project, build full graph
-    Default output: <project-root>/.claude/moira/graph/
+    Default output: <project-root>/.moira/graph/
     Outputs: graph.json, clusters.json
     Note: project-graph.md's `build` description also lists stats.json,
     but stats.json requires algorithms (centrality, SCCs, layers) which

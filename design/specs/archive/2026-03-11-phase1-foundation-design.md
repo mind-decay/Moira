@@ -84,7 +84,7 @@ Self-describing YAML (not JSON Schema — minimalism per D-020):
 _meta:
   name: <schema_name>
   file: <filename.yaml>
-  location: <path relative to .claude/moira/>
+  location: <path relative to .moira/>
   git: committed|gitignored
   description: <purpose>
 
@@ -101,12 +101,12 @@ fields:
 
 | Schema | File | Location | Git | Source |
 |--------|------|----------|-----|--------|
-| config | config.yaml | .claude/moira/ (project root) | committed | blocker-resolution 2.1 (note: blocker-resolution comment says config/config.yaml — that is an error; overview.md and distribution.md both place it at project root) |
-| current | current.yaml | .claude/moira/state/ | gitignored | blocker-resolution 2.2 |
-| status | status.yaml | .claude/moira/state/tasks/{id}/ | gitignored | blocker-resolution 2.3 |
-| manifest | manifest.yaml | .claude/moira/state/tasks/{id}/ | gitignored | blocker-resolution 2.4 |
-| queue | queue.yaml | .claude/moira/state/ | gitignored | blocker-resolution 2.5 |
-| locks | locks.yaml | .claude/moira/config/ | committed | Defect 6 (D-033) |
+| config | config.yaml | .moira/ (project root) | committed | blocker-resolution 2.1 (note: blocker-resolution comment says config/config.yaml — that is an error; overview.md and distribution.md both place it at project root) |
+| current | current.yaml | .moira/state/ | gitignored | blocker-resolution 2.2 |
+| status | status.yaml | .moira/state/tasks/{id}/ | gitignored | blocker-resolution 2.3 |
+| manifest | manifest.yaml | .moira/state/tasks/{id}/ | gitignored | blocker-resolution 2.4 |
+| queue | queue.yaml | .moira/state/ | gitignored | blocker-resolution 2.5 |
+| locks | locks.yaml | .moira/config/ | committed | Defect 6 (D-033) |
 
 All field definitions taken 1:1 from blocker-resolution.
 
@@ -191,7 +191,7 @@ moira_scaffold_global <target_dir>
 # Create project layer directory structure
 # Fully implemented in Phase 1, called by /moira:init in Phase 5
 # Creates the complete directory tree from overview.md (lines 131-222):
-#   .claude/moira/{config.yaml, core/, project/rules/, config/, knowledge/, state/, hooks/}
+#   .moira/{config.yaml, core/, project/rules/, config/, knowledge/, state/, hooks/}
 # Does NOT populate files (that's Phase 5 bootstrap logic)
 moira_scaffold_project <project_root>
 ```

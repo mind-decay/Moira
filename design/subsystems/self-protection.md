@@ -219,9 +219,9 @@ article_1_1:
   check_type: "pattern_absence"
   target: "src/global/skills/orchestrator.md"
   forbidden_patterns:
-    - "Read tool" targeting non-.claude/moira/ paths
-    - "Write tool" targeting non-.claude/moira/ paths
-    - "Edit tool" targeting non-.claude/moira/ paths
+    - "Read tool" targeting non-.moira/ paths
+    - "Write tool" targeting non-.moira/ paths
+    - "Edit tool" targeting non-.moira/ paths
     - "Grep tool"
     - "Glob tool"
     - "Bash tool" for non-agent operations

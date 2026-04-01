@@ -35,8 +35,8 @@ Check context for "MOIRA TASK INITIALIZED: task_id=..." — if present, the scaf
 - Extract the task_id from the hook message
 
 If the hook message is NOT present (fallback for cases where the hook didn't fire):
-- Generate task ID manually: read today's date, check `.claude/moira/state/tasks/` for existing tasks, next ID = `task-{date}-{NNN}`
-- Create directory: `.claude/moira/state/tasks/{task_id}/`
+- Generate task ID manually: read today's date, check `.moira/state/tasks/` for existing tasks, next ID = `task-{date}-{NNN}`
+- Create directory: `.moira/state/tasks/{task_id}/`
 - Write `manifest.yaml`: task_id, pipeline: null, developer: "user", checkpoint: null, created_at
 - Write `status.yaml`: task_id, description, developer, created_at, empty gates, zero retries
 - Write `input.md`: description, size hint, timestamp

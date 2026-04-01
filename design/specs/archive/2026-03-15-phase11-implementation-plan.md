@@ -26,7 +26,7 @@ Chunk 8: Tier 1 Tests + Regression (depends on all previous chunks)
 - **File:** `src/schemas/metrics.schema.yaml`
 - **Source:** `subsystems/metrics.md` (Metric Storage section), spec D2
 - **Key points:**
-  - `_meta` block: `name: metrics`, `file: monthly-{YYYY-MM}.yaml`, `location: .claude/moira/state/metrics/`, `git: gitignored`
+  - `_meta` block: `name: metrics`, `file: monthly-{YYYY-MM}.yaml`, `location: .moira/state/metrics/`, `git: gitignored`
   - 7 top-level blocks: `period`, `tasks`, `quality`, `accuracy`, `efficiency`, `knowledge`, `evolution`
   - `task_records` array for per-task drill-down data
   - Match field names exactly from `metrics.md` YAML example (lines 44-77)
@@ -38,7 +38,7 @@ Chunk 8: Tier 1 Tests + Regression (depends on all previous chunks)
 - **File:** `src/schemas/audit.schema.yaml`
 - **Source:** `subsystems/audit.md` (Audit Output section), spec D6
 - **Key points:**
-  - `_meta` block: `name: audit`, `file: {date}-audit.yaml`, `location: .claude/moira/state/audits/`, `git: gitignored`
+  - `_meta` block: `name: audit`, `file: {date}-audit.yaml`, `location: .moira/state/audits/`, `git: gitignored`
   - `meta` fields: `date` (string), `depth` (enum: light/standard/deep), `domains` (array of enum: rules/knowledge/agents/config/consistency), `moira_version` (string)
   - `findings` array with item_fields: `id` (string), `domain` (enum), `risk` (enum: low/medium/high), `description` (string), `evidence` (string), `recommendation` (string), `target_file` (string, required: false)
   - `summary` fields: `total`, `by_risk.low`, `by_risk.medium`, `by_risk.high`, `by_domain.rules`, `by_domain.knowledge`, `by_domain.agents`, `by_domain.config`, `by_domain.consistency`
@@ -258,12 +258,12 @@ Chunk 8: Tier 1 Tests + Regression (depends on all previous chunks)
     6. Display summary per `audit.md` output format
     7. Run recommendation approval flow
   - Recommendation application:
-    - Low-risk moira config changes (freshness markers, scan paths, budget thresholds): audit command writes directly via Write tool (`.claude/moira/` scope only)
-    - Medium-risk moira rule/convention file updates: audit command writes directly via Write tool (still `.claude/moira/` scope — project-layer rules are moira files, not project source)
+    - Low-risk moira config changes (freshness markers, scan paths, budget thresholds): audit command writes directly via Write tool (`.moira/` scope only)
+    - Medium-risk moira rule/convention file updates: audit command writes directly via Write tool (still `.moira/` scope — project-layer rules are moira files, not project source)
     - High-risk changes or changes requiring project source file modifications: dispatch Hephaestus (implementer) with recommendation context (Hephaestus's documented scope is "write code to project files")
     - Record rule-change recommendations as observations in `state/reflection/pattern-keys.yaml` (Art 5.2 tracking)
   - Clear `state/audit-pending.yaml` after audit completes
-  - Write scope: `Write` tool limited to `.claude/moira/` paths only. Never write project source files.
+  - Write scope: `Write` tool limited to `.moira/` paths only. Never write project source files.
 - **Commit:** `moira(audit): implement /moira audit command`
 
 ---

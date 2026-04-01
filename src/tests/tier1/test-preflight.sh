@@ -13,13 +13,13 @@ TEST_TMP=$(mktemp -d)
 trap 'rm -rf "$TEST_TMP"' EXIT
 
 # Create minimal Moira project structure
-mkdir -p "$TEST_TMP/.claude/moira/state/tasks"
-mkdir -p "$TEST_TMP/.claude/moira/config"
-mkdir -p "$TEST_TMP/.claude/moira/knowledge"
+mkdir -p "$TEST_TMP/.moira/state/tasks"
+mkdir -p "$TEST_TMP/.moira/config"
+mkdir -p "$TEST_TMP/.moira/knowledge"
 mkdir -p "$TEST_TMP/.ariadne/graph"
 
 # Create config.yaml
-cat > "$TEST_TMP/.claude/moira/config.yaml" << 'EOF'
+cat > "$TEST_TMP/.moira/config.yaml" << 'EOF'
 version: "1.0"
 quality:
   mode: conform
@@ -34,7 +34,7 @@ mcp:
 EOF
 
 # Create current.yaml
-cat > "$TEST_TMP/.claude/moira/state/current.yaml" << 'EOF'
+cat > "$TEST_TMP/.moira/state/current.yaml" << 'EOF'
 task_id: "T-001"
 pipeline: null
 step: "classification"
@@ -57,7 +57,7 @@ git -C "$TEST_TMP" commit -m "init" -q 2>/dev/null
 source "$SRC_DIR/global/lib/task-init.sh"
 
 # ── Test 1: Basic preflight collection ──
-output=$(moira_preflight_collect "$TEST_TMP/.claude/moira/state" 2>/dev/null) || true
+output=$(moira_preflight_collect "$TEST_TMP/.moira/state" 2>/dev/null) || true
 if echo "$output" | grep -q "graph_available=true"; then
   pass "preflight detects graph_available=true"
 else
@@ -101,22 +101,22 @@ else
 fi
 
 # ── Test 2: Graph disabled ──
-sed -i.bak 's/enabled: true/enabled: false/' "$TEST_TMP/.claude/moira/config.yaml" 2>/dev/null
-rm -f "$TEST_TMP/.claude/moira/config.yaml.bak"
-output2=$(moira_preflight_collect "$TEST_TMP/.claude/moira/state" 2>/dev/null) || true
+sed -i.bak 's/enabled: true/enabled: false/' "$TEST_TMP/.moira/config.yaml" 2>/dev/null
+rm -f "$TEST_TMP/.moira/config.yaml.bak"
+output2=$(moira_preflight_collect "$TEST_TMP/.moira/state" 2>/dev/null) || true
 if echo "$output2" | grep -q "graph_available=false"; then
   pass "preflight respects graph.enabled=false"
 else
   fail "preflight should respect graph.enabled=false"
 fi
 # Restore
-sed -i.bak 's/enabled: false/enabled: true/' "$TEST_TMP/.claude/moira/config.yaml" 2>/dev/null
-rm -f "$TEST_TMP/.claude/moira/config.yaml.bak"
+sed -i.bak 's/enabled: false/enabled: true/' "$TEST_TMP/.moira/config.yaml" 2>/dev/null
+rm -f "$TEST_TMP/.moira/config.yaml.bak"
 
 # ── Test 3: Checkpointed task detection ──
-sed -i.bak 's/step_status: "pending"/step_status: "checkpointed"/' "$TEST_TMP/.claude/moira/state/current.yaml" 2>/dev/null
-rm -f "$TEST_TMP/.claude/moira/state/current.yaml.bak"
-output3=$(moira_preflight_collect "$TEST_TMP/.claude/moira/state" 2>/dev/null) || true
+sed -i.bak 's/step_status: "pending"/step_status: "checkpointed"/' "$TEST_TMP/.moira/state/current.yaml" 2>/dev/null
+rm -f "$TEST_TMP/.moira/state/current.yaml.bak"
+output3=$(moira_preflight_collect "$TEST_TMP/.moira/state" 2>/dev/null) || true
 if echo "$output3" | grep -q "checkpointed=true"; then
   pass "preflight detects checkpointed state"
 else
@@ -128,14 +128,14 @@ else
   fail "preflight should read checkpointed_task=T-001"
 fi
 # Restore
-sed -i.bak 's/step_status: "checkpointed"/step_status: "pending"/' "$TEST_TMP/.claude/moira/state/current.yaml" 2>/dev/null
-rm -f "$TEST_TMP/.claude/moira/state/current.yaml.bak"
+sed -i.bak 's/step_status: "checkpointed"/step_status: "pending"/' "$TEST_TMP/.moira/state/current.yaml" 2>/dev/null
+rm -f "$TEST_TMP/.moira/state/current.yaml.bak"
 
 # ── Test 4: Audit pending detection ──
-cat > "$TEST_TMP/.claude/moira/state/audit-pending.yaml" << 'EOF'
+cat > "$TEST_TMP/.moira/state/audit-pending.yaml" << 'EOF'
 audit_pending: light
 EOF
-output4=$(moira_preflight_collect "$TEST_TMP/.claude/moira/state" 2>/dev/null) || true
+output4=$(moira_preflight_collect "$TEST_TMP/.moira/state" 2>/dev/null) || true
 if echo "$output4" | grep -q "audit_pending=true"; then
   pass "preflight detects audit_pending"
 else
@@ -146,12 +146,12 @@ if echo "$output4" | grep -q "audit_depth=light"; then
 else
   fail "preflight should read audit_depth=light"
 fi
-rm -f "$TEST_TMP/.claude/moira/state/audit-pending.yaml"
+rm -f "$TEST_TMP/.moira/state/audit-pending.yaml"
 
 # ── Test 5: graph_available written to current.yaml ──
 # Re-run preflight to ensure it writes graph_available
-moira_preflight_collect "$TEST_TMP/.claude/moira/state" >/dev/null 2>&1 || true
-ga=$(grep '^graph_available:' "$TEST_TMP/.claude/moira/state/current.yaml" 2>/dev/null | sed 's/.*: //' | tr -d ' ')
+moira_preflight_collect "$TEST_TMP/.moira/state" >/dev/null 2>&1 || true
+ga=$(grep '^graph_available:' "$TEST_TMP/.moira/state/current.yaml" 2>/dev/null | sed 's/.*: //' | tr -d ' ')
 if [[ "$ga" == "true" ]]; then
   pass "preflight writes graph_available to current.yaml"
 else
@@ -159,7 +159,7 @@ else
 fi
 
 # ── Test 6: Evolve quality mode ──
-cat > "$TEST_TMP/.claude/moira/config.yaml" << 'EOF'
+cat > "$TEST_TMP/.moira/config.yaml" << 'EOF'
 version: "1.0"
 quality:
   mode: evolve
@@ -170,7 +170,7 @@ graph:
 bootstrap:
   deep_scan_pending: false
 EOF
-output6=$(moira_preflight_collect "$TEST_TMP/.claude/moira/state" 2>/dev/null) || true
+output6=$(moira_preflight_collect "$TEST_TMP/.moira/state" 2>/dev/null) || true
 if echo "$output6" | grep -q "quality_mode=evolve"; then
   pass "preflight reads evolve mode"
 else

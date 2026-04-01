@@ -309,7 +309,7 @@ All architectural decisions made during Moira system design.
 ## D-033: Locks in Committed Zone with TTL
 
 **Context:** locks.yaml was in gitignored state/ directory, but locks must be visible across developers.
-**Decision:** Move locks.yaml to committed config zone (`.claude/moira/config/locks.yaml`). Add TTL (`expires_at` field) for stale lock detection.
+**Decision:** Move locks.yaml to committed config zone (`.moira/config/locks.yaml`). Add TTL (`expires_at` field) for stale lock detection.
 **Alternatives rejected:**
 - Keep in gitignored state — defeats purpose of locks (invisible to other developers)
 - External lock service — violates D-013 (self-contained)
@@ -564,11 +564,11 @@ All architectural decisions made during Moira system design.
 
 ## D-061: Two-Level Path Resolution (Global vs Project)
 
-**Context:** First task execution on sveltkit-todos revealed that all pipeline skills (`task.md`, `orchestrator.md`, `dispatch.md`, `errors.md`, `bypass.md`) hardcoded `~/.claude/moira/state/` for state writes. This caused state to be written to the global directory instead of the project-local `.claude/moira/state/`, making init scans invisible to the orchestrator and breaking deep scan triggers. See `design/reports/2026-03-13-first-task-execution-sveltkit-todos.md`.
+**Context:** First task execution on sveltkit-todos revealed that all pipeline skills (`task.md`, `orchestrator.md`, `dispatch.md`, `errors.md`, `bypass.md`) hardcoded `~/.claude/moira/state/` for state writes. This caused state to be written to the global directory instead of the project-local `.moira/state/`, making init scans invisible to the orchestrator and breaking deep scan triggers. See `design/reports/2026-03-13-first-task-execution-sveltkit-todos.md`.
 **Decision:** Two base paths, no resolution logic needed:
 - **Global (read-only):** `~/.claude/moira/` — core rules, pipelines, templates, skills, lib
-- **Project (read-write):** `.claude/moira/` — state, config, knowledge
-All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/` for core definitions. Path Resolution section added to `orchestrator.md` Section 1.
+- **Project (read-write):** `.moira/` — state, config, knowledge
+All skills use `.moira/` for state/config/knowledge and `~/.claude/moira/` for core definitions. Path Resolution section added to `orchestrator.md` Section 1.
 **Alternatives rejected:**
 - Runtime resolution (check project first, fallback to global) — unnecessary complexity, project dir always exists after init
 - Single unified path — defeats purpose of global install (core shared across projects)
@@ -742,10 +742,10 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 ## D-080: Registry in Config (Committed), Not State (Gitignored)
 
 **Context:** MCP registry needs a home in the project layer. Could live in `config/` (committed) or `state/` (gitignored).
-**Decision:** MCP registry lives in `.claude/moira/config/mcp-registry.yaml` (committed) — same as `budgets.yaml` and `locks.yaml`.
+**Decision:** MCP registry lives in `.moira/config/mcp-registry.yaml` (committed) — same as `budgets.yaml` and `locks.yaml`.
 **Alternatives rejected:**
 - Store in `state/` (gitignored) — team members wouldn't share MCP classifications, user customizations lost on re-init
-- Store outside `.claude/moira/` — breaks project layer containment
+- Store outside `.moira/` — breaks project layer containment
 **Reasoning:** Registry is project configuration, not ephemeral state. Team members share the same MCP tool classifications. User customizations (editing when_to_use, adjusting token_estimates) persist across sessions. Already defined this way in `overview.md` file structure and `config.schema.yaml`.
 
 ## D-081: MCP Caching Structure Now, Logic Later
@@ -989,10 +989,10 @@ All skills use `.claude/moira/` for state/config/knowledge and `~/.claude/moira/
 
 **Date:** 2026-03-19
 **Status:** Accepted
-**Context:** Ariadne writes output to `.ariadne/graph/` and `.ariadne/views/`. Moira needs to read this data. Two options: copy/symlink to `.claude/moira/graph/`, or read from `.ariadne/` directly.
+**Context:** Ariadne writes output to `.ariadne/graph/` and `.ariadne/views/`. Moira needs to read this data. Two options: copy/symlink to `.moira/graph/`, or read from `.ariadne/` directly.
 **Decision:** Moira reads from `.ariadne/` directly. No copying, no symlinking. The `.ariadne/` directory is committed to git (deterministic, reproducible output).
 **Alternatives rejected:**
-- Copy to `.claude/moira/graph/` — creates duplication, stale copy risk, adds a sync step to init/refresh
+- Copy to `.moira/graph/` — creates duplication, stale copy risk, adds a sync step to init/refresh
 - Symlink — adds complexity, may break on Windows, no benefit over direct reads
 **Reasoning:** Ariadne owns `.ariadne/`. Moira is a consumer. Direct reads are simplest, avoid sync issues, and maintain clear ownership boundaries. Committed to git because graph output is deterministic and reproducible (same code = same graph).
 
@@ -1777,9 +1777,9 @@ Gate recording stays manual — no hookable event for user gate decisions. Open 
 
 **Date:** 2026-03-29
 **Status:** accepted
-**Context:** Background subagents (launched via `run_in_background: true` in refresh/init) silently failed when writing scan results to `.claude/moira/` or reading role files from `~/.claude/moira/`. Permission prompts cannot be displayed for background agents, causing silent denials. Additionally, `settings-merge.sh` was out of sync with the actual hook set — missing 6 hooks and referencing non-existent `pipeline-compliance.sh`.
+**Context:** Background subagents (launched via `run_in_background: true` in refresh/init) silently failed when writing scan results to `.moira/` or reading role files from `~/.claude/moira/`. Permission prompts cannot be displayed for background agents, causing silent denials. Additionally, `settings-merge.sh` was out of sync with the actual hook set — missing 6 hooks and referencing non-existent `pipeline-compliance.sh`.
 **Decision:**
-- **Project-level permissions** (`settings-merge.sh` → `.claude/settings.json`): auto-inject `Read(/.claude/moira/**)`, `Write(/.claude/moira/**)`, `Edit(/.claude/moira/**)` using correct `Tool(specifier)` format with `/` prefix (project-root-relative, not CWD-relative).
+- **Project-level permissions** (`settings-merge.sh` → `.claude/settings.json`): auto-inject `Read(/.moira/**)`, `Write(/.moira/**)`, `Edit(/.moira/**)` using correct `Tool(specifier)` format with `/` prefix (project-root-relative, not CWD-relative).
 - **Global permissions** (`moira_settings_register_global_permissions()` → `~/.claude/settings.json`): auto-inject `Read(~/.claude/moira/**)` so subagents can read role definitions, templates, pipelines from the global install.
 - **Full hook sync**: `settings-merge.sh` now injects all 13 hooks across 9 event types, matching the actual hook set. Removed stale `pipeline-compliance.sh` reference (merged into `pipeline-dispatch.sh` per D-178).
 - **No Bash permission**: `Bash(bash ~/.claude/moira/**)` was removed — real commands use `bash -c 'source ~/.claude/moira/...'` which doesn't match that pattern.
@@ -2322,7 +2322,7 @@ Contracts are intentionally minimal — only sections that downstream consumers 
 **Context:** `moira_rules_assemble_instruction()` in `rules.sh` builds complete agent instruction files. Daedalus writes instruction files for post-planning agents (Hephaestus, Themis, Aletheia). But pre-planning agents (Apollo, Hermes, Athena) use "simplified assembly" — the orchestrator reads 5-8 files per agent (role YAML, base rules, response contract, task context, quality checklist, traceability) and assembles the prompt inline. This costs ~500-800 tokens per agent in Read operations, ~3000-5000 tokens total for pre-planning dispatch.
 
 **Decision:** Generate instruction files for pre-planning agents using `moira_rules_assemble_instruction()`:
-- **Apollo:** Generated by `task-submit.sh` hook immediately after scaffold. Apollo's inputs are fully known at task start (input.md, no prior artifacts). Instruction file written to `.claude/moira/state/tasks/{task_id}/instructions/apollo.md`.
+- **Apollo:** Generated by `task-submit.sh` hook immediately after scaffold. Apollo's inputs are fully known at task start (input.md, no prior artifacts). Instruction file written to `.moira/state/tasks/{task_id}/instructions/apollo.md`.
 - **Hermes, Athena:** Generated by a new shell function `moira_preflight_assemble_exploration()` called after classification gate. At that point classification.md exists and pipeline type is known. Orchestrator calls one Bash-equivalent (or a hook on gate completion triggers it). Instruction files written to `instructions/{agent}.md`.
 - **Metis, Daedalus:** Continue using simplified assembly (they need upstream artifacts that aren't available until their step).
 
@@ -2362,3 +2362,17 @@ Orchestrator receives pre-collected data + pre-classified input. For `menu_selec
 - `context: fork` skill for gate evaluation — adds a subagent dispatch overhead per gate. More tokens, not fewer.
 - PreToolUse hook on Write to intercept gate recording — circular; we're trying to help the orchestrator, not intercept it.
 **Reasoning:** "Shell collects data, LLM formats" is the robust split. Deterministic input classification handles the ~70% happy path (user types a number or keyword). Gate data collection eliminates 5-6 Reads per gate. Combined savings: ~4000-6000 tokens per pipeline.
+
+## D-202: Project State Directory — .moira/ instead of .moira/
+
+**Context:** Claude Code has hardcoded sensitive file protection for `.claude/` directory. Any Write/Edit/Bash operation on files inside `.claude/` triggers a permission prompt that cannot be overridden by `permissions.allow` rules in settings.json. Only `.claude/commands/`, `.claude/agents/`, and `.claude/skills/` are exempt. This blocks Moira's subagents from writing state, knowledge, and config files without manual approval on every operation.
+
+**Decision:** Move project-level Moira directory from `.moira/` to `.moira/` (top-level dotdir). Global install stays at `~/.claude/moira/`.
+
+**Alternatives rejected:**
+- Keep `.moira/` and accept permission prompts — breaks agent autonomy, every write needs manual approval
+- Move into `.claude/agents/moira/` or `.claude/skills/moira/` — abuses exempt directories for wrong purpose, fragile if Claude Code changes exemptions
+- Use `bypassPermissions` mode — disables ALL safety checks, too broad
+- Use PreToolUse hook to auto-approve — hooks can't override the sensitive file check (it's a separate layer)
+
+**Reasoning:** `.moira/` is outside `.claude/` sensitive boundary, so standard `permissions.allow` patterns work. Simpler permission patterns (no absolute path hacks needed). Clean semantic separation: `.claude/` = Claude Code config, `.moira/` = Moira runtime. Global install (`~/.claude/moira/`) is unaffected — it's user-level, not project-level.

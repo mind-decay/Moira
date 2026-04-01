@@ -38,12 +38,12 @@ fi
 [[ -n "$agent_id" ]] && exit 0
 
 # --- Find Moira state directory ---
-# Walk up from CWD looking for .claude/moira/state/current.yaml
+# Walk up from CWD looking for .moira/state/current.yaml
 find_state_dir() {
   local dir="$PWD"
   while [[ "$dir" != "/" ]]; do
-    if [[ -f "$dir/.claude/moira/state/current.yaml" ]]; then
-      echo "$dir/.claude/moira/state"
+    if [[ -f "$dir/.moira/state/current.yaml" ]]; then
+      echo "$dir/.moira/state"
       return 0
     fi
     dir=$(dirname "$dir")
@@ -85,8 +85,8 @@ echo "$timestamp $tool_name $file_path" >> "$state_dir/tool-usage.log" 2>/dev/nu
 case "$tool_name" in
   Read)
     # .ariadne/ is Ariadne graph output — orchestrator may check existence (D-105)
-    # Read is allowed for both .claude/moira and .ariadne/ paths
-    if [[ -n "$file_path" && "$file_path" != *".claude/moira"* && "$file_path" != *".ariadne/"* ]]; then
+    # Read is allowed for both .moira and .ariadne/ paths
+    if [[ -n "$file_path" && "$file_path" != *".moira"* && "$file_path" != *".ariadne/"* ]]; then
       # VIOLATION: orchestrator accessed project file directly
       if [[ -n "$task_id" ]]; then
         echo "$timestamp VIOLATION $tool_name $file_path task_id=$task_id" >> "$state_dir/violations.log" 2>/dev/null || true
@@ -99,8 +99,8 @@ case "$tool_name" in
     fi
     ;;
   Write|Edit)
-    # Write/Edit only allowed within .claude/moira — .ariadne/ is written by ariadne CLI only
-    if [[ -n "$file_path" && "$file_path" != *".claude/moira"* ]]; then
+    # Write/Edit only allowed within .moira — .ariadne/ is written by ariadne CLI only
+    if [[ -n "$file_path" && "$file_path" != *".moira"* ]]; then
       # VIOLATION: orchestrator accessed project file directly
       if [[ -n "$task_id" ]]; then
         echo "$timestamp VIOLATION $tool_name $file_path task_id=$task_id" >> "$state_dir/violations.log" 2>/dev/null || true

@@ -89,7 +89,7 @@ Display: "Bypass confirmed. Dispatching Hephaestus (implementer) directly (Art 1
 
 ## Step 4: Log Bypass
 
-Write to `.claude/moira/state/bypass-log.yaml`.
+Write to `.moira/state/bypass-log.yaml`.
 
 If the file exists, append to the `bypasses:` array. If it doesn't exist, create it.
 

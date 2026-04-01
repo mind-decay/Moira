@@ -15,7 +15,7 @@ trap 'rm -rf "$TEST_HOME"' EXIT
 
 # Override HOME and MOIRA_HOME for testing
 export HOME="$TEST_HOME"
-export MOIRA_HOME="$TEST_HOME/.claude/moira"
+export MOIRA_HOME="$TEST_HOME/.moira"
 
 # ── Test: clean install ───────────────────────────────────────────────
 output=$(bash "$SRC_DIR/install.sh" 2>&1) || true
@@ -273,30 +273,30 @@ test_project="$TEST_HOME/test-project"
 mkdir -p "$test_project"
 moira_scaffold_project "$test_project"
 
-assert_dir_exists "$test_project/.claude/moira/core/rules/roles" "scaffold: core/rules/roles"
-assert_dir_exists "$test_project/.claude/moira/project/rules" "scaffold: project/rules"
-assert_dir_exists "$test_project/.claude/moira/config" "scaffold: config"
-assert_dir_exists "$test_project/.claude/moira/knowledge/project-model" "scaffold: knowledge/project-model"
-assert_dir_exists "$test_project/.claude/moira/knowledge/conventions" "scaffold: knowledge/conventions"
-assert_dir_exists "$test_project/.claude/moira/knowledge/decisions/archive" "scaffold: knowledge/decisions/archive"
-assert_dir_exists "$test_project/.claude/moira/knowledge/patterns" "scaffold: knowledge/patterns"
-assert_dir_exists "$test_project/.claude/moira/knowledge/patterns/archive" "scaffold: knowledge/patterns/archive"
-assert_dir_exists "$test_project/.claude/moira/knowledge/failures" "scaffold: knowledge/failures"
-assert_dir_exists "$test_project/.claude/moira/knowledge/quality-map" "scaffold: knowledge/quality-map"
-assert_dir_exists "$test_project/.claude/moira/state/tasks" "scaffold: state/tasks"
-assert_dir_exists "$test_project/.claude/moira/state/metrics" "scaffold: state/metrics"
-assert_dir_exists "$test_project/.claude/moira/state/audits" "scaffold: state/audits"
-assert_dir_exists "$test_project/.claude/moira/state/init" "scaffold: state/init"
-assert_dir_exists "$test_project/.claude/moira/state/reflection" "scaffold: state/reflection"
-assert_dir_exists "$test_project/.claude/moira/hooks" "scaffold: hooks"
+assert_dir_exists "$test_project/.moira/core/rules/roles" "scaffold: core/rules/roles"
+assert_dir_exists "$test_project/.moira/project/rules" "scaffold: project/rules"
+assert_dir_exists "$test_project/.moira/config" "scaffold: config"
+assert_dir_exists "$test_project/.moira/knowledge/project-model" "scaffold: knowledge/project-model"
+assert_dir_exists "$test_project/.moira/knowledge/conventions" "scaffold: knowledge/conventions"
+assert_dir_exists "$test_project/.moira/knowledge/decisions/archive" "scaffold: knowledge/decisions/archive"
+assert_dir_exists "$test_project/.moira/knowledge/patterns" "scaffold: knowledge/patterns"
+assert_dir_exists "$test_project/.moira/knowledge/patterns/archive" "scaffold: knowledge/patterns/archive"
+assert_dir_exists "$test_project/.moira/knowledge/failures" "scaffold: knowledge/failures"
+assert_dir_exists "$test_project/.moira/knowledge/quality-map" "scaffold: knowledge/quality-map"
+assert_dir_exists "$test_project/.moira/state/tasks" "scaffold: state/tasks"
+assert_dir_exists "$test_project/.moira/state/metrics" "scaffold: state/metrics"
+assert_dir_exists "$test_project/.moira/state/audits" "scaffold: state/audits"
+assert_dir_exists "$test_project/.moira/state/init" "scaffold: state/init"
+assert_dir_exists "$test_project/.moira/state/reflection" "scaffold: state/reflection"
+assert_dir_exists "$test_project/.moira/hooks" "scaffold: hooks"
 
 # Idempotency: run scaffold again
 moira_scaffold_project "$test_project"
-assert_dir_exists "$test_project/.claude/moira/state/tasks" "scaffold idempotent: state/tasks still exists"
+assert_dir_exists "$test_project/.moira/state/tasks" "scaffold idempotent: state/tasks still exists"
 
 # ── Test: task-id generation ──────────────────────────────────────────
 source "$MOIRA_HOME/lib/task-id.sh"
-state_dir="$test_project/.claude/moira/state"
+state_dir="$test_project/.moira/state"
 
 # First ID of the day
 id1=$(moira_task_id "$state_dir")

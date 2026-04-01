@@ -362,7 +362,7 @@ This creates a feedback loop: tasks produce knowledge, knowledge improves agents
 curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/remote-install.sh | bash
 cd project && claude
 > /moira:init                              # scan project, generate config
-git add .claude/moira/ && git commit       # share config + knowledge
+git add .moira/ && git commit       # share config + knowledge
 
 # Everyone else
 curl -fsSL https://raw.githubusercontent.com/mind-decay/Moira/master/src/remote-install.sh | bash
@@ -380,7 +380,7 @@ Moira is not a wrapper around Claude Code. It is built entirely from Claude Code
 
 ### Custom commands as entry points
 
-Every `/moira:*` command is a Claude Code custom command (`.md` skill file) with an explicit `allowed-tools` whitelist. The orchestrator's `/moira:task` command can only call `Agent`, `Read`, `Write` on `.claude/moira/` paths, and task management tools. It physically cannot call `Read` on project source files, `Edit` on code, or run arbitrary `Bash` commands — this is enforced by the platform, not by a prompt.
+Every `/moira:*` command is a Claude Code custom command (`.md` skill file) with an explicit `allowed-tools` whitelist. The orchestrator's `/moira:task` command can only call `Agent`, `Read`, `Write` on `.moira/` paths, and task management tools. It physically cannot call `Read` on project source files, `Edit` on code, or run arbitrary `Bash` commands — this is enforced by the platform, not by a prompt.
 
 ### Subagents as isolated execution units
 
@@ -397,7 +397,7 @@ Claude Code hooks fire shell scripts on specific events (tool calls, agent lifec
 - `agent-done.sh` records completion in history, updates budget counters, triggers pipeline state transitions.
 
 **Orchestrator guard:**
-- `guard-prevent.sh` fires **before** Read/Write/Edit — blocks the orchestrator from touching project files outside `.claude/moira/`. This is the structural enforcement of Article 1.1 (orchestrator purity).
+- `guard-prevent.sh` fires **before** Read/Write/Edit — blocks the orchestrator from touching project files outside `.moira/`. This is the structural enforcement of Article 1.1 (orchestrator purity).
 - `guard.sh` fires **after** every tool call — logs all tool usage to an audit trail. Violations are recorded with task ID for post-hoc analysis.
 
 **Context budget:**

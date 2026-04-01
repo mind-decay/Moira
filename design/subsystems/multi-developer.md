@@ -11,7 +11,7 @@ Multiple engineers on same project, each with their own Claude sessions:
 ## Solution: Branch-Scoped State + Shared Knowledge
 
 ```
-.claude/moira/
+.moira/
 ├── knowledge/     ← SHARED (git-tracked, merges with PRs)
 ├── config/        ← SHARED (git-tracked)
 │   └── locks.yaml ← file reservation system (committed for cross-developer visibility, D-033)
@@ -40,7 +40,7 @@ Multiple engineers on same project, each with their own Claude sessions:
 ## File Lock System
 
 ```yaml
-# .claude/moira/config/locks.yaml
+# .moira/config/locks.yaml
 
 active_tasks:
   - id: "078"

@@ -99,7 +99,7 @@ After the frontmatter, write the detailed report using this format:
 
 ## Output Path
 
-Write the complete output to: `.claude/moira/state/init/pattern-scan.md`
+Write the complete output to: `.moira/state/init/pattern-scan.md`
 
 ## Constraints
 

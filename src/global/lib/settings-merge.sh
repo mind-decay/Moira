@@ -25,20 +25,33 @@ moira_settings_merge_hooks() {
 {
   "permissions": {
     "allow": [
-      "Read(/.claude/moira/**)",
-      "Write(/.claude/moira/**)",
-      "Edit(/.claude/moira/**)",
-      "Glob(/.claude/moira/**)",
-      "Grep(/.claude/moira/**)",
-      "Bash(mkdir */.claude/moira/*)",
-      "Bash(mkdir -p */.claude/moira/*)",
-      "Bash(cp */.claude/moira/*)",
-      "Bash(mv */.claude/moira/*)",
-      "Bash(rm */.claude/moira/*)",
-      "Bash(chmod */.claude/moira/*)",
-      "Bash(cat */.claude/moira/*)",
-      "Bash(ls */.claude/moira/*)",
-      "Bash(bash */.claude/moira/*)"
+      "Read(/.moira/**)",
+      "Read(*/.moira/**)",
+      "Write(/.moira/**)",
+      "Write(*/.moira/**)",
+      "Edit(/.moira/**)",
+      "Edit(*/.moira/**)",
+      "Glob(/.moira/**)",
+      "Glob(*/.moira/**)",
+      "Grep(/.moira/**)",
+      "Grep(*/.moira/**)",
+      "Bash(mkdir */.moira/**)",
+      "Bash(mkdir -p */.moira/**)",
+      "Bash(cp */.moira/**)",
+      "Bash(cp -r */.moira/**)",
+      "Bash(cp -rp */.moira/**)",
+      "Bash(mv */.moira/**)",
+      "Bash(mv -f */.moira/**)",
+      "Bash(rm */.moira/**)",
+      "Bash(rm -f */.moira/**)",
+      "Bash(rm -r */.moira/**)",
+      "Bash(rm -rf */.moira/**)",
+      "Bash(chmod */.moira/**)",
+      "Bash(cat */.moira/**)",
+      "Bash(ls */.moira/**)",
+      "Bash(ls -* */.moira/**)",
+      "Bash(bash */.moira/**)",
+      "Bash(touch */.moira/**)"
     ]
   },
   "hooks": {
@@ -201,8 +214,8 @@ HOOKJSON
      grep -q 'moira/hooks/graph-validate.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/session-cleanup.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/gate-context.sh' "$settings_file" 2>/dev/null && \
-     grep -q 'Write(/.claude/moira/' "$settings_file" 2>/dev/null && \
-     grep -q 'Glob(/.claude/moira/' "$settings_file" 2>/dev/null && \
+     grep -q 'Write(/.moira/' "$settings_file" 2>/dev/null && \
+     grep -q 'Glob(/.moira/' "$settings_file" 2>/dev/null && \
      grep -q 'Bash(mkdir' "$settings_file" 2>/dev/null; then
     return 0
   fi
@@ -237,7 +250,7 @@ _moira_settings_merge_jq() {
 
     # Remove existing Moira permission entries
     def remove_moira_perms:
-      if . then [.[] | select(contains(".claude/moira/") | not)] else [] end;
+      if . then [.[] | select(contains(".moira/") | not)] else [] end;
 
     # Merge permissions (additive, deduplicated)
     .permissions = (.permissions // {}) |
@@ -311,20 +324,33 @@ _moira_settings_merge_fallback() {
     cat <<'HOOKS'
   "permissions": {
     "allow": [
-      "Read(/.claude/moira/**)",
-      "Write(/.claude/moira/**)",
-      "Edit(/.claude/moira/**)",
-      "Glob(/.claude/moira/**)",
-      "Grep(/.claude/moira/**)",
-      "Bash(mkdir */.claude/moira/*)",
-      "Bash(mkdir -p */.claude/moira/*)",
-      "Bash(cp */.claude/moira/*)",
-      "Bash(mv */.claude/moira/*)",
-      "Bash(rm */.claude/moira/*)",
-      "Bash(chmod */.claude/moira/*)",
-      "Bash(cat */.claude/moira/*)",
-      "Bash(ls */.claude/moira/*)",
-      "Bash(bash */.claude/moira/*)"
+      "Read(/.moira/**)",
+      "Read(*/.moira/**)",
+      "Write(/.moira/**)",
+      "Write(*/.moira/**)",
+      "Edit(/.moira/**)",
+      "Edit(*/.moira/**)",
+      "Glob(/.moira/**)",
+      "Glob(*/.moira/**)",
+      "Grep(/.moira/**)",
+      "Grep(*/.moira/**)",
+      "Bash(mkdir */.moira/**)",
+      "Bash(mkdir -p */.moira/**)",
+      "Bash(cp */.moira/**)",
+      "Bash(cp -r */.moira/**)",
+      "Bash(cp -rp */.moira/**)",
+      "Bash(mv */.moira/**)",
+      "Bash(mv -f */.moira/**)",
+      "Bash(rm */.moira/**)",
+      "Bash(rm -f */.moira/**)",
+      "Bash(rm -r */.moira/**)",
+      "Bash(rm -rf */.moira/**)",
+      "Bash(chmod */.moira/**)",
+      "Bash(cat */.moira/**)",
+      "Bash(ls */.moira/**)",
+      "Bash(ls -* */.moira/**)",
+      "Bash(bash */.moira/**)",
+      "Bash(touch */.moira/**)"
     ]
   },
   "hooks": {
@@ -720,7 +746,7 @@ moira_settings_remove_hooks() {
       (if .hooks.SessionEnd then .hooks.SessionEnd |= remove_moira else . end) |
 
       # Remove Moira permissions
-      (if .permissions.allow then .permissions.allow |= [.[] | select(contains(".claude/moira/") | not)] else . end) |
+      (if .permissions.allow then .permissions.allow |= [.[] | select(contains(".moira/") | not)] else . end) |
       (if .permissions.allow and (.permissions.allow | length) == 0 then del(.permissions.allow) else . end) |
       (if .permissions and (.permissions | length) == 0 then del(.permissions) else . end) |
 

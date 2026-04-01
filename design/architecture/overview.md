@@ -10,7 +10,7 @@
 └──────────────────────┬──────────────────────────┘
                        │ generates
 ┌──────────────────────▼──────────────────────────┐
-│           PROJECT LAYER (.claude/moira/)          │
+│           PROJECT LAYER (.moira/)          │
 │  Project-specific agents, rules, conventions,    │
 │  knowledge base, state machine                   │
 └──────────────────────┬──────────────────────────┘
@@ -64,7 +64,7 @@ User → /moira <task>
   Orchestrator spawns: Classifier agent
   │
   Classifier reads: project-model summary, task description
-  Classifier writes: .claude/moira/state/tasks/{id}/classification.md
+  Classifier writes: .moira/state/tasks/{id}/classification.md
   Classifier returns: "STATUS: success | SUMMARY: medium task | NEXT: explore+analyze"
   │
   Orchestrator reads: classifier summary (not full file)
@@ -183,10 +183,10 @@ User → /moira <task>
 └── settings.json                      # Hooks + statusline registration (merge)
 ```
 
-### Project Layer (`.claude/moira/`)
+### Project Layer (`.moira/`)
 
 ```
-.claude/moira/
+.moira/
 ├── config.yaml                    # Project configuration
 ├── core/
 │   └── rules/

@@ -192,7 +192,7 @@ This doesn't cover all cases cleanly (explicit proceed vs rearchitect), so we **
 #### `session-lock.sh` (SessionStart)
 
 **What it does:**
-1. Check if `.claude/moira/` exists (is this a Moira project?)
+1. Check if `.moira/` exists (is this a Moira project?)
 2. Check existing `.session-lock` for stale locks
 3. If stale → delete
 4. If live → output warning as `additionalContext`: "Another Moira session may be active"

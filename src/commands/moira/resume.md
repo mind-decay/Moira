@@ -13,17 +13,17 @@ Resume a checkpointed task from where it left off. Validates state consistency b
 
 ## Setup
 
-- **Project state:** `.claude/moira/state/`
-- **Task state:** `.claude/moira/state/tasks/{task_id}/`
-- **Manifest:** `.claude/moira/state/tasks/{task_id}/manifest.yaml`
-- **Current state:** `.claude/moira/state/current.yaml`
-- **Write scope:** `.claude/moira/` paths ONLY
+- **Project state:** `.moira/state/`
+- **Task state:** `.moira/state/tasks/{task_id}/`
+- **Manifest:** `.moira/state/tasks/{task_id}/manifest.yaml`
+- **Current state:** `.moira/state/current.yaml`
+- **Write scope:** `.moira/` paths ONLY
 
 ## Step 1: Find Checkpoint
 
 ### 1a. Check current.yaml
 
-Read `.claude/moira/state/current.yaml`.
+Read `.moira/state/current.yaml`.
 
 - If `step_status` is `checkpointed`: use the `task_id` from current.yaml. Proceed to Step 2.
 
@@ -31,7 +31,7 @@ Read `.claude/moira/state/current.yaml`.
 
 If current.yaml does not show `checkpointed` status (or does not exist):
 
-- Read `.claude/moira/state/tasks/` directory listing
+- Read `.moira/state/tasks/` directory listing
 - For each task directory, read `manifest.yaml`
 - Look for any manifest where `checkpoint.step` is non-null and `checkpoint.reason` is set
 - If multiple checkpoints found: display list and ask user to choose
@@ -50,7 +50,7 @@ Stop execution.
 
 ## Step 2: Display Checkpoint Summary
 
-Read the manifest at `.claude/moira/state/tasks/{task_id}/manifest.yaml`.
+Read the manifest at `.moira/state/tasks/{task_id}/manifest.yaml`.
 
 Display:
 
@@ -79,7 +79,7 @@ Perform three validation checks by reading files and comparing values. Since thi
 
 ### Check 1: Artifact Existence
 
-Read `.claude/moira/state/current.yaml` and parse the `history` block. For each entry where `status` is `success`, verify that the corresponding artifact file exists at `.claude/moira/state/tasks/{task_id}/artifacts/{step}.md` (or the `result_file` path listed in the history entry if present).
+Read `.moira/state/current.yaml` and parse the `history` block. For each entry where `status` is `success`, verify that the corresponding artifact file exists at `.moira/state/tasks/{task_id}/artifacts/{step}.md` (or the `result_file` path listed in the history entry if present).
 
 Track any missing artifacts.
 
@@ -205,12 +205,12 @@ Display changed files:
 ### 5a. Load Context
 
 1. Read `resume_context` from manifest.yaml
-2. Read `plan.md` from `.claude/moira/state/tasks/{task_id}/plan.md` (if it exists)
+2. Read `plan.md` from `.moira/state/tasks/{task_id}/plan.md` (if it exists)
 3. Read `decisions_made` from manifest.yaml (if non-null)
 
 ### 5b. Update State
 
-Write to `.claude/moira/state/current.yaml`:
+Write to `.moira/state/current.yaml`:
 - Set `step_status` to `in_progress`
 - Set `step` to the value from `checkpoint.step`
 - Set `step_started_at` to current ISO 8601 timestamp
@@ -247,7 +247,7 @@ Dispatch Themis (reviewer) via Agent tool for an integration check:
 - description: "Themis — post-resume integration review"
 - subagent_type: general-purpose
 - prompt: Combine Themis identity from `~/.claude/moira/core/rules/roles/themis.yaml` with base rules from `~/.claude/moira/core/rules/base.yaml`, then provide:
-  - Pre-resume artifacts: list the completed step artifacts from `.claude/moira/state/tasks/{task_id}/artifacts/`
+  - Pre-resume artifacts: list the completed step artifacts from `.moira/state/tasks/{task_id}/artifacts/`
   - Post-resume output: the output from the step that just completed
   - Resume context: the `resume_context` from the manifest
   - Instructions: "Check that the post-resume work integrates correctly with pre-resume work. Verify contracts are maintained, code style is consistent, and no context was lost. Report: PASS or FAIL with specific issues."
@@ -279,11 +279,11 @@ Parse the reviewer's response:
 ### 6c. Cleanup
 
 After the task completes (all pipeline steps finish), remove the checkpoint manifest:
-- Delete `.claude/moira/state/tasks/{task_id}/manifest.yaml` (or reset its checkpoint fields to null)
+- Delete `.moira/state/tasks/{task_id}/manifest.yaml` (or reset its checkpoint fields to null)
 
 ## Constitutional Compliance
 
 - **Art 1.2:** Agents dispatched are read-only for validation; state modifications are made by this command only.
 - **Art 4.2:** User must confirm resume before execution continues. All inconsistency resolutions require user choice.
 - **Art 3.1:** Pipeline execution follows the standard orchestrator skill — no gates are skipped.
-- **Write scope:** This command writes ONLY to `.claude/moira/` paths. NEVER to project source files.
+- **Write scope:** This command writes ONLY to `.moira/` paths. NEVER to project source files.

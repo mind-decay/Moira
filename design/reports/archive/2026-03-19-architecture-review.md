@@ -64,7 +64,7 @@ The simplified assembly path (pre-planning, Quick Pipeline) and Daedalus's full 
 *Direction:* Consider a shared shell function for rule assembly that both paths invoke.
 
 **S-2: Ariadne's `.ariadne/` breaks three-layer containment model (LOW)**
-`.ariadne/` sits alongside `.claude/moira/`, not within it. Pragmatic but breaks the "all project data in `.claude/moira/`" containment.
+`.ariadne/` sits alongside `.moira/`, not within it. Pragmatic but breaks the "all project data in `.moira/`" containment.
 *Files:* D-105
 *Direction:* Document `.ariadne/` as an "external data source" category in `overview.md`. No architectural change needed.
 

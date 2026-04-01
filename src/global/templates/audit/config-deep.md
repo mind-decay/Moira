@@ -41,10 +41,10 @@ Perform all 5 standard checks (see config-standard.md), PLUS:
 ## Files to Read
 
 - All files from standard audit, PLUS:
-- `.claude/moira/state/tasks/*/telemetry.yaml` (MCP call details)
-- `.claude/moira/state/tool-usage.log`
-- `.claude/moira/state/budget-tool-usage.log`
-- `.claude/moira/state/violations.log`
+- `.moira/state/tasks/*/telemetry.yaml` (MCP call details)
+- `.moira/state/tool-usage.log`
+- `.moira/state/budget-tool-usage.log`
+- `.moira/state/violations.log`
 
 ## Finding Format
 

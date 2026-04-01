@@ -522,7 +522,7 @@ Return ONLY valid YAML in this exact format:
 
 ### D9: Rubric Files (`src/tests/bench/rubrics/`)
 
-YAML rubric files with anchored examples per testing.md specification. Located at `src/tests/bench/rubrics/` — consistent with testing.md file structure (`.claude/moira/testing/bench/rubrics/`) and Phase 6 bench infrastructure.
+YAML rubric files with anchored examples per testing.md specification. Located at `src/tests/bench/rubrics/` — consistent with testing.md file structure (`.moira/testing/bench/rubrics/`) and Phase 6 bench infrastructure.
 
 #### D9a: Feature Implementation Rubric (`feature-implementation.yaml`)
 

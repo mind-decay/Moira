@@ -30,7 +30,7 @@ find_project_root() {
 
 project_root=$(find_project_root) || exit 0
 
-# --- Skip non-project files (e.g. .claude/moira/ state writes) ---
+# --- Skip non-project files (e.g. .moira/ state writes) ---
 file_path=""
 if command -v jq &>/dev/null; then
   file_path=$(echo "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || true

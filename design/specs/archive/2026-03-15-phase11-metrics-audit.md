@@ -177,7 +177,7 @@ Depth is auto-selected based on trigger (light for periodic passive, standard fo
 
 **Implementation:** The command reads audit templates via `moira_audit_select_templates`, dispatches Argus agent(s) via Agent tool with domain-specific templates, collects results via `moira_audit_parse_findings`, presents summary per `audit.md` output format, and offers recommendation approval flow.
 
-**Allowed tools:** `Agent`, `Read`, `Write` (dispatch Argus, read results, write audit report and apply low-risk moira config changes). Write scope is `.claude/moira/` only — never project source files. For recommendations requiring project file changes, the command dispatches Hephaestus (implementer) via Agent tool.
+**Allowed tools:** `Agent`, `Read`, `Write` (dispatch Argus, read results, write audit report and apply low-risk moira config changes). Write scope is `.moira/` only — never project source files. For recommendations requiring project file changes, the command dispatches Hephaestus (implementer) via Agent tool.
 
 **Recommendation approval flow** (from `audit.md`):
 1. Show summary with finding counts by risk
@@ -346,7 +346,7 @@ This spec introduces the following architectural choices that need D-xxx entries
 ```
 ARTICLE 1: Separation of Concerns
 Art 1.1 OK  Metrics command uses Read only. Audit command uses Agent+Read+Write
-            where Write scope is .claude/moira/ only (never project source files).
+            where Write scope is .moira/ only (never project source files).
             Recommendation application dispatches Hephaestus (implementer) for
             file modifications requiring project file changes.
 Art 1.2 OK  Argus NEVER constraints unchanged: read-only, no modifications.

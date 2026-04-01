@@ -19,7 +19,7 @@ Upgrade the Moira installation to a newer version using three-way diff classific
 - **Version file:** `~/.claude/moira/.version`
 - **Version snapshot:** `~/.claude/moira/.version-snapshot/`
 - **Upgrade library:** `~/.claude/moira/lib/upgrade.sh`
-- **Config:** `.claude/moira/config.yaml`
+- **Config:** `.moira/config.yaml`
 - **Write scope:** `~/.claude/moira/` paths ONLY
 
 ## Step 1: Read Current Version
@@ -79,7 +79,7 @@ Stop execution.
 
 ## Step 4: Check Version Pinning
 
-Read `.claude/moira/config.yaml` and check for `moira.version` field.
+Read `.moira/config.yaml` and check for `moira.version` field.
 
 If `moira.version` is set and differs from the available version:
 
@@ -243,7 +243,7 @@ cp "{source_dir}/.version" ~/.claude/moira/.version
 
 ### 8e. Remove Version Pin (if overridden in Step 4)
 
-If the user chose `override` in Step 4, update `.claude/moira/config.yaml` to remove or clear the `moira.version` field.
+If the user chose `override` in Step 4, update `.moira/config.yaml` to remove or clear the `moira.version` field.
 
 ### 8f. Cleanup
 

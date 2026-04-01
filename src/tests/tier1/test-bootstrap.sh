@@ -27,7 +27,7 @@ for scanner in tech-scan structure-scan convention-scan pattern-scan; do
     assert_file_contains "$tmpl" "## Output Path" "${scanner}: has Output Path section"
     assert_file_contains "$tmpl" "## Constraints" "${scanner}: has Constraints section"
     assert_file_contains "$tmpl" "NO opinions" "${scanner}: has Explorer NEVER constraints"
-    assert_file_contains "$tmpl" ".claude/moira/" "${scanner}: output path under .claude/moira/"
+    assert_file_contains "$tmpl" ".moira/" "${scanner}: output path under .moira/"
   fi
 done
 
@@ -180,7 +180,7 @@ EOF
   TEST_SUB4="$TEST_DIR/sub4"
   mkdir -p "$TEST_SUB4"
   moira_bootstrap_setup_gitignore "$TEST_SUB4"
-  if [[ -f "$TEST_SUB4/.gitignore" ]] && grep -q ".claude/moira/state/" "$TEST_SUB4/.gitignore"; then
+  if [[ -f "$TEST_SUB4/.gitignore" ]] && grep -q ".moira/state/" "$TEST_SUB4/.gitignore"; then
     pass "gitignore: creates .gitignore with moira entries"
   else
     fail "gitignore: failed to create with entries"
@@ -192,7 +192,7 @@ EOF
   echo "node_modules/" > "$TEST_SUB5/.gitignore"
   moira_bootstrap_setup_gitignore "$TEST_SUB5"
   if grep -q "node_modules/" "$TEST_SUB5/.gitignore" && \
-     grep -q ".claude/moira/state/" "$TEST_SUB5/.gitignore"; then
+     grep -q ".moira/state/" "$TEST_SUB5/.gitignore"; then
     pass "gitignore: appends to existing, preserves content"
   else
     fail "gitignore: failed to append or lost existing content"
@@ -200,7 +200,7 @@ EOF
 
   # ── Gitignore: idempotent (no duplicates) ──
   moira_bootstrap_setup_gitignore "$TEST_SUB5"
-  dup_count=$(grep -c ".claude/moira/state/" "$TEST_SUB5/.gitignore" || true)
+  dup_count=$(grep -c ".moira/state/" "$TEST_SUB5/.gitignore" || true)
   if [[ "$dup_count" -eq 1 ]]; then
     pass "gitignore: idempotent — no duplicates"
   else
@@ -452,14 +452,14 @@ EOF
 
   # Full pipeline: generate_project_rules must succeed end-to-end
   PIPELINE_DIR="$TEST_DIR/pipeline-test"
-  mkdir -p "$PIPELINE_DIR/.claude/moira/project/rules" "$PIPELINE_DIR/.claude/moira/state/init"
-  cp "$GEN_TEST_DIR/tech-scan.md" "$PIPELINE_DIR/.claude/moira/state/init/"
-  cp "$GEN_TEST_DIR/convention-scan.md" "$PIPELINE_DIR/.claude/moira/state/init/"
-  cp "$GEN_TEST_DIR/structure-scan.md" "$PIPELINE_DIR/.claude/moira/state/init/"
-  cp "$GEN_TEST_DIR/pattern-scan.md" "$PIPELINE_DIR/.claude/moira/state/init/"
+  mkdir -p "$PIPELINE_DIR/.moira/project/rules" "$PIPELINE_DIR/.moira/state/init"
+  cp "$GEN_TEST_DIR/tech-scan.md" "$PIPELINE_DIR/.moira/state/init/"
+  cp "$GEN_TEST_DIR/convention-scan.md" "$PIPELINE_DIR/.moira/state/init/"
+  cp "$GEN_TEST_DIR/structure-scan.md" "$PIPELINE_DIR/.moira/state/init/"
+  cp "$GEN_TEST_DIR/pattern-scan.md" "$PIPELINE_DIR/.moira/state/init/"
 
   set +e
-  moira_bootstrap_generate_project_rules "$PIPELINE_DIR" "$PIPELINE_DIR/.claude/moira/state/init"
+  moira_bootstrap_generate_project_rules "$PIPELINE_DIR" "$PIPELINE_DIR/.moira/state/init"
   exit_code=$?
   set -e
   if [[ "$exit_code" -eq 0 ]]; then
@@ -469,7 +469,7 @@ EOF
   fi
 
   for rule_file in stack.yaml conventions.yaml patterns.yaml boundaries.yaml; do
-    if [[ -f "$PIPELINE_DIR/.claude/moira/project/rules/$rule_file" ]]; then
+    if [[ -f "$PIPELINE_DIR/.moira/project/rules/$rule_file" ]]; then
       pass "generate_project_rules: $rule_file created"
     else
       fail "generate_project_rules: $rule_file not created"

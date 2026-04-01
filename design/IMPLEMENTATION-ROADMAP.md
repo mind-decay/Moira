@@ -11,7 +11,7 @@ Based on dependency analysis. Each phase builds on previous.
 **Goal:** Moira directory structure exists, state can be read/written/resumed.
 
 **Deliverables:**
-- Directory scaffold generator (creates `~/.claude/moira/` global tree + `.claude/moira/` project tree)
+- Directory scaffold generator (creates `~/.claude/moira/` global tree + `.moira/` project tree)
 - Command files in `~/.claude/commands/moira/` (native custom commands, D-030)
 - YAML state schemas — full schemas per D-029:
   - `budgets.schema.yaml` — context budget allocations (committed)
@@ -399,10 +399,10 @@ New function `moira_graph_diff_to_knowledge()` in `graph.sh`. Runs after `moira_
 Bash pre-collects raw data into files, agents receive pre-collected data instead of scanning from scratch.
 
 **Tasks:**
-- [ ] 4.1: New bash function `moira_scan_precollect_tech()` in `bootstrap.sh` — reads package.json, tsconfig.json, .eslintrc*, .prettierrc*, Dockerfile, docker-compose*, .github/workflows/*.yml, .env.example, go.mod, pyproject.toml, Cargo.toml, Gemfile (whichever exist). Writes concatenated contents with file headers to `.claude/moira/state/init/raw-configs.md`. Checks lock file existence (package-lock.json, yarn.lock, pnpm-lock.yaml, etc.) and appends existence flags
-- [ ] 4.2: New bash function `moira_scan_precollect_structure()` in `bootstrap.sh` — runs `ls` depth 1-2 for top-level + source dirs, runs `ariadne query overview --json`, `ariadne query clusters --json`, `ariadne query layers --json` (if available). Writes combined output to `.claude/moira/state/init/raw-structure.md`
-- [ ] 4.3: Update tech-scan.md template — add `## Pre-Collected Data` section at top: "Raw config files have been pre-collected at `.claude/moira/state/init/raw-configs.md`. Read that file FIRST. Only use Read/Glob for files NOT included in pre-collection." Reduce budget from 140k to 50k
-- [ ] 4.4: Update structure-scan.md template — add `## Pre-Collected Data` section: "Project structure and Ariadne graph data pre-collected at `.claude/moira/state/init/raw-structure.md`. Read that file FIRST. Focus on interpreting the structure — directory roles, entry points, test organization — not on discovery." Reduce budget from 140k to 50k
+- [ ] 4.1: New bash function `moira_scan_precollect_tech()` in `bootstrap.sh` — reads package.json, tsconfig.json, .eslintrc*, .prettierrc*, Dockerfile, docker-compose*, .github/workflows/*.yml, .env.example, go.mod, pyproject.toml, Cargo.toml, Gemfile (whichever exist). Writes concatenated contents with file headers to `.moira/state/init/raw-configs.md`. Checks lock file existence (package-lock.json, yarn.lock, pnpm-lock.yaml, etc.) and appends existence flags
+- [ ] 4.2: New bash function `moira_scan_precollect_structure()` in `bootstrap.sh` — runs `ls` depth 1-2 for top-level + source dirs, runs `ariadne query overview --json`, `ariadne query clusters --json`, `ariadne query layers --json` (if available). Writes combined output to `.moira/state/init/raw-structure.md`
+- [ ] 4.3: Update tech-scan.md template — add `## Pre-Collected Data` section at top: "Raw config files have been pre-collected at `.moira/state/init/raw-configs.md`. Read that file FIRST. Only use Read/Glob for files NOT included in pre-collection." Reduce budget from 140k to 50k
+- [ ] 4.4: Update structure-scan.md template — add `## Pre-Collected Data` section: "Project structure and Ariadne graph data pre-collected at `.moira/state/init/raw-structure.md`. Read that file FIRST. Focus on interpreting the structure — directory roles, entry points, test organization — not on discovery." Reduce budget from 140k to 50k
 - [ ] 4.5: Update init.md Step 4 — before dispatching scanner agents, run `moira_scan_precollect_tech` and `moira_scan_precollect_structure` via Bash. Then dispatch 4 agents (2 lightweight + 2 full)
 - [ ] 4.6: Convention-scan.md and pattern-scan.md — reduce budget from 140k to 100k (no pre-collection, but tighter limit)
 - [ ] 4.7: Update refresh.md Step 2 — same pre-collection before re-scan agents
@@ -414,8 +414,8 @@ Bash pre-collects raw data into files, agents receive pre-collected data instead
 Deep scanners receive Ariadne structural data as pre-context file, freeing budget for semantic analysis.
 
 **Tasks:**
-- [ ] 5.1: New bash function `moira_deepscan_prepare_context()` in `graph.sh` — queries `ariadne query overview`, `clusters`, `cycles`, `boundaries`, `layers`, `centrality` (top 20), writes combined markdown to `.claude/moira/state/init/ariadne-context.md`
-- [ ] 5.2: Update deep-architecture-scan.md — add `## Pre-Context (Ariadne Data)` section: "Structural map at `.claude/moira/state/init/ariadne-context.md` contains clusters, layers, cycles, boundaries from static analysis. Read it first. Focus your file reading on SEMANTIC understanding: business logic, data flow between services, API contracts, middleware chains. Do NOT spend budget rediscovering structure that Ariadne already mapped."
+- [ ] 5.1: New bash function `moira_deepscan_prepare_context()` in `graph.sh` — queries `ariadne query overview`, `clusters`, `cycles`, `boundaries`, `layers`, `centrality` (top 20), writes combined markdown to `.moira/state/init/ariadne-context.md`
+- [ ] 5.2: Update deep-architecture-scan.md — add `## Pre-Context (Ariadne Data)` section: "Structural map at `.moira/state/init/ariadne-context.md` contains clusters, layers, cycles, boundaries from static analysis. Read it first. Focus your file reading on SEMANTIC understanding: business logic, data flow between services, API contracts, middleware chains. Do NOT spend budget rediscovering structure that Ariadne already mapped."
 - [ ] 5.3: Update deep-dependency-scan.md — add pre-context section: "Ariadne pre-context contains cycles and structural dependencies. Focus on: package versions/freshness, unused packages (declared but never imported), duplicate functionality, version constraint analysis."
 - [ ] 5.4: Update deep-test-coverage-scan.md — add pre-context section with note: "Use `ariadne_tests_for` data in pre-context for source→test mapping. Focus on: test quality, assertion density, mock patterns, missing coverage for critical paths."
 - [ ] 5.5: Update deep-security-scan.md — add pre-context section: "Ariadne boundaries and centrality data show system entry points and high-impact files. Focus security analysis on these boundaries first."

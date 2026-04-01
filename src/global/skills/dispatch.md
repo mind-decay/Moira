@@ -12,7 +12,7 @@ This skill defines how the orchestrator constructs agent prompts, dispatches age
 
 When dispatching ANY agent, check for a pre-assembled instruction file:
 
-1. Check path: `.claude/moira/state/tasks/{task_id}/instructions/{agent_name}.md`
+1. Check path: `.moira/state/tasks/{task_id}/instructions/{agent_name}.md`
 2. If file exists and is non-empty:
    - Read the file contents
    - Prepend `## Agent Role Clarification` section (same as in simplified assembly prompt template) before the instruction file contents
@@ -70,19 +70,19 @@ The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_in
 2. **Read base rules:** `~/.claude/moira/core/rules/base.yaml`
    - Extract: `inviolable` rules (always included)
 3. **Read response contract:** `~/.claude/moira/core/response-contract.yaml` (Note: `rules.sh` `moira_rules_assemble_instruction` embeds the response contract inline rather than reading this file. The file serves as the canonical reference.)
-4. **Read task context:** from state files in `.claude/moira/state/tasks/{task_id}/`
+4. **Read task context:** from state files in `.moira/state/tasks/{task_id}/`
    - Input description, previous step artifacts (as specified by pipeline `reads_from`)
-4b. **Graph context loading (D-107, D-155):** If `graph_available` is `true` in `.claude/moira/state/current.yaml`:
+4b. **Graph context loading (D-107, D-155):** If `graph_available` is `true` in `.moira/state/current.yaml`:
    - **Pre-planning agents (Apollo, Hermes, Athena, Metis):** If MCP is enabled and the Ariadne infrastructure server is registered, use `ariadne_context` with `budget_tokens: 1000` and `task: "understand"` to assemble task-relevant structural context. Seed files: extract file paths mentioned in the task input description. If `ariadne_context` succeeds, append result as a `## Project Graph (Context)` section to the prompt. If `ariadne_context` fails (MCP error, server unavailable, or empty result), fall back to L0 view: read the L0 graph index via Bash: `source ~/.claude/moira/lib/graph.sh && moira_graph_read_view L0` and append as `## Project Graph (L0)` section. Budget adjustment: add ~1000 tokens to context estimate for ariadne_context output (or ~200-500 tokens for L0 fallback).
    - **Daedalus (planner):** Pass graph directory paths in the Task section: graph data at `.ariadne/graph/`, views at `.ariadne/views/`. Daedalus queries graphs directly and assembles `## Project Graph` sections in instruction files. Daedalus should use `ariadne_context` token estimates (`total_tokens`, `budget_used` fields) for precise budget allocation per implementation batch.
    - **Post-planning agents (Hephaestus, Themis, Aletheia):** No change — graph data comes via pre-assembled instruction files (assembled by Daedalus).
    - If `graph_available` is `false` or not present: skip this step entirely (agents work without graph data, per D-102 graceful degradation).
-4b-temporal. **Temporal availability context (D-159):** If `temporal_available` is `true` in `.claude/moira/state/current.yaml`:
+4b-temporal. **Temporal availability context (D-159):** If `temporal_available` is `true` in `.moira/state/current.yaml`:
    - Note `temporal_available: true` in the agent dispatch context so that conditional temporal guidance in agent role capabilities activates
    - Pre-planning agents and Daedalus receive this as part of their Task section: `Temporal data: available — agents may use ariadne_churn, ariadne_coupling, ariadne_hotspots, ariadne_ownership, ariadne_hidden_deps`
    - If `temporal_available` is `false` or not present: include `Temporal data: not available — temporal tool guidance in agent capabilities does not apply`
-4c. **Infrastructure MCP injection (D-115):** If MCP is enabled (`.claude/moira/config.yaml` → `mcp.enabled` is `true`):
-   - Read `.claude/moira/config/mcp-registry.yaml`
+4c. **Infrastructure MCP injection (D-115):** If MCP is enabled (`.moira/config.yaml` → `mcp.enabled` is `true`):
+   - Read `.moira/config/mcp-registry.yaml`
    - For each server with `infrastructure: true`: collect tool names and purposes
    - Append `## Infrastructure Tools (Always Available)` section to the prompt (using template from "Infrastructure MCP — All Agents, All Pipelines" section below)
    - This applies to ALL agents in ALL pipelines (pre-planning, planning, post-planning)
@@ -102,7 +102,7 @@ The canonical size check logic is in `lib/rules.sh` → `moira_rules_assemble_in
 
    1. **Scan upstream artifacts** — read exploration.md, input.md, and requirements.md from the task state directory. Identify mentions of external systems, platforms, APIs, protocols, or third-party libraries that are NOT part of the project's own codebase.
 
-   2. **Check verified facts cache** — for each identified external system, read `.claude/moira/knowledge/libraries/verified-facts.yaml`. If a verified entry exists for this system and is not expired (based on `expiry_hint` and agent judgment), use the cached fact. Skip Context7 fetch for this system.
+   2. **Check verified facts cache** — for each identified external system, read `.moira/knowledge/libraries/verified-facts.yaml`. If a verified entry exists for this system and is not expired (based on `expiry_hint` and agent judgment), use the cached fact. Skip Context7 fetch for this system.
 
    3. **Fetch documentation** — for each remaining unverified external system (max 3 systems, prioritized by mention frequency in upstream artifacts):
       - Primary: Context7 MCP — call `resolve-library-id` with the system name, then `query-docs` with the resolved library ID and a topic relevant to the task
@@ -220,7 +220,7 @@ Write all detailed output to the artifact files. Return ONLY the status summary 
 ## Output
 
 Write your detailed results to: {artifact_path}
-The artifact path is relative to: .claude/moira/state/
+The artifact path is relative to: .moira/state/
 ```
 
 ---
@@ -383,7 +383,7 @@ If you detect your context is getting large:
 
 ### Budget Values
 
-- Read agent budget from `.claude/moira/config/budgets.yaml` → `agent_budgets.{role}`, fallback to `.claude/moira/config.yaml` → `budgets.per_agent.{role}`, fallback to role definition (`~/.claude/moira/core/rules/roles/{role}.yaml` → `budget`), fallback to schema defaults
+- Read agent budget from `.moira/config/budgets.yaml` → `agent_budgets.{role}`, fallback to `.moira/config.yaml` → `budgets.per_agent.{role}`, fallback to role definition (`~/.claude/moira/core/rules/roles/{role}.yaml` → `budget`), fallback to schema defaults
 - Calculate `max_safe = agent_budget * 70 / 100`
 - Pre-planning agents: budget included via simplified assembly
 - Post-planning agents: budget included via Daedalus instruction files
@@ -435,7 +435,7 @@ You MUST evaluate every item in this checklist. For each item, report:
 - `na` — not applicable to this task (justify)
 - `skip` — cannot evaluate (justify)
 
-Write your findings to: `.claude/moira/state/tasks/{task_id}/findings/{your_name}-{gate}.yaml`
+Write your findings to: `.moira/state/tasks/{task_id}/findings/{your_name}-{gate}.yaml`
 using the findings schema format.
 
 Include a QUALITY line in your response:
@@ -469,7 +469,7 @@ For agents that receive quality map context, include the quality map summary in 
 
 ### Injection
 
-Read the quality map file from `.claude/moira/knowledge/quality-map/` and include it in the agent prompt:
+Read the quality map file from `.moira/knowledge/quality-map/` and include it in the agent prompt:
 
 - For L1 agents: include `summary.md` content
 - For L2 agents (Daedalus): include `full.md` content
@@ -501,8 +501,8 @@ Quality Map Summary:
 {quality-map/summary.md content}
 ```
 
-Read the mode from `.claude/moira/config.yaml` → `quality.mode` (default: conform).
-Read the evolution target from `.claude/moira/config.yaml` → `quality.evolution.current_target` (if in EVOLVE mode).
+Read the mode from `.moira/config.yaml` → `quality.mode` (default: conform).
+Read the evolution target from `.moira/config.yaml` → `quality.evolution.current_target` (if in EVOLVE mode).
 
 ---
 
@@ -526,7 +526,7 @@ Previous pass summary: {summary from previous analysis-pass files}  [if N > 1]
 At the analysis step, the orchestrator resolves which agents to dispatch:
 
 1. Read `agent_map` from `~/.claude/moira/core/pipelines/analytical.yaml`
-2. Read subtype from `.claude/moira/state/tasks/{task_id}/classification.md`
+2. Read subtype from `.moira/state/tasks/{task_id}/classification.md`
 3. Look up `agent_map[subtype]`:
    - `agents` list → which agents to dispatch
    - `mode` → foreground (single agent) or parallel (multiple agents)
@@ -554,9 +554,9 @@ When MCP is enabled for the project, include MCP context in agent dispatches.
 ### Condition Check
 
 Before injecting MCP context, check if MCP is enabled:
-- Read `.claude/moira/config.yaml` → `mcp.enabled`
+- Read `.moira/config.yaml` → `mcp.enabled`
 - If `false` or not found: skip the entire MCP section
-- If `true`: read `.claude/moira/config/mcp-registry.yaml` and include MCP context
+- If `true`: read `.moira/config/mcp-registry.yaml` and include MCP context
 
 ### Infrastructure MCP — All Agents, All Pipelines (D-115)
 

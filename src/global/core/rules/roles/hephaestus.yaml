@@ -74,7 +74,7 @@ knowledge_access:
 
 post_implementation: |
   After completing all code changes, before returning STATUS: success:
-  1. Read .claude/moira/config.yaml → tooling.post_implementation (list of shell commands)
+  1. Read .moira/config.yaml → tooling.post_implementation (list of shell commands)
   2. If the list exists and is non-empty: run each command in order
   3. If any command fails (non-zero exit): fix the errors in your code and re-run
   4. If no commands configured or field missing: skip this step

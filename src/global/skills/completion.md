@@ -12,11 +12,11 @@ You run in a **fresh context window** — dispatched by the orchestrator for rel
 Task ID: {task_id}
 Pipeline Type: {pipeline_type}
 Pipeline YAML Path: {pipeline_yaml_path}
-Task Directory: .claude/moira/state/tasks/{task_id}/
-Status YAML: .claude/moira/state/tasks/{task_id}/status.yaml
-Current YAML: .claude/moira/state/current.yaml
-Violations Log: .claude/moira/state/violations.log
-Config YAML: .claude/moira/config.yaml
+Task Directory: .moira/state/tasks/{task_id}/
+Status YAML: .moira/state/tasks/{task_id}/status.yaml
+Current YAML: .moira/state/current.yaml
+Violations Log: .moira/state/violations.log
+Config YAML: .moira/config.yaml
 Completion Action: done
 ```
 
@@ -37,7 +37,7 @@ Completion Action: done
 Run a SINGLE Bash call to execute steps 1-17 (telemetry, status, quality, metrics, cleanup):
 
 ```bash
-source ~/.claude/moira/lib/completion.sh && moira_completion_finalize "{task_id}" "{pipeline_type}" "{completion_action}" ".claude/moira/state" ".claude/moira/config.yaml"
+source ~/.claude/moira/lib/completion.sh && moira_completion_finalize "{task_id}" "{pipeline_type}" "{completion_action}" ".moira/state" ".moira/config.yaml"
 ```
 
 This outputs a completion summary, budget report, and the reflection level on the last line:
@@ -73,29 +73,29 @@ Route by the `REFLECTION_LEVEL` from Phase 1:
 - No agent dispatch needed
 
 **`background`:**
-- Check periodic escalation: `source ~/.claude/moira/lib/reflection.sh && moira_reflection_deep_counter .claude/moira/state`
-  - If counter >= 5: escalate to `deep`, run `moira_reflection_deep_counter .claude/moira/state reset`
-  - Otherwise: run `moira_reflection_deep_counter .claude/moira/state increment`
+- Check periodic escalation: `source ~/.claude/moira/lib/reflection.sh && moira_reflection_deep_counter .moira/state`
+  - If counter >= 5: escalate to `deep`, run `moira_reflection_deep_counter .moira/state reset`
+  - Otherwise: run `moira_reflection_deep_counter .moira/state increment`
 - If still `background`: construct Mnemosyne prompt from `~/.claude/moira/templates/reflection/background.md`
 - Assemble prompt with:
   - Template content
   - Task context: task_id, pipeline_type, artifact file list from `state/tasks/{task_id}/`
-  - Knowledge context: run `source ~/.claude/moira/lib/knowledge.sh && moira_knowledge_read_for_agent mnemosyne .claude/moira/knowledge`
-  - Recent history: run `source ~/.claude/moira/lib/reflection.sh && moira_reflection_task_history .claude/moira/state`
+  - Knowledge context: run `source ~/.claude/moira/lib/knowledge.sh && moira_knowledge_read_for_agent mnemosyne .moira/knowledge`
+  - Recent history: run `source ~/.claude/moira/lib/reflection.sh && moira_reflection_task_history .moira/state`
   - Pending observations from `state/reflection/pattern-keys.yaml` (if exists)
 - Dispatch Mnemosyne via Agent tool with `run_in_background: true`
 - Do NOT wait — proceed to output
 
 **`deep`:**
 - Same escalation check as background (but deep stays deep)
-- Run `moira_reflection_deep_counter .claude/moira/state reset`
+- Run `moira_reflection_deep_counter .moira/state reset`
 - Construct Mnemosyne prompt by reading `~/.claude/moira/templates/reflection/background.md` (sections 1-8) + `~/.claude/moira/templates/reflection/deep.md` (sections 9-12)
 - Assemble prompt with same context as background
 - Dispatch Mnemosyne via Agent tool (foreground, blocking)
 - Process Mnemosyne output (Post-Reflection Processing below)
 
 **`epic`:**
-- Run `moira_reflection_deep_counter .claude/moira/state reset`
+- Run `moira_reflection_deep_counter .moira/state reset`
 - Construct prompt from background.md + deep.md + `~/.claude/moira/templates/reflection/epic.md`
 - Include all sub-task artifacts
 - Dispatch Mnemosyne via Agent tool (foreground, blocking)
@@ -118,7 +118,7 @@ When Mnemosyne returns:
 
 3. **Pattern Registry:** Update `state/reflection/pattern-keys.yaml` with new observations
 
-4. **Auto-defer:** Run `moira_reflection_auto_defer_stale .claude/moira/state`
+4. **Auto-defer:** Run `moira_reflection_auto_defer_stale .moira/state`
 
 ### Phase 2b: Artifact Cleanup
 
@@ -131,7 +131,7 @@ After reflection dispatch, clean up pipeline artifacts from the task directory.
 
 2. **Run cleanup:**
    ```bash
-   source ~/.claude/moira/lib/completion.sh && moira_completion_cleanup "{task_id}" ".claude/moira/state" "{pipeline_type}"
+   source ~/.claude/moira/lib/completion.sh && moira_completion_cleanup "{task_id}" ".moira/state" "{pipeline_type}"
    ```
    Substitute `{task_id}` and `{pipeline_type}` with the actual values from the current task context.
 

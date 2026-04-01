@@ -593,7 +593,7 @@ moira_bench_sprt_report() {
 moira_bench_cusum_update() {
   local metric="$1"
   local score="$2"
-  local agg_path="${3:-.claude/moira/testing/bench/results/aggregate.yaml}"
+  local agg_path="${3:-.moira/testing/bench/results/aggregate.yaml}"
 
   if [[ ! -f "$agg_path" ]]; then
     echo "normal"
@@ -672,7 +672,7 @@ moira_bench_cusum_update() {
 # Reset accumulators after alarm.
 moira_bench_cusum_reset() {
   local metric="$1"
-  local agg_path="${2:-.claude/moira/testing/bench/results/aggregate.yaml}"
+  local agg_path="${2:-.moira/testing/bench/results/aggregate.yaml}"
 
   if [[ ! -f "$agg_path" ]]; then
     return 0
@@ -686,7 +686,7 @@ moira_bench_cusum_reset() {
 # Read current accumulator values for reporting.
 moira_bench_cusum_state() {
   local metric="$1"
-  local agg_path="${2:-.claude/moira/testing/bench/results/aggregate.yaml}"
+  local agg_path="${2:-.moira/testing/bench/results/aggregate.yaml}"
 
   if [[ ! -f "$agg_path" ]]; then
     echo "s_plus: 0"

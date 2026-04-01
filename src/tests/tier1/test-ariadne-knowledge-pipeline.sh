@@ -17,8 +17,8 @@ TMPDIR_AKP=$(mktemp -d)
 trap 'rm -rf "$TMPDIR_AKP"' EXIT
 
 PROJECT_ROOT="$TMPDIR_AKP/project"
-KNOWLEDGE_DIR="$TMPDIR_AKP/project/.claude/moira/knowledge"
-STATE_DIR="$TMPDIR_AKP/project/.claude/moira/state"
+KNOWLEDGE_DIR="$TMPDIR_AKP/project/.moira/knowledge"
+STATE_DIR="$TMPDIR_AKP/project/.moira/state"
 MOCK_BIN="$TMPDIR_AKP/bin"
 
 mkdir -p "$PROJECT_ROOT/.ariadne/graph"
@@ -501,7 +501,7 @@ export PATH="$MOCK_BIN:$original_PATH"
   moira_deepscan_prepare_context "$PROJECT_ROOT" 2>/dev/null
 ) && t7_rc=0 || t7_rc=$?
 
-CONTEXT_FILE="$PROJECT_ROOT/.claude/moira/state/init/ariadne-context.md"
+CONTEXT_FILE="$PROJECT_ROOT/.moira/state/init/ariadne-context.md"
 
 if [[ "$t7_rc" -eq 0 ]]; then
   pass "T7: deepscan_prepare_context returns 0"

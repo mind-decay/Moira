@@ -18,7 +18,7 @@ source "${_MOIRA_AUDIT_LIB_DIR}/yaml-utils.sh"
 # Returns "light" (every 10th task), "standard" (every 20th), or "none".
 # Writes audit_pending flag to state if due.
 moira_audit_check_trigger() {
-  local state_dir="${1:-.claude/moira/state}"
+  local state_dir="${1:-.moira/state}"
 
   local month
   month=$(date +%Y-%m)
@@ -185,7 +185,7 @@ moira_audit_parse_findings() {
 # Expects per-domain results in state/audits/{date}-{domain}.yaml.
 moira_audit_generate_report() {
   local audit_date="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
 
   local audits_dir="${state_dir}/audits"
   mkdir -p "$audits_dir"

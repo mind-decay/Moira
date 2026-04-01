@@ -5,7 +5,7 @@
 # skips manual reads and deterministic classification.
 #
 # Fires: UserPromptSubmit (no matcher — always fires)
-# Reads: .claude/moira/state/current.yaml (gate_pending), artifacts, state files
+# Reads: .moira/state/current.yaml (gate_pending), artifacts, state files
 # Outputs: GATE_DATA: block + INPUT_CLASS: classification
 # MUST NOT fail — exits 0 silently on any error.
 
@@ -27,8 +27,8 @@ echo "$prompt" | grep -qiE '^\s*/moira[: ]' && exit 0
 find_state_dir() {
   local dir="$PWD"
   while [[ "$dir" != "/" ]]; do
-    if [[ -f "$dir/.claude/moira/state/current.yaml" ]]; then
-      echo "$dir/.claude/moira/state"
+    if [[ -f "$dir/.moira/state/current.yaml" ]]; then
+      echo "$dir/.moira/state"
       return 0
     fi
     dir=$(dirname "$dir")

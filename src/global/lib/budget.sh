@@ -4,7 +4,7 @@
 #
 # Responsibilities: budget logic ONLY
 # Does NOT handle state transitions (that's state.sh)
-# Does NOT read project files (Art 1.1) — only .claude/moira/ state/config
+# Does NOT read project files (Art 1.1) — only .moira/ state/config
 
 set -euo pipefail
 
@@ -142,8 +142,8 @@ moira_budget_estimate_agent() {
 
   # Look up agent budget from config
   local config_path=""
-  if [[ -d ".claude/moira/config" ]]; then
-    config_path=".claude/moira/config"
+  if [[ -d ".moira/config" ]]; then
+    config_path=".moira/config"
   fi
   local agent_budget
   agent_budget=$(_moira_budget_get_agent_budget "$agent_role" "$config_path")
@@ -210,7 +210,7 @@ moira_budget_record_agent() {
   local agent_role="$2"
   local estimated_tokens="$3"
   local actual_tokens="$4"
-  local state_dir="${5:-.claude/moira/state}"
+  local state_dir="${5:-.moira/state}"
 
   local status_file="${state_dir}/tasks/${task_id}/status.yaml"
   if [[ ! -f "$status_file" ]]; then
@@ -261,7 +261,7 @@ moira_budget_record_agent() {
 # Falls back to proxy formula if no real data available.
 # Updates current.yaml and outputs key-value pairs.
 moira_budget_orchestrator_check() {
-  local state_dir="${1:-.claude/moira/state}"
+  local state_dir="${1:-.moira/state}"
   local current_file="${state_dir}/current.yaml"
 
   if [[ ! -f "$current_file" ]]; then
@@ -330,7 +330,7 @@ moira_budget_orchestrator_check() {
 # Returns formatted report string matching gates.md template.
 moira_budget_generate_report() {
   local task_id="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
 
   local status_file="${state_dir}/tasks/${task_id}/status.yaml"
   local current_file="${state_dir}/current.yaml"
@@ -440,7 +440,7 @@ moira_budget_generate_report() {
 # Cold start: <5 obs → 30%, 5-20 obs → max(20, μ+3σ), 20+ → max(20, min(50, μ+2σ))
 moira_budget_adaptive_margin() {
   local agent_type="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
 
   local stats_file="${state_dir}/budget-accuracy.yaml"
 
@@ -495,7 +495,7 @@ moira_budget_estimation_error() {
   local agent_type="$2"
   local estimated_pct="$3"
   local actual_pct="$4"
-  local state_dir="${5:-.claude/moira/state}"
+  local state_dir="${5:-.moira/state}"
 
   local stats_file="${state_dir}/budget-accuracy.yaml"
   mkdir -p "$(dirname "$stats_file")"
@@ -550,7 +550,7 @@ moira_budget_estimation_error() {
 # Write budget data to telemetry.yaml for the task.
 moira_budget_write_telemetry() {
   local task_id="$1"
-  local state_dir="${2:-.claude/moira/state}"
+  local state_dir="${2:-.moira/state}"
 
   local status_file="${state_dir}/tasks/${task_id}/status.yaml"
   local telemetry_file="${state_dir}/tasks/${task_id}/telemetry.yaml"
@@ -578,7 +578,7 @@ moira_budget_handle_overflow() {
   local agent_role="$2"
   local completed="$3"
   local remaining="$4"
-  local state_dir="${5:-.claude/moira/state}"
+  local state_dir="${5:-.moira/state}"
 
   local status_file="${state_dir}/tasks/${task_id}/status.yaml"
 

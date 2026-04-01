@@ -73,7 +73,7 @@ Creates the new files that other chunks depend on. No modifications to existing 
   4. Output structured frontmatter (between `---` markers) with `mcp_servers:` section
 - **Key points:**
   - Follow existing scanner template format (see `tech-scan.md` for reference)
-  - Output path: `.claude/moira/state/init/mcp-scan.md`
+  - Output path: `.moira/state/init/mcp-scan.md`
   - Scanner should instruct the agent to check what MCP tools are available, NOT to try calling them
 
 ### Task 2.4: Create knowledge caching templates

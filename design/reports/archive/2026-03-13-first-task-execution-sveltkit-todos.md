@@ -28,7 +28,7 @@ Task ID: `task-2026-03-13-001`
 | `/moira:metrics` | Stub — "will be implemented in Phase 11" |
 | `/moira:audit` | Stub — "will be implemented in Phase 11" |
 
-**Замечание:** Все stub-команды корректно показали фазу реализации, но не дали никакой полезной информации о проекте, хотя `config.yaml` и init-сканы уже существовали в `.claude/moira/` проекта. Это упущенная возможность — `/moira:status` мог бы хотя бы показать bootstrap state.
+**Замечание:** Все stub-команды корректно показали фазу реализации, но не дали никакой полезной информации о проекте, хотя `config.yaml` и init-сканы уже существовали в `.moira/` проекта. Это упущенная возможность — `/moira:status` мог бы хотя бы показать bootstrap state.
 
 ### Фаза 1: Запуск задачи
 
@@ -39,7 +39,7 @@ Task ID: `task-2026-03-13-001`
 
 - Task ID сгенерирован: `task-2026-03-13-001`
 - Создан каталог, `input.md`, `status.yaml`, `current.yaml`, `manifest.yaml`
-- **BUG-1:** Все файлы создавались в `~/.claude/moira/state/` (глобальная директория) вместо `.claude/moira/state/` проекта — см. детали ниже
+- **BUG-1:** Все файлы создавались в `~/.claude/moira/state/` (глобальная директория) вместо `.moira/state/` проекта — см. детали ниже
 
 ### Фаза 3: Загрузка оркестратора (Step 8)
 
@@ -82,7 +82,7 @@ Apollo (classifier) диспатчен как Agent, отработал за ~34
 
 ### BUG-1 (CRITICAL): Состояние задачи записывалось в глобальную директорию
 
-**Суть:** Оркестратор создавал и обновлял файлы задачи в `~/.claude/moira/state/tasks/task-2026-03-13-001/` вместо `.claude/moira/state/tasks/task-2026-03-13-001/` внутри проекта.
+**Суть:** Оркестратор создавал и обновлял файлы задачи в `~/.claude/moira/state/tasks/task-2026-03-13-001/` вместо `.moira/state/tasks/task-2026-03-13-001/` внутри проекта.
 
 **Почему это произошло — мои рассуждения:**
 
@@ -96,7 +96,7 @@ Write `~/.claude/moira/state/current.yaml`
 Я буквально следовал этим инструкциям. При этом в проекте уже существовала полноценная локальная структура:
 
 ```
-.claude/moira/
+.moira/
 ├── config.yaml          # конфиг проекта с бюджетами, quality mode, bootstrap state
 ├── state/
 │   ├── tasks/           # пустая — здесь должны были быть задачи
@@ -111,7 +111,7 @@ Write `~/.claude/moira/state/current.yaml`
 
 Я не проверил наличие локальной структуры и не задался вопросом "куда писать". Просто следовал путям из скилла.
 
-**Корневая причина:** Скилл `task.md` хардкодит `~/.claude/moira/` как базовый путь. Это расходится с реальной архитектурой, где init создаёт проектно-локальную структуру в `.claude/moira/`. Нет механизма определения "рабочей директории Moira" (глобальная vs локальная), и скиллы не знают о существовании проектного `.claude/moira/`.
+**Корневая причина:** Скилл `task.md` хардкодит `~/.claude/moira/` как базовый путь. Это расходится с реальной архитектурой, где init создаёт проектно-локальную структуру в `.moira/`. Нет механизма определения "рабочей директории Moira" (глобальная vs локальная), и скиллы не знают о существовании проектного `.moira/`.
 
 **Последствия:**
 - Состояние задачи изолировано от проекта
@@ -119,11 +119,11 @@ Write `~/.claude/moira/state/current.yaml`
 - Init-сканы (structure, tech, convention, pattern) недоступны из глобальной директории
 - `config.yaml` проекта (бюджеты, quality mode, bootstrap state) не найден
 
-**Исправление (после обнаружения):** Я скопировал задачу из `~/.claude/moira/state/tasks/` в `.claude/moira/state/tasks/` проекта и `current.yaml` туда же. Но это был ручной патч.
+**Исправление (после обнаружения):** Я скопировал задачу из `~/.claude/moira/state/tasks/` в `.moira/state/tasks/` проекта и `current.yaml` туда же. Но это был ручной патч.
 
 **Рекомендация:**
-1. Определить canonical base path: `{project_root}/.claude/moira/` для project-scoped state
-2. Обновить все скиллы (`task.md`, `orchestrator.md`, `dispatch.md`, `gates.md`, `errors.md`) — заменить `~/.claude/moira/state/` на `{project_root}/.claude/moira/state/`
+1. Определить canonical base path: `{project_root}/.moira/` для project-scoped state
+2. Обновить все скиллы (`task.md`, `orchestrator.md`, `dispatch.md`, `gates.md`, `errors.md`) — заменить `~/.claude/moira/state/` на `{project_root}/.moira/state/`
 3. `~/.claude/moira/` оставить только для: глобальных скиллов, шаблонов, core rules, schemas — то, что не project-specific
 4. Разграничение: core (глобальные, неизменяемые) vs state/config/knowledge (проектные)
 
@@ -137,13 +137,13 @@ Write `~/.claude/moira/state/current.yaml`
 
 Orchestrator skill (Section 2, Bootstrap Deep Scan Check) говорит:
 
-> Read `.claude/moira/config.yaml` field `bootstrap.deep_scan_pending`
+> Read `.moira/config.yaml` field `bootstrap.deep_scan_pending`
 
-Это относительный путь. Я интерпретировал его как проектный `.claude/moira/config.yaml`, но из-за BUG-1 я уже работал в контексте `~/.claude/moira/`. Поэтому я искал `config.yaml` сначала в рабочей директории проекта (нет такого файла в корне), потом в `~/.claude/moira/config.yaml` (не существует), и заключил: "config не найден, deep scan не pending".
+Это относительный путь. Я интерпретировал его как проектный `.moira/config.yaml`, но из-за BUG-1 я уже работал в контексте `~/.claude/moira/`. Поэтому я искал `config.yaml` сначала в рабочей директории проекта (нет такого файла в корне), потом в `~/.claude/moira/config.yaml` (не существует), и заключил: "config не найден, deep scan не pending".
 
 При этом реальный `config.yaml` лежал тут:
 ```
-/Users/minddecay/Documents/Projects/pet/sveltkit-todos/.claude/moira/config.yaml
+/Users/minddecay/Documents/Projects/pet/sveltkit-todos/.moira/config.yaml
 ```
 
 И в нём:
@@ -154,7 +154,7 @@ bootstrap:
   deep_scan_pending: true    # ← ЭТО ДОЛЖНО БЫЛО ТРИГГЕРНУТЬ DEEP SCAN
 ```
 
-**Корневая причина:** Та же, что BUG-1 — неопределённость base path. Оркестратор не знал, что `config.yaml` нужно искать в `.claude/moira/` проекта.
+**Корневая причина:** Та же, что BUG-1 — неопределённость base path. Оркестратор не знал, что `config.yaml` нужно искать в `.moira/` проекта.
 
 **Последствия:**
 - Deep scan (4 фоновых агента: architecture, dependency, test-coverage, security) не был запущен
@@ -174,7 +174,7 @@ bootstrap:
 
 ### BUG-3 (MEDIUM): Оркестратор не прочитал init-сканы проекта
 
-**Суть:** В `.claude/moira/state/init/` проекта лежат 4 детальных скана от `/moira:init`:
+**Суть:** В `.moira/state/init/` проекта лежат 4 детальных скана от `/moira:init`:
 - `structure-scan.md` (7.0k) — полная структура проекта, файловое дерево, роли директорий
 - `tech-scan.md` (7.1k) — стек, версии, зависимости
 - `convention-scan.md` (11k) — naming, imports, error handling, code style
@@ -207,18 +207,18 @@ bootstrap:
 
 ### Решение 1: Буквальное следование путям из скиллов
 
-Я решил буквально следовать путям из `task.md` (`~/.claude/moira/state/...`), не проверив, существует ли проектно-локальная альтернатива. Это был неправильный выбор. Правильное поведение: сначала проверить наличие `.claude/moira/` в проекте, и если оно есть — использовать его как base path.
+Я решил буквально следовать путям из `task.md` (`~/.claude/moira/state/...`), не проверив, существует ли проектно-локальная альтернатива. Это был неправильный выбор. Правильное поведение: сначала проверить наличие `.moira/` в проекте, и если оно есть — использовать его как base path.
 
 ### Решение 2: Пропуск deep scan при отсутствии config
 
-Когда `config.yaml` не был найден, оркестратор skill говорит: "If false or field not present: continue silently". Я следовал этому правилу. Но правильнее было бы активно искать config в `.claude/moira/` проекта, зная что `/moira:init` был ранее выполнен.
+Когда `config.yaml` не был найден, оркестратор skill говорит: "If false or field not present: continue silently". Я следовал этому правилу. Но правильнее было бы активно искать config в `.moira/` проекта, зная что `/moira:init` был ранее выполнен.
 
 ### Решение 3: Упрощённый prompt для Apollo
 
 Apollo получил минимальный контекст: описание задачи + "This is a SvelteKit todos application". Я не включил:
 - Init-сканы проекта (не знал о них из-за BUG-1)
 - Информацию о существующем `rate-limit-buckets.ts` и `RateLimitBucket` Prisma model
-- Knowledge base из `.claude/moira/knowledge/`
+- Knowledge base из `.moira/knowledge/`
 
 Это привело к тому, что Apollo оценил задачу как "с нуля", хотя часть инфраструктуры уже существует.
 
@@ -256,7 +256,7 @@ Apollo получил минимальный контекст: описание 
 
 1. **Определить base path resolution** — добавить в `task.md` или `orchestrator.md` логику:
    ```
-   1. Check {project_root}/.claude/moira/ — if exists, use as MOIRA_BASE
+   1. Check {project_root}/.moira/ — if exists, use as MOIRA_BASE
    2. Fallback to ~/.claude/moira/
    ```
    И все пути в скиллах сделать относительными к `MOIRA_BASE`.
@@ -288,7 +288,7 @@ Status: INTERRUPTED (user-initiated)
 Last completed step: classification
 Last gate: classification_gate → proceed
 Next step: exploration (parallel: Hermes + Athena)
-State location: ~/.claude/moira/state/ (глобальная) + .claude/moira/state/ (копия)
+State location: ~/.claude/moira/state/ (глобальная) + .moira/state/ (копия)
 Deep scan: NOT RUN (should have been triggered)
 ```
 

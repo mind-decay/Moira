@@ -25,10 +25,10 @@ Perform all 7 checks from the rules audit domain:
 - `~/.claude/moira/core/rules/base.yaml`
 - `~/.claude/moira/core/rules/roles/*.yaml` (all 10)
 - `~/.claude/moira/core/rules/quality/q1-completeness.yaml` through `q5-coverage.yaml`
-- `.claude/moira/project/rules/stack.yaml`
-- `.claude/moira/project/rules/conventions.yaml`
-- `.claude/moira/project/rules/patterns.yaml`
-- `.claude/moira/project/rules/boundaries.yaml`
+- `.moira/project/rules/stack.yaml`
+- `.moira/project/rules/conventions.yaml`
+- `.moira/project/rules/patterns.yaml`
+- `.moira/project/rules/boundaries.yaml`
 
 ## Finding Format
 

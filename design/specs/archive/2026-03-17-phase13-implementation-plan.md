@@ -295,7 +295,7 @@ Chunk 11: GitHub Releases CI (depends on Chunk 9)
 - **Source:** Spec D17
 - **Key points:**
   - Use clap derive API
-  - Subcommand `build`: positional arg `project_root`, optional `--output <dir>` (default: `{project_root}/.claude/moira/graph/`)
+  - Subcommand `build`: positional arg `project_root`, optional `--output <dir>` (default: `{project_root}/.moira/graph/`)
   - Subcommand `info`: no args
   - `build` flow: create ParserRegistry::new_with_defaults(), call build_graph(), write_graph(), write_clusters(), print summary to stdout
   - `info` flow: print version (from Cargo.toml via env!("CARGO_PKG_VERSION")), list supported languages from registry

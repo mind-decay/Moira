@@ -77,7 +77,7 @@ Add these entries to the global layer tree:
 **Source:** blocker-resolution section 2.1. All fields from the config.yaml example become schema fields.
 
 Schema must define:
-- `_meta`: name=config, file=config.yaml, location=.claude/moira/, git=committed
+- `_meta`: name=config, file=config.yaml, location=.moira/, git=committed
 - All top-level sections: version, project (name/root/stack), classification, pipelines (4 types with max_retries + gates), budgets (orchestrator_max_percent, agent_max_load_percent, per_agent with all 10 agents), quality, knowledge, audit, mcp, hooks
 - Types: string, number, boolean, array (for gates lists)
 - Enums: stack presets, pipeline types, quality mode (conform/evolve), review severity, warning levels
@@ -93,7 +93,7 @@ Schema must define:
 **Source:** blocker-resolution section 2.2.
 
 Schema must define:
-- `_meta`: name=current, file=current.yaml, location=.claude/moira/state/, git=gitignored
+- `_meta`: name=current, file=current.yaml, location=.moira/state/, git=gitignored
 - Scalar fields: task_id, pipeline, started_at, developer, step, step_status, step_started_at, gate_pending, gate_options
 - Block fields (marked type=block): history, context_budget, bypass
 - Enums: step_status (pending/in_progress/awaiting_gate/completed/failed), pipeline types, warning_level (normal/warning/critical)
@@ -109,7 +109,7 @@ Schema must define:
 **Source:** blocker-resolution section 2.3.
 
 Schema must define:
-- `_meta`: name=status, file=status.yaml, location=.claude/moira/state/tasks/{id}/, git=gitignored
+- `_meta`: name=status, file=status.yaml, location=.moira/state/tasks/{id}/, git=gitignored
 - Scalar fields: task_id, description, size, confidence, pipeline, developer, status, created_at, completed_at
 - Nested scalars: classification.* (classifier_size, classifier_confidence, user_hint, overridden, reasoning)
 - Block fields: artifacts, gates, retries, budget (with by_agent sub-map), completion
@@ -125,7 +125,7 @@ Schema must define:
 **Source:** blocker-resolution section 2.4.
 
 Schema must define:
-- `_meta`: name=manifest, file=manifest.yaml, location=.claude/moira/state/tasks/{id}/, git=gitignored
+- `_meta`: name=manifest, file=manifest.yaml, location=.moira/state/tasks/{id}/, git=gitignored
 - Scalar fields: task_id, pipeline, developer
 - Nested scalars: checkpoint.step, checkpoint.batch, checkpoint.created_at, checkpoint.reason
 - Block fields: resume_context (multiline string), decisions_made, files_modified, files_expected, dependencies, validation
@@ -141,7 +141,7 @@ Schema must define:
 **Source:** blocker-resolution section 2.5.
 
 Schema must define:
-- `_meta`: name=queue, file=queue.yaml, location=.claude/moira/state/, git=gitignored
+- `_meta`: name=queue, file=queue.yaml, location=.moira/state/, git=gitignored
 - Scalar fields: epic_id, description, created_at, developer
 - Block fields: tasks (array of objects with task_id/title/status/pipeline/depends_on/completed_at), progress (total/completed/in_progress/pending/failed)
 - Enums: task status within tasks[] array
@@ -156,7 +156,7 @@ Schema must define:
 **Source:** Defect 6 resolution (D-033). No example in blocker-resolution — design from D-033 description.
 
 Schema must define:
-- `_meta`: name=locks, file=locks.yaml, location=.claude/moira/config/, git=committed
+- `_meta`: name=locks, file=locks.yaml, location=.moira/config/, git=committed
 - Block field: locks (array of objects with file_path, locked_by, locked_at, expires_at, task_id)
 - expires_at field enables TTL-based stale lock detection
 
@@ -237,9 +237,9 @@ This is the foundation — all other libraries depend on it.
 - Does NOT create files (those are copied by install.sh)
 
 `moira_scaffold_project <project_root>`:
-- Creates the project layer directory tree at `<project_root>/.claude/moira/`:
+- Creates the project layer directory tree at `<project_root>/.moira/`:
   ```
-  .claude/moira/
+  .moira/
   ├── core/rules/{roles/,quality/}
   ├── project/rules/
   ├── config/
@@ -268,7 +268,7 @@ This is the foundation — all other libraries depend on it.
 - Scans `<state_dir>/tasks/` for existing `task-YYYY-MM-DD-*` directories matching today's date
 - Finds highest NNN, increments by 1
 - If no tasks today: starts at 001
-- `state_dir` defaults to `.claude/moira/state` (current project)
+- `state_dir` defaults to `.moira/state` (current project)
 - Outputs the new task ID to stdout
 
 Edge cases:

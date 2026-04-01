@@ -15,8 +15,8 @@ input=$(cat 2>/dev/null) || exit 0
 find_state_dir() {
   local dir="$PWD"
   while [[ "$dir" != "/" ]]; do
-    if [[ -d "$dir/.claude/moira/state" ]]; then
-      echo "$dir/.claude/moira/state"
+    if [[ -d "$dir/.moira/state" ]]; then
+      echo "$dir/.moira/state"
       return 0
     fi
     dir=$(dirname "$dir")

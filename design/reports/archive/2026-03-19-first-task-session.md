@@ -85,7 +85,7 @@
 
 **Step 1-2:** Checked `~/.claude/moira/.version` → v0.1.0. No existing init → fresh.
 
-**Step 3:** Ran `moira_scaffold_project` — created `.claude/moira/` directory tree.
+**Step 3:** Ran `moira_scaffold_project` — created `.moira/` directory tree.
 
 **Step 4:** Dispatched 4 scanner agents in parallel:
 
@@ -125,9 +125,9 @@
   └─ CI: none
 
   Configured:
-  ├─ Config: .claude/moira/config.yaml
-  ├─ Rules: .claude/moira/project/rules/ (4 files)
-  ├─ Knowledge: .claude/moira/knowledge/ (7 types populated)
+  ├─ Config: .moira/config.yaml
+  ├─ Rules: .moira/project/rules/ (4 files)
+  ├─ Knowledge: .moira/knowledge/ (7 types populated)
   ├─ CLAUDE.md: updated with Moira section
   ├─ Hooks: guard.sh + budget-track.sh registered
   ├─ MCP: 3 servers registered (Context7, Figma, IDE)
@@ -431,26 +431,26 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 | File | Agent | Purpose |
 |------|-------|---------|
-| `.claude/moira/state/init/tech-scan.md` | Hermes (tech) | Technology stack discovery |
-| `.claude/moira/state/init/structure-scan.md` | Hermes (structure) | Project layout mapping |
-| `.claude/moira/state/init/convention-scan.md` | Hermes (convention) | Coding convention detection |
-| `.claude/moira/state/init/pattern-scan.md` | Hermes (pattern) | Recurring pattern identification |
-| `.claude/moira/state/init/mcp-scan.md` | Hermes (MCP) | MCP server discovery |
-| `.claude/moira/config.yaml` | Bootstrap | Project configuration |
-| `.claude/moira/project/rules/stack.yaml` | Bootstrap | Stack rules |
-| `.claude/moira/project/rules/conventions.yaml` | Bootstrap | Convention rules |
-| `.claude/moira/project/rules/patterns.yaml` | Bootstrap | Pattern rules |
-| `.claude/moira/project/rules/boundaries.yaml` | Bootstrap | Boundary rules |
-| `.claude/moira/knowledge/` (7 dirs) | Bootstrap | Knowledge base |
+| `.moira/state/init/tech-scan.md` | Hermes (tech) | Technology stack discovery |
+| `.moira/state/init/structure-scan.md` | Hermes (structure) | Project layout mapping |
+| `.moira/state/init/convention-scan.md` | Hermes (convention) | Coding convention detection |
+| `.moira/state/init/pattern-scan.md` | Hermes (pattern) | Recurring pattern identification |
+| `.moira/state/init/mcp-scan.md` | Hermes (MCP) | MCP server discovery |
+| `.moira/config.yaml` | Bootstrap | Project configuration |
+| `.moira/project/rules/stack.yaml` | Bootstrap | Stack rules |
+| `.moira/project/rules/conventions.yaml` | Bootstrap | Convention rules |
+| `.moira/project/rules/patterns.yaml` | Bootstrap | Pattern rules |
+| `.moira/project/rules/boundaries.yaml` | Bootstrap | Boundary rules |
+| `.moira/knowledge/` (7 dirs) | Bootstrap | Knowledge base |
 
 ### Deep Scan Artifacts (Background)
 
 | File | Agent | Purpose |
 |------|-------|---------|
-| `.claude/moira/knowledge/architecture/full.md` | Hermes (deep arch) | Service boundaries, data flow, API contracts |
-| `.claude/moira/knowledge/dependencies/full.md` | Hermes (deep deps) | Package inventory, unused deps, circular deps |
-| `.claude/moira/knowledge/testing/full.md` | Hermes (deep test) | Test coverage assessment (zero coverage) |
-| `.claude/moira/knowledge/security/full.md` | Hermes (deep security) | Security surface scan |
+| `.moira/knowledge/architecture/full.md` | Hermes (deep arch) | Service boundaries, data flow, API contracts |
+| `.moira/knowledge/dependencies/full.md` | Hermes (deep deps) | Package inventory, unused deps, circular deps |
+| `.moira/knowledge/testing/full.md` | Hermes (deep test) | Test coverage assessment (zero coverage) |
+| `.moira/knowledge/security/full.md` | Hermes (deep security) | Security surface scan |
 
 ### Task Artifacts
 

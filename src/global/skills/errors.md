@@ -189,7 +189,7 @@ When agent returns `STATUS: budget_exceeded` with `COMPLETED` and `REMAINING` fi
 4. Record partial result in budget tracking
 5. Spawn NEW continuation agent with:
    - Task-specific instruction: "Continue work. Previously completed: {completed}. Your task: {remaining}."
-   - Reference to partial result file in `.claude/moira/state/tasks/{task_id}/`
+   - Reference to partial result file in `.moira/state/tasks/{task_id}/`
    - Same budget allocation as original agent
 
 ### Display — Mid-execution
@@ -431,7 +431,7 @@ After retry failure → present agent failure gate. User decides next action.
 ### Detection
 
 Guard hook (`guard.sh`) detects violations in real-time via PostToolUse:
-- Orchestrator uses Read/Write/Edit on files outside `.claude/moira/`
+- Orchestrator uses Read/Write/Edit on files outside `.moira/`
 - Violation logged to `state/violations.log` with `VIOLATION` prefix
 - Warning injected into orchestrator context via hookSpecificOutput
 

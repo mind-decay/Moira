@@ -15,11 +15,11 @@ Run independent system health verification across Moira's 5 domains. Dispatches 
 ## Setup
 
 - **MOIRA_HOME:** `~/.claude/moira/`
-- **Project state:** `.claude/moira/state/`
+- **Project state:** `.moira/state/`
 - **Template dir:** `~/.claude/moira/templates/audit/`
-- **Report dir:** `.claude/moira/state/audits/`
+- **Report dir:** `.moira/state/audits/`
 - **Audit schema:** `~/.claude/moira/schemas/audit.schema.yaml`
-- **Write scope:** `.claude/moira/` paths ONLY — NEVER write project source files
+- **Write scope:** `.moira/` paths ONLY — NEVER write project source files
 
 ## Parse Argument
 
@@ -75,12 +75,12 @@ End your response with a summary line: "FINDINGS: N total (H high, M medium, L l
 For each domain agent response:
 1. Parse the findings YAML block from the agent's response
 2. Extract finding count, risk levels, domain breakdown
-3. Write per-domain findings to `.claude/moira/state/audits/{date}-{domain}.yaml`
+3. Write per-domain findings to `.moira/state/audits/{date}-{domain}.yaml`
 
 ### 5. Generate Report
 
 Combine all domain findings into a unified report:
-- Write to `.claude/moira/state/audits/{date}-audit.md`
+- Write to `.moira/state/audits/{date}-audit.md`
 - Include summary header with total findings by risk and domain
 - Include full findings YAML block
 - Include narrative sections per domain
@@ -109,7 +109,7 @@ N low-risk improvements found.
 ▸ apply-all — apply all N
 ▸ review    — go through one by one
 ```
-Low-risk changes (freshness markers, scan paths, budget thresholds) are written directly to `.claude/moira/` config files via Write tool.
+Low-risk changes (freshness markers, scan paths, budget thresholds) are written directly to `.moira/` config files via Write tool.
 
 **Medium risk** — individual approval with context:
 ```
@@ -118,7 +118,7 @@ Recommendation 1/N:
 Evidence: [evidence]
 ▸ apply / skip / modify
 ```
-Medium-risk changes (rule wording, convention updates) are written to `.claude/moira/` files via Write tool. These are moira project-layer files, not project source code.
+Medium-risk changes (rule wording, convention updates) are written to `.moira/` files via Write tool. These are moira project-layer files, not project source code.
 
 **High risk** — detailed review:
 ```
@@ -131,13 +131,13 @@ High-risk changes or changes requiring project source file modifications: dispat
 
 ### 8. Record and Cleanup
 
-- **Art 5.2 tracking:** For any approved rule-change recommendation, record it as an observation in `.claude/moira/state/reflection/pattern-keys.yaml` (append to patterns array with source: "audit", description of the change).
-- **Clear audit-pending flag:** Delete `.claude/moira/state/audit-pending.yaml` after audit completes (regardless of whether recommendations were applied).
-- **Report saved at:** `.claude/moira/state/audits/{date}-audit.md`
+- **Art 5.2 tracking:** For any approved rule-change recommendation, record it as an observation in `.moira/state/reflection/pattern-keys.yaml` (append to patterns array with source: "audit", description of the change).
+- **Clear audit-pending flag:** Delete `.moira/state/audit-pending.yaml` after audit completes (regardless of whether recommendations were applied).
+- **Report saved at:** `.moira/state/audits/{date}-audit.md`
 
 ## Constitutional Compliance
 
 - **Art 1.2:** Argus is READ-ONLY. Never modifies files. Recommendations are applied by this command (low/medium) or Hephaestus (high).
 - **Art 4.2:** All recommendations require user approval before application.
 - **Art 5.2:** Rule changes from audit are recorded as observations for trend tracking. The 3-confirmation threshold applies to automatic evolution — user-approved audit recommendations are explicit decisions.
-- **Write scope:** This command writes ONLY to `.claude/moira/` paths. NEVER to project source files.
+- **Write scope:** This command writes ONLY to `.moira/` paths. NEVER to project source files.

@@ -130,7 +130,7 @@ You MUST evaluate every item in this checklist. For each item, report:
 - `na` — not applicable to this task (justify)
 - `skip` — cannot evaluate (justify)
 
-Write your findings to: `.claude/moira/state/tasks/{task_id}/findings/{your_name}-{gate}.yaml`
+Write your findings to: `.moira/state/tasks/{task_id}/findings/{your_name}-{gate}.yaml`
 using the findings schema format.
 
 Items to evaluate:
@@ -814,7 +814,7 @@ The WARNING gate (for quality warnings) is distinct from existing gates. It has 
 ```
 ARTICLE 1: Separation of Concerns
 [✓] 1.1 — Quality routing happens in orchestrator but does NOT read project source files.
-         Orchestrator reads only findings YAML files in .claude/moira/state/
+         Orchestrator reads only findings YAML files in .moira/state/
 [✓] 1.2 — Quality enforcement does not weaken agent NEVER constraints.
          Agents still have single responsibility — Themis reviews, does NOT fix.
          Quality checklist is ADDITIONAL output, not a role expansion.

@@ -2,7 +2,7 @@
 
 Справочник по метрикам Moira: что измеряется, как читать, когда реагировать.
 
-**Источники данных:** телеметрия пайплайна (`telemetry.yaml`) и статус задачи (`status.yaml`), собираемые при завершении каждой задачи. Агрегируются помесячно в `.claude/moira/state/metrics/monthly-{YYYY-MM}.yaml`.
+**Источники данных:** телеметрия пайплайна (`telemetry.yaml`) и статус задачи (`status.yaml`), собираемые при завершении каждой задачи. Агрегируются помесячно в `.moira/state/metrics/monthly-{YYYY-MM}.yaml`.
 
 **Дашборд:** `/moira metrics` — основной интерфейс. Подкоманды: `details <section>`, `compare`, `export`.
 
@@ -506,7 +506,7 @@ Escalating to user (estimated 18% success probability — retry unlikely to help
 ## Appendix A: Storage Format
 
 ```yaml
-# .claude/moira/state/metrics/monthly-{YYYY-MM}.yaml
+# .moira/state/metrics/monthly-{YYYY-MM}.yaml
 
 period: "2026-03"
 tasks:
@@ -560,7 +560,7 @@ task_records:
 ## Appendix B: Per-Task Telemetry Format
 
 ```yaml
-# .claude/moira/state/tasks/{id}/telemetry.yaml
+# .moira/state/tasks/{id}/telemetry.yaml
 
 task_id: "t-2026-03-11-004"
 timestamp: "2026-03-11T14:32:00Z"

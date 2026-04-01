@@ -7,7 +7,7 @@
 ## Agent Response Contract
 
 Every agent MUST:
-1. Write detailed results to: `.claude/moira/state/tasks/{id}/{agent}.md`
+1. Write detailed results to: `.moira/state/tasks/{id}/{agent}.md`
 2. Return to orchestrator ONLY:
 
 ```
@@ -342,7 +342,7 @@ Validated by `artifact-validate.sh` hook — missing sections block agent comple
 - Does NOT add comments/docstrings/annotations to unchanged code
 - Does NOT return STATUS: success when post-implementation validation commands have failed
 - Runs `<verify>` command after each task completion (D-191)
-- After code changes: runs post-implementation validation commands from `.claude/moira/config.yaml` → `tooling.post_implementation[]` (D-063). If commands fail, fixes errors before returning STATUS: success. If no commands configured, skips validation.
+- After code changes: runs post-implementation validation commands from `.moira/config.yaml` → `tooling.post_implementation[]` (D-063). If commands fail, fixes errors before returning STATUS: success. If no commands configured, skips validation.
 
 **Phase 4/5 tools:** PREFER `ariadne_symbols` over Read+grep for finding symbol locations and verifying exports. PREFER `ariadne_callers` over grep for finding all usage sites of a changed function. Uses `ariadne_dependencies` to verify new imports respect existing dependency structure. Uses pre-assembled context from Daedalus instruction file (D-187) as primary structural map. (D-187: PREFER language for graph-first navigation.)
 

@@ -215,6 +215,6 @@ Rules are updated through two paths:
 - Batch approval (low-risk auto, high-risk manual)
 
 ### Path 3: User Direct
-- User manually edits rules in .claude/moira/
+- User manually edits rules in .moira/
 - Next task picks up changes automatically
 - Audit verifies consistency on next run

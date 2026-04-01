@@ -74,7 +74,7 @@ Implement managed MCP tool allocation — MCP tools are treated as managed resou
 
 ### D1: MCP Registry Schema (`src/schemas/mcp-registry.schema.yaml`)
 
-Schema definition for the MCP registry file that lives at `.claude/moira/config/mcp-registry.yaml`.
+Schema definition for the MCP registry file that lives at `.moira/config/mcp-registry.yaml`.
 
 **Schema fields:**
 
@@ -502,7 +502,7 @@ MCP discovery uses the same Explorer agent pattern as other bootstrap scanners (
 
 ### AD-3 (→ D-080): Registry in Config (Committed), Not State (Gitignored)
 
-MCP registry lives in `.claude/moira/config/mcp-registry.yaml` (committed) — same as `budgets.yaml` and `locks.yaml`.
+MCP registry lives in `.moira/config/mcp-registry.yaml` (committed) — same as `budgets.yaml` and `locks.yaml`.
 
 **Rationale:**
 1. Registry is project configuration, not ephemeral state
@@ -570,7 +570,7 @@ When `/moira:refresh` re-scans MCP servers, the merge strategy is: add new serve
 ARTICLE 1: Separation of Concerns
 [✓] 1.1 — Orchestrator does not use MCP tools directly. MCP tools are
          allocated to agents via Planner instructions. Orchestrator only
-         reads registry metadata (in .claude/moira/ — within scope).
+         reads registry metadata (in .moira/ — within scope).
 [✓] 1.2 — Agent roles maintained: Planner allocates MCP, Implementer uses
          MCP, Reviewer verifies MCP. No agent crosses boundaries.
 [✓] 1.3 — MCP library is a focused utility (registry read/query). Scanner

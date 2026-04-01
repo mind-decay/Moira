@@ -120,7 +120,7 @@ READ state → DETERMINE next step → DISPATCH agent → READ status → TRANSI
 It should NOT:
 - Accumulate agent outputs in its context
 - Make decisions that agents should make
-- Read any file outside `.claude/moira/`
+- Read any file outside `.moira/`
 - "Optimize" by combining agent steps
 
 **The orchestrator's internal monologue should be:**

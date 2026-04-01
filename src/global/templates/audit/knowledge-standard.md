@@ -23,12 +23,12 @@ Perform all checks from the knowledge audit domain:
 
 ## Files to Read
 
-- `.claude/moira/knowledge/project-model/index.md`, `summary.md`, `full.md`
-- `.claude/moira/knowledge/conventions/index.md`, `summary.md`, `full.md`
-- `.claude/moira/knowledge/decisions/index.md`, `summary.md`, `full.md`
-- `.claude/moira/knowledge/patterns/index.md`, `summary.md`, `full.md`
-- `.claude/moira/knowledge/failures/index.md`, `summary.md`, `full.md`
-- `.claude/moira/knowledge/quality-map/summary.md`, `full.md`
+- `.moira/knowledge/project-model/index.md`, `summary.md`, `full.md`
+- `.moira/knowledge/conventions/index.md`, `summary.md`, `full.md`
+- `.moira/knowledge/decisions/index.md`, `summary.md`, `full.md`
+- `.moira/knowledge/patterns/index.md`, `summary.md`, `full.md`
+- `.moira/knowledge/failures/index.md`, `summary.md`, `full.md`
+- `.moira/knowledge/quality-map/summary.md`, `full.md`
 
 ## Finding Format
 

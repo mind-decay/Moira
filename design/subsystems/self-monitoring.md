@@ -17,7 +17,7 @@ Rules alone don't prevent this 100%. We need structural enforcement.
 ### Hook Registration
 
 13 hooks across 9 event types, registered in `.claude/settings.json` by `install.sh` via `settings-merge.sh`.
-Also injects `permissions.allow` for `/.claude/moira/**` (Read/Write/Edit) so subagents can access state without permission prompts. Global `Read(~/.claude/moira/**)` is registered in `~/.claude/settings.json` for role/template reads.
+Also injects `permissions.allow` for `/.moira/**` (Read/Write/Edit) so subagents can access state without permission prompts. Global `Read(~/.claude/moira/**)` is registered in `~/.claude/settings.json` for role/template reads.
 
 | Hook | Event | Type | Purpose |
 |------|-------|------|---------|
@@ -74,7 +74,7 @@ Transition tables cover all 5 pipeline types (quick, standard, full, decompositi
 
 #### Layer 2b: Boundary Enforcement (PreToolUse Read|Write|Edit)
 
-`guard-prevent.sh` DENY orchestrator Read/Write/Edit on files outside `.claude/moira/` and `.ariadne/`. Upgrades guard.sh from detection-only to prevention. Orchestrator content never enters context. Denied operations are logged to `violations.log`.
+`guard-prevent.sh` DENY orchestrator Read/Write/Edit on files outside `.moira/` and `.ariadne/`. Upgrades guard.sh from detection-only to prevention. Orchestrator content never enters context. Denied operations are logged to `violations.log`.
 
 **Subagent bypass (D-183):** Both `guard-prevent.sh` and `guard.sh` check the `agent_id` field in hook input. This field is present **only** in subagent contexts — the orchestrator session does not have it. When `agent_id` is present, the hook exits immediately (exit 0), allowing dispatched agents to freely Read/Write/Edit project files. This is structural enforcement: the bypass is determined by the Claude Code harness, not by LLM prompt compliance.
 
@@ -116,7 +116,7 @@ fi
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $tool_name $file_path" >> "$state_dir/tool-usage.log"
 
 # Check for violations — orchestrator touching project files
-moira_path=".claude/moira"
+moira_path=".moira"
 if [[ "$tool_name" =~ ^(Read|Write|Edit)$ ]]; then
   if [[ -n "$file_path" && "$file_path" != *"$moira_path"* ]]; then
     echo "{\"hookSpecificOutput\":{\"additionalContext\":\"CONSTITUTIONAL VIOLATION: Orchestrator used $tool_name on $file_path. Art 1.1 prohibits direct project file operations.\"}}"
@@ -129,7 +129,7 @@ fi
 
 **Scope:** After each file-modifying agent (implementer, explorer) returns, the orchestrator runs `git diff --name-only` and checks modified files against protected paths. Unlike guard.sh, this mechanism CAN block the pipeline — violations trigger a Guard Violation Gate (revert/accept/abort) defined in `gates.md`.
 
-Protected paths (agents MUST NOT modify): `design/CONSTITUTION.md`, `design/**`, `.claude/moira/config/**`, `.claude/moira/core/**`, `src/global/**`. Allowed exceptions: `.claude/moira/state/tasks/{id}/**`, `.claude/moira/knowledge/**`, project source files.
+Protected paths (agents MUST NOT modify): `design/CONSTITUTION.md`, `design/**`, `.moira/config/**`, `.moira/core/**`, `src/global/**`. Allowed exceptions: `.moira/state/tasks/{id}/**`, `.moira/knowledge/**`, project source files.
 
 Violations are logged to `state/violations.log` with `AGENT_VIOLATION` prefix (distinct from orchestrator `VIOLATION` prefix). Agent violations are distinguished from orchestrator violations by the `AGENT_VIOLATION` log prefix (vs `VIOLATION` prefix for orchestrator violations).
 
@@ -210,8 +210,8 @@ Embedded in orchestrator's CLAUDE.md:
 You are an ORCHESTRATOR. You are NOT an executor.
 
 NEVER:
-- Use Read on files outside .claude/moira/
-- Use Edit or Write on files outside .claude/moira/
+- Use Read on files outside .moira/
+- Use Edit or Write on files outside .moira/
 - Use Bash for anything except agent dispatch
 - Use Grep or Glob on project files
 

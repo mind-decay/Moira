@@ -14,8 +14,8 @@
 #   - Writes step transition to current.yaml via state.sh
 #
 # Fires: PreToolUse (matcher: Agent)
-# Reads: .claude/moira/state/current.yaml (tracker fields: last_role, review_pending, test_pending, subtask_mode, current_subtask)
-# Writes: .claude/moira/state/current.yaml (step transition + dispatched_role)
+# Reads: .moira/state/current.yaml (tracker fields: last_role, review_pending, test_pending, subtask_mode, current_subtask)
+# Writes: .moira/state/current.yaml (step transition + dispatched_role)
 # MUST NOT fail — exits 0 silently on any error.
 
 input=$(cat 2>/dev/null) || exit 0
@@ -39,8 +39,8 @@ fi
 find_state_dir() {
   local dir="$PWD"
   while [[ "$dir" != "/" ]]; do
-    if [[ -f "$dir/.claude/moira/state/current.yaml" ]]; then
-      echo "$dir/.claude/moira/state"
+    if [[ -f "$dir/.moira/state/current.yaml" ]]; then
+      echo "$dir/.moira/state"
       return 0
     fi
     dir=$(dirname "$dir")

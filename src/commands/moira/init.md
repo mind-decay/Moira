@@ -30,7 +30,7 @@ Read `~/.claude/moira/.version`.
 
 ## Step 2: Check Existing Init
 
-Read `.claude/moira/config.yaml`.
+Read `.moira/config.yaml`.
 
 - If exists AND $ARGUMENTS does **not** contain `--force`:
   Display:
@@ -59,8 +59,8 @@ bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_scan_precollect_tech "
 ```
 
 This creates:
-- `.claude/moira/state/init/raw-configs.md` — config files for tech scanner
-- `.claude/moira/state/init/raw-structure.md` — directory tree + Ariadne data for structure scanner
+- `.moira/state/init/raw-configs.md` — config files for tech scanner
+- `.moira/state/init/raw-structure.md` — directory tree + Ariadne data for structure scanner
 
 ## Step 4a: Dispatch Scanner Agents
 
@@ -85,7 +85,7 @@ Dispatch ALL 4 agents simultaneously using 4 Agent tool calls in a **single mess
 - description: "Hermes — tech scan"
 - subagent_type: general-purpose
 - prompt: Combine Hermes identity + base rules + tech-scan.md instructions
-  Tell the agent: "You are Hermes, the Explorer. [identity from hermes.yaml]. [base rules]. Your task: [tech-scan.md contents]. Write output to `.claude/moira/state/init/tech-scan.md`."
+  Tell the agent: "You are Hermes, the Explorer. [identity from hermes.yaml]. [base rules]. Your task: [tech-scan.md contents]. Write output to `.moira/state/init/tech-scan.md`."
 
 **Agent 2 — Structure Scanner:**
 - description: "Hermes — structure scan"
@@ -183,10 +183,10 @@ Continue without graph (graceful degradation per D-102).
 If graph was built successfully (4b.2 completed), populate quality-map and project-model with structural data from Ariadne:
 
 ```bash
-bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_populate_knowledge "{project_root}" "{project_root}/.claude/moira/knowledge"'
+bash -c 'source ~/.claude/moira/lib/graph.sh && moira_graph_populate_knowledge "{project_root}" "{project_root}/.moira/knowledge"'
 ```
 
-This queries Ariadne for smells, cycles, hotspots, coupling, centrality, layers, metrics, and boundaries. Results are written to quality-map/full.md (Problematic/Adequate entries) and project-model/full.md (structural sections). A graph snapshot is saved to `.claude/moira/state/graph-snapshot.json` for future diff-based refresh.
+This queries Ariadne for smells, cycles, hotspots, coupling, centrality, layers, metrics, and boundaries. Results are written to quality-map/full.md (Problematic/Adequate entries) and project-model/full.md (structural sections). A graph snapshot is saved to `.moira/state/graph-snapshot.json` for future diff-based refresh.
 
 Graceful degradation: if ariadne or jq are not available, this returns silently with no output.
 
@@ -198,7 +198,7 @@ If graph was built successfully, generate Ariadne pre-context for deep scanner a
 bash -c 'source ~/.claude/moira/lib/graph.sh && moira_deepscan_prepare_context "{project_root}"'
 ```
 
-This writes clusters, cycles, boundaries, layers, centrality, and smells data to `.claude/moira/state/init/ariadne-context.md` for use by deep scanner templates.
+This writes clusters, cycles, boundaries, layers, centrality, and smells data to `.moira/state/init/ariadne-context.md` for use by deep scanner templates.
 
 Graceful degradation: if ariadne or jq are not available, writes a placeholder file.
 
@@ -206,7 +206,7 @@ Graceful degradation: if ariadne or jq are not available, writes a placeholder f
 
 Run via Bash (always use `bash -c` — bootstrap.sh uses BASH_REMATCH which requires bash):
 ```bash
-bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_generate_config "{project_root}" ".claude/moira/state/init/tech-scan.md" && moira_bootstrap_generate_project_rules "{project_root}" ".claude/moira/state/init"'
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_generate_config "{project_root}" ".moira/state/init/tech-scan.md" && moira_bootstrap_generate_project_rules "{project_root}" ".moira/state/init"'
 ```
 
 ## Step 6: MCP Discovery
@@ -222,11 +222,11 @@ Read the MCP scanner template and dispatch a single Explorer agent:
 - description: "Hermes — MCP scan"
 - subagent_type: general-purpose
 - prompt: Combine Hermes identity + base rules + mcp-scan.md instructions
-  Tell the agent: "You are Hermes, the Explorer. [identity from hermes.yaml]. [base rules]. Your task: [mcp-scan.md contents]. Write output to `.claude/moira/state/init/mcp-scan.md`."
+  Tell the agent: "You are Hermes, the Explorer. [identity from hermes.yaml]. [base rules]. Your task: [mcp-scan.md contents]. Write output to `.moira/state/init/mcp-scan.md`."
 
 Wait for completion, then process results:
 ```bash
-bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_scan_mcp "{project_root}" ".claude/moira/state/init"'
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_scan_mcp "{project_root}" ".moira/state/init"'
 ```
 
 This function (D-108) merges infrastructure MCP (Ariadne, if available) with external MCP servers discovered by the scanner into a single `mcp-registry.yaml`. Infrastructure entries are added automatically without scanner involvement.
@@ -237,7 +237,7 @@ If no MCP servers are available at all (no Ariadne binary, no external servers f
 
 Run via Bash:
 ```bash
-bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_populate_knowledge "{project_root}" ".claude/moira/state/init"'
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_populate_knowledge "{project_root}" ".moira/state/init"'
 ```
 
 ## Step 8: Integrate CLAUDE.md
@@ -285,7 +285,7 @@ Check if `$MOIRA_HOME/hooks/pre-commit.sh` exists (source file from global insta
 
 This is an **APPROVAL GATE**. Do NOT proceed without explicit user action.
 
-Read key fields from generated files to populate the summary. **IMPORTANT (F-003 fix):** MCP server count and names MUST come from the actual generated registry file (`.claude/moira/config/mcp-registry.yaml`), NOT from scanner agent output. Read the registry to get the actual server list:
+Read key fields from generated files to populate the summary. **IMPORTANT (F-003 fix):** MCP server count and names MUST come from the actual generated registry file (`.moira/config/mcp-registry.yaml`), NOT from scanner agent output. Read the registry to get the actual server list:
 
 ```bash
 bash -c 'source ~/.claude/moira/lib/mcp.sh && moira_mcp_list_servers "{project_root}"'
@@ -304,9 +304,9 @@ Then display:
   └─ CI: {from tech scan — CI platform}
 
   Configured:
-  ├─ Config: .claude/moira/config.yaml
-  ├─ Rules: .claude/moira/project/rules/ (4 files)
-  ├─ Knowledge: .claude/moira/knowledge/ (3 types populated)
+  ├─ Config: .moira/config.yaml
+  ├─ Rules: .moira/project/rules/ (4 files)
+  ├─ Knowledge: .moira/knowledge/ (3 types populated)
   ├─ CLAUDE.md: updated with Moira section
   ├─ Hooks: guard.sh + budget-track.sh registered
   ├─ MCP: {N} servers registered ({server1}, {server2}, ...) OR "no servers detected"
@@ -323,9 +323,9 @@ Wait for user response.
 
 ### On "review":
 Read and display:
-- `.claude/moira/config.yaml` (full)
-- `.claude/moira/project/rules/stack.yaml` (full)
-- `.claude/moira/project/rules/conventions.yaml` (summary)
+- `.moira/config.yaml` (full)
+- `.moira/project/rules/stack.yaml` (full)
+- `.moira/project/rules/conventions.yaml` (summary)
 
 Then re-present the gate (review/accept/adjust).
 

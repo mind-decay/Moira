@@ -16,7 +16,7 @@ Map the project's directory layout and organization:
 
 ## Pre-Collected Data
 
-Project structure and Ariadne graph data pre-collected at `.claude/moira/state/init/raw-structure.md`.
+Project structure and Ariadne graph data pre-collected at `.moira/state/init/raw-structure.md`.
 Read that file FIRST. Focus on interpreting the structure — directory roles, entry points, test organization — not on discovery.
 
 ## Scan Strategy
@@ -112,7 +112,7 @@ After the frontmatter, write the detailed report using this format:
 
 ## Output Path
 
-Write the complete output to: `.claude/moira/state/init/structure-scan.md`
+Write the complete output to: `.moira/state/init/structure-scan.md`
 
 ## Constraints
 

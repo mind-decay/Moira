@@ -1,7 +1,7 @@
 _meta:
   name: current
   file: current.yaml
-  location: .claude/moira/state/
+  location: .moira/state/
   git: gitignored
   description: Active pipeline state
 

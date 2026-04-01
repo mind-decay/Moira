@@ -461,7 +461,7 @@ When the user chooses `redirect` at a depth checkpoint:
 Analytical tasks use the same state directory structure with analytical-specific files:
 
 ```
-.claude/moira/state/tasks/{id}/
+.moira/state/tasks/{id}/
 ├── input.md                    # Original task description
 ├── classification.md           # Apollo output (mode: analytical, subtype: ...)
 ├── ariadne-baseline.md         # Tier 1 Ariadne query results

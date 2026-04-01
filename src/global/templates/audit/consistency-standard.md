@@ -36,14 +36,14 @@ Standard cross-consistency audit: verify all components are aligned across 5 cro
 
 ## Files to Read
 
-- `.claude/moira/project/rules/stack.yaml`, `conventions.yaml`, `patterns.yaml`, `boundaries.yaml`
-- `.claude/moira/knowledge/project-model/summary.md`
-- `.claude/moira/knowledge/conventions/full.md`
-- `.claude/moira/core/rules/roles/*.yaml`
+- `.moira/project/rules/stack.yaml`, `conventions.yaml`, `patterns.yaml`, `boundaries.yaml`
+- `.moira/knowledge/project-model/summary.md`
+- `.moira/knowledge/conventions/full.md`
+- `.moira/core/rules/roles/*.yaml`
 - `~/.claude/moira/core/knowledge-access-matrix.yaml`
-- `.claude/moira/config/budgets.yaml`
-- `.claude/moira/config/locks.yaml`
-- `.claude/moira/state/current.yaml`
+- `.moira/config/budgets.yaml`
+- `.moira/config/locks.yaml`
+- `.moira/state/current.yaml`
 
 ## Finding Format
 

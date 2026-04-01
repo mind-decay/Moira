@@ -534,7 +534,7 @@ moira_graph_analytical_baseline() {
 # Queries Ariadne CLI for smells, cycles, hotspots, coupling, centrality,
 # layers, metrics, and boundaries. Writes entries to quality-map/full.md
 # (Problematic/Adequate) and project-model/full.md (structural sections).
-# Saves graph snapshot to .claude/moira/state/graph-snapshot.json for diff.
+# Saves graph snapshot to .moira/state/graph-snapshot.json for diff.
 #
 # Preconditions: ariadne + jq in PATH, knowledge_dir exists.
 # Graceful degradation: returns 0 silently if ariadne absent; warns if jq absent.
@@ -866,7 +866,7 @@ moira_graph_populate_knowledge() {
 
   # ── Snapshot persistence (AD-2) ───────────────────────────────────────
 
-  local state_dir="${project_root}/.claude/moira/state"
+  local state_dir="${project_root}/.moira/state"
   mkdir -p "$state_dir"
 
   local snapshot_file="${state_dir}/graph-snapshot.json"
@@ -983,7 +983,7 @@ moira_graph_diff_to_knowledge() {
 
   local today
   today=$(date -u +%Y-%m-%d)
-  local state_dir="${project_root}/.claude/moira/state"
+  local state_dir="${project_root}/.moira/state"
   local snapshot_file="${state_dir}/graph-snapshot.json"
 
   # ── Load previous snapshot ───────────────────────────────────────────
@@ -1279,7 +1279,7 @@ moira_graph_diff_to_knowledge() {
 # ── moira_deepscan_prepare_context <project_root> ────────────────────────
 # Generate Ariadne pre-context file for deep scanner agents.
 # Queries Ariadne for clusters, cycles, boundaries, layers, centrality, and smells.
-# Writes structured markdown to .claude/moira/state/init/ariadne-context.md.
+# Writes structured markdown to .moira/state/init/ariadne-context.md.
 #
 # Preconditions: ariadne + jq in PATH. If absent, writes placeholder.
 # Each ariadne query wrapped in `|| true`.
@@ -1292,7 +1292,7 @@ moira_deepscan_prepare_context() {
     return 1
   fi
 
-  local output_dir="${project_root}/.claude/moira/state/init"
+  local output_dir="${project_root}/.moira/state/init"
   local output_file="${output_dir}/ariadne-context.md"
   mkdir -p "$output_dir"
 

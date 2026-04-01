@@ -176,7 +176,7 @@ _moira_retry_effective_probability() {
 moira_retry_should_retry() {
   local error_type="$1"
   local agent_type="$2"
-  local state_dir="${3:-.claude/moira/state}"
+  local state_dir="${3:-.moira/state}"
 
   # Get hard limit
   local hard_limit
@@ -226,7 +226,7 @@ moira_retry_expected_cost() {
   local error_type="$1"
   local agent_type="$2"
   local attempt_number="$3"
-  local state_dir="${4:-.claude/moira/state}"
+  local state_dir="${4:-.moira/state}"
 
   # Get max retries and hard limit
   local defaults
@@ -303,7 +303,7 @@ moira_retry_record_outcome() {
   local agent_type="$2"
   local attempt_number="$3"
   local outcome="$4"
-  local state_dir="${5:-.claude/moira/state}"
+  local state_dir="${5:-.moira/state}"
   local stats_file="${state_dir}/retry-stats.yaml"
 
   # Ensure state directory and stats file exist
@@ -352,7 +352,7 @@ moira_retry_record_outcome() {
 #   error_type:agent_type:max_retries:p1:p2:source
 # source = "default" or "telemetry"
 moira_retry_lookup_table() {
-  local state_dir="${1:-.claude/moira/state}"
+  local state_dir="${1:-.moira/state}"
   local stats_file="${state_dir}/retry-stats.yaml"
 
   local IFS_OLD="$IFS"

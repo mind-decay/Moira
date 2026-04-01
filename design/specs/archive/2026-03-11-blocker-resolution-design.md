@@ -43,7 +43,7 @@
 ### 2.1: `config.yaml` — Project Configuration (committed)
 
 ```yaml
-# .claude/moira/config.yaml
+# .moira/config.yaml
 version: "1.0"
 project:
   name: string                    # project name
@@ -109,7 +109,7 @@ hooks:
 ### 2.2: `current.yaml` — Active Pipeline State (gitignored)
 
 ```yaml
-# .claude/moira/state/current.yaml
+# .moira/state/current.yaml
 task_id: "task-042"                # active task ID (null if idle)
 pipeline: standard                 # pipeline type
 started_at: "2026-03-11T14:30:00Z"
@@ -154,7 +154,7 @@ bypass:
 ### 2.3: `status.yaml` — Per-Task Status (gitignored)
 
 ```yaml
-# .claude/moira/state/tasks/{id}/status.yaml
+# .moira/state/tasks/{id}/status.yaml
 task_id: "task-042"
 description: "Add pagination to user list endpoint"
 size: medium
@@ -226,7 +226,7 @@ completion:                        # filled on completion
 ### 2.4: `manifest.yaml` — Checkpoint for Resume (gitignored)
 
 ```yaml
-# .claude/moira/state/tasks/{id}/manifest.yaml
+# .moira/state/tasks/{id}/manifest.yaml
 task_id: "task-042"
 pipeline: standard
 developer: "alice"
@@ -283,7 +283,7 @@ validation:                        # for resume verification
 ### 2.5: `queue.yaml` — Epic Task Queue (gitignored)
 
 ```yaml
-# .claude/moira/state/queue.yaml
+# .moira/state/queue.yaml
 epic_id: "epic-003"
 description: "Migrate authentication from JWT to session-based"
 created_at: "2026-03-11T10:00:00Z"
@@ -415,8 +415,8 @@ description: Execute a task through the Moira orchestration pipeline
 argument-hint: "[small:|medium:|large:] <task description>"
 allowed-tools:
   - Agent          # dispatch subagents
-  - Read           # read moira state/config files ONLY (.claude/moira/ paths)
-  - Write          # write moira state files ONLY (.claude/moira/state/ paths)
+  - Read           # read moira state/config files ONLY (.moira/ paths)
+  - Write          # write moira state files ONLY (.moira/state/ paths)
   - TaskCreate     # todo tracking
   - TaskUpdate
   - TaskList
@@ -426,7 +426,7 @@ allowed-tools:
 
 **Existing `.claude/` compatibility rules:**
 
-1. **`.claude/` already exists** — Moira creates only `.claude/moira/` subdirectory. Does not touch anything outside `moira/`.
+1. **`.claude/` already exists** — Moira creates only `.moira/` subdirectory. Does not touch anything outside `moira/`.
 2. **`.claude/CLAUDE.md` already exists** — Moira appends its section wrapped in markers:
    ```markdown
    <!-- moira:start -->
@@ -487,7 +487,7 @@ echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) $tool_name $file_path" >> "$state_dir/tool-
 
 # Check for violations — orchestrator touching project files with forbidden tools
 # Covers full Art 1.1 test: Read/Write/Edit/Grep/Glob on non-moira paths
-moira_path=".claude/moira"
+moira_path=".moira"
 if [[ "$tool_name" =~ ^(Read|Write|Edit|Grep|Glob)$ ]]; then
   if [[ -n "$file_path" && "$file_path" != *"$moira_path"* ]]; then
     echo "{\"hookSpecificOutput\":{\"additionalContext\":\"CONSTITUTIONAL VIOLATION: Orchestrator used $tool_name on $file_path. Art 1.1 prohibits direct project file operations. This is logged and will appear in audit.\"}}"
@@ -497,7 +497,7 @@ fi
 
 # Check for Bash violations — only moira state reads allowed, not project commands
 if [[ "$tool_name" == "Bash" ]]; then
-  if [[ -n "$file_path" && ! "$file_path" =~ ^(cat|head|tail).*\.claude/moira ]]; then
+  if [[ -n "$file_path" && ! "$file_path" =~ ^(cat|head|tail).*\.moira ]]; then
     echo "{\"hookSpecificOutput\":{\"additionalContext\":\"WARNING: Orchestrator used Bash with command: $file_path. D-001 prohibits running commands. Only moira state reads are allowed.\"}}"
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) WARN-BASH $file_path" >> "$state_dir/violations.log"
   fi
@@ -529,7 +529,7 @@ fi
 **Pattern Scanner** — Explorer with instruction:
 > Scan source code and report ONLY recurring patterns: component/module structure, API endpoints, data access, state management, common abstractions. Output: pattern catalog with file path evidence. NO opinions, NO recommendations.
 
-**Dispatch:** All 4 launched in parallel via Agent tool with `run_in_background: true`. Results written to `.claude/moira/knowledge/` as L2 (full) documents, from which L1 (summary) and L0 (index) are generated.
+**Dispatch:** All 4 launched in parallel via Agent tool with `run_in_background: true`. Results written to `.moira/knowledge/` as L2 (full) documents, from which L1 (summary) and L0 (index) are generated.
 
 **Budget:** Each scanner uses standard Explorer budget (140k tokens). Total bootstrap ≈ 560k tokens (quick scan). Deep scan launches in background during first task with increased budget for Convention and Pattern scanners.
 
@@ -541,7 +541,7 @@ fi
 
 **Problem:** `locks.yaml` is in gitignored `state/` directory, but locks must be visible across developers.
 
-**Resolution:** Move `locks.yaml` to committed zone: `.claude/moira/config/locks.yaml`. On conflicts — standard git merge. Locks include TTL (`expires_at` field) and stale detection during audit.
+**Resolution:** Move `locks.yaml` to committed zone: `.moira/config/locks.yaml`. On conflicts — standard git merge. Locks include TTL (`expires_at` field) and stale detection during audit.
 
 ### Defect 7: Escape Hatch vs Orchestrator Purity
 
@@ -555,7 +555,7 @@ fi
 
 **Resolution:** Orchestrator dispatches a minimal Implementer agent with a single instruction: execute the git revert. The orchestrator does NOT run Bash directly for git revert — this preserves D-001 ("never runs commands") and Art 1.1 (orchestrator purity). The Implementer agent has Bash in its allowed-tools and can execute git operations as part of its implementation role.
 
-Note: the orchestrator's `allowed-tools` includes `Bash` for reading moira state files only (e.g., `cat .claude/moira/state/current.yaml`). Git revert is NOT an orchestrator Bash operation — it is delegated to an agent.
+Note: the orchestrator's `allowed-tools` includes `Bash` for reading moira state files only (e.g., `cat .moira/state/current.yaml`). Git revert is NOT an orchestrator Bash operation — it is delegated to an agent.
 
 ### Defect 9: Constitutional Invariant Count
 

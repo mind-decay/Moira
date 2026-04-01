@@ -57,7 +57,7 @@ The brain of the system. A markdown file loaded as the orchestrator's system con
 **Constitutional constraints:**
 - `allowed-tools` in `task.md` frontmatter prevents orchestrator from calling Edit/Grep/Glob/Bash (D-031, Layer 1)
 - Orchestrator MUST use Agent tool for all project work (Art 1.1)
-- Orchestrator reads ONLY `.claude/moira/` paths (never project files)
+- Orchestrator reads ONLY `.moira/` paths (never project files)
 
 ### D2: Pipeline Definitions (`src/global/core/pipelines/`)
 

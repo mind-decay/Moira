@@ -124,7 +124,7 @@ Total: 11 findings (2 high, 5 medium, 4 low risk)
 ```
 
 ### Detailed report
-Written to: `.claude/moira/state/audits/{date}-audit.md`
+Written to: `.moira/state/audits/{date}-audit.md`
 
 ## Recommendation Approval
 
@@ -192,6 +192,6 @@ constraints:
   - Classify findings by risk: low / medium / high
 
 output:
-  detailed: .claude/moira/state/audits/{date}-audit.md
+  detailed: .moira/state/audits/{date}-audit.md
   summary: returned to orchestrator for display
 ```

@@ -22,7 +22,7 @@ Init завершился успешно. Все 4 сканера отработ
 
 При прямом `source ~/.claude/moira/lib/bootstrap.sh` в zsh:
 ```
-/Users/minddecay/.claude/moira/lib/bootstrap.sh:578: parse error near `|'
+/Users/minddecay/.moira/lib/bootstrap.sh:578: parse error near `|'
 ```
 
 Проблемная строка:

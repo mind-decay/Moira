@@ -100,7 +100,7 @@ moira_bootstrap_generate_config() {
   local project_root="$1"
   local tech_scan_path="$2"
 
-  local config_file="$project_root/.claude/moira/config.yaml"
+  local config_file="$project_root/.moira/config.yaml"
   mkdir -p "$(dirname "$config_file")"
 
   # Extract stack from frontmatter: framework → language → generic
@@ -217,7 +217,7 @@ moira_bootstrap_generate_project_rules() {
   local project_root="$1"
   local scan_results_dir="$2"
 
-  local rules_dir="$project_root/.claude/moira/project/rules"
+  local rules_dir="$project_root/.moira/project/rules"
   mkdir -p "$rules_dir"
 
   # --- stack.yaml ---
@@ -430,7 +430,7 @@ moira_bootstrap_populate_knowledge() {
   local project_root="$1"
   local scan_results_dir="$2"
 
-  local knowledge_dir="$project_root/.claude/moira/knowledge"
+  local knowledge_dir="$project_root/.moira/knowledge"
   local today
   today=$(date -u +%Y-%m-%d)
 
@@ -590,7 +590,7 @@ moira_bootstrap_inject_hooks() {
   fi
 
   # Create empty log files (D-076: pre-create during bootstrap, not scaffold)
-  local state_dir="$project_root/.claude/moira/state"
+  local state_dir="$project_root/.moira/state"
   if [[ -d "$state_dir" ]]; then
     touch "$state_dir/violations.log" "$state_dir/tool-usage.log" "$state_dir/budget-tool-usage.log"
   fi
@@ -663,7 +663,7 @@ moira_bootstrap_setup_gitignore() {
 
   local entries=(
     "# Moira orchestration state (per-developer)"
-    ".claude/moira/state/"
+    ".moira/state/"
   )
 
   # If .gitignore doesn't exist, create it
@@ -709,10 +709,10 @@ moira_bootstrap_setup_gitignore() {
 
 # ── moira_scan_precollect_tech <project_root> ─────────────────────────
 # Pre-collect config files for the tech scanner to reduce agent budget.
-# Output: .claude/moira/state/init/raw-configs.md
+# Output: .moira/state/init/raw-configs.md
 moira_scan_precollect_tech() {
   local project_root="$1"
-  local output_dir="${project_root}/.claude/moira/state/init"
+  local output_dir="${project_root}/.moira/state/init"
   local output_file="${output_dir}/raw-configs.md"
   local max_file_size=10240  # 10KB per file
   local max_total_size=102400  # 100KB total
@@ -889,10 +889,10 @@ moira_scan_precollect_tech() {
 
 # ── moira_scan_precollect_structure <project_root> ────────────────────
 # Pre-collect project structure and Ariadne graph data for structure scanner.
-# Output: .claude/moira/state/init/raw-structure.md
+# Output: .moira/state/init/raw-structure.md
 moira_scan_precollect_structure() {
   local project_root="$1"
-  local output_dir="${project_root}/.claude/moira/state/init"
+  local output_dir="${project_root}/.moira/state/init"
   local output_file="${output_dir}/raw-structure.md"
 
   mkdir -p "$output_dir"

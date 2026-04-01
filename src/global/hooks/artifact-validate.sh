@@ -35,8 +35,8 @@ fi
 find_state_dir() {
   local dir="$PWD"
   while [[ "$dir" != "/" ]]; do
-    if [[ -f "$dir/.claude/moira/state/current.yaml" ]]; then
-      echo "$dir/.claude/moira/state"
+    if [[ -f "$dir/.moira/state/current.yaml" ]]; then
+      echo "$dir/.moira/state"
       return 0
     fi
     dir=$(dirname "$dir")
@@ -91,7 +91,7 @@ if [[ -f "$state_dir/current.yaml" ]]; then
 fi
 
 # Try to find the artifact file
-project_dir=$(dirname "$(dirname "$state_dir")")  # .claude/moira/state -> project root
+project_dir=$(dirname "$(dirname "$state_dir")")  # .moira/state -> project root
 resolved_path=""
 
 # Try direct path first
@@ -107,8 +107,8 @@ elif [[ -n "$task_id" && -f "$state_dir/tasks/$task_id/$artifact_path" ]]; then
 elif [[ -f "$project_dir/$artifact_path" ]]; then
   resolved_path="$project_dir/$artifact_path"
 # Try stripping common prefixes
-elif [[ -f "$project_dir/.claude/moira/$artifact_path" ]]; then
-  resolved_path="$project_dir/.claude/moira/$artifact_path"
+elif [[ -f "$project_dir/.moira/$artifact_path" ]]; then
+  resolved_path="$project_dir/.moira/$artifact_path"
 fi
 
 # If artifact file not found, skip validation (agent may not have written it yet)

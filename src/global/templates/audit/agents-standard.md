@@ -10,12 +10,12 @@ Standard agent performance audit: analyze per-agent effectiveness from recent ta
 
 ## Instructions
 
-1. **Telemetry analysis** — Read recent task telemetry files from `.claude/moira/state/tasks/*/telemetry.yaml`. Analyze per-agent execution records:
+1. **Telemetry analysis** — Read recent task telemetry files from `.moira/state/tasks/*/telemetry.yaml`. Analyze per-agent execution records:
    - Success vs failure rates per agent role
    - Context usage percentages (are agents staying within budget?)
    - Duration trends (are agents getting slower?)
 
-2. **Classifier accuracy** — Read recent task status files from `.claude/moira/state/tasks/*/status.yaml`. Calculate gate override rate from `classification.overridden` field. High override rate indicates classifier needs tuning.
+2. **Classifier accuracy** — Read recent task status files from `.moira/state/tasks/*/status.yaml`. Calculate gate override rate from `classification.overridden` field. High override rate indicates classifier needs tuning.
 
 3. **Quality gate patterns** — Analyze reviewer findings across tasks:
    - Which agents produce work that gets the most critical findings?
@@ -34,10 +34,10 @@ Standard agent performance audit: analyze per-agent effectiveness from recent ta
 
 ## Files to Read
 
-- `.claude/moira/state/tasks/*/telemetry.yaml` (recent 10-20 tasks)
-- `.claude/moira/state/tasks/*/status.yaml` (recent 10-20 tasks)
-- `.claude/moira/state/metrics/monthly-*.yaml` (current month)
-- `.claude/moira/core/rules/roles/*.yaml` (agent role definitions)
+- `.moira/state/tasks/*/telemetry.yaml` (recent 10-20 tasks)
+- `.moira/state/tasks/*/status.yaml` (recent 10-20 tasks)
+- `.moira/state/metrics/monthly-*.yaml` (current month)
+- `.moira/core/rules/roles/*.yaml` (agent role definitions)
 
 ## Finding Format
 

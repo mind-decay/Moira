@@ -24,7 +24,7 @@ moira_rotate_logs() {
     local config_archive
     config_archive=$(grep '^  archive_dir:' "$config_file" 2>/dev/null | sed 's/.*archive_dir:[[:space:]]*//' | tr -d '"' 2>/dev/null) || true
     if [[ -n "$config_archive" ]]; then
-      # archive_dir in config is relative to state_dir's parent (.claude/moira/)
+      # archive_dir in config is relative to state_dir's parent (.moira/)
       local moira_dir
       moira_dir=$(dirname "$state_dir")
       archive_dir="$moira_dir/$config_archive"

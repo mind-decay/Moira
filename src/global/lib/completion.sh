@@ -29,8 +29,8 @@ moira_completion_finalize() {
   local task_id="$1"
   local pipeline_type="$2"
   local completion_action="$3"
-  local state_dir="${4:-.claude/moira/state}"
-  local config_path="${5:-.claude/moira/config.yaml}"
+  local state_dir="${4:-.moira/state}"
+  local config_path="${5:-.moira/config.yaml}"
 
   local task_dir="${state_dir}/tasks/${task_id}"
   local status_file="${task_dir}/status.yaml"

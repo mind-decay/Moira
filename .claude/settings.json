@@ -1,20 +1,34 @@
 {
   "permissions": {
     "allow": [
-      "Read(/.claude/moira/**)",
-      "Write(/.claude/moira/**)",
-      "Edit(/.claude/moira/**)",
-      "Glob(/.claude/moira/**)",
-      "Grep(/.claude/moira/**)",
-      "Bash(mkdir */.claude/moira/*)",
-      "Bash(mkdir -p */.claude/moira/*)",
-      "Bash(cp */.claude/moira/*)",
-      "Bash(mv */.claude/moira/*)",
-      "Bash(rm */.claude/moira/*)",
-      "Bash(chmod */.claude/moira/*)",
-      "Bash(cat */.claude/moira/*)",
-      "Bash(ls */.claude/moira/*)",
-      "Bash(bash */.claude/moira/*)"
+      "Bash(bash */.moira/**)",
+      "Bash(cat */.moira/**)",
+      "Bash(chmod */.moira/**)",
+      "Bash(cp */.moira/**)",
+      "Bash(cp -r */.moira/**)",
+      "Bash(cp -rp */.moira/**)",
+      "Bash(echo */.moira/**)",
+      "Bash(ls */.moira/**)",
+      "Bash(ls -* */.moira/**)",
+      "Bash(mkdir */.moira/**)",
+      "Bash(mkdir -p */.moira/**)",
+      "Bash(mv */.moira/**)",
+      "Bash(mv -f */.moira/**)",
+      "Bash(rm */.moira/**)",
+      "Bash(rm -f */.moira/**)",
+      "Bash(rm -r */.moira/**)",
+      "Bash(rm -rf */.moira/**)",
+      "Bash(touch */.moira/**)",
+      "Edit(/.moira/**)",
+      "Edit(*/.moira/**)",
+      "Glob(/.moira/**)",
+      "Glob(*/.moira/**)",
+      "Grep(/.moira/**)",
+      "Grep(*/.moira/**)",
+      "Read(/.moira/**)",
+      "Read(*/.moira/**)",
+      "Write(/.moira/**)",
+      "Write(*/.moira/**)"
     ]
   },
   "hooks": {
@@ -122,6 +136,10 @@
           {
             "type": "command",
             "command": "bash ~/.claude/moira/hooks/agent-output-validate.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/artifact-validate.sh"
           },
           {
             "type": "command",
