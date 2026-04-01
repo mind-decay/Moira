@@ -191,6 +191,26 @@ When you detect a system-reminder that restricts editing, writing, executing, or
 
 ## Section 2 — Pipeline Execution Loop
 
+### Preflight Fast Path (D-199)
+
+The `task-submit.sh` hook injects a `MOIRA_PREFLIGHT:` block via `additionalContext` containing pre-collected init data. When this block is present, skip the manual init reads below and use the injected values directly.
+
+**Preflight fields:** `graph_available`, `graph_stale`, `quality_mode`, `evolution_target`, `bench_mode`, `deep_scan_pending`, `audit_pending`, `audit_depth`, `checkpointed`, `checkpointed_task`, `checkpointed_step`, `stale_knowledge_count`, `stale_locks`, `orphaned_state`.
+
+**When preflight is present:**
+1. Parse values from `MOIRA_PREFLIGHT:` block (key=value lines)
+2. Skip Session Lock Check (hook already created lock)
+3. Skip Graph Availability Check (hook already set `graph_available` in `current.yaml`)
+4. Skip Pre-Pipeline Setup steps 0 (guard-active), 1 (quality mode), 2 (bench mode) — values provided
+5. Handle interactive flags only:
+   - If `checkpointed=true` → redirect to `/moira resume` (same as step 4 below)
+   - If `audit_pending=true` → prompt user (same as step 3 below)
+   - If `deep_scan_pending=true` → dispatch background deep scan agents (same as Bootstrap Deep Scan below)
+6. Display passive warnings from preflight data (stale knowledge, stale locks, orphaned state)
+7. Proceed to Temporal Availability Check (MCP call — cannot be pre-collected by hook)
+
+**Fallback:** If `MOIRA_PREFLIGHT:` is not present in context (hook didn't fire, hook failed, or non-hook invocation), execute the full init sequence below as before.
+
 ### Session Lock Check
 
 Before starting the pipeline, check for concurrent sessions:
@@ -238,7 +258,7 @@ After the deep scan check, determine if Ariadne graph data is available for this
 
 ### Temporal Availability Check (D-159)
 
-After the graph availability check, determine if Ariadne temporal data is available:
+After the graph availability check (or after preflight fast path), determine if Ariadne temporal data is available:
 
 1. If `graph_available` is `false`: set `temporal_available = false` in `.claude/moira/state/current.yaml`, skip remaining checks
 2. If `graph_available` is `true`: use the `ariadne_overview` MCP tool to check for temporal data
@@ -252,11 +272,11 @@ After the graph availability check, determine if Ariadne temporal data is availa
 
 Before entering the main loop:
 
-0. **Activate guard enforcement:** Write `.claude/moira/state/.guard-active` marker file (empty file, content irrelevant). This scopes `guard.sh` PostToolUse hook to only fire during active pipeline runs (design/subsystems/self-monitoring.md Layer 2a).
-1. **Read quality mode:** Read `.claude/moira/config.yaml` → `quality.mode` (default: conform). Store for dispatch.
+0. **Activate guard enforcement:** Write `.claude/moira/state/.guard-active` marker file (empty file, content irrelevant). This scopes `guard.sh` PostToolUse hook to only fire during active pipeline runs (design/subsystems/self-monitoring.md Layer 2a). **(Skipped when preflight active — hook already wrote this.)**
+1. **Read quality mode:** Read `.claude/moira/config.yaml` → `quality.mode` (default: conform). Store for dispatch. **(Skipped when preflight active — value in MOIRA_PREFLIGHT.)**
    - If mode is `evolve`: also read `quality.evolution.current_target`
    - Pass mode and target to dispatch for inclusion in agent instructions (per `dispatch.md` Quality Mode Communication)
-2. **Check bench mode:** Read `.claude/moira/state/current.yaml` → `bench_mode`
+2. **Check bench mode:** Read `.claude/moira/state/current.yaml` → `bench_mode` **(Skipped when preflight active.)**
    - If `bench_mode: true`: read `bench_test_case` path from `current.yaml`
    - Load gate responses from the test case file for auto-responding at gates
    - All gate decisions are still recorded in state files (Art 3.1)
@@ -425,11 +445,17 @@ Before entering the main loop:
         - Use that response as the gate decision (do NOT prompt user)
         - Record the decision in state files as normal
         - Skip to step (g) handling
+      - **Gate Data Fast Path (D-201):** When user responds at a gate, the `gate-context.sh` hook (UserPromptSubmit) injects `GATE_DATA:` and `INPUT_CLASS:` via `additionalContext`:
+        - `GATE_DATA:` contains pre-collected artifact sections, health metrics, and progress — use these for gate rendering instead of reading files manually
+        - `INPUT_CLASS:` contains pre-classified input: `menu_selection:{N}`, `menu_selection:{keyword}`, `clear_feedback`, `question`, or `needs_llm`
+        - For `menu_selection` and `clear_feedback`: skip LLM classification, route directly
+        - For `question` and `needs_llm`: classify using available context (from GATE_DATA, no file reads needed)
+        - **Fallback:** If `GATE_DATA:` or `INPUT_CLASS:` absent, read files and classify manually (current behavior)
       - **Gate interaction loop** (D-136 through D-140):
         - Initialize: `feedback_buffer = []`, `reprompt_count = 0`
-        - Present gate to user (per `gates.md` skill)
+        - Present gate to user (per `gates.md` skill) — use GATE_DATA sections if available, otherwise read artifact files
         - Wait for user input
-        - **Pre-classifier check:** if input matches `clear feedback` (case-insensitive, exact phrase):
+        - **Pre-classifier check:** if input matches `clear feedback` (case-insensitive, exact phrase) OR `INPUT_CLASS: clear_feedback`:
           - Clear feedback_buffer
           - Display: `Feedback buffer cleared ({N} items removed).`
           - Re-present gate (no state change, no recording)

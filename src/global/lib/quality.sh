@@ -49,10 +49,10 @@ moira_quality_parse_verdict() {
 # Outputs missing item IDs (one per line) if any.
 # Returns 0 if all present, 1 if items missing or error.
 moira_quality_validate_findings() {
-  local findings_path="$1"
-  local checklist_path="$2"
+  local findings_path="${1:-}"
+  local checklist_path="${2:-}"
 
-  if [[ ! -f "$findings_path" ]]; then
+  if [[ -z "$findings_path" || ! -f "$findings_path" ]]; then
     echo "Error: findings file not found: $findings_path" >&2
     return 1
   fi

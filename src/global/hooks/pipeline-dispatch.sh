@@ -305,4 +305,32 @@ if [[ -f "$current_file" ]]; then
   _yaml_set "$current_file" "dispatched_role" "$role"
 fi
 
+# ═══════════════════════════════════════════════════════════
+# PRE-PLANNING INSTRUCTION ASSEMBLY (D-200)
+# Generate instruction files for pre-planning agents if not already present.
+# This runs after validation and step transition — agent is about to start.
+# ═══════════════════════════════════════════════════════════
+
+case "$role" in
+  explorer|analyst)
+    task_id=$(_yaml_get "$current_file" "task_id") || true
+    if [[ -n "$task_id" && "$task_id" != "null" ]]; then
+      local_task_dir="$state_dir/tasks/$task_id"
+      instruction_file="$local_task_dir/instructions/${role}.md"
+
+      # Only assemble if instruction file doesn't exist yet
+      if [[ ! -f "$instruction_file" ]]; then
+        moira_home="${MOIRA_HOME:-$HOME/.claude/moira}"
+        if [[ -f "$moira_home/lib/preflight-assemble.sh" ]]; then
+          # shellcheck source=../lib/preflight-assemble.sh
+          source "$moira_home/lib/preflight-assemble.sh" 2>/dev/null || true
+          if command -v moira_preflight_assemble_agent &>/dev/null; then
+            moira_preflight_assemble_agent "$role" "$task_id" "$state_dir" >/dev/null 2>&1 || true
+          fi
+        fi
+      fi
+    fi
+  ;;
+esac
+
 exit 0

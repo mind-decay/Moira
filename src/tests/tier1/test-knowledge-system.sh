@@ -101,10 +101,10 @@ echo "lib-summary" > "$AGENT_KNOW_DIR/libraries/summary.md"
 # Use the real matrix file
 MATRIX_FILE="$MOIRA_HOME/core/knowledge-access-matrix.yaml"
 
-# Hermes: only project-model L0
+# Hermes: only project-model L1 (D-189: L0→L1 for gap analysis context)
 result=$(moira_knowledge_read_for_agent "$AGENT_KNOW_DIR" "hermes" "$MATRIX_FILE")
-if echo "$result" | grep -q "pm-index" && ! echo "$result" | grep -q "conv-" && ! echo "$result" | grep -q "fail-" && ! echo "$result" | grep -q "qm-"; then
-  pass "hermes gets only project-model L0"
+if echo "$result" | grep -q "pm-summary" && ! echo "$result" | grep -q "conv-" && ! echo "$result" | grep -q "fail-" && ! echo "$result" | grep -q "qm-"; then
+  pass "hermes gets only project-model L1 (D-189)"
 else
   fail "hermes access incorrect: $result"
 fi

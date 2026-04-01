@@ -130,6 +130,7 @@ COMPLIANCE_HOOKS=(
   "agent-done.sh"
   "session-cleanup.sh"
   "task-submit.sh"
+  "gate-context.sh"
   "graph-update.sh"
   "graph-validate.sh"
 )
@@ -190,6 +191,22 @@ assert_file_contains "$MOIRA_HOME/hooks/session-cleanup.sh" "guard-active" "sess
 assert_file_contains "$MOIRA_HOME/hooks/session-cleanup.sh" "session-lock" "session-cleanup.sh: cleans session lock"
 assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "moira_task_init" "task-submit.sh: scaffolds task"
 assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "MOIRA TASK INITIALIZED" "task-submit.sh: injects task_id"
+assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "MOIRA_PREFLIGHT" "task-submit.sh: injects preflight (D-199)"
+assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "moira_preflight_collect" "task-submit.sh: calls preflight collection (D-199)"
+assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "moira_preflight_assemble_apollo" "task-submit.sh: assembles Apollo instruction (D-200)"
+
+# Gate context hook (D-201)
+assert_file_contains "$MOIRA_HOME/hooks/gate-context.sh" "gate_pending" "gate-context.sh: checks gate_pending"
+assert_file_contains "$MOIRA_HOME/hooks/gate-context.sh" "GATE_DATA" "gate-context.sh: injects GATE_DATA"
+assert_file_contains "$MOIRA_HOME/hooks/gate-context.sh" "INPUT_CLASS" "gate-context.sh: injects INPUT_CLASS"
+assert_file_contains "$MOIRA_HOME/hooks/gate-context.sh" "moira_md_extract_section" "gate-context.sh: uses markdown extraction"
+
+# New lib files (D-199, D-200, D-201)
+assert_file_exists "$MOIRA_HOME/lib/preflight-assemble.sh" "preflight-assemble.sh installed"
+assert_file_exists "$MOIRA_HOME/lib/markdown-utils.sh" "markdown-utils.sh installed"
+assert_file_contains "$MOIRA_HOME/lib/preflight-assemble.sh" "moira_preflight_assemble_apollo" "preflight-assemble.sh: has Apollo assembly"
+assert_file_contains "$MOIRA_HOME/lib/preflight-assemble.sh" "moira_preflight_assemble_exploration" "preflight-assemble.sh: has exploration assembly"
+assert_file_contains "$MOIRA_HOME/lib/markdown-utils.sh" "moira_md_extract_section" "markdown-utils.sh: has section extraction"
 
 # Ariadne graph hooks
 assert_file_contains "$MOIRA_HOME/hooks/graph-update.sh" "ariadne update" "graph-update.sh: runs ariadne update"
@@ -217,6 +234,7 @@ ALL_HOOKS=(
   "agent-done.sh"
   "session-cleanup.sh"
   "task-submit.sh"
+  "gate-context.sh"
   "graph-update.sh"
   "graph-validate.sh"
 )

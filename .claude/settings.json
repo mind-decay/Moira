@@ -24,6 +24,10 @@
           {
             "type": "command",
             "command": "bash ~/.claude/moira/hooks/task-submit.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/gate-context.sh"
           }
         ]
       }

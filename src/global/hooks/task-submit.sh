@@ -89,9 +89,33 @@ task_id=$(moira_task_init "$description" "$size_hint" "$state_dir" 2>/dev/null) 
 
 [[ -z "$task_id" ]] && exit 0
 
-# --- Inject task_id into context ---
+# --- Collect preflight context (D-199) ---
+preflight=""
+if command -v moira_preflight_collect &>/dev/null; then
+  preflight=$(moira_preflight_collect "$state_dir" 2>/dev/null) || preflight=""
+fi
+
+# --- Pre-assemble Apollo instruction file (D-200) ---
+apollo_instruction=""
+if [[ -f "$moira_home/lib/preflight-assemble.sh" ]]; then
+  # shellcheck source=../lib/preflight-assemble.sh
+  source "$moira_home/lib/preflight-assemble.sh" 2>/dev/null || true
+  if command -v moira_preflight_assemble_apollo &>/dev/null; then
+    apollo_instruction=$(moira_preflight_assemble_apollo "$task_id" "$state_dir" 2>/dev/null) || apollo_instruction=""
+  fi
+fi
+
+# --- Inject task_id + preflight into context ---
 msg="MOIRA TASK INITIALIZED: task_id=${task_id}. State files pre-scaffolded by hook — skip Steps 2-7 of task.md. Proceed directly to Step 8 (load orchestrator skill)."
-msg_escaped=$(echo "$msg" | sed 's/\\/\\\\/g; s/"/\\"/g' 2>/dev/null) || exit 0
+
+if [[ -n "$preflight" ]]; then
+  msg="${msg}
+MOIRA_PREFLIGHT:
+${preflight}"
+fi
+
+# Escape for JSON string: backslashes, double quotes, newlines
+msg_escaped=$(printf '%s' "$msg" | sed 's/\\/\\\\/g; s/"/\\"/g' | awk '{printf "%s\\n", $0}' | sed 's/\\n$//' 2>/dev/null) || exit 0
 
 echo "{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"$msg_escaped\"}}"
 

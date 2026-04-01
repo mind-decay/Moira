@@ -48,6 +48,10 @@ moira_settings_merge_hooks() {
           {
             "type": "command",
             "command": "bash ~/.claude/moira/hooks/task-submit.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/gate-context.sh"
           }
         ]
       }
@@ -196,6 +200,7 @@ HOOKJSON
      grep -q 'moira/hooks/graph-update.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/graph-validate.sh' "$settings_file" 2>/dev/null && \
      grep -q 'moira/hooks/session-cleanup.sh' "$settings_file" 2>/dev/null && \
+     grep -q 'moira/hooks/gate-context.sh' "$settings_file" 2>/dev/null && \
      grep -q 'Write(/.claude/moira/' "$settings_file" 2>/dev/null && \
      grep -q 'Glob(/.claude/moira/' "$settings_file" 2>/dev/null && \
      grep -q 'Bash(mkdir' "$settings_file" 2>/dev/null; then
@@ -329,6 +334,10 @@ _moira_settings_merge_fallback() {
           {
             "type": "command",
             "command": "bash ~/.claude/moira/hooks/task-submit.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/moira/hooks/gate-context.sh"
           }
         ]
       }

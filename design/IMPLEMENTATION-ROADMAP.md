@@ -622,6 +622,48 @@ Pipeline YAML and orchestrator updated for new flow: fewer batches, no per-phase
 
 ---
 
+## Phase 18: Context Read Optimization
+
+**Goal:** Eliminate orchestrator Read overhead for pipeline initialization, agent dispatch, and gate presentation. Move data collection into hooks that inject pre-collected context via `additionalContext`. Every optimization layer has graceful degradation to current behavior.
+
+**Depends on:** Phase 16 (state automation — hook infrastructure, additionalContext pattern), Phase 17 (standardized file contracts for reliable extraction).
+
+**Context (D-199, D-200, D-201):** Phase 16 eliminated state WRITES (~12k tokens). The orchestrator still performs ~45 Reads per pipeline for init checks, prompt assembly, and gate rendering — ~10k tokens of pure read overhead. Hooks can collect this data and inject it into context, reducing reads from ~45 to ~5-8.
+
+### Chunk 1: Preflight Context Injection (D-199)
+- Extend `task-submit.sh` with `moira_preflight_collect()` — gather graph/quality/bench/audit/checkpoint state
+- Inject via `additionalContext` as `MOIRA_PREFLIGHT:` block
+- Write `graph_available` to `current.yaml`
+- Orchestrator: skip init reads when preflight present, fallback to manual reads if absent
+
+### Chunk 2: Pre-planning Instruction Assembly (D-200)
+- Add `moira_preflight_assemble_apollo()` — generate Apollo instruction file at task init
+- Extend `pipeline-dispatch.sh` — generate Hermes/Athena instruction files at dispatch time
+- Unified dispatch path: instruction file → 1 Read (same as post-planning agents)
+
+### Chunk 3: Gate Data Collection + Input Pre-classification (D-201)
+- New `markdown-utils.sh` with `moira_md_extract_section()`
+- New `gate-context.sh` hook (UserPromptSubmit) — collect artifact sections, health metrics, pre-classify input
+- Inject via `additionalContext` as `GATE_DATA:` + `INPUT_CLASS:` blocks
+- Orchestrator formats from ready data; skips LLM classification for exact matches
+
+### Chunk 4: Settings, Install, Orchestrator Updates
+- Register `gate-context.sh` in settings
+- Consolidated orchestrator.md + dispatch.md updates
+
+### Chunk 5: Tests
+- `test-preflight.sh`, `test-markdown-utils.sh`, `test-gate-context.sh`, `test-instruction-assembly.sh`
+- zsh compatibility: `zsh -n` for all new scripts
+- Structural tests in `test-hooks-system.sh`
+
+**Testing:** Tier 1 for all new functions. zsh syntax check. Fallback verification (hooks disabled → pipeline still works).
+
+**Key decisions:** D-199 (preflight injection), D-200 (pre-planning assembly), D-201 (gate data + input classification).
+
+**Risk classification:** YELLOW (hook behavior changes, dispatch path changes). No constitutional impact — orchestrator boundaries, gate authority, and pipeline steps all unchanged.
+
+---
+
 ## Testing Strategy
 
 Three-layer architecture woven across phases (D-023):
