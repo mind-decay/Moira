@@ -85,8 +85,9 @@ echo "$timestamp $tool_name $file_path" >> "$state_dir/tool-usage.log" 2>/dev/nu
 case "$tool_name" in
   Read)
     # .ariadne/ is Ariadne graph output — orchestrator may check existence (D-105)
-    # Read is allowed for both .moira and .ariadne/ paths
-    if [[ -n "$file_path" && "$file_path" != *".moira"* && "$file_path" != *".ariadne/"* ]]; then
+    # ~/.claude/moira/ is global core/skills/hooks — read allowed (D-175)
+    # Read is allowed for .moira, .ariadne/, and global ~/.claude/moira/ paths
+    if [[ -n "$file_path" && "$file_path" != *".moira"* && "$file_path" != *".ariadne/"* && "$file_path" != "$HOME/.claude/moira/"* ]]; then
       # VIOLATION: orchestrator accessed project file directly
       if [[ -n "$task_id" ]]; then
         echo "$timestamp VIOLATION $tool_name $file_path task_id=$task_id" >> "$state_dir/violations.log" 2>/dev/null || true
@@ -99,7 +100,7 @@ case "$tool_name" in
     fi
     ;;
   Write|Edit)
-    # Write/Edit only allowed within .moira — .ariadne/ is written by ariadne CLI only
+    # Write/Edit only allowed within .moira — .ariadne/ and ~/.claude/moira/ are read-only
     if [[ -n "$file_path" && "$file_path" != *".moira"* ]]; then
       # VIOLATION: orchestrator accessed project file directly
       if [[ -n "$task_id" ]]; then
