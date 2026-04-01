@@ -74,6 +74,7 @@ fi
 # ~/.claude/moira/ — global core/skills/hooks (read only)
 case "$file_path" in
   *".moira"*)  exit 0 ;; # project-local moira state — allowed
+  *".claude/"*) exit 0 ;; # Claude Code config — infrastructure, not project source
   *".ariadne/"*)
     case "$tool_name" in
       Read) exit 0 ;; # read graph data — allowed
