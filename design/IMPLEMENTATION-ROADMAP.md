@@ -332,7 +332,7 @@ Based on dependency analysis. Each phase builds on previous.
 
 ---
 
-## Phase 15: Ariadne-Driven Bootstrap & Quality-Map Fix
+## Phase 15: Ariadne-Driven Bootstrap & Quality-Map Fix — COMPLETED
 
 **Goal:** Ariadne structural data flows mechanically into knowledge base at init/refresh. Quality-map populated with real evidence instead of keyword heuristics. Scanner budgets cut ~46% via hybrid bash pre-collect + lighter agents.
 
@@ -456,7 +456,7 @@ Deep scanners receive Ariadne structural data as pre-context file, freeing budge
 **Why Phase 15:** Requires working bootstrap (Phase 5), Ariadne integration (Phase 13), and quality gates (Phase 6). This phase fixes known bugs and maximizes the value already built in those phases.
 
 
-## Phase 16: Pipeline Token Optimization
+## Phase 16: Pipeline Token Optimization — COMPLETED
 
 **Goal:** Reduce Full pipeline token consumption by ~50% (from ~1.1M to ~530-570k) without losing quality signals. Inspired by GSD's architecture: front-load quality in planning, embed verification in execution, minimize dispatch count.
 
@@ -577,7 +577,7 @@ Pipeline YAML and orchestrator updated for new flow: fewer batches, no per-phase
 
 ---
 
-## Phase 17: System File Standardization & Mechanical Validation
+## Phase 17: System File Standardization & Mechanical Validation — COMPLETED
 
 **Goal:** Standardize all system file contracts with mechanical enforcement. Every agent-written file validated at write-time by hooks. Single state format. Predictable, automatable contracts.
 
@@ -622,7 +622,7 @@ Pipeline YAML and orchestrator updated for new flow: fewer batches, no per-phase
 
 ---
 
-## Phase 18: Context Read Optimization
+## Phase 18: Context Read Optimization — COMPLETED
 
 **Goal:** Eliminate orchestrator Read overhead for pipeline initialization, agent dispatch, and gate presentation. Move data collection into hooks that inject pre-collected context via `additionalContext`. Every optimization layer has graceful degradation to current behavior.
 
