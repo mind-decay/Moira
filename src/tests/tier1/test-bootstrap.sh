@@ -584,6 +584,165 @@ EOF
   else
     fail "contract: structure-scan missing dir_* fields"
   fi
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Host rules audit tests (D-204)
+  # ═══════════════════════════════════════════════════════════════════════
+
+  # Test 1: No .claude/rules/ directory — empty report
+  HRA_DIR1="$TEST_DIR/hra-norules"
+  mkdir -p "$HRA_DIR1/.moira/state/init"
+  moira_bootstrap_audit_host_rules "$HRA_DIR1"
+  if [[ -f "$HRA_DIR1/.moira/state/init/rules-audit.md" ]]; then
+    if grep -q "total_files: 0" "$HRA_DIR1/.moira/state/init/rules-audit.md"; then
+      pass "host rules audit: no rules dir → total_files: 0"
+    else
+      fail "host rules audit: no rules dir but total_files not 0"
+    fi
+  else
+    fail "host rules audit: no output file created"
+  fi
+
+  # Test 2: Empty .claude/rules/ directory
+  HRA_DIR2="$TEST_DIR/hra-empty"
+  mkdir -p "$HRA_DIR2/.claude/rules" "$HRA_DIR2/.moira/state/init"
+  moira_bootstrap_audit_host_rules "$HRA_DIR2"
+  if grep -q "total_files: 0" "$HRA_DIR2/.moira/state/init/rules-audit.md"; then
+    pass "host rules audit: empty rules dir → total_files: 0"
+  else
+    fail "host rules audit: empty rules dir but total_files not 0"
+  fi
+
+  # Test 3: Unconditional rule (no paths frontmatter)
+  HRA_DIR3="$TEST_DIR/hra-uncond"
+  mkdir -p "$HRA_DIR3/.claude/rules" "$HRA_DIR3/.moira/state/init"
+  cat > "$HRA_DIR3/.claude/rules/coding-style.md" << 'EOF'
+# Coding Style
+
+- Use camelCase for functions
+- Use 2-space indent
+- Always use semicolons
+EOF
+  moira_bootstrap_audit_host_rules "$HRA_DIR3"
+  if grep -q "unconditional_count: 1" "$HRA_DIR3/.moira/state/init/rules-audit.md"; then
+    pass "host rules audit: unconditional rule detected"
+  else
+    fail "host rules audit: unconditional rule not detected"
+  fi
+  if grep -q "code-style" "$HRA_DIR3/.moira/state/init/rules-audit.md"; then
+    pass "host rules audit: code-style category classified"
+  else
+    fail "host rules audit: code-style category not classified"
+  fi
+
+  # Test 4: Path-scoped rule (has paths frontmatter)
+  HRA_DIR4="$TEST_DIR/hra-scoped"
+  mkdir -p "$HRA_DIR4/.claude/rules" "$HRA_DIR4/.moira/state/init"
+  cat > "$HRA_DIR4/.claude/rules/api-rules.md" << 'EOF'
+---
+paths:
+  - "src/api/**/*.ts"
+---
+
+# API Rules
+
+- Always validate input
+- Use proper error handling
+EOF
+  moira_bootstrap_audit_host_rules "$HRA_DIR4"
+  if grep -q "scoped_count: 1" "$HRA_DIR4/.moira/state/init/rules-audit.md" && \
+     grep -q "unconditional_count: 0" "$HRA_DIR4/.moira/state/init/rules-audit.md"; then
+    pass "host rules audit: path-scoped rule correctly classified"
+  else
+    fail "host rules audit: path-scoped rule not correctly classified"
+  fi
+
+  # Test 5: Mixed rules — unconditional + scoped
+  HRA_DIR5="$TEST_DIR/hra-mixed"
+  mkdir -p "$HRA_DIR5/.claude/rules" "$HRA_DIR5/.moira/state/init"
+  cat > "$HRA_DIR5/.claude/rules/global.md" << 'EOF'
+# Security Rules
+
+- Never commit credentials
+- Always sanitize user input
+EOF
+  cat > "$HRA_DIR5/.claude/rules/frontend.md" << 'EOF'
+---
+paths:
+  - "src/components/**"
+---
+
+# Frontend Rules
+
+- Use PascalCase for components
+EOF
+  moira_bootstrap_audit_host_rules "$HRA_DIR5"
+  if grep -q "total_files: 2" "$HRA_DIR5/.moira/state/init/rules-audit.md" && \
+     grep -q "unconditional_count: 1" "$HRA_DIR5/.moira/state/init/rules-audit.md" && \
+     grep -q "scoped_count: 1" "$HRA_DIR5/.moira/state/init/rules-audit.md"; then
+    pass "host rules audit: mixed rules counted correctly"
+  else
+    fail "host rules audit: mixed rules count wrong"
+  fi
+  if grep -q "security" "$HRA_DIR5/.moira/state/init/rules-audit.md"; then
+    pass "host rules audit: security category classified"
+  else
+    fail "host rules audit: security category not classified"
+  fi
+
+  # Test 6: Token estimation (non-zero)
+  if grep -q "total_tokens: 0" "$HRA_DIR5/.moira/state/init/rules-audit.md"; then
+    fail "host rules audit: total_tokens should not be 0 for non-empty rules"
+  else
+    pass "host rules audit: total_tokens is non-zero"
+  fi
+
+  # Test 7: Overlap detection with convention scan
+  HRA_DIR7="$TEST_DIR/hra-overlap"
+  mkdir -p "$HRA_DIR7/.claude/rules" "$HRA_DIR7/.moira/state/init"
+  cat > "$HRA_DIR7/.claude/rules/style.md" << 'EOF'
+# Style Guide
+
+- Use camelCase for variables
+- Use snake_case for database fields
+- 2-space indent
+- No semicolons
+EOF
+  cat > "$HRA_DIR7/.moira/state/init/convention-scan.md" << 'EOF'
+---
+naming_files: kebab-case
+naming_functions: camelCase
+indent: 2 spaces
+semicolons: false
+---
+## Conventions
+- camelCase for functions
+- snake_case for DB columns
+- 2-space indent
+EOF
+  moira_bootstrap_audit_host_rules "$HRA_DIR7"
+  if grep -q "overlap_with_conventions.* true" "$HRA_DIR7/.moira/state/init/rules-audit.md"; then
+    pass "host rules audit: overlap with conventions detected"
+  else
+    fail "host rules audit: overlap with conventions not detected"
+  fi
+
+  # Test 8: Function exists in bootstrap.sh
+  if grep -q "moira_bootstrap_audit_host_rules" "$BOOTSTRAP_SH" 2>/dev/null; then
+    pass "bootstrap.sh: function moira_bootstrap_audit_host_rules declared"
+  else
+    fail "bootstrap.sh: function moira_bootstrap_audit_host_rules not found"
+  fi
+fi
+
+# ═══════════════════════════════════════════════════════════════════════
+# Init command: Step 4c present (D-204)
+# ═══════════════════════════════════════════════════════════════════════
+
+if [[ -f "$init_file" ]]; then
+  assert_file_contains "$init_file" "Step 4c" "init.md: Step 4c (Host Rules Triage) present"
+  assert_file_contains "$init_file" "D-204" "init.md: references D-204"
+  assert_file_contains "$init_file" "moira_bootstrap_audit_host_rules" "init.md: calls audit function"
 fi
 
 test_summary

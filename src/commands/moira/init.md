@@ -106,6 +106,97 @@ Wait for all 4 to complete. Check results:
 - If any agent fails: report which scanner failed and why. Offer: **retry** / **skip** (fields will be empty) / **abort**
 - If all succeed: proceed
 
+## Step 4c: Host Rules Triage (D-204)
+
+Analyze existing `.claude/rules/` files and help the user optimize them for Moira.
+
+### 4c.1: Scan Host Rules
+
+Run via Bash:
+```bash
+bash -c 'source ~/.claude/moira/lib/bootstrap.sh && moira_bootstrap_audit_host_rules "{project_root}"'
+```
+
+This function:
+- Scans `.claude/rules/` recursively for `.md` files
+- For each file: counts approximate tokens (words × 1.3), checks for `paths:` in YAML frontmatter
+- Classifies each rule: `code-style`, `security`, `workflow`, `documentation`, `general`
+- Compares content against scanner results in `.moira/state/init/convention-scan.md` for overlap detection
+- Writes structured report to `.moira/state/init/rules-audit.md`
+
+**If no `.claude/rules/` directory exists or contains no `.md` files:** skip to Step 4b silently.
+
+### 4c.2: Display Audit Summary
+
+Read `.moira/state/init/rules-audit.md` and display:
+
+```
+═══════════════════════════════════════════
+  HOST RULES ANALYSIS — .claude/rules/
+═══════════════════════════════════════════
+  Found: {N} rule files (~{T} tokens total)
+
+  Unconditional (load every session):
+  ├─ {filename1} — {category} (~{tokens} tokens) {overlap_marker}
+  ├─ {filename2} — {category} (~{tokens} tokens) {overlap_marker}
+  └─ ...
+
+  Path-scoped (lazy-loaded, already optimized):
+  ├─ {filename3} — paths: {glob_pattern}
+  └─ ...
+
+  ⚠ Unconditional rules consume orchestrator context budget
+    without benefit — orchestrator never writes code.
+    Moira's knowledge base already delivers conventions to agents.
+
+  Actions:
+  1) triage  — review each rule and choose action
+  2) scope-all — add paths: frontmatter to all code-style rules
+  3) skip    — leave rules as-is for now
+═══════════════════════════════════════════
+```
+
+Where `{overlap_marker}` is `[overlaps with conventions]` if the rule content was already captured by Moira's convention scanner.
+
+Wait for user response.
+
+### On "triage":
+
+For each unconditional rule file, display its first 5 lines (or summary) and offer:
+
+```
+─── {filename} ({category}, ~{tokens} tokens) ───
+{first 5 lines preview}
+...
+
+  1) keep    — leave as-is (needed by orchestrator)
+  2) scope   — add paths: frontmatter (won't load for orchestrator)
+  3) absorb  — integrate into Moira knowledge, delete file
+  4) exclude — add to claudeMdExcludes (file stays, not loaded)
+  5) delete  — remove file
+  6) skip    — decide later
+```
+
+For **scope**: ask the user for the glob pattern (suggest `"src/**"` or `"**/*.{ext}"` based on detected project structure), then add YAML frontmatter with `paths:` field to the file.
+
+For **absorb**: append rule content to `.moira/knowledge/conventions/full.md` under a new section `## Host Rule: {filename}` with freshness marker `<!-- moira:freshness init {date} λ=0.02 -->`. Then delete the original file.
+
+For **exclude**: add the file path to `claudeMdExcludes` array in `.claude/settings.json` (create array if absent, merge if exists).
+
+For **delete**: confirm with user, then remove the file.
+
+### On "scope-all":
+
+For all unconditional rules classified as `code-style`:
+- Detect appropriate glob pattern from project structure (e.g., `"src/**"` if `src/` exists)
+- Add `paths:` frontmatter to each file
+- Report what was changed
+
+### On "skip":
+
+Display: "Host rules left unchanged. Run `/moira:refresh` later to revisit."
+Proceed to Step 4b.
+
 ## Step 4b: Build Project Graph
 
 Check for the Ariadne binary and build the project graph if available.

@@ -2423,3 +2423,40 @@ Previous git status snapshot stored in `.moira/state/.git-snapshot` by `agent-do
 - Making passive audits blocking — they are informational (knowledge/convention drift). Blocking would halt pipeline for warnings. Instead, they inject context so the orchestrator is aware.
 
 **Reasoning:** The system already has 12 structural hooks covering agent ordering, artifact validation, state transitions, etc. The 4 remaining gaps are all cases where the orchestrator was expected to self-enforce prose instructions. Converting them to hooks follows the proven pattern: hooks handle deterministic checks, LLM handles judgment calls.
+
+## D-204: Host Rules Triage at Init
+
+**Date:** 2026-04-02
+**Status:** Accepted
+**Context:** When Moira is installed into a project with existing `.claude/rules/` files, those rules are injected into the orchestrator's context by Claude Code. This causes three problems:
+
+1. **Wasted context budget.** Unconditional rules (without `paths` frontmatter) load into the orchestrator on every session. The orchestrator never writes code, so code-style rules are pure waste. Each rule file costs ~200-2000 tokens.
+2. **Active harm from bad rules.** Real-world `.claude/rules/` often contain copy-pasted prompts, contradictory instructions, and vague directives. These dilute the orchestrator's carefully tuned prompts and can cause unpredictable behavior or conflicts with Moira's base/role rules.
+3. **Rules don't reach agents.** Claude Code subagents (dispatched via Agent tool) do NOT inherit `.claude/rules/` from the parent session. So project code-style rules miss the agents that actually need them (Hephaestus, Themis), while polluting the orchestrator that doesn't. Moira's knowledge base already delivers conventions to agents through the 4-layer rule assembly system.
+
+**Decision:** Add an interactive Host Rules Triage step to `moira:init` (Step 4c, after scanners, before graph build). The step:
+
+1. **Scans** `.claude/rules/` — counts files, estimates tokens, detects `paths` frontmatter presence, identifies rule categories (code-style, security, workflow, etc.)
+2. **Analyzes** overlap with scanner results — compares against conventions/patterns already discovered by Moira scanners
+3. **Reports** findings in `.moira/state/init/rules-audit.md`
+4. **Presents interactive triage** per rule (or grouped by category) with actions:
+   - **keep** — leave as-is (global rule, relevant to orchestrator)
+   - **scope** — add `paths:` frontmatter so it only loads when matching files are read (orchestrator won't see it)
+   - **absorb** — integrate content into Moira knowledge base, delete original
+   - **exclude** — add to `claudeMdExcludes` in settings (file untouched, just not loaded)
+   - **delete** — remove the file (with confirmation)
+   - **skip** — decide later
+5. **Batch actions** for speed: "scope all code-style", "absorb all into knowledge", "skip all"
+6. If no `.claude/rules/` found or directory empty — skip step silently
+
+Shell function `moira_bootstrap_audit_host_rules()` in `bootstrap.sh` handles scanning and classification. The interactive triage menu is handled by the init skill (LLM formats from audit data). Actions (scope, exclude, delete) are executed via Bash after user selection.
+
+Path-scoped rules (already have `paths:` frontmatter) are reported as "already optimized" — no action needed.
+
+**Alternatives rejected:**
+- Automatic modification without user input — violates Art 4.2 (User Authority). Rules belong to the user.
+- Recommendations only (no actions) — unnecessarily cautious. User explicitly runs init and expects setup. The menu respects Art 4.2 by requiring selection.
+- Proxy rules through agents — knowledge base already covers this (D-005, D-006). Duplicating `.claude/rules/` into agent prompts would be speculative over-engineering.
+- Quarantine directory (`.claude/rules.bak/`) — `claudeMdExcludes` already exists as a native mechanism. No need to invent another.
+
+**Reasoning:** The problem is real and measurable (tokens wasted, prompt dilution). The solution uses existing Claude Code mechanisms (`paths` frontmatter, `claudeMdExcludes`) rather than inventing new ones. Interactive triage respects user authority while being actionable. The shell function keeps analysis deterministic (D-042 pattern).

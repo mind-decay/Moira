@@ -980,3 +980,200 @@ moira_bootstrap_scan_mcp() {
     echo "$result"
   fi
 }
+
+# ── moira_bootstrap_audit_host_rules <project_root> ───────────────────
+# Scan .claude/rules/ for existing rule files and produce a structured
+# audit report at .moira/state/init/rules-audit.md (D-204).
+# Output: one YAML-frontmatter block per rule file with metadata.
+# Returns 0 even if no rules found (caller checks output file).
+moira_bootstrap_audit_host_rules() {
+  local project_root="$1"
+  local rules_dir="${project_root}/.claude/rules"
+  local output_file="${project_root}/.moira/state/init/rules-audit.md"
+  local convention_scan="${project_root}/.moira/state/init/convention-scan.md"
+
+  # Ensure output directory exists
+  mkdir -p "$(dirname "$output_file")"
+
+  # If no rules directory or empty — write empty report and return
+  if [[ ! -d "$rules_dir" ]]; then
+    cat > "$output_file" <<'HEADER'
+---
+total_files: 0
+total_tokens: 0
+unconditional_count: 0
+scoped_count: 0
+---
+
+# Host Rules Audit
+
+No `.claude/rules/` directory found.
+HEADER
+    return 0
+  fi
+
+  # Collect .md files recursively
+  local rule_files=()
+  while IFS= read -r -d '' f; do
+    rule_files+=("$f")
+  done < <(find "$rules_dir" -name '*.md' -type f -print0 2>/dev/null | sort -z)
+
+  if [[ ${#rule_files[@]} -eq 0 ]]; then
+    cat > "$output_file" <<'HEADER'
+---
+total_files: 0
+total_tokens: 0
+unconditional_count: 0
+scoped_count: 0
+---
+
+# Host Rules Audit
+
+`.claude/rules/` exists but contains no `.md` files.
+HEADER
+    return 0
+  fi
+
+  # Load convention scan keywords for overlap detection (best-effort)
+  local convention_keywords=""
+  if [[ -f "$convention_scan" ]]; then
+    # Extract key terms: naming patterns, formatting, conventions
+    convention_keywords=$(grep -iE '(camelCase|snake_case|kebab-case|PascalCase|semicolon|indent|tab|spaces|eslint|prettier|import|export|error.handling|logging)' "$convention_scan" 2>/dev/null | head -20) || true
+  fi
+
+  local total_files=0
+  local total_tokens=0
+  local unconditional_count=0
+  local scoped_count=0
+  local entries=""
+
+  for rule_file in "${rule_files[@]}"; do
+    total_files=$((total_files + 1))
+    local rel_path="${rule_file#"${project_root}/"}"
+    local filename
+    filename=$(basename "$rule_file")
+
+    # Count tokens (approximate: words × 1.3)
+    local word_count
+    word_count=$(wc -w < "$rule_file" 2>/dev/null | tr -d ' ') || word_count=0
+    local tokens=$(( (word_count * 13 + 9) / 10 ))  # integer math for ×1.3
+    total_tokens=$((total_tokens + tokens))
+
+    # Check for paths: in YAML frontmatter
+    local has_paths="false"
+    local paths_value=""
+    local in_fm=false
+    local found_start=false
+    while IFS= read -r line; do
+      if [[ "$line" == "---" ]]; then
+        if $found_start; then break; fi
+        found_start=true
+        in_fm=true
+        continue
+      fi
+      if $in_fm && [[ "$line" =~ ^paths: ]]; then
+        has_paths="true"
+        # Capture inline value or note it's a list
+        if [[ "$line" =~ ^paths:[[:space:]]+(.*) ]]; then
+          paths_value="${BASH_REMATCH[1]}"
+        else
+          paths_value="(list)"
+        fi
+        break
+      fi
+    done < "$rule_file"
+
+    if [[ "$has_paths" == "true" ]]; then
+      scoped_count=$((scoped_count + 1))
+    else
+      unconditional_count=$((unconditional_count + 1))
+    fi
+
+    # Classify category by content keywords (grep file directly — safer than echo pipe)
+    local category="general"
+    if grep -qiE '(naming|indent|format|style|lint|prettier|semicolon|camelCase|snake_case|kebab|tab|spaces|quotes)' "$rule_file" 2>/dev/null; then
+      category="code-style"
+    elif grep -qiE '(security|secret|credential|injection|xss|csrf|auth|encrypt|sanitiz)' "$rule_file" 2>/dev/null; then
+      category="security"
+    elif grep -qiE '(workflow|commit|branch|pr|review|deploy|ci|cd|pipeline|merge)' "$rule_file" 2>/dev/null; then
+      category="workflow"
+    elif grep -qiE '(document|readme|comment|jsdoc|docstring|changelog)' "$rule_file" 2>/dev/null; then
+      category="documentation"
+    fi
+
+    # Check overlap with convention scan
+    local overlap="false"
+    if [[ -n "$convention_keywords" && "$category" == "code-style" ]]; then
+      # Check if this rule's content overlaps with detected conventions
+      local overlap_hits=0
+      for kw in camelCase snake_case kebab-case indent semicolon prettier eslint; do
+        if grep -qi "$kw" "$rule_file" 2>/dev/null && echo "$convention_keywords" | grep -qi "$kw"; then
+          overlap_hits=$((overlap_hits + 1))
+        fi
+      done
+      if [[ $overlap_hits -ge 2 ]]; then
+        overlap="true"
+      fi
+    fi
+
+    # Extract first 5 content lines (skip frontmatter)
+    local preview=""
+    local past_fm=false
+    local preview_lines=0
+    if ! $found_start; then
+      # No frontmatter — take first 5 lines
+      preview=$(head -5 "$rule_file")
+    else
+      while IFS= read -r line; do
+        if [[ "$line" == "---" ]]; then
+          if $past_fm; then
+            # Exiting frontmatter
+            past_fm=false
+            continue
+          fi
+          past_fm=true
+          continue
+        fi
+        if ! $past_fm; then
+          if [[ $preview_lines -ge 5 ]]; then break; fi
+          # Skip empty leading lines
+          if [[ $preview_lines -eq 0 && -z "$line" ]]; then continue; fi
+          preview="${preview}${line}
+"
+          preview_lines=$((preview_lines + 1))
+        fi
+      done < "$rule_file"
+    fi
+
+    entries="${entries}
+## ${rel_path}
+
+- **filename:** ${filename}
+- **tokens:** ${tokens}
+- **scoped:** ${has_paths}
+- **paths:** ${paths_value}
+- **category:** ${category}
+- **overlap_with_conventions:** ${overlap}
+- **preview:**
+\`\`\`
+${preview}\`\`\`
+"
+  done
+
+  # Write report (unique delimiter to avoid collision with rule file content)
+  cat > "$output_file" <<__MOIRA_RULES_AUDIT_EOF__
+---
+total_files: ${total_files}
+total_tokens: ${total_tokens}
+unconditional_count: ${unconditional_count}
+scoped_count: ${scoped_count}
+---
+
+# Host Rules Audit
+
+${total_files} rule files found in \`.claude/rules/\` (~${total_tokens} tokens total).
+- Unconditional (always loaded): ${unconditional_count}
+- Path-scoped (lazy-loaded): ${scoped_count}
+${entries}
+__MOIRA_RULES_AUDIT_EOF__
+}
