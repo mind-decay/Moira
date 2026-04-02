@@ -126,6 +126,28 @@ deny() {
 }
 
 # ═══════════════════════════════════════════════════════════
+# WORKSPACE CHANGE DETECTION (D-203 Change 4) — advisory
+# ═══════════════════════════════════════════════════════════
+workspace_warning=""
+if [[ -n "$last_role" ]] && command -v git &>/dev/null; then
+  snapshot_file="$state_dir/.git-snapshot"
+  if [[ -f "$snapshot_file" ]]; then
+    project_root="${state_dir%/.moira/state}"
+    current_status=$(cd "$project_root" 2>/dev/null && git status --porcelain 2>/dev/null) || true
+    previous_status=$(cat "$snapshot_file" 2>/dev/null) || true
+    if [[ "$current_status" != "$previous_status" && -n "$current_status" ]]; then
+      # Find new/changed files not in previous snapshot
+      new_changes=$(diff <(echo "$previous_status") <(echo "$current_status") 2>/dev/null | grep '^>' | sed 's/^> //' | head -5) || true
+      if [[ -n "$new_changes" ]]; then
+        # Join with ", " and strip trailing ", "
+        changes_list=$(echo "$new_changes" | tr '\n' ',' | sed 's/,/, /g; s/, $//')
+        workspace_warning="WORKSPACE CHECK (a2): External changes detected since last agent: ${changes_list} -- consider whether re-exploration is needed."
+      fi
+    fi
+  fi
+fi
+
+# ═══════════════════════════════════════════════════════════
 # LAYER 1: review_pending — implementer must be followed by reviewer
 # ═══════════════════════════════════════════════════════════
 if [[ "$review_pending" == "true" ]]; then
@@ -332,5 +354,12 @@ case "$role" in
     fi
   ;;
 esac
+
+# --- Inject workspace warning if detected (D-203) ---
+if [[ -n "$workspace_warning" ]]; then
+  warning_escaped=$(printf '%s' "$workspace_warning" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g' | tr '\n' ' ') || exit 0
+  echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"$warning_escaped\"}}"
+  exit 0
+fi
 
 exit 0

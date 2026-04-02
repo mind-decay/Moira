@@ -114,8 +114,8 @@ if [[ -n "$traceability" ]]; then
   inject="$inject $traceability"
 fi
 
-# --- Inject ---
-inject_escaped=$(echo "$inject" | sed 's/\\/\\\\/g; s/"/\\"/g' 2>/dev/null) || exit 0
+# --- Inject (escape for JSON: backslashes, quotes, tabs, collapse newlines) ---
+inject_escaped=$(printf '%s' "$inject" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g' | tr '\n' ' ') || exit 0
 echo "{\"hookSpecificOutput\":{\"hookEventName\":\"SubagentStart\",\"additionalContext\":\"$inject_escaped\"}}"
 
 exit 0

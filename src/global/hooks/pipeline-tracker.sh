@@ -51,8 +51,25 @@ state_dir=$(find_state_dir) || exit 0
 # Moira format: "Name (role) — description"
 role=$(echo "$description" | grep -oE '\([a-z_]+\)' | head -1 | tr -d '()' 2>/dev/null) || true
 
-# No role = not a standard Moira dispatch (completion processor, scanner, etc.)
-[[ -z "$role" ]] && exit 0
+# --- Completion processor detection (D-203) ---
+# Completion processor has no role tag; detect via description keywords.
+# Mark completion_dispatched in current.yaml for pipeline-stop-guard.sh.
+if [[ -z "$role" ]]; then
+  # Match "completion processor", "completion finalization", "Completion Phase"
+  # but not generic mentions like "task completion" (require "processor|finali|phase")
+  if echo "$description" | grep -qiE 'completion[[:space:]]+(processor|finali|phase)' 2>/dev/null; then
+    current_file="$state_dir/current.yaml"
+    if [[ -f "$current_file" ]]; then
+      if grep -q '^completion_dispatched:' "$current_file" 2>/dev/null; then
+        sed -i.bak 's|^completion_dispatched:.*|completion_dispatched: true|' "$current_file" 2>/dev/null
+        rm -f "$current_file.bak" 2>/dev/null
+      else
+        printf 'completion_dispatched: true\n' >> "$current_file" 2>/dev/null
+      fi
+    fi
+  fi
+  exit 0
+fi
 
 # Skip non-pipeline agents
 case "$role" in

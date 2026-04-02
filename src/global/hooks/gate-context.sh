@@ -172,9 +172,24 @@ input_class="needs_llm"
 
 # Read gate_options count from current.yaml for numeric validation
 option_count=0
-# Count option lines (gate_options is a YAML array)
+# Count option lines (gate_options is a YAML array with "  - " prefixed items)
 if [[ -f "$current_file" ]]; then
-  option_count=$(grep -c '^  - ' <(sed -n '/^gate_options:/,/^[^ ]/p' "$current_file" 2>/dev/null) 2>/dev/null) || option_count=0
+  # Two-step: extract the gate_options block, then count items
+  # Avoids sed range matching its own start line with ^[^ ]
+  in_block=""
+  while IFS= read -r line; do
+    if [[ "$line" == "gate_options:"* ]]; then
+      in_block="true"
+      continue
+    fi
+    if [[ "$in_block" == "true" ]]; then
+      if [[ "$line" == "  - "* ]]; then
+        option_count=$((option_count + 1))
+      elif [[ "$line" != "  "* && -n "$line" ]]; then
+        break  # End of indented block
+      fi
+    fi
+  done < "$current_file" 2>/dev/null
 fi
 # Fallback: use common gate option counts
 [[ "$option_count" -eq 0 ]] && option_count=5

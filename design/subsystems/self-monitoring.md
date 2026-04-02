@@ -23,7 +23,7 @@ Also injects `permissions.allow` for `/.moira/**` (Read/Write/Edit) so subagents
 |------|-------|------|---------|
 | `task-submit.sh` | UserPromptSubmit | Inject | Task initialization on prompt submit |
 | `pipeline-dispatch.sh` | PreToolUse (Agent) | DENY | Per-pipeline transition table enforcement |
-| `guard-prevent.sh` | PreToolUse (Read\|Write\|Edit) | DENY | Block orchestrator access to project files |
+| `guard-prevent.sh` | PreToolUse (Read\|Write\|Edit\|Bash) | DENY | Block orchestrator access to project files and non-.moira/ Bash commands (D-203) |
 | `guard.sh` | PostToolUse (all) | Audit | Violation detection + tool usage logging |
 | `budget-track.sh` | PostToolUse (all) | Audit | Token usage tracking |
 | `graph-update.sh` | PostToolUse (Write\|Edit) | Inject | Incremental graph update on file changes |
@@ -70,11 +70,11 @@ Transition tables cover all 5 pipeline types (quick, standard, full, decompositi
 
 `pipeline-tracker.sh` (PostToolUse Agent) tracks dispatched roles and injects next-step guidance into orchestrator context after each dispatch. Uses **per-subtask state isolation** in decomposition pipeline: each sub-task gets its own state file (`pipeline-tracker-sub-{N}.state`) for `last_role`, `review_pending`, `test_pending`, preventing one sub-task's pending flags from blocking another sub-task's dispatches.
 
-`pipeline-stop-guard.sh` (Stop) prevents pipeline completion while review or testing is pending. In decomposition mode, checks ALL per-subtask state files.
+`pipeline-stop-guard.sh` (Stop) prevents pipeline completion while review or testing is pending, and also blocks stop if completion processor was not dispatched (D-203, D-133). In decomposition mode, checks ALL per-subtask state files.
 
-#### Layer 2b: Boundary Enforcement (PreToolUse Read|Write|Edit)
+#### Layer 2b: Boundary Enforcement (PreToolUse Read|Write|Edit|Bash)
 
-`guard-prevent.sh` DENY orchestrator Read/Write/Edit on files outside `.moira/` and `.ariadne/`. Upgrades guard.sh from detection-only to prevention. Orchestrator content never enters context. Denied operations are logged to `violations.log`.
+`guard-prevent.sh` DENY orchestrator Read/Write/Edit on files outside `.moira/` and `.ariadne/`, and Bash commands not operating on `.moira/` (D-203). Upgrades guard.sh from detection-only to prevention. Orchestrator content never enters context. Denied operations are logged to `violations.log`.
 
 **Subagent bypass (D-183):** Both `guard-prevent.sh` and `guard.sh` check the `agent_id` field in hook input. This field is present **only** in subagent contexts — the orchestrator session does not have it. When `agent_id` is present, the hook exits immediately (exit 0), allowing dispatched agents to freely Read/Write/Edit project files. This is structural enforcement: the bypass is determined by the Claude Code harness, not by LLM prompt compliance.
 

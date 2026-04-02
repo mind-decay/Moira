@@ -106,8 +106,8 @@ if command -v ariadne &>/dev/null; then
   fi
 fi
 
-# --- Inject ---
-msg_escaped=$(echo "$msg" | sed 's/\\/\\\\/g; s/"/\\"/g' 2>/dev/null) || exit 0
+# --- Inject (escape for JSON: backslashes, quotes, tabs, collapse newlines) ---
+msg_escaped=$(printf '%s' "$msg" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g' | tr '\n' ' ') || exit 0
 echo "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"$msg_escaped\"}}"
 
 exit 0

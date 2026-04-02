@@ -139,9 +139,138 @@ if [[ -f "$state_dir/current.yaml" ]]; then
   warning_level=$(grep 'warning_level' "$state_dir/current.yaml" 2>/dev/null | tail -1 | sed 's/.*warning_level:[[:space:]]*//' | tr -d '"' 2>/dev/null) || warning_level="normal"
 fi
 
+# ═══════════════════════════════════════════════════════════
+# PASSIVE AUDITS (D-203) — automatic checks after specific agents
+# ═══════════════════════════════════════════════════════════
+
+passive_warnings=""
+
+# --- Helper: trim whitespace (no xargs, no subshell per call) ---
+_trim() { local v="$1"; v="${v#"${v%%[![:space:]]*}"}"; v="${v%"${v##*[![:space:]]}"}"; printf '%s' "$v"; }
+
+# --- Helper: JSON-safe string escaping (handles \, ", newlines, tabs) ---
+_json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g' | tr '\n' ' '; }
+
+# --- e1b: Knowledge drift check (after explorer) ---
+if [[ "$role" == "explorer" ]]; then
+  knowledge_summary="${state_dir%/state}/knowledge/project-model/summary.md"
+  task_id=""
+  if [[ -f "$state_dir/current.yaml" ]]; then
+    task_id=$(grep '^task_id:' "$state_dir/current.yaml" 2>/dev/null | sed 's/^task_id:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+  fi
+  exploration_artifact=""
+  if [[ -n "$task_id" && "$task_id" != "null" ]]; then
+    exploration_artifact="$state_dir/tasks/$task_id/artifacts/exploration.md"
+  fi
+
+  if [[ -f "$knowledge_summary" && -f "$exploration_artifact" ]]; then
+    # Extract key facts from knowledge summary (stack, language, framework lines)
+    known_facts=$(grep -iE '^(language|framework|stack|database|runtime):' "$knowledge_summary" 2>/dev/null | head -10) || true
+    if [[ -n "$known_facts" ]]; then
+      drift_found=""
+      while IFS=: read -r key rest; do
+        key_clean=$(_trim "$(echo "$key" | tr '[:upper:]' '[:lower:]')") || continue
+        value_clean=$(_trim "${rest# }") || continue
+        [[ -z "$key_clean" || -z "$value_clean" ]] && continue
+        # If the key appears in exploration but with different value, flag it
+        # Use -F for fixed-string matching (no regex interpretation of dots, parens, etc.)
+        exploration_mention=$(grep -iF "$key_clean" "$exploration_artifact" 2>/dev/null | head -1) || true
+        if [[ -n "$exploration_mention" ]] && ! echo "$exploration_mention" | grep -qiF "$value_clean" 2>/dev/null; then
+          drift_found="${drift_found}${key_clean}: known='${value_clean}'; "
+        fi
+      done <<< "$known_facts"
+
+      if [[ -n "$drift_found" ]]; then
+        passive_warnings="${passive_warnings}PASSIVE AUDIT (e1b): Knowledge drift detected -- ${drift_found%. }. Review .moira/knowledge/project-model/summary.md for accuracy. "
+        timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || timestamp="unknown"
+        status_file="$state_dir/tasks/$task_id/status.yaml"
+        if [[ -f "$status_file" ]]; then
+          printf '\n  - type: knowledge_drift\n    detected_at: "%s"\n    details: "%s"' "$timestamp" "${drift_found:0:120}" >> "$status_file" 2>/dev/null || true
+        fi
+      fi
+    fi
+  fi
+fi
+
+# --- e1c: Convention drift check (after reviewer) ---
+if [[ "$role" == "reviewer" ]]; then
+  conventions_summary="${state_dir%/state}/knowledge/conventions/summary.md"
+  task_id=""
+  if [[ -f "$state_dir/current.yaml" ]]; then
+    task_id=$(grep '^task_id:' "$state_dir/current.yaml" 2>/dev/null | sed 's/^task_id:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+  fi
+  review_artifact=""
+  if [[ -n "$task_id" && "$task_id" != "null" ]]; then
+    review_artifact="$state_dir/tasks/$task_id/artifacts/review.md"
+  fi
+
+  if [[ -f "$conventions_summary" && -f "$review_artifact" ]]; then
+    review_findings=$(grep -iE '(convention|pattern|style|naming|format)' "$review_artifact" 2>/dev/null | head -5) || true
+    if [[ -n "$review_findings" ]]; then
+      undocumented=""
+      while IFS= read -r finding; do
+        [[ -z "$finding" ]] && continue
+        key_term=$(echo "$finding" | grep -oE '[A-Za-z_]+Convention|[A-Za-z_]+Pattern|[A-Za-z_]+Style' 2>/dev/null | head -1) || true
+        if [[ -n "$key_term" ]] && ! grep -qiF "$key_term" "$conventions_summary" 2>/dev/null; then
+          undocumented="${undocumented}${key_term}; "
+        fi
+      done <<< "$review_findings"
+
+      if [[ -n "$undocumented" ]]; then
+        passive_warnings="${passive_warnings}PASSIVE AUDIT (e1c): Convention drift -- reviewer found patterns not in conventions doc: ${undocumented%. }. Consider updating .moira/knowledge/conventions/summary.md. "
+        timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || timestamp="unknown"
+        status_file="$state_dir/tasks/$task_id/status.yaml"
+        if [[ -f "$status_file" ]]; then
+          printf '\n  - type: convention_drift\n    detected_at: "%s"\n    details: "%s"' "$timestamp" "${undocumented:0:120}" >> "$status_file" 2>/dev/null || true
+        fi
+      fi
+    fi
+  fi
+fi
+
+# --- d1: Agent guard check (after implementer) ---
+if [[ "$role" == "implementer" ]]; then
+  protected_violations=""
+  if command -v git &>/dev/null; then
+    project_root="${state_dir%/.moira/state}"
+    # Use git status --porcelain (works on repos with no commits, consistent with snapshot)
+    changed_files=$(cd "$project_root" 2>/dev/null && git status --porcelain 2>/dev/null | sed 's/^...//' | sort -u) || true
+    if [[ -n "$changed_files" ]]; then
+      while IFS= read -r changed; do
+        [[ -z "$changed" ]] && continue
+        case "$changed" in
+          design/CONSTITUTION.md)
+            protected_violations="${protected_violations}CRITICAL: design/CONSTITUTION.md modified; " ;;
+          design/*)
+            protected_violations="${protected_violations}design/ file modified: ${changed}; " ;;
+          .moira/core/*|.moira/config/*)
+            protected_violations="${protected_violations}system config modified: ${changed}; " ;;
+          src/global/*)
+            protected_violations="${protected_violations}Moira source modified: ${changed}; " ;;
+        esac
+      done <<< "$changed_files"
+    fi
+  fi
+
+  if [[ -n "$protected_violations" ]]; then
+    passive_warnings="${passive_warnings}GUARD CHECK (d1): Agent modified protected paths -- ${protected_violations%. }. Review changes before proceeding. "
+    timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || timestamp="unknown"
+    echo "$timestamp AGENT_VIOLATION implementer ${protected_violations:0:200}" >> "$state_dir/violations.log" 2>/dev/null || true
+  fi
+fi
+
+# --- Save git snapshot for workspace change detection (D-203 Change 4) ---
+if command -v git &>/dev/null; then
+  project_root="${project_root:-${state_dir%/.moira/state}}"
+  (cd "$project_root" 2>/dev/null && git status --porcelain 2>/dev/null) > "$state_dir/.git-snapshot" 2>/dev/null || true
+fi
+
 # --- Inject completion summary via additionalContext ---
-msg="AGENT DONE — ${role}: ${agent_status} (${duration_sec}s). Budget: ${orch_pct}% (${warning_level}). Step: ${current_step}."
-msg_escaped=$(echo "$msg" | sed 's/\\/\\\\/g; s/"/\\"/g' 2>/dev/null) || exit 0
+msg="AGENT DONE -- ${role}: ${agent_status} (${duration_sec}s). Budget: ${orch_pct}% (${warning_level}). Step: ${current_step}."
+if [[ -n "$passive_warnings" ]]; then
+  msg="${msg} ${passive_warnings}"
+fi
+msg_escaped=$(_json_escape "$msg") || exit 0
 echo "{\"hookSpecificOutput\":{\"hookEventName\":\"SubagentStop\",\"additionalContext\":\"$msg_escaped\"}}"
 
 exit 0

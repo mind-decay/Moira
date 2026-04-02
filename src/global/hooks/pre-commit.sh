@@ -65,13 +65,13 @@ fi
 XREF_TEST="$PROJECT_ROOT/src/tests/tier1/test-xref-manifest.sh"
 if [[ -f "$XREF_TEST" ]]; then
   if command -v timeout &>/dev/null; then
-    timeout_cmd="timeout 30"
+    test_result=$(timeout 30 bash "$XREF_TEST" 2>/dev/null; echo $?)
   elif command -v gtimeout &>/dev/null; then
-    timeout_cmd="gtimeout 30"
+    test_result=$(gtimeout 30 bash "$XREF_TEST" 2>/dev/null; echo $?)
   else
-    timeout_cmd=""
+    test_result=$(bash "$XREF_TEST" 2>/dev/null; echo $?)
   fi
-  if ! $timeout_cmd bash "$XREF_TEST" 2>/dev/null; then
+  if [[ "${test_result##*$'\n'}" != "0" ]]; then
     verification_failure "xref-manifest validation failed (test-xref-manifest.sh)"
   fi
 else
@@ -90,7 +90,7 @@ if [[ -f "$XREF_MANIFEST" ]]; then
     if [[ ! -f "$PROJECT_ROOT/$source_file" && ! -d "$PROJECT_ROOT/$source_file" ]]; then
       verification_failure "xref-manifest references non-existent file: $source_file"
     fi
-  done < <(grep 'canonical_source:\|file:' "$XREF_MANIFEST" 2>/dev/null | sed 's/.*canonical_source:[[:space:]]*//' | sed 's/.*file:[[:space:]]*//' | tr -d '"' | tr -d "'" | grep -v '^$')
+  done < <(grep -E 'canonical_source:|file:' "$XREF_MANIFEST" 2>/dev/null | sed 's/.*canonical_source:[[:space:]]*//' | sed 's/.*file:[[:space:]]*//' | tr -d '"' | tr -d "'" | grep -v '^$')
 fi
 
 echo "moira pre-commit: all checks passed" >&2

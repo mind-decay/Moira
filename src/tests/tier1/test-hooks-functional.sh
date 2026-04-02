@@ -338,24 +338,27 @@ else
 fi
 
 # ═══════════════════════════════════════════════════════════════════════
-# Settings.json: Edit in guard-prevent matcher
+# Settings.json: guard-prevent matcher includes Read|Write|Edit|Bash (D-203)
 # ═══════════════════════════════════════════════════════════════════════
 
 PROJECT_ROOT="$(cd "$SRC_DIR/.." && pwd)"
 if [[ -f "$PROJECT_ROOT/.claude/settings.json" ]]; then
-  if grep -q '"Read|Write|Edit"' "$PROJECT_ROOT/.claude/settings.json" 2>/dev/null; then
-    pass "settings.json: guard-prevent matcher includes Edit"
+  if grep -q '"Read|Write|Edit|Bash"' "$PROJECT_ROOT/.claude/settings.json" 2>/dev/null; then
+    pass "settings.json: guard-prevent matcher includes Bash (D-203)"
+  elif grep -q '"Read|Write|Edit"' "$PROJECT_ROOT/.claude/settings.json" 2>/dev/null; then
+    # Pre-D-203 format still acceptable (not yet re-installed)
+    pass "settings.json: guard-prevent matcher present (pre-D-203 format)"
   else
-    fail "settings.json: guard-prevent matcher missing Edit"
+    fail "settings.json: guard-prevent matcher missing"
   fi
 fi
 
 # Settings-merge also updated
 if [[ -f "$SRC_DIR/global/lib/settings-merge.sh" ]]; then
-  if grep -q 'Read|Write|Edit' "$SRC_DIR/global/lib/settings-merge.sh" 2>/dev/null; then
-    pass "settings-merge.sh: guard-prevent matcher includes Edit"
+  if grep -q 'Read|Write|Edit|Bash' "$SRC_DIR/global/lib/settings-merge.sh" 2>/dev/null; then
+    pass "settings-merge.sh: guard-prevent matcher includes Bash (D-203)"
   else
-    fail "settings-merge.sh: guard-prevent matcher missing Edit"
+    fail "settings-merge.sh: guard-prevent matcher missing Bash (D-203)"
   fi
 fi
 
@@ -364,10 +367,10 @@ fi
 # ═══════════════════════════════════════════════════════════════════════
 
 if [[ -f "$PROJECT_ROOT/design/subsystems/self-monitoring.md" ]]; then
-  if grep -q 'Read|Write|Edit' "$PROJECT_ROOT/design/subsystems/self-monitoring.md" 2>/dev/null; then
-    pass "self-monitoring.md: guard-prevent documented with Edit"
+  if grep -qE 'Read\|Write\|Edit(\|Bash)?' "$PROJECT_ROOT/design/subsystems/self-monitoring.md" 2>/dev/null; then
+    pass "self-monitoring.md: guard-prevent documented"
   else
-    fail "self-monitoring.md: guard-prevent missing Edit in documentation"
+    fail "self-monitoring.md: guard-prevent missing in documentation"
   fi
 fi
 

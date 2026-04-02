@@ -265,29 +265,29 @@ if [[ -n "$findings_gate" && -n "$task_id" ]]; then
   if [[ -f "$findings_file" ]]; then
     # Validate required fields exist
     if ! grep -q '^_meta:' "$findings_file" 2>/dev/null; then
-      missing+=("findings/${agent_name}-${findings_gate}.yaml: missing _meta section")
+      missing+=("findings/${role}-${findings_gate}.yaml: missing _meta section")
     fi
     if ! grep -q 'task_id:' "$findings_file" 2>/dev/null; then
-      missing+=("findings/${agent_name}-${findings_gate}.yaml: missing _meta.task_id")
+      missing+=("findings/${role}-${findings_gate}.yaml: missing _meta.task_id")
     fi
     if ! grep -q 'gate:' "$findings_file" 2>/dev/null; then
-      missing+=("findings/${agent_name}-${findings_gate}.yaml: missing _meta.gate")
+      missing+=("findings/${role}-${findings_gate}.yaml: missing _meta.gate")
     fi
     if ! grep -q 'verdict:' "$findings_file" 2>/dev/null; then
-      missing+=("findings/${agent_name}-${findings_gate}.yaml: missing summary.verdict")
+      missing+=("findings/${role}-${findings_gate}.yaml: missing summary.verdict")
     else
       # Validate verdict enum
       verdict=$(grep 'verdict:' "$findings_file" 2>/dev/null | tail -1 | sed 's/.*verdict:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
       case "$verdict" in
         pass|fail_critical|fail_warning) ;;
-        *) missing+=("findings/${agent_name}-${findings_gate}.yaml: invalid verdict '$verdict' (must be pass|fail_critical|fail_warning)") ;;
+        *) missing+=("findings/${role}-${findings_gate}.yaml: invalid verdict '$verdict' (must be pass|fail_critical|fail_warning)") ;;
       esac
 
       # Cross-validate verdict derivation
       critical_count=$(grep 'critical_count:' "$findings_file" 2>/dev/null | tail -1 | sed 's/.*critical_count:[[:space:]]*//' | tr -d '"' 2>/dev/null) || critical_count="0"
       [[ "$critical_count" =~ ^[0-9]+$ ]] || critical_count="0"
       if [[ "$critical_count" -gt 0 && "$verdict" != "fail_critical" ]]; then
-        missing+=("findings/${agent_name}-${findings_gate}.yaml: verdict=$verdict but critical_count=$critical_count (should be fail_critical)")
+        missing+=("findings/${role}-${findings_gate}.yaml: verdict=$verdict but critical_count=$critical_count (should be fail_critical)")
       fi
     fi
   fi
@@ -300,16 +300,19 @@ if [[ ${#missing[@]} -eq 0 ]]; then
   exit 0  # All sections present
 fi
 
-# Build block message
+# Build block message with real newlines (no echo -e dependency)
 missing_list=""
 for m in "${missing[@]}"; do
-  missing_list="${missing_list}\n- ${m}"
+  missing_list="${missing_list}
+- ${m}"
 done
 
-reason="ARTIFACT CONTRACT VIOLATION (D-184): Your artifact is missing required sections. Add these sections to your artifact file ($artifact_path) before completing:${missing_list}\n\nThese sections are required by your role's output contract. Each section must have real content — the validation checks for section headers, but your output must contain substantive analysis in each section."
+reason="ARTIFACT CONTRACT VIOLATION (D-184): Your artifact is missing required sections. Add these sections to your artifact file (${artifact_path}) before completing:${missing_list}
 
-# Escape for JSON
-reason_escaped=$(echo -e "$reason" | sed 's/\\/\\\\/g; s/"/\\"/g; s/$/\\n/' | tr -d '\n' | sed 's/\\n$//' 2>/dev/null) || exit 0
+These sections are required by your role's output contract. Each section must have real content -- the validation checks for section headers, but your output must contain substantive analysis in each section."
+
+# Escape for JSON: backslashes, quotes, tabs, then collapse newlines to \n
+reason_escaped=$(printf '%s' "$reason" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g' | awk '{printf "%s\\n", $0}' | sed 's/\\n$//' 2>/dev/null) || exit 0
 
 echo "{\"decision\":\"block\",\"reason\":\"$reason_escaped\"}"
 exit 0

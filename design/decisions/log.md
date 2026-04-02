@@ -2376,3 +2376,50 @@ Orchestrator receives pre-collected data + pre-classified input. For `menu_selec
 - Use PreToolUse hook to auto-approve — hooks can't override the sensitive file check (it's a separate layer)
 
 **Reasoning:** `.moira/` is outside `.claude/` sensitive boundary, so standard `permissions.allow` patterns work. Simpler permission patterns (no absolute path hacks needed). Clean semantic separation: `.claude/` = Claude Code config, `.moira/` = Moira runtime. Global install (`~/.claude/moira/`) is unaffected — it's user-level, not project-level.
+
+## D-203: Structural Enforcement for Orchestrator-Inline Steps
+
+**Date:** 2026-04-02
+**Status:** Accepted
+**Context:** Real-world testing revealed that the orchestrator skips non-blocking intermediate steps that are described in orchestrator.md prose but have no structural hook enforcement. Out of 10 steps the orchestrator skipped in a real task session, 8 had no hooks — they relied on the LLM remembering prose instructions. The root cause is overconfidence: the orchestrator reads the skill once, then follows the happy path (dispatch agent → get result → next dispatch), dropping all between-dispatch checks.
+
+Pattern confirmed: **everything automated via hooks works; everything relying on "orchestrator should do X" gets skipped.**
+
+**Decision:** Convert 4 categories of orchestrator-inline steps to structural hook enforcement:
+
+### Change 1: Passive audits + agent guard check → `agent-done.sh` (SubagentStop)
+
+After each agent returns, `agent-done.sh` now automatically runs:
+- **Knowledge drift check (e1b):** After explorer role — compares exploration summary against `.moira/knowledge/project-model/summary.md`. Logs `knowledge_drift` warning to `status.yaml` if contradictions found. Non-blocking.
+- **Convention drift check (e1c):** After reviewer role — compares review findings against `.moira/knowledge/conventions/summary.md`. Logs `convention_drift` warning. Non-blocking.
+- **Agent guard check (d1):** After implementer role — runs `git diff --name-only` against protected paths (`design/CONSTITUTION.md`, `design/**`, `.moira/core/**`, `src/global/**`). Logs violations to `violations.log`. Injects additionalContext warning if violations found.
+
+These checks are now automatic — the orchestrator doesn't need to remember them.
+
+### Change 2: Completion processor enforcement → `pipeline-stop-guard.sh` (Stop)
+
+Extended to check: if pipeline is active AND `step_status` is not `completed`/`checkpointed` AND no completion processor has been dispatched (tracked via `completion_dispatched` field in current.yaml) → `decision: "block"` with reason to dispatch completion processor.
+
+The `completion_dispatched` field is set to `true` by `pipeline-tracker.sh` when it detects a completion processor dispatch (role detection via description pattern).
+
+### Change 3: Bash boundary → `guard-prevent.sh` (PreToolUse)
+
+Matcher expanded from `Read|Write|Edit` to `Read|Write|Edit|Bash`. For Bash tool calls:
+- If command operates on `.moira/` paths → allow (orchestrator manages state via Bash)
+- If command is anything else → deny with "Orchestrator cannot use Bash on project. Dispatch an agent instead."
+- Subagent bypass preserved (agents can use Bash freely).
+
+Settings.json matcher updated from `"Read|Write|Edit"` to `"Read|Write|Edit|Bash"`.
+
+### Change 4: Workspace change detection → `pipeline-dispatch.sh` (PreToolUse on Agent)
+
+Before each agent dispatch, checks `git status --porcelain` for external changes since last agent completed. If changes detected → injects additionalContext warning listing changed files. Advisory only (does not block) — user decision required for re-exploration.
+
+Previous git status snapshot stored in `.moira/state/.git-snapshot` by `agent-done.sh` after each agent.
+
+**Alternatives rejected:**
+- Stop hook with agent type for verification — costs extra tokens per stop, 60s timeout risk. Command-type hooks are sufficient for deterministic checks.
+- New pipeline-state.json file — `current.yaml` already tracks all needed state; adding another file would duplicate state (lesson from D-198).
+- Making passive audits blocking — they are informational (knowledge/convention drift). Blocking would halt pipeline for warnings. Instead, they inject context so the orchestrator is aware.
+
+**Reasoning:** The system already has 12 structural hooks covering agent ordering, artifact validation, state transitions, etc. The 4 remaining gaps are all cases where the orchestrator was expected to self-enforce prose instructions. Converting them to hooks follows the proven pattern: hooks handle deterministic checks, LLM handles judgment calls.

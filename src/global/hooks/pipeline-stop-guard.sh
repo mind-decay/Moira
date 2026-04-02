@@ -72,5 +72,24 @@ if [[ "$test_pending" == "true" ]]; then
   exit 0
 fi
 
+# --- Block stop if completion processor not dispatched (D-203) ---
+# After final gate, completion processor is mandatory (D-133).
+# Check: pipeline is active, step has progressed past initial classification,
+# and completion processor was never dispatched.
+step=$(grep '^step:' "$current_file" 2>/dev/null | sed 's/^step:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+step_status=$(grep '^step_status:' "$current_file" 2>/dev/null | sed 's/^step_status:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+completion_dispatched=$(grep '^completion_dispatched:' "$current_file" 2>/dev/null | sed 's/^completion_dispatched:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+
+# Only enforce after pipeline has progressed (not during classification/exploration)
+case "$step" in
+  classification|exploration|gather|scope|analysis) ;; # too early — allow stop
+  *)
+    if [[ "$completion_dispatched" != "true" && "$step_status" != "completed" && "$step_status" != "checkpointed" ]]; then
+      echo "{\"decision\":\"block\",\"reason\":\"PIPELINE COMPLIANCE (D-133): Cannot stop — completion processor not dispatched. You must dispatch the completion processor before ending the pipeline. Read completion.md and dispatch it as described in Section 7 of orchestrator.md.\"}"
+      exit 0
+    fi
+    ;;
+esac
+
 # Pipeline compliance OK — allow stop
 exit 0

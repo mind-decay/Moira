@@ -71,7 +71,8 @@ echo "$timestamp $tool_name ${file_path:--} ${file_size:-0}" >> "$state_dir/budg
 if command -v jq &>/dev/null; then
   transcript_path=$(echo "$input" | jq -r '.transcript_path // empty' 2>/dev/null) || transcript_path=""
   if [[ -n "$transcript_path" && -f "$transcript_path" ]]; then
-    # Last assistant message has current context usage
+    # Transcript is JSONL (one JSON object per line). Find last line with "usage" key.
+    # If format is not JSONL, jq fails silently and usage_json stays empty.
     usage_json=$(grep '"usage"' "$transcript_path" 2>/dev/null | tail -1 | jq -r '.message.usage // empty' 2>/dev/null) || usage_json=""
     if [[ -n "$usage_json" ]]; then
       input_tok=$(echo "$usage_json" | jq -r '.input_tokens // 0' 2>/dev/null) || input_tok=0
