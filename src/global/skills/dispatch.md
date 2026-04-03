@@ -236,6 +236,7 @@ Use the Agent tool:
   - description: "{Name} ({role}) — {brief task description}"
   - prompt: {assembled prompt from template above}
   - subagent_type: "general-purpose"
+  - model: "{role_model}"
 ```
 
 Wait for agent to return. Parse response.
@@ -249,6 +250,7 @@ Use the Agent tool:
   - description: "{Name} ({role}) — {brief task description}"
   - prompt: {assembled prompt}
   - subagent_type: "general-purpose"
+  - model: "{role_model}"
   - run_in_background: true
 ```
 
@@ -264,13 +266,37 @@ Send TWO Agent tool calls in a SINGLE message:
 Agent call 1:
   - description: "Hermes (explorer) — explore codebase for {task}"
   - prompt: {explorer prompt}
+  - subagent_type: "general-purpose"
+  - model: "sonnet"
 
 Agent call 2:
   - description: "Athena (analyst) — analyze requirements for {task}"
   - prompt: {analyst prompt}
+  - subagent_type: "general-purpose"
+  - model: "sonnet"
 ```
 
 Both are foreground. Orchestrator waits for BOTH to complete before proceeding.
+
+### Model Selection Per Role (D-214)
+
+Each agent role has a default model assignment. Include the `model` parameter in every Agent tool dispatch. The `pipeline-dispatch.sh` hook enforces this — dispatches without `model` are denied.
+
+| Role | Model | Reasoning |
+|------|-------|-----------|
+| classifier (Apollo) | haiku | Simple classification, structured output |
+| explorer (Hermes) | sonnet | Code reading, fact extraction |
+| analyst (Athena) | sonnet | Scope analysis |
+| architect (Metis) | opus | Complex architectural reasoning |
+| planner (Daedalus) | sonnet | Plan decomposition |
+| implementer (Hephaestus) | opus | Code writing, high accuracy needed |
+| reviewer (Themis) | sonnet | Code review, pattern matching |
+| tester (Aletheia) | sonnet | Test verification |
+| scribe (Calliope) | sonnet | Document synthesis |
+| reflector (Mnemosyne) | haiku | Structural metrics extraction |
+| auditor (Argus) | sonnet | System audit |
+
+The orchestrator does NOT override this table. Use the model value exactly as specified for each role.
 
 ---
 

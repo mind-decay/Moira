@@ -21,6 +21,31 @@ fi
 
 [[ -z "$prompt" ]] && exit 0
 
+# --- Detect /moira:resume invocation (D-216) ---
+# Create .guard-active and .session-lock BEFORE LLM processes resume.md
+if echo "$prompt" | grep -qiE '^\s*/moira[: ]resume\b'; then
+  state_dir=""
+  _dir="$PWD"
+  while [[ "$_dir" != "/" ]]; do
+    if [[ -d "$_dir/.moira/state" ]]; then
+      state_dir="$_dir/.moira/state"
+      break
+    fi
+    _dir=$(dirname "$_dir")
+  done
+  if [[ -n "$state_dir" && -f "$state_dir/current.yaml" ]]; then
+    _step_status=$(grep '^step_status:' "$state_dir/current.yaml" 2>/dev/null | sed 's/^step_status:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+    if [[ "$_step_status" == "checkpointed" ]]; then
+      # Activate guard enforcement for resumed pipeline
+      touch "$state_dir/.guard-active" 2>/dev/null || true
+      # Recreate session lock
+      _task_id=$(grep '^task_id:' "$state_dir/current.yaml" 2>/dev/null | sed 's/^task_id:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+      printf 'pid: session\nstarted: %s\ntask_id: %s\nttl: 86400\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" "$_task_id" > "$state_dir/.session-lock" 2>/dev/null || true
+    fi
+  fi
+  exit 0
+fi
+
 # --- Detect /moira:task invocation ---
 # Match: /moira:task <description> or /moira task <description>
 # The prompt from Skill invocation is the raw user input

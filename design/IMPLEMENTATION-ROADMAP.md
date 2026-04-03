@@ -664,6 +664,59 @@ Pipeline YAML and orchestrator updated for new flow: fewer batches, no per-phase
 
 ---
 
+## Phase 19: Orchestrator Compliance — Attention-Aware Injection & Mechanical Enforcement ✅
+
+**Status:** COMPLETE (2026-04-04). 1928/1928 Tier 1 tests pass (57 new compliance tests).
+
+**Goal:** Eliminate systematic pipeline step skipping at the two empirically observed failure points: pre-pipeline setup (skipped because task.md directs attention straight to classification) and post-pipeline completion (skipped because "final gate approved" = "done" in LLM attention).
+
+**Depends on:** Phase 18 (context optimization — hooks infrastructure, `!`command`` pattern). Phase 8 (hooks & self-monitoring — guard/dispatch hooks).
+
+**Context (D-211, D-212, D-213):** Real-world sessions show systematic failures concentrated at pipeline periphery. Main loop works (pipeline-driven iteration). Pre-pipeline steps (deep scan, temporal check) and post-pipeline steps (completion, reflection) are skipped because they sit outside LLM's natural attention flow. Root cause is attention placement, not file size.
+
+**Key design principle:** Maximize mechanical enforcement (hooks/shell), minimize reliance on LLM compliance. 7/8 enforcement points are fully mechanical; only bypass redirect remains prompt-only.
+
+### Chunk 1: Pre-Pipeline Checklist Injection (D-211 Layer 1) ✅
+- Created `lib/checklist.sh` — self-contained shell script, no library deps
+- Mechanically writes `graph_available` and `temporal_available` to `current.yaml` (no agent involvement)
+- Graceful degradation for all missing-file scenarios (5 paths tested)
+- `task.md` Step 3 injects checklist via `!`command`` preprocessing
+
+### Chunk 2: Hook Enforcement Extensions (D-211 L2, D-212, D-214) ✅
+- `pipeline-dispatch.sh`: subagent_type whitelist — deny non-general-purpose during active pipeline (D-212)
+- `pipeline-dispatch.sh`: model enforcement — deny dispatch without model param, suggest correct model per role table (D-214)
+- `pipeline-dispatch.sh`: pre-pipeline prerequisite check — deny first dispatch without `graph_available` set (D-211 L2)
+- `pipeline-dispatch.sh`: reflector dispatch tracking — writes `reflection_dispatched: true` to current.yaml
+- `pipeline-dispatch.sh`: unguarded dispatch advisory — warns on Moira-pattern dispatch without `.guard-active`
+- `pipeline-stop-guard.sh`: reflection enforcement — blocks stop for standard/full/decomposition without reflection (D-211 L2)
+- `orchestrator.md`: anti-rationalization rules for subagent_type and model
+
+### Chunk 3: Entry Point Fixes (D-215, D-216) ✅
+- `bypass.md` option 1: redirect to `/moira:task small:` via Skill tool, inline implementation removed (D-215)
+- `task-submit.sh`: mechanically creates `.guard-active` and `.session-lock` on `/moira:resume` detection (D-216)
+- `resume.md` Step 5b: documents guard-active as belt-and-suspenders fallback
+
+### Chunk 4: Model-Per-Role in Dispatch (D-214) ✅
+- Added model selection table to `dispatch.md`
+- Updated all 3 dispatch templates (foreground, background, parallel) with model parameter
+- Hook enforcement (Chunk 2) makes this mechanical, not prompt-dependent
+
+### Chunk 5: SIGPIPE Fix (D-213) ✅
+- Replaced 4 `echo|jq|while read` patterns with process substitution in `graph.sh`
+- Reordered 3 `grep|head|cut` → `grep|cut|head` pipe chains
+- Syntax verified, zero remaining antipatterns
+
+### Chunk 6: Tests ✅
+- Created `test-compliance-enforcement.sh` (57 tests)
+- Updated `test-hooks-functional.sh` to include model/subagent_type in dispatches
+- Updated `test-hooks-system.sh` with Phase 19 structural checks
+
+**Key decisions:** D-211 (attention-aware injection + hook enforcement), D-212 (subagent type whitelist), D-213 (SIGPIPE fix), D-214 (model-per-role), D-215 (bypass redirect), D-216 (resume guard-active).
+
+**Risk classification:** YELLOW (hook behavior changes, task.md preprocessing addition, entry point fixes). No constitutional impact. orchestrator.md unchanged — the change adds enforcement around it, not restructuring it.
+
+---
+
 ## Testing Strategy
 
 Three-layer architecture woven across phases (D-023):

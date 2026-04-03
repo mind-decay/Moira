@@ -216,6 +216,10 @@ Write to `.moira/state/current.yaml`:
 - Set `step_started_at` to current ISO 8601 timestamp
 - Preserve all other fields (task_id, pipeline, history, context_budget, etc.)
 
+Verify guard enforcement files exist (D-216 — normally created by `task-submit.sh` hook):
+- `.moira/state/.guard-active` — if missing, create it (empty file)
+- `.moira/state/.session-lock` — if missing, create it with `task_id`, `started`, `ttl: 86400`
+
 ### 5c. Re-enter Pipeline
 
 Read the orchestrator skill from `~/.claude/moira/skills/orchestrator.md`.

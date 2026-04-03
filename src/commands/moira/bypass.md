@@ -6,6 +6,7 @@ allowed-tools:
   - Agent
   - Read
   - Write
+  - Skill
 ---
 
 # Moira — Bypass (Escape Hatch)
@@ -53,11 +54,11 @@ Wait for the user to respond.
 - Do NOT infer intent from context
 - The number "2" is the ONLY bypass confirmation
 
-## Step 3a: If "1" — Quick Pipeline
+## Step 3a: If "1" — Quick Pipeline (D-215)
 
-Redirect to Quick Pipeline. This is equivalent to `/moira:task small: {description}`.
+Invoke `/moira:task small: {description}` using the Skill tool. This routes through the standard task entry point, ensuring all preprocessing (pre-pipeline checks, state scaffolding, guard activation) fires correctly.
 
-Read the orchestrator skill from `~/.claude/moira/skills/orchestrator.md` and execute the Quick Pipeline for this task.
+Do NOT read orchestrator.md directly — the task skill handles everything.
 
 ## Step 3b: If "2" — Bypass Confirmed
 

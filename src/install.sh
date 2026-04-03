@@ -242,7 +242,7 @@ verify() {
   fi
 
   # Check 2-5: lib files exist and are sourceable
-  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh task-init.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh reflection.sh judge.sh metrics.sh audit.sh retry.sh checkpoint.sh epic.sh upgrade.sh graph.sh preflight-assemble.sh markdown-utils.sh; do
+  for lib_file in state.sh yaml-utils.sh scaffold.sh task-id.sh task-init.sh knowledge.sh rules.sh bootstrap.sh quality.sh bench.sh budget.sh settings-merge.sh mcp.sh reflection.sh judge.sh metrics.sh audit.sh retry.sh checkpoint.sh epic.sh upgrade.sh graph.sh preflight-assemble.sh markdown-utils.sh checklist.sh; do
     ((checks_total++)) || true
     local lib_path="$MOIRA_HOME/lib/$lib_file"
     if [[ -f "$lib_path" ]]; then

@@ -158,6 +158,8 @@ If you catch yourself thinking:
 - "We already have enough quality..." → FOLLOW THE PIPELINE
 - "The user said to proceed with fixes..." → CREATE A NEW TASK
 - "This is just the second phase..." → EVERY PHASE IS A SEPARATE PIPELINE
+- "This agent type looks right for..." → ALWAYS use subagent_type: "general-purpose". NEVER match role names to Claude Code subagent types (D-212)
+- "I don't need to specify the model..." → EVERY dispatch MUST include model parameter per dispatch.md table (D-214)
 - "The analysis already identified what to do..." → CLASSIFICATION IS STILL REQUIRED
 - "The pipeline is done, I'll just clean up..." → DISPATCH COMPLETION PROCESSOR FIRST (Section 7)
 - "Telemetry/reflection can be skipped..." → COMPLETION PROCESSOR IS MANDATORY (D-133)

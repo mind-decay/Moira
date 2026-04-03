@@ -659,7 +659,7 @@ moira_graph_populate_knowledge() {
 
     # Smells -> Problematic
     if [[ "$smells_valid" == "true" ]]; then
-      echo "$smells_json" | jq -r '.[] | "\(.smell_type)\t\(.files | join(", "))\t\(.files[0] // "unknown")"' 2>/dev/null | while IFS=$'\t' read -r smell_type file_list first_file; do
+      while IFS=$'\t' read -r smell_type file_list first_file; do
         echo "### ${smell_type}: ${first_file}"
         echo "- **Category**: ${smell_type}"
         echo "- **Evidence**: ariadne structural analysis"
@@ -670,7 +670,7 @@ moira_graph_populate_knowledge() {
         echo "- **Consecutive passes**: 0"
         echo "- **Lifecycle**: NEW"
         echo ""
-      done
+      done < <(echo "$smells_json" | jq -r '.[] | "\(.smell_type)\t\(.files | join(", "))\t\(.files[0] // "unknown")"' 2>/dev/null)
     fi
 
     # Cycles -> Problematic
@@ -678,7 +678,7 @@ moira_graph_populate_knowledge() {
       local cycle_count
       cycle_count=$(echo "$cycles_json" | jq 'length' 2>/dev/null) || cycle_count=0
       if [[ "$cycle_count" -gt 0 ]]; then
-        echo "$cycles_json" | jq -r '.[] | join(", ")' 2>/dev/null | while IFS= read -r member_files; do
+        while IFS= read -r member_files; do
           echo "### Circular dependency: ${member_files}"
           echo "- **Category**: circular dependency"
           echo "- **Evidence**: ariadne structural analysis"
@@ -689,13 +689,13 @@ moira_graph_populate_knowledge() {
           echo "- **Consecutive passes**: 0"
           echo "- **Lifecycle**: NEW"
           echo ""
-        done
+        done < <(echo "$cycles_json" | jq -r '.[] | join(", ")' 2>/dev/null)
       fi
     fi
 
     # Hotspots -> Problematic (temporal only)
     if [[ "$hotspots_valid" == "true" ]]; then
-      echo "$hotspots_json" | jq -r '.[0:20] | .[] | .path' 2>/dev/null | while IFS= read -r hotspot_path; do
+      while IFS= read -r hotspot_path; do
         echo "### Hotspot: ${hotspot_path}"
         echo "- **Category**: churn hotspot"
         echo "- **Evidence**: ariadne temporal analysis"
@@ -706,7 +706,7 @@ moira_graph_populate_knowledge() {
         echo "- **Consecutive passes**: 0"
         echo "- **Lifecycle**: NEW"
         echo ""
-      done
+      done < <(echo "$hotspots_json" | jq -r '.[0:20] | .[] | .path' 2>/dev/null)
     fi
 
     echo "## Adequate"
@@ -714,7 +714,7 @@ moira_graph_populate_knowledge() {
 
     # Coupling -> Adequate (temporal only, confidence >= 0.5)
     if [[ "$coupling_valid" == "true" ]]; then
-      echo "$coupling_json" | jq -r '.[] | select(.confidence >= 0.5) | "\(.file_a)\t\(.file_b)\t\(.confidence)"' 2>/dev/null | while IFS=$'\t' read -r file_a file_b confidence; do
+      while IFS=$'\t' read -r file_a file_b confidence; do
         echo "### Co-change coupling: ${file_a} <-> ${file_b}"
         echo "- **Category**: structural coupling"
         echo "- **Evidence**: ariadne temporal analysis (confidence: ${confidence})"
@@ -725,7 +725,7 @@ moira_graph_populate_knowledge() {
         echo "- **Consecutive passes**: 0"
         echo "- **Lifecycle**: NEW"
         echo ""
-      done
+      done < <(echo "$coupling_json" | jq -r '.[] | select(.confidence >= 0.5) | "\(.file_a)\t\(.file_b)\t\(.confidence)"' 2>/dev/null)
     fi
 
     echo "## Strong"
@@ -1064,7 +1064,7 @@ moira_graph_diff_to_knowledge() {
 
       if [[ -f "$qm_full" ]] && grep -q "^## Problematic" "$qm_full" 2>/dev/null; then
         local prob_line
-        prob_line=$(grep -n "^## Problematic" "$qm_full" | head -1 | cut -d: -f1)
+        prob_line=$(grep -n "^## Problematic" "$qm_full" | cut -d: -f1 | head -1)
         if [[ -n "$prob_line" ]]; then
           local head_part tail_part
           head_part=$(head -n "$prob_line" "$qm_full")
@@ -1129,7 +1129,7 @@ moira_graph_diff_to_knowledge() {
 
       if [[ -f "$qm_full" ]] && grep -q "^## Problematic" "$qm_full" 2>/dev/null; then
         local prob_line
-        prob_line=$(grep -n "^## Problematic" "$qm_full" | head -1 | cut -d: -f1)
+        prob_line=$(grep -n "^## Problematic" "$qm_full" | cut -d: -f1 | head -1)
         if [[ -n "$prob_line" ]]; then
           local head_part tail_part
           head_part=$(head -n "$prob_line" "$qm_full")
@@ -1188,7 +1188,7 @@ moira_graph_diff_to_knowledge() {
 
     if [[ -n "$start_line" ]]; then
       # Find next ## section after start_line
-      end_line=$(tail -n +"$((start_line + 1))" "$pm_full" | grep -n "^## " | head -1 | cut -d: -f1)
+      end_line=$(tail -n +"$((start_line + 1))" "$pm_full" | grep -n "^## " | cut -d: -f1 | head -1)
 
       local pm_tmp
       pm_tmp=$(mktemp)

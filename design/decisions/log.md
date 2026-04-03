@@ -2460,3 +2460,179 @@ Path-scoped rules (already have `paths:` frontmatter) are reported as "already o
 - Quarantine directory (`.claude/rules.bak/`) — `claudeMdExcludes` already exists as a native mechanism. No need to invent another.
 
 **Reasoning:** The problem is real and measurable (tokens wasted, prompt dilution). The solution uses existing Claude Code mechanisms (`paths` frontmatter, `claudeMdExcludes`) rather than inventing new ones. Interactive triage respects user authority while being actionable. The shell function keeps analysis deterministic (D-042 pattern).
+
+## D-211: Orchestrator Compliance — Attention-Aware Injection and Mechanical Enforcement
+
+**Date:** 2026-04-03
+**Status:** Accepted
+**Context:** The orchestrator skill (`orchestrator.md`) is 977 lines. Real-world sessions show systematic step skipping: deep scan not executed despite `deep_scan_pending: true`, reflection skipped, wrong `subagent_type` used. Analysis of failure patterns reveals the root cause is NOT cognitive overload from file size — it's **structural placement of mandatory steps relative to LLM attention flow**.
+
+The main loop (step iteration, gate handling, lines 307-589) works reliably because it's pipeline-driven — the LLM iterates over `steps[]` from pipeline YAML. Failures cluster at two specific points:
+
+1. **Pre-pipeline periphery (lines 192-306).** Deep scan, temporal check, graph check — steps that must execute BEFORE the main loop. `task.md` Step 4 directs attention straight to classification (Apollo dispatch), completely bypassing pre-pipeline setup. The LLM anchors on the concrete classification steps in task.md and treats orchestrator.md pre-pipeline section as reference material, not binding protocol.
+
+2. **Post-pipeline periphery (lines 861-964).** Completion processor, reflection — steps that must execute AFTER the final gate. "Final gate approved" registers as "task done" in LLM's model of the world. Completion steps are after the perceived endpoint.
+
+Both failure modes share the same mechanism: mandatory steps are positioned outside the LLM's natural attention flow (before the start and after the perceived end of the "real work").
+
+**Decision:** Two-layer solution targeting the two failure clusters:
+
+**Layer 1 — Pre-pipeline injection via `!`command`` preprocessing.** `task.md` uses Claude Code skill preprocessing to inject a concrete, state-aware pre-pipeline checklist directly into the skill prompt. The checklist appears as a mandatory step BETWEEN task.md's state setup (Step 2) and classification dispatch (Step 4) — inside the attention flow, not outside it.
+
+```markdown
+## Step 3.5: Pre-Pipeline Checks — MANDATORY BEFORE CLASSIFICATION
+!`~/.claude/moira/lib/checklist.sh pre-pipeline`
+```
+
+`checklist.sh` reads `.moira/config.yaml` and `.moira/state/current.yaml` at skill load time and generates only the relevant steps:
+- If `deep_scan_pending=true` → concrete dispatch instructions for 4 background agents
+- If `graph_available` needs checking → concrete check instruction
+- If `audit_pending` → concrete prompt instruction
+- If nothing pending → "All pre-pipeline checks passed. Proceed to classification."
+
+The output replaces the placeholder before the LLM sees the skill. The LLM doesn't need to "read orchestrator.md and find the pre-pipeline section" — the steps are right there in task.md, in sequence, unavoidable.
+
+`!`command`` is skill preprocessing — executes before the LLM sees content, independent of `allowed-tools` restrictions. Verified working in Claude Code skill files with frontmatter.
+
+**Layer 2 — Hook enforcement for completion and step integrity.** Mechanical enforcement for post-pipeline steps and invariants that prompt placement alone cannot guarantee:
+
+- `pipeline-dispatch.sh` (PreToolUse:Agent): Whitelist enforcement — `subagent_type` must be `general-purpose` or empty during active pipeline (`.guard-active` exists). Block any other type. Covers all current and future plugins/agent types without maintaining a deny list (D-212).
+- `pipeline-dispatch.sh`: On first dispatch (no `last_role` in state), verify pre-pipeline prerequisites are recorded in `current.yaml`. Block if missing.
+- `pipeline-stop-guard.sh` (Stop): Verify completion processor was dispatched. Verify reflection was dispatched when `post.reflection` is defined in pipeline YAML. Block stop if either missing.
+
+**Layer interaction:** Layer 1 solves pre-pipeline skipping by placing steps inside the attention flow. Layer 2 solves post-pipeline skipping mechanically (hook blocks stop until completion is done). Together they cover both failure clusters without requiring the LLM to reliably follow a 977-line instruction file end-to-end.
+
+**What this does NOT change:**
+- `orchestrator.md` remains a single file — the main loop works and doesn't need splitting for compliance reasons
+- File split into `orchestrator/` directory remains valuable for *maintainability* but is not a compliance mechanism — it can be done independently as a separate housekeeping task
+- The main loop (step iteration) is unchanged — it's pipeline-driven and working
+
+**Alternatives rejected:**
+- `@import` in orchestrator.md — verified that `@import` only works in CLAUDE.md files, not in files loaded via Read tool. orchestrator.md is loaded via Read in task.md.
+- File split as compliance mechanism — splitting 977 lines into 10 files that are all loaded together still gives 977 lines in context. Split helps maintainability, not compliance.
+- `permissions.deny` for specific subagent types — blacklist approach is fragile; user's plugin set is unknown and changes. Whitelist (allow only `general-purpose`) in hook is robust.
+- Full checklist of all 977 lines via preprocessing — main loop works fine without preprocessing. Only pre-pipeline steps need injection. Over-engineering the parts that aren't broken.
+
+**Reasoning:** The solution targets the empirically observed failure modes with the minimum effective mechanism for each. Pre-pipeline failures are an attention problem → solve with attention (place steps in the flow). Post-pipeline failures are a stopping problem → solve with a stop gate (hook blocks premature stop). The diagnosis shifted from "file too long" to "mandatory steps in wrong position relative to attention" — this is why the main loop works (it's the attention center) while periphery steps don't.
+
+## D-212: Subagent Type Enforcement — Whitelist via Hook
+
+**Date:** 2026-04-03
+**Status:** Accepted
+**Context:** During pipeline execution, the orchestrator dispatched Hermes (explorer role) using `subagent_type: "feature-dev:code-explorer"` instead of `"general-purpose"` as specified in `dispatch.md`. The LLM saw the role name "explorer," saw an available `code-explorer` subagent type in Claude Code, and chose the semantically similar name. This bypasses Moira's agent prompt assembly — the dispatched agent gets the plugin's built-in behavior instead of Hermes's carefully constructed prompt.
+
+**Decision:** Whitelist enforcement in `pipeline-dispatch.sh` (PreToolUse:Agent). During active pipeline (`.guard-active` exists), validate `tool_input.subagent_type`:
+- If `general-purpose` or empty/null → allow
+- If any other value → exit 2 with blocking error: "Pipeline agents must use subagent_type: general-purpose. Got: {type}."
+
+Defense-in-depth: add anti-rationalization rule to orchestrator identity section — "NEVER match agent role names to Claude Code subagent types."
+
+**Alternatives rejected:**
+- `permissions.deny` blacklist (e.g., `Agent(feature-dev:code-explorer)`) — fragile. User's plugin set is unknown and changes over time. Every new plugin with an agent type would need a new deny entry. Whitelist is robust by default.
+- Prompt-only fix — the exact same pattern that failed.
+- Hook-only without prompt — works mechanically but the LLM won't understand WHY it's blocked. May waste turns on retries. Prompt + hook = defense-in-depth (D-065).
+
+**Reasoning:** Whitelist (allow only X) is inherently more robust than blacklist (deny all known Y). The hook receives `subagent_type` in `tool_input` (verified via Claude Code documentation). One check covers all current and future plugins without maintenance.
+
+## D-213: SIGPIPE Fix in graph.sh
+
+**Date:** 2026-04-03
+**Status:** Accepted
+**Context:** `moira_graph_populate_knowledge` and `moira_deepscan_prepare_context` in `graph.sh` fail with exit code 141 (SIGPIPE). The pattern `echo "$data" | jq ... | while read` causes SIGPIPE when the while-loop terminates before jq finishes writing. Similarly, `grep | head | cut` pipe chains cause SIGPIPE when head closes the pipe.
+
+**Decision:** Replace all `echo | jq | while read` patterns with process substitution:
+```bash
+while IFS= read -r line; do ...
+done < <(echo "$data" | jq ... 2>/dev/null)
+```
+Fix `grep | head | cut` ordering to `grep | cut | head` so the early-terminating command is last in the chain.
+
+**Alternatives rejected:**
+- `set -o pipefail` + trap SIGPIPE — masks the problem, doesn't fix the pipe architecture.
+- Temporary files instead of pipes — unnecessary complexity for this use case.
+
+**Reasoning:** Process substitution isolates the producer from the consumer. If the while-loop exits, the subshell producing data can write to /dev/null instead of a broken pipe. Standard bash pattern for this class of bug.
+
+## D-214: Model-Per-Role in Agent Dispatch
+
+**Date:** 2026-04-03
+**Status:** Accepted
+**Context:** All pipeline agents currently inherit the session model. The Agent tool already supports a `model` parameter (`sonnet`, `opus`, `haiku`) that overrides the model per dispatch — no AGENT.md definitions needed. Using cheaper models for simpler agents (classifier, reflector) reduces cost without quality loss. Using stronger models for complex agents (architect, implementer) improves output.
+
+**Decision:** Add model-per-role table to `dispatch.md`. Each role has a default model:
+
+| Role | Model | Reasoning |
+|------|-------|-----------|
+| Apollo (classifier) | haiku | Simple classification, structured output |
+| Hermes (explorer) | sonnet | Code reading, fact extraction |
+| Athena (analyst) | sonnet | Scope analysis |
+| Metis (architect) | opus | Complex architectural reasoning |
+| Daedalus (planner) | sonnet | Plan decomposition |
+| Hephaestus (implementer) | opus | Code writing, high accuracy needed |
+| Themis (reviewer) | sonnet | Code review, pattern matching |
+| Calliope (scribe) | sonnet | Document synthesis |
+| Mnemosyne (reflector) | haiku | Structural metrics extraction |
+
+Dispatch templates include `model: {role_model}` in Agent tool call. Orchestrator does NOT override model — it uses the dispatch template value.
+
+**Alternatives rejected:**
+- AGENT.md custom agent definitions — solves model selection but introduces: auto-invocation risk (Claude delegates to Moira agents outside pipeline), double maintenance (role YAML + AGENT.md), unknown prompt+body interaction, CLAUDE.md inheritance uncertainty. Over-engineering for a problem solvable with one Agent tool parameter.
+- Session-level model only — wastes cost on simple agents, limits quality for complex ones.
+- Config-driven model selection — over-engineering. The table is static by design; users who want to override can edit dispatch.md.
+
+**Reasoning:** The Agent tool's `model` parameter already exists and works. This is a documentation change to dispatch.md, not an infrastructure change. Cost optimization with zero architectural risk.
+
+## D-215: Bypass Option 1 Redirect to /moira:task
+
+**Date:** 2026-04-03
+**Status:** Accepted
+**Context:** `bypass.md` option 1 ("Use Quick Pipeline instead") re-implements the task entry flow inline: "Read the orchestrator skill from `~/.claude/moira/skills/orchestrator.md` and execute the Quick Pipeline." This inline re-implementation bypasses task.md preprocessing — the `!`command`` checklist injection (D-211) won't fire, pre-pipeline steps will be skipped.
+
+**Decision:** Replace bypass.md option 1 inline implementation with a redirect to `/moira:task small: {description}`. This routes through task.md, which has preprocessing. The user's original task description is passed through.
+
+**Alternatives rejected:**
+- Duplicate `!`command`` preprocessing in bypass.md — violates DRY, two places to maintain.
+- Accept the gap — bypass option 1 is supposed to be the "recommended" path, it should have full pipeline quality.
+
+**Reasoning:** bypass.md already says option 1 is "equivalent to `/moira:task small:`". Making it actually invoke that path eliminates the gap and ensures all preprocessing fires.
+
+## D-216: Resume Guard-Active Restoration
+
+**Date:** 2026-04-03
+**Status:** Accepted
+**Context:** Pre-existing bug. After checkpoint, `session-cleanup.sh` deletes `.guard-active`. When `/moira:resume` re-enters the pipeline at Step 5c, `.guard-active` does not exist. This means:
+- `guard.sh` (PostToolUse) won't fire — orchestrator boundary violations undetected
+- `pipeline-dispatch.sh` (PreToolUse:Agent) subagent_type whitelist (D-212) won't fire — wrong types allowed
+- No enforcement until session ends
+
+**Decision:** Add `.guard-active` creation to `resume.md` Step 5b (Update State), alongside the existing `current.yaml` writes. Same pattern as task.md Step 2 / task-submit.sh hook.
+
+**Alternatives rejected:**
+- Create in resume.md Step 5c (Re-enter Pipeline) — too late, state update should be atomic with guard activation.
+- Rely on orchestrator.md Pre-Pipeline Setup to create it — resume skips pre-pipeline (enters mid-pipeline), this step won't fire.
+
+**Reasoning:** Guard enforcement must be active whenever a pipeline is running. Resume re-enters a pipeline. Therefore resume must activate guard. Simple fix — one file write.
+
+**Implementation note (2026-04-04):** Automated via `task-submit.sh` hook — detects `/moira:resume` invocation, checks for checkpointed status, creates `.guard-active` and `.session-lock` before LLM processes resume.md. Zero agent involvement.
+
+---
+
+### D-217: Mechanical Enforcement Over Prompt Compliance
+
+**Date:** 2026-04-04
+**Status:** Accepted
+
+**Context:** Phase 19 implementation revealed that 6 of 8 enforcement points could be fully mechanical (hooks/shell), not just prompt instructions. Prior experience confirmed that LLMs are unreliable at structural tasks (writing specific YAML fields, remembering to include parameters).
+
+**Decision:** Maximize mechanical enforcement:
+- `checklist.sh` mechanically writes `graph_available` and `temporal_available` to `current.yaml` — no agent instruction needed
+- `pipeline-dispatch.sh` mechanically enforces `subagent_type` whitelist, `model` parameter, and pre-pipeline prerequisites via deny
+- `pipeline-stop-guard.sh` mechanically blocks stop without reflection for pipelines that require it
+- `task-submit.sh` mechanically creates `.guard-active` on `/moira:resume`
+- `pipeline-dispatch.sh` mechanically writes `reflection_dispatched` marker on reflector dispatch
+
+Only 2 of 8 enforcement points remain prompt-only:
+- Model-per-role table in dispatch.md (mechanical enforcement via hook deny provides full backup)
+- Bypass redirect to /moira:task (low risk — inline implementation removed, advisory hook detects pattern)
+
+**Reasoning:** "Prompt rules don't guarantee compliance; use hooks/code for critical enforcement." Each enforcement point should be as mechanical as possible. Hooks that deny provide clear error messages telling the LLM exactly what to fix, which is more reliable than hoping the LLM follows a 674-line instruction file.

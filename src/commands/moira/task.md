@@ -43,15 +43,23 @@ If the hook message is NOT present (fallback for cases where the hook didn't fir
 - Write `current.yaml`: task_id, pipeline: null, step: classification, step_status: pending
 - Create `.session-lock` and `.guard-active`
 
-## Step 3: Load Orchestrator Skill
+## Step 3: Pre-Pipeline Checks (D-211 — auto-injected)
+
+!`~/.claude/moira/lib/checklist.sh pre-pipeline`
+
+The output above lists pre-pipeline check results. Mechanical checks (graph availability) are already written to `current.yaml` by the script. Execute any items marked PENDING before proceeding. If the output says "All pre-pipeline checks passed" — proceed immediately.
+
+If the command above produced no output or failed, write `graph_available: false` and `temporal_available: false` to `.moira/state/current.yaml` and proceed.
+
+## Step 4: Load Orchestrator Skill
 
 Read the orchestrator skill from `~/.claude/moira/skills/orchestrator.md`.
 
 This is the brain of the system. Follow its instructions exactly.
 
-## Step 4: Begin Pipeline Execution
+## Step 5: Begin Pipeline Execution
 
-Following the orchestrator skill:
+Following the orchestrator skill (Section 2 — Pipeline Execution Loop):
 
 1. Read the pipeline definition for classification from `~/.claude/moira/core/pipelines/`
 2. Construct the classifier prompt:

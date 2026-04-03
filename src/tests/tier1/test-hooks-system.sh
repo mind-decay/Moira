@@ -195,6 +195,18 @@ assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "MOIRA_PREFLIGHT" "task-
 assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "moira_preflight_collect" "task-submit.sh: calls preflight collection (D-199)"
 assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "moira_preflight_assemble_apollo" "task-submit.sh: assembles Apollo instruction (D-200)"
 
+# Phase 19 compliance enforcement (D-211, D-212, D-214, D-216)
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "subagent_type" "pipeline-dispatch.sh: subagent type whitelist (D-212)"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "D-212" "pipeline-dispatch.sh: references D-212"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "expected_model" "pipeline-dispatch.sh: model enforcement table (D-214)"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "D-214" "pipeline-dispatch.sh: references D-214"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "graph_available" "pipeline-dispatch.sh: pre-pipeline prerequisite check (D-211)"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "reflection_dispatched" "pipeline-dispatch.sh: tracks reflector dispatch (D-211)"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-stop-guard.sh" "reflection_dispatched" "pipeline-stop-guard.sh: reflection enforcement (D-211)"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-stop-guard.sh" "D-211" "pipeline-stop-guard.sh: references D-211"
+assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "moira.*resume" "task-submit.sh: handles /moira:resume (D-216)"
+assert_file_exists "$MOIRA_HOME/lib/checklist.sh" "checklist.sh installed (D-211)"
+
 # Gate context hook (D-201)
 assert_file_contains "$MOIRA_HOME/hooks/gate-context.sh" "gate_pending" "gate-context.sh: checks gate_pending"
 assert_file_contains "$MOIRA_HOME/hooks/gate-context.sh" "GATE_DATA" "gate-context.sh: injects GATE_DATA"

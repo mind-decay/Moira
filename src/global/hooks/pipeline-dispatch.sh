@@ -49,7 +49,35 @@ find_state_dir() {
 }
 
 state_dir=$(find_state_dir) || exit 0
-[[ ! -f "$state_dir/.guard-active" ]] && exit 0
+
+# ═══════════════════════════════════════════════════════════
+# UNGUARDED MOIRA DISPATCH ADVISORY — detect pipeline dispatch without guard
+# ═══════════════════════════════════════════════════════════
+if [[ ! -f "$state_dir/.guard-active" ]]; then
+  if echo "$description" | grep -qE '\([a-z_]+\) —' 2>/dev/null; then
+    echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":"WARNING: Moira agent dispatch detected but no active pipeline guard. If you meant to run a pipeline, use /moira:task instead."}}'
+  fi
+  exit 0
+fi
+
+# ═══════���═══════════════════════════════════════════════════
+# SUBAGENT TYPE WHITELIST (D-212) — block non-general-purpose during pipeline
+# ══════════════════════════���════════════════════════════════
+subagent_type=""
+if command -v jq &>/dev/null; then
+  subagent_type=$(echo "$input" | jq -r '.tool_input.subagent_type // empty' 2>/dev/null) || subagent_type=""
+else
+  subagent_type=$(echo "$input" | grep -o '"subagent_type"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"subagent_type"[[:space:]]*:[[:space:]]*"//;s/"$//' 2>/dev/null) || subagent_type=""
+fi
+
+case "$subagent_type" in
+  ""|"null"|"general-purpose") ;; # OK
+  *)
+    subagent_escaped=$(printf '%s' "$subagent_type" | sed 's/\\/\\\\/g; s/"/\\"/g' 2>/dev/null) || subagent_escaped="$subagent_type"
+    echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"PIPELINE COMPLIANCE (D-212): Pipeline agents MUST use subagent_type: general-purpose. Got: ${subagent_escaped}. NEVER match agent role names to Claude Code subagent types — Moira agents are dispatched as general-purpose with assembled prompts.\"}}"
+    exit 0
+    ;;
+esac
 
 # --- Extract agent role from description ---
 # Moira format: "Name (role) — description"
@@ -58,7 +86,20 @@ role=$(echo "$description" | grep -oE '\([a-z_]+\)' | head -1 | tr -d '()' 2>/de
 
 # Always-allowed roles (outside pipeline step sequence)
 case "$role" in
-  reflector|auditor) exit 0 ;;
+  reflector)
+    # Record reflection dispatch for stop-guard (D-211)
+    current_file="$state_dir/current.yaml"
+    if [[ -f "$current_file" ]]; then
+      # Inline _yaml_set not yet defined here — use simple append/sed
+      if grep -q "^reflection_dispatched:" "$current_file" 2>/dev/null; then
+        sed -i.bak 's|^reflection_dispatched:.*|reflection_dispatched: true|' "$current_file" 2>/dev/null
+        rm -f "${current_file}.bak" 2>/dev/null
+      else
+        printf 'reflection_dispatched: true\n' >> "$current_file" 2>/dev/null
+      fi
+    fi
+    exit 0 ;;
+  auditor) exit 0 ;;
 esac
 
 # --- Inline YAML field updater (D-198: no library dependency) ---
@@ -76,6 +117,15 @@ _yaml_set() {
 
 _yaml_get() {
   grep "^${2}:" "$1" 2>/dev/null | sed "s/^${2}:[[:space:]]*//" | tr -d '"' | tr -d "'" 2>/dev/null
+}
+
+# --- Helper: output DENY ---
+deny() {
+  local reason="$1"
+  local escaped
+  escaped=$(echo "$reason" | sed 's/\\/\\\\/g; s/"/\\"/g' 2>/dev/null) || escaped="$reason"
+  echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"$escaped\"}}"
+  exit 0
 }
 
 # --- Read tracker state from current.yaml (D-198: consolidated) ---
@@ -107,21 +157,39 @@ if [[ -f "$current_file" ]]; then
   fi
 fi
 
+# ═══════════════════════════════════════════════════════════
+# MODEL ENFORCEMENT (D-214) — deny dispatch without model parameter
+# ═══════════════════════════════════════════════════════════
+model=""
+if command -v jq &>/dev/null; then
+  model=$(echo "$input" | jq -r '.tool_input.model // empty' 2>/dev/null) || model=""
+else
+  model=$(echo "$input" | grep -o '"model"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"model"[[:space:]]*:[[:space:]]*"//;s/"$//' 2>/dev/null) || model=""
+fi
+
+if [[ -z "$model" || "$model" == "null" ]]; then
+  expected_model=""
+  case "$role" in
+    classifier|reflector)                              expected_model="haiku" ;;
+    architect|implementer)                             expected_model="opus" ;;
+    explorer|analyst|planner|reviewer|tester|scribe|auditor) expected_model="sonnet" ;;
+  esac
+  if [[ -n "$expected_model" ]]; then
+    deny "PIPELINE COMPLIANCE (D-214): Model parameter missing. For $role, use model: $expected_model. All pipeline dispatches MUST include the model parameter per dispatch.md Model Selection table."
+  fi
+fi
+
 # No pipeline = probably first dispatch (classifier) — allow and write transition
 [[ -z "$pipeline" || "$pipeline" == "null" ]] && {
+  # D-211 L2: Verify pre-pipeline prerequisites on first dispatch
+  graph_available=$(_yaml_get "$current_file" "graph_available") || true
+  if [[ -z "$graph_available" || "$graph_available" == "null" ]]; then
+    deny "PIPELINE COMPLIANCE (D-211): Pre-pipeline checks not completed. graph_available not set in current.yaml. Ensure Step 3 (pre-pipeline checklist) was executed before classification dispatch."
+  fi
   # Write dispatched_role for agent-done.sh
   if [[ -f "$current_file" ]]; then
     _yaml_set "$current_file" "dispatched_role" "$role"
   fi
-  exit 0
-}
-
-# --- Helper: output DENY ---
-deny() {
-  local reason="$1"
-  local escaped
-  escaped=$(echo "$reason" | sed 's/\\/\\\\/g; s/"/\\"/g' 2>/dev/null) || escaped="$reason"
-  echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"$escaped\"}}"
   exit 0
 }
 

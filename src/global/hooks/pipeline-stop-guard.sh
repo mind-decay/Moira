@@ -91,5 +91,20 @@ case "$step" in
     ;;
 esac
 
+# --- Block stop if reflection not dispatched when required (D-211 Layer 2) ---
+reflection_dispatched=$(grep '^reflection_dispatched:' "$current_file" 2>/dev/null | sed 's/^reflection_dispatched:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+pipeline=$(grep '^pipeline:' "$current_file" 2>/dev/null | sed 's/^pipeline:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+
+# Standard, full, decomposition pipelines require post-pipeline reflection
+# Quick and analytical do not
+case "$pipeline" in
+  standard|full|decomposition)
+    if [[ "$reflection_dispatched" != "true" && "$step_status" != "checkpointed" ]]; then
+      echo "{\"decision\":\"block\",\"reason\":\"PIPELINE COMPLIANCE (D-211): Cannot stop — reflection not dispatched. Pipeline '$pipeline' requires post-pipeline reflection. Dispatch Mnemosyne (reflector) before ending the pipeline.\"}"
+      exit 0
+    fi
+    ;;
+esac
+
 # Pipeline compliance OK — allow stop
 exit 0

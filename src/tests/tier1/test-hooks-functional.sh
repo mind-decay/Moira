@@ -26,6 +26,7 @@ setup_state() {
   echo "task_id: test-$1" >> "$state_dir/current.yaml"
   echo "step: classification" >> "$state_dir/current.yaml"
   echo "step_status: in_progress" >> "$state_dir/current.yaml"
+  echo "graph_available: true" >> "$state_dir/current.yaml"
   touch "$state_dir/.guard-active"
   echo "$state_dir"
 }
@@ -57,7 +58,14 @@ run_dispatch() {
     done <<< "$tracker_content"
   fi
 
-  local json="{\"tool_name\":\"Agent\",\"tool_input\":{\"description\":\"$description\",\"run_in_background\":false}}"
+  # Determine model from role in description (D-214)
+  local _role _model="sonnet"
+  _role=$(echo "$description" | grep -oE '\([a-z_]+\)' | head -1 | tr -d '()' 2>/dev/null) || true
+  case "$_role" in
+    classifier|reflector) _model="haiku" ;;
+    architect|implementer) _model="opus" ;;
+  esac
+  local json="{\"tool_name\":\"Agent\",\"tool_input\":{\"description\":\"$description\",\"subagent_type\":\"general-purpose\",\"model\":\"$_model\",\"run_in_background\":false}}"
   (cd "$(dirname "$(dirname "$state_dir")")" && echo "$json" | bash "$SRC_DIR/global/hooks/pipeline-dispatch.sh" 2>/dev/null) || true
 }
 
