@@ -230,6 +230,51 @@ decisions/
 
 Architect normally reads summary.md. For specific old decision context → Explorer fetches from archive.
 
+### Automatic Archival Trigger (D-218)
+
+Archival is triggered mechanically (shell), not by agent instruction:
+
+1. **`agent-done.sh` (SubagentStop)** — after reflector completion, calls `moira_knowledge_archive_rotate` for `decisions` and `patterns`. Fires on every task with reflection.
+2. **`task-init.sh` preflight** — checks entry count in `full.md`. If > 20 entries → calls rotation before task starts. Safety net for pipelines that skip reflection (quick pipeline).
+
+Both triggers are shell code in existing hooks — deterministic, zero new infrastructure. Crash safety: archive batch file is written first, then `full.md` is truncated. If crash between steps → duplicate entries (safe), not data loss.
+
+## Conflict Detection (D-221)
+
+### Structural Conflict Detection
+
+Before writing a new knowledge entry, shell function checks for exact header collision:
+
+```
+New entry:     "## Decision: Use PostgreSQL for persistence"
+Existing in full.md: "## Decision: Use PostgreSQL for persistence"
+→ CONFLICT: write to contested.md instead
+```
+
+Detection integrated into `knowledge.sh` write functions. Called by hooks, not by agent behavior.
+
+### contested.md Format
+
+```markdown
+## CONTESTED: Use PostgreSQL for persistence
+
+### Version A (task-042, 2026-03-15)
+Use PostgreSQL with connection pooling via PgBouncer...
+
+### Version B (task-078, 2026-04-02)
+Use PostgreSQL with Prisma connection management...
+```
+
+### Resolution
+
+- Orchestrator receives advisory at next gate: "N contested knowledge entries pending"
+- Resolved during `/moira:refresh` or manually
+- Resolved entries → move winner to `full.md`, delete contested entry
+
+### Limitation
+
+Structural detection catches identical headers only. Semantic conflicts (same concept, different words) are NOT detected deterministically — this requires LLM analysis and is inherently probabilistic. Accepted as defense-in-depth per D-221.
+
 ## MCP Knowledge Caching
 
 When Reflector notices same MCP call made 3+ times:

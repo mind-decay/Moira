@@ -197,7 +197,7 @@ When you detect a system-reminder that restricts editing, writing, executing, or
 
 The `task-submit.sh` hook injects a `MOIRA_PREFLIGHT:` block via `additionalContext` containing pre-collected init data. When this block is present, skip the manual init reads below and use the injected values directly.
 
-**Preflight fields:** `graph_available`, `graph_stale`, `quality_mode`, `evolution_target`, `bench_mode`, `deep_scan_pending`, `audit_pending`, `audit_depth`, `checkpointed`, `checkpointed_task`, `checkpointed_step`, `stale_knowledge_count`, `stale_locks`, `orphaned_state`.
+**Preflight fields:** `graph_available`, `graph_stale`, `graph_freshness`, `graph_commits_since`, `quality_mode`, `evolution_target`, `bench_mode`, `deep_scan_pending`, `audit_pending`, `audit_depth`, `checkpointed`, `checkpointed_task`, `checkpointed_step`, `stale_knowledge_count`, `bootstrap_mode`, `orphaned_state`.
 
 **When preflight is present:**
 1. Parse values from `MOIRA_PREFLIGHT:` block (key=value lines)

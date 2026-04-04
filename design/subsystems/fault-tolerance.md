@@ -104,6 +104,14 @@ Need from you:
 4. Orchestrator spawns new agent for remaining work
 5. New agent reads partial results as context
 
+**During bootstrap (D-223):**
+On large projects (>5000 files), scanner agents may hit budget limits:
+1. `task-init.sh` detects project size and sets `bootstrap_mode: progressive`
+2. Pre-collection (bash) gathers Ariadne clusters as scanning units
+3. Scanner agents receive pre-collected data, work within tighter budgets
+4. If budget exceeded mid-scan: partial results are valid (incremental writes), tagged `partial_scan: true`
+5. Subsequent task explorations fill knowledge gaps lazily (no re-scan needed)
+
 ### E5-QUALITY: Quality Gate Failed
 
 **MAX RETRY: max_attempts=3 for Standard/Full/Decomposition (1 original + 2 retries), max_attempts=2 for Quick (1 original + 1 retry). See D-095.**

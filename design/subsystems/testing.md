@@ -399,6 +399,9 @@ tier_1:  # structural smoke only
   - config_defaults
   - new_test_cases
   - rubric_updates
+  - hook_logic_change    # D-218–D-225: team readiness hooks
+  - lock_system_change   # D-220: file-per-lock
+  - cleanup_logic_change # D-219: task state cleanup
 
 tier_2:  # structural + targeted bench
   - agent_prompt_change:
@@ -952,6 +955,66 @@ phase_10:  # Reflection Engine
     - /moira health command (full version with judge-based quality scores)
   rationale: "Judge evaluates the same dimensions as Reflector, benefits from its patterns"
 ```
+
+### Phase 16 — Team Readiness Tests (D-218–D-225)
+
+Tier 1 structural tests for team readiness features:
+
+```yaml
+test-knowledge-archival.sh:     # D-218
+  - rotation_creates_archive_batch
+  - rotation_preserves_total_entry_count
+  - crash_recovery_duplicate_not_loss
+  - second_rotation_increments_batch_number
+  - preflight_trigger_on_threshold_exceeded
+
+test-task-cleanup.sh:           # D-219
+  - completed_old_tasks_cleaned
+  - completed_recent_tasks_preserved
+  - checkpointed_tasks_never_cleaned
+  - in_progress_tasks_never_cleaned
+  - archive_failure_aborts_deletion
+  - epoch_based_date_comparison
+
+test-file-locking.sh:           # D-220
+  - lock_creation_from_reserved_files
+  - conflict_detection_cross_task
+  - self_exclusion_same_task
+  - stale_lock_detection_dead_session
+  - stale_lock_auto_cleanup
+  - no_race_condition_different_files
+  - lock_release_on_completion
+  - lock_release_on_session_end
+
+test-knowledge-conflict.sh:     # D-221
+  - duplicate_header_goes_to_contested
+  - different_header_goes_to_full
+  - contested_format_includes_both_versions
+  - pattern_header_conflict_detected
+  - decision_header_conflict_detected
+
+test-metrics-retention.sh:      # D-222
+  - annual_aggregation_on_threshold
+  - monthly_files_deleted_after_aggregation
+  - annual_file_format_correct
+  - retention_config_respected
+
+test-bootstrap-progressive.sh:  # D-223
+  - large_project_detection_threshold
+  - progressive_mode_set_in_preflight
+  - standard_mode_below_threshold
+
+test-graph-freshness.sh:        # D-224
+  - graduated_staleness_levels
+  - commit_count_calculation
+
+test-developer-identity.sh:     # D-225
+  - git_username_recorded
+  - user_env_fallback
+  - unknown_fallback
+```
+
+Total: 8 test files, ~79 assertions, 0 tokens, ~2 seconds execution.
 
 ### Constitutional Compliance
 

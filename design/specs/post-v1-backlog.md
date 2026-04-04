@@ -17,7 +17,7 @@ All items deferred from Phases 1-12. Organized by priority. To be addressed afte
 |---|------|--------|--------|-------|
 | 5 | AGENTS.md project adaptation | Phase 5, D-044 | Medium | Global agent definitions work; need task history to know what adaptations matter |
 | 6 | Team adoption flow | Phase 5 | Medium | Basic "already initialized" check exists; full flow needs multi-developer infrastructure |
-| 7 | Multi-developer lock system | D-068 | Medium | Branch isolation is interim; locks need TTL, stale detection, conflict UX |
+| 7 | Multi-developer lock system | D-068, D-220, D-226 | Medium | Designed (D-220) but deferred (D-226) — git merge conflicts sufficient. Revisit if team usage produces evidence of need |
 | 8 | Checkpoint + reflection integration | Phase 10 | Medium | Reflection runs post-completion; checkpoint is mid-pipeline; need to decide what reflection data to preserve across sessions |
 | 9 | Team-shared reflection observations | Phase 10 | Medium | Currently per-developer (gitignored); sharing requires merge strategy |
 | 10 | Worktree isolation for parallel implementers | Phase 3 | Medium | Sequential execution is safe; worktrees enable true parallel safety |
@@ -46,5 +46,5 @@ These are NOT deferred — they are impossible or intentionally not designed:
 - **Budget-based pipeline selection** — not designed by choice (classification determines pipeline)
 - **MCP server install/config** — out of scope (Moira catalogs, doesn't install)
 - **Runtime MCP call interception** — not possible in Claude Code
-- **PreToolUse hooks** — Claude Code only supports PostToolUse
-- **Agent-level tool tracking** — guard.sh cannot distinguish orchestrator vs agent calls
+- ~~**PreToolUse hooks** — Claude Code only supports PostToolUse~~ **OUTDATED:** PreToolUse hooks are fully supported and extensively used by Moira (pipeline-dispatch.sh, guard-prevent.sh). Removed from this list.
+- **Agent-level tool tracking** — guard.sh cannot distinguish orchestrator vs agent calls (mitigated via `agent_id` bypass, D-183)

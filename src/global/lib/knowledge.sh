@@ -152,6 +152,22 @@ moira_knowledge_write() {
 
   _moira_valid_type "$ktype" || return 1
 
+  # Guard clause: structural conflict detection (D-221)
+  # SCOPED: only fires for decisions/patterns at L2 (full.md) level.
+  # All other callers (graph.sh quality-map/L1, bootstrap.sh project-model/L0, skills) bypass.
+  if [[ "$level" == "L2" && ( "$ktype" == "decisions" || "$ktype" == "patterns" ) ]]; then
+    local _header
+    _header=$(grep -m1 '^## ' "$content_file" 2>/dev/null) || _header=""
+    if [[ -n "$_header" ]]; then
+      local _full_file="${knowledge_dir}/${ktype}/full.md"
+      if ! moira_knowledge_conflict_check "$_header" "$_full_file"; then
+        # Conflict detected — redirect to contested.md
+        moira_knowledge_write_contested "$knowledge_dir" "$ktype" "$_header" "$content_file" "$task_id"
+        return 0
+      fi
+    fi
+  fi
+
   local level_file
   level_file=$(_moira_level_file "$level") || return 1
 
@@ -566,6 +582,87 @@ moira_knowledge_archive_rotate() {
   } > "$tmpfile"
 
   mv "$tmpfile" "$full_file"
+
+  return 0
+}
+
+# ── moira_knowledge_conflict_check <header> <full_md_path> ──────────
+# Check if an exact header line already exists in a knowledge full.md file.
+# Returns 0 if no conflict (safe to write), 1 if duplicate header found.
+# Uses grep -cxF: fixed string, exact whole-line match (no regex, no substring).
+moira_knowledge_conflict_check() {
+  local header="$1"
+  local full_md="$2"
+
+  [[ -f "$full_md" ]] || return 0  # no file = no conflict
+  [[ -s "$full_md" ]] || return 0  # empty file = no conflict
+
+  local count
+  count=$(grep -cxF "$header" "$full_md" 2>/dev/null) || count=0
+  [[ "$count" -gt 0 ]] && return 1
+  return 0
+}
+
+# ── moira_knowledge_write_contested <knowledge_dir> <ktype> <header> <new_content_file> <task_id>
+# Write a conflicting entry to {ktype}/contested.md with both versions.
+# Extracts existing entry from full.md, appends new version alongside.
+# Handles 3+ conflicting versions by appending additional version blocks.
+moira_knowledge_write_contested() {
+  local knowledge_dir="$1"
+  local ktype="$2"
+  local header="$3"
+  local new_content_file="$4"
+  local task_id="$5"
+
+  local full_file="${knowledge_dir}/${ktype}/full.md"
+  local contested_file="${knowledge_dir}/${ktype}/contested.md"
+  local today
+  today=$(date -u +%Y-%m-%d)
+
+  mkdir -p "$(dirname "$contested_file")"
+
+  # Extract existing entry content from full.md (between header and next ## or EOF)
+  local existing_content=""
+  local existing_task_id="unknown"
+  if [[ -f "$full_file" ]]; then
+    existing_content=$(awk -v header="$header" '
+      $0 == header { found=1; next }
+      found && /^## / { exit }
+      found { print }
+    ' "$full_file" 2>/dev/null) || true
+
+    # Try to extract task_id from freshness comment near existing entry
+    existing_task_id=$(awk -v header="$header" '
+      $0 == header { found=1 }
+      found && /moira:freshness/ { match($0, /freshness ([^ ]+)/, a); print a[1]; exit }
+      found && /^## / { exit }
+    ' "$full_file" 2>/dev/null) || existing_task_id="unknown"
+  fi
+
+  # Construct contested header
+  local contested_header="## CONTESTED: ${header#\#\# }"
+
+  # Check if this contested header already exists (3+ way conflict)
+  if [[ -f "$contested_file" ]] && grep -qxF "$contested_header" "$contested_file" 2>/dev/null; then
+    # Append new version to existing contested block
+    {
+      echo ""
+      echo "### ${task_id} (${today})"
+      cat "$new_content_file"
+    } >> "$contested_file"
+  else
+    # New contested entry: existing version + new version
+    {
+      echo ""
+      echo "$contested_header"
+      echo ""
+      echo "### ${existing_task_id} (existing)"
+      echo "$existing_content"
+      echo ""
+      echo "### ${task_id} (${today})"
+      cat "$new_content_file"
+    } >> "$contested_file"
+  fi
 
   return 0
 }

@@ -37,51 +37,21 @@ Multiple engineers on same project, each with their own Claude sessions:
 - Merges through normal git flow (PR review)
 - Append-friendly format prevents merge conflicts
 
-## File Lock System
+## File Conflict Handling (D-226)
 
-```yaml
-# .moira/config/locks.yaml
+File conflicts between developers are handled by git's standard merge conflict mechanism. Moira's contribution: both tasks have full `architecture.md` and `plan.md`, giving merge reviewers context from both sides.
 
-active_tasks:
-  - id: "078"
-    branch: "feature/rbac"
-    developer: "alice"
-    files_reserved:
-      - "src/middleware/auth.ts"
-      - "src/middleware/authorize.ts"
-    started: "2024-01-15T10:30:00Z"
-    expires_at: "2024-01-15T16:00:00Z"  # TTL for stale detection
+### Planner File Manifest
 
-  - id: "079"
-    branch: "feature/search"
-    developer: "bob"
-    files_reserved:
-      - "src/services/search.ts"
-    started: "2024-01-15T11:00:00Z"
-    expires_at: "2024-01-15T17:00:00Z"  # TTL for stale detection
-```
+Planner (Daedalus) writes `reserved-files.txt` as a structured artifact during planning — one file path per line of files the plan intends to modify. This is used for impact analysis, not enforcement. If absent → graceful degradation.
 
-### Lock Checking
+### Why Not Locks?
 
-Planner checks locks before creating plan:
-
-```
-Plan requires: src/middleware/auth.ts
-Lock found: reserved by Task 078 (Alice, feature/rbac)
-
-⚠ FILE CONFLICT
-▸ wait    — defer this file until Task 078 merges
-▸ branch  — work against feature/rbac branch
-▸ isolate — write to separate file, merge later
-▸ proceed — ignore lock (may cause merge conflicts)
-```
-
-### Lock Lifecycle
-
-1. Created: when Planner identifies files to modify
-2. Active: during task execution
-3. Released: when task is completed (done/abort)
-4. Stale detection: audit checks for old locks on merged/deleted branches
+File locking was designed (D-220) but deferred (D-226). Analysis showed:
+- Git already handles file conflicts — merge conflicts are a solved problem, not data loss
+- Per-session locks in gitignored state are invisible to other developers
+- ~150 lines of shell + 20 test assertions for marginal earlier detection
+- If merge conflicts become a practical problem, revisit with real evidence
 
 ## Knowledge Merge Strategy
 
@@ -99,27 +69,47 @@ Added: 2024-01-15, Task: 079
 ...
 ```
 
-Both sections coexist. No merge conflict. If semantic conflict exists, Reflector catches it at next task.
+Both sections coexist. No merge conflict.
+
+### Structural Conflict Detection (D-221)
+
+Before writing a new entry, shell function in `knowledge.sh` checks for exact header collision in `full.md`. If duplicate header found → entry written to `contested.md` instead of `full.md`. See `knowledge.md` § Conflict Detection for full design.
+
+**What is detected:** Identical `## Decision:` or `## Pattern:` headers with different content.
+**What is NOT detected:** Semantic conflicts expressed with different words (acknowledged limitation — requires LLM, probabilistic).
 
 ### Conflict scenarios
 
 | Scenario | Resolution |
 |----------|------------|
 | Both add new patterns (different topics) | Auto-merge, no conflict |
+| Both add pattern with same header | Structural conflict detection → `contested.md` |
 | Both update same knowledge entry | Git merge conflict → manual resolution with context from both task docs |
 | Both update conventions | Rare — conventions change infrequently. If conflict, team discusses |
 
 ## Same File Modified by Both Developers
 
-If locks are ignored and both modify same file:
+If locks deny the dispatch (D-220), implementer cannot proceed until conflict is resolved.
+
+If lock enforcement is bypassed (escape hatch) and both modify same file:
 - This is handled by GIT (normal merge conflict)
 - Moira's contribution: both tasks have full architecture.md and plan.md, giving merge reviewer full context
 - Optional: `/moira resolve-conflict` spawns architect to analyze both changes and propose merge strategy
 
+## Developer Identity (D-225)
+
+Every task records developer identity for lock attribution, metrics, and stale detection:
+
+- **Source:** `git config user.name` → `$USER` → `"unknown"` (fallback chain)
+- **Written by:** `task-init.sh` at scaffold time (shell, deterministic)
+- **Stored in:** `status.yaml` field `developer: "Alice"`, lock files (D-220)
+- **Privacy:** Identity stays in gitignored state. Committed metrics use anonymous aggregates unless `developer_tracking: team` in `config.yaml`
+
 ## Developer Isolation Guarantees
 
 1. Task state files are never shared between sessions
-2. Lock system prevents unintentional overlap
-3. Knowledge updates are append-only during task execution
+2. File conflicts handled by git merge — Moira provides architecture.md and plan.md for context (D-226)
+3. Knowledge updates are append-only; structural conflicts detected deterministically (D-221)
 4. Metrics are per-task (no cross-session interference)
 5. Agent instructions are generated fresh per task
+6. Developer identity recorded for metrics and team tracking (D-225)

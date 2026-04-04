@@ -217,6 +217,195 @@ _moira_completion_rotate_log() {
   rm -f "${log_path}.archive"
 }
 
+# ── moira_task_cleanup <state_dir> <retention_days> ──────────────────
+# Clean completed task dirs older than retention period.
+# WAL pattern: intent marker → archive manifest → verify → delete → remove marker.
+# Status filter: ONLY completed (never checkpointed/in_progress/failed).
+# Cap at 10 tasks per invocation to prevent hook timeout.
+# Idempotent: safe to call multiple times (checks before archive/delete).
+moira_task_cleanup() {
+  local state_dir="$1"
+  local retention_days="${2:-30}"
+
+  local tasks_dir="${state_dir}/tasks"
+  local archive_dir="${state_dir}/archive"
+  [[ -d "$tasks_dir" ]] || return 0
+
+  local now_epoch
+  now_epoch=$(date -u +%s 2>/dev/null) || return 0
+  local retention_secs=$(( retention_days * 86400 ))
+  local cleaned=0
+
+  # Phase 1: Recover any incomplete WAL cleanups from prior crash
+  for marker in "$tasks_dir"/.cleanup-*; do
+    [[ -f "$marker" ]] || continue
+    local recover_id="${marker##*/.cleanup-}"
+    local recover_dir="${tasks_dir}/${recover_id}"
+    if [[ -f "${archive_dir}/${recover_id}-manifest.yaml" ]]; then
+      # Archive exists — safe to delete task dir and marker
+      rm -rf "$recover_dir" 2>/dev/null || true
+      rm -f "$marker" 2>/dev/null || true
+    else
+      # Archive missing — retry: if manifest exists, archive it
+      if [[ -f "${recover_dir}/manifest.yaml" ]]; then
+        mkdir -p "$archive_dir" 2>/dev/null || true
+        cp "${recover_dir}/manifest.yaml" "${archive_dir}/${recover_id}-manifest.yaml" 2>/dev/null || true
+        if [[ -f "${archive_dir}/${recover_id}-manifest.yaml" ]]; then
+          rm -rf "$recover_dir" 2>/dev/null || true
+        fi
+      else
+        # No manifest, no archive — just clean up dir and marker
+        rm -rf "$recover_dir" 2>/dev/null || true
+      fi
+      rm -f "$marker" 2>/dev/null || true
+    fi
+  done
+
+  # Phase 2: Clean eligible completed tasks
+  for task_dir in "$tasks_dir"/*/; do
+    [[ -d "$task_dir" ]] || continue
+    [[ "$cleaned" -ge 10 ]] && break
+
+    local status_file="${task_dir}status.yaml"
+    [[ -f "$status_file" ]] || continue
+
+    # Status filter: only completed
+    local step_status
+    step_status=$(grep '^step_status:' "$status_file" 2>/dev/null | sed 's/^step_status:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || continue
+    [[ "$step_status" == "completed" ]] || continue
+
+    # Age check: completed_at or fallback to file mtime
+    local completed_epoch=0
+    local completed_at
+    completed_at=$(grep '^completed_at:' "$status_file" 2>/dev/null | sed 's/^completed_at:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+    if [[ -n "$completed_at" && "$completed_at" != "null" ]]; then
+      # macOS/Linux dual-platform date parsing
+      completed_epoch=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "$completed_at" +%s 2>/dev/null) || {
+        completed_epoch=$(date -d "$completed_at" +%s 2>/dev/null) || completed_epoch=0
+      }
+    fi
+    if [[ "$completed_epoch" -eq 0 ]]; then
+      # Fallback: file mtime
+      completed_epoch=$(stat -f '%m' "$status_file" 2>/dev/null || stat -c '%Y' "$status_file" 2>/dev/null) || completed_epoch=0
+    fi
+
+    [[ "$completed_epoch" -eq 0 ]] && continue
+    local age_secs=$(( now_epoch - completed_epoch ))
+    [[ "$age_secs" -lt "$retention_secs" ]] && continue
+
+    # Extract task_id from dir name
+    local task_id
+    task_id=$(basename "${task_dir%/}")
+
+    # WAL: write intent marker
+    touch "${tasks_dir}/.cleanup-${task_id}" 2>/dev/null || continue
+
+    # Archive manifest (if exists and not already archived)
+    mkdir -p "$archive_dir" 2>/dev/null || true
+    if [[ -f "${task_dir}manifest.yaml" ]] && [[ ! -f "${archive_dir}/${task_id}-manifest.yaml" ]]; then
+      cp "${task_dir}manifest.yaml" "${archive_dir}/${task_id}-manifest.yaml" 2>/dev/null || {
+        # Archive failed — abort cleanup for this task, remove intent
+        rm -f "${tasks_dir}/.cleanup-${task_id}" 2>/dev/null || true
+        continue
+      }
+      # Verify archive exists
+      if [[ ! -f "${archive_dir}/${task_id}-manifest.yaml" ]]; then
+        rm -f "${tasks_dir}/.cleanup-${task_id}" 2>/dev/null || true
+        continue
+      fi
+    fi
+
+    # Delete task dir
+    rm -rf "$task_dir" 2>/dev/null || true
+
+    # Remove intent marker
+    rm -f "${tasks_dir}/.cleanup-${task_id}" 2>/dev/null || true
+
+    cleaned=$((cleaned + 1))
+  done
+
+  return 0
+}
+
+# ── moira_metrics_retention <metrics_dir> <retention_months> ─────────
+# Aggregate old monthly metrics into annual summaries, delete aggregated files.
+# Idempotent: checks if month already exists in annual file before appending.
+# Monthly files sort lexicographically (YYYY-MM format, zero-padded).
+moira_metrics_retention() {
+  local metrics_dir="$1"
+  local retention_months="${2:-12}"
+
+  [[ -d "$metrics_dir" ]] || return 0
+
+  # Count monthly files
+  local monthly_files
+  monthly_files=$(ls "$metrics_dir"/monthly-*.yaml 2>/dev/null | sort) || return 0
+  local count
+  count=$(echo "$monthly_files" | grep -c '.' 2>/dev/null) || count=0
+  [[ "$count" -gt "$retention_months" ]] || return 0
+
+  local excess=$(( count - retention_months ))
+
+  # Process oldest files (already sorted lexicographically = chronologically)
+  local processed=0
+  while IFS= read -r monthly_file; do
+    [[ "$processed" -ge "$excess" ]] && break
+    [[ -f "$monthly_file" ]] || continue
+
+    # Extract period from filename: monthly-YYYY-MM.yaml → YYYY-MM
+    local basename_f
+    basename_f=$(basename "$monthly_file")
+    local period="${basename_f#monthly-}"
+    period="${period%.yaml}"
+
+    # Extract year for annual file
+    local year="${period%%-*}"
+    local annual_file="${metrics_dir}/annual-${year}.yaml"
+
+    # Idempotency: check if this period already aggregated
+    if [[ -f "$annual_file" ]] && grep -qF "period: \"${period}\"" "$annual_file" 2>/dev/null; then
+      # Already aggregated — just delete monthly file
+      rm -f "$monthly_file" 2>/dev/null || true
+      processed=$((processed + 1))
+      continue
+    fi
+
+    # Extract summary data from monthly file
+    local tasks_total=0 composite_score=0
+    if [[ -f "${_MOIRA_COMPLETION_LIB_DIR}/yaml-utils.sh" ]]; then
+      tasks_total=$(moira_yaml_get "$monthly_file" "tasks.total" 2>/dev/null) || tasks_total=0
+      local first_pass
+      first_pass=$(moira_yaml_get "$monthly_file" "quality.first_pass_accepted" 2>/dev/null) || first_pass=0
+      if [[ "$tasks_total" -gt 0 && "$first_pass" -gt 0 ]]; then
+        composite_score=$(( first_pass * 100 / tasks_total ))
+      fi
+    else
+      # Fallback: grep-based extraction
+      tasks_total=$(grep 'total:' "$monthly_file" 2>/dev/null | head -1 | sed 's/.*total:[[:space:]]*//' | tr -d '"' 2>/dev/null) || tasks_total=0
+    fi
+
+    # Initialize annual file if new
+    if [[ ! -f "$annual_file" ]]; then
+      echo "year: ${year}" > "$annual_file"
+      echo "months:" >> "$annual_file"
+    fi
+
+    # Append month entry
+    {
+      echo "  - period: \"${period}\""
+      echo "    tasks_total: ${tasks_total}"
+      echo "    composite_score: ${composite_score}"
+    } >> "$annual_file"
+
+    # Delete aggregated monthly file
+    rm -f "$monthly_file" 2>/dev/null || true
+
+    processed=$((processed + 1))
+  done <<< "$monthly_files"
+
+  return 0
+}
+
 # ── moira_completion_cleanup <task_id> <state_dir> [pipeline_type] ────
 # Delete pipeline artifacts from a completed task directory.
 # Preserves status.yaml and telemetry.yaml (permanent records).

@@ -196,6 +196,28 @@ fields:
     required: false
     default: 60
     description: "ariadne build timeout in seconds"
+  task_retention_days:
+    type: number
+    required: false
+    default: 30
+    description: "Days to retain completed task directories before cleanup (D-219)"
+  metrics_retention_months:
+    type: number
+    required: false
+    default: 12
+    description: "Months to retain monthly metrics before annual aggregation (D-222)"
+  developer_tracking:
+    type: string
+    required: false
+    default: "local"
+    enum: ["local", "team"]
+    description: "local: anonymous metrics; team: per-developer metrics in committed files (D-225)"
+  bootstrap_mode:
+    type: string
+    required: false
+    default: "standard"
+    enum: ["standard", "progressive"]
+    description: "Detected at preflight based on project file count >5000 (D-223)"
   logs.rotation_threshold_lines:
     type: number
     required: false

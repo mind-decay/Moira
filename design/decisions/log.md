@@ -2636,3 +2636,230 @@ Only 2 of 8 enforcement points remain prompt-only:
 - Bypass redirect to /moira:task (low risk — inline implementation removed, advisory hook detects pattern)
 
 **Reasoning:** "Prompt rules don't guarantee compliance; use hooks/code for critical enforcement." Each enforcement point should be as mechanical as possible. Hooks that deny provide clear error messages telling the LLM exactly what to fix, which is more reliable than hoping the LLM follows a 674-line instruction file.
+
+---
+
+## D-218: Automatic Knowledge Archival Trigger
+
+**Date:** 2026-04-04
+**Status:** Accepted
+
+**Context:** `moira_knowledge_archive_rotate()` exists in `knowledge.sh` but has no automatic trigger. Knowledge files grow unbounded. After 50+ decisions, `full.md` exceeds agent context budgets.
+
+**Decision:** Two independent triggers for archival rotation:
+1. `agent-done.sh` (SubagentStop) — after reflector completes, call `moira_knowledge_archive_rotate` for `decisions` and `patterns`. Shell-only, deterministic.
+2. `task-init.sh` preflight — check `wc -l` on `decisions/full.md` and `patterns/full.md`. If entries exceed threshold (20), call rotation before task starts.
+
+**Alternatives rejected:**
+- Rely on reflector agent to call archival — probabilistic, LLM may skip
+- Cron/periodic trigger — Claude Code has no persistent background process
+- Single trigger point — if one fails, archival never happens
+
+**Reasoning:** Dual trigger ensures archival happens regardless of pipeline type (quick pipelines skip reflector). Both triggers are shell code in existing hooks — deterministic, zero new infrastructure. Worst-case on crash between archive write and full.md truncation: duplicate entries (safe), not data loss.
+
+## D-219: Task State Cleanup with Retention Policy
+
+**Date:** 2026-04-04
+**Status:** Accepted
+
+**Context:** `.moira/state/tasks/{id}/` directories accumulate indefinitely. After 500+ tasks: 25-100M of gitignored state. Degrades git operations and disk usage.
+
+**Decision:** Two-phase cleanup:
+1. `session-cleanup.sh` (SessionEnd) — on clean exit, find task dirs with `step_status: completed` older than retention period. Archive `manifest.yaml` to `.moira/state/archive/{task_id}-manifest.yaml`, delete task directory.
+2. `task-init.sh` preflight — same cleanup logic as safety net (SessionEnd doesn't fire on SIGKILL/power loss).
+
+Retention policy:
+- Default: 30 days (configurable in `config.yaml` as `task_retention_days`)
+- NEVER clean tasks with `step_status: checkpointed` or `in_progress`
+- Manifest archive is permanent (2-5K per task, contains execution_log + key decisions)
+- Operation order: 1) write archive, 2) verify archive exists, 3) delete task dir. If step 1 or 2 fails — abort cleanup for that task, log warning
+
+**Alternatives rejected:**
+- No cleanup, rely on manual — accumulates silently, users won't notice until disk is full
+- Clean immediately on completion — no forensics window
+- 7-day retention — too aggressive for epic tasks that may pause for weeks
+
+**Reasoning:** 30-day default balances forensics needs with disk hygiene. Dual trigger (SessionEnd + next preflight) ensures cleanup happens even after abnormal termination. Archive-then-delete order prevents data loss.
+
+## D-220: File-Per-Lock Multi-Developer Locking
+
+**Date:** 2026-04-04
+**Status:** Accepted
+**Supersedes:** D-068 (deferred) and D-033 (locks.yaml design)
+
+**Context:** Original lock design used `locks.yaml` (single YAML file tracking all locks). Problems: YAML parsing in shell is fragile, concurrent writes cause race conditions, requires flock coordination.
+
+**Decision:** Replace locks.yaml with file-per-lock:
+```
+.moira/state/locks/
+├── task-042.lock    # one file per active task
+├── task-055.lock    # content: one reserved file path per line
+└── task-078.lock
+```
+
+Lock file format (plain text, one path per line):
+```
+branch: feature/rbac
+developer: alice
+started: 2026-04-04T10:30:00Z
+---
+src/middleware/auth.ts
+src/middleware/authorize.ts
+```
+
+Enforcement mechanism:
+- **Lock creation:** Planner writes `reserved-files.txt` as structured artifact. `agent-done.sh` after planner creates `.moira/state/locks/{task_id}.lock` from this artifact. Deterministic (shell), not LLM.
+- **Lock checking:** `pipeline-dispatch.sh` before implementer dispatch: `cat .moira/state/locks/*.lock | grep "^{file}"`. If match found from different task_id → `permissionDecision: deny` with message listing conflict. Self-exclusion: same task_id locks are ignored.
+- **Lock release:** `session-cleanup.sh` (SessionEnd) on clean exit deletes lock file. NOT from `completion.sh` (LLM-dispatched, probabilistic). `task-init.sh` preflight stale detection catches SIGKILL/crash cases.
+- **Stale detection:** `task-init.sh` preflight checks each lock file. If corresponding `.session-lock` doesn't exist or PID is dead → stale lock, auto-cleaned with warning.
+
+**Advantages over locks.yaml:**
+- No YAML parsing — plain text, `cat` + `grep`
+- No race conditions — different tasks write different files
+- No flock needed — atomic file creation via `mktemp` + `mv`
+- Stale detection trivial — file existence check
+- Lock deletion is `rm` — atomic by definition
+
+**Alternatives rejected:**
+- Keep locks.yaml with flock — shell flock is unreliable across platforms (macOS vs Linux behavior differs)
+- Directory-based locks (mkdir as lock) — doesn't carry metadata
+- Keep locks deferred (D-068) — team usage requires this now
+
+**Reasoning:** File-per-lock eliminates the entire class of concurrent-write and YAML-parsing bugs. Each operation is a single shell command. Failure mode: stale lock files (auto-cleaned at next session).
+
+## D-221: Structural Knowledge Conflict Detection
+
+**Date:** 2026-04-04
+**Status:** Accepted
+
+**Context:** Multiple developers can record contradicting decisions/patterns in knowledge base. Semantic conflict detection requires LLM (probabilistic). Need a deterministic layer.
+
+**Decision:** Structural conflict detection via exact header matching:
+- Before writing a new `## Decision:` or `## Pattern:` entry, `grep` for exact header match in `full.md`
+- If duplicate header found → write to `{type}/contested.md` instead of `full.md`
+- `contested.md` format: both versions with task IDs, timestamped
+- Orchestrator receives advisory via `additionalContext` at next gate: "N contested knowledge entries pending review"
+
+Detection is integrated into `knowledge.sh` write functions (called by hooks), not into agent behavior.
+
+**What this catches:** Two entries with identical headers but different content (e.g., two "## Decision: Database choice" with conflicting conclusions).
+
+**What this does NOT catch:** Semantic conflicts expressed with different words. This is an acknowledged limitation — semantic analysis requires LLM and is inherently probabilistic. Accepted as defense-in-depth.
+
+**Cleanup:** Contested entries resolved by user during `/moira:refresh` or manually. Resolved entries moved to `full.md`, contested entries deleted.
+
+**Alternatives rejected:**
+- LLM-based semantic conflict detection in PostToolUse hook — hooks can't dispatch agents, timing is wrong
+- Ignore conflicts, let git merge handle it — git sees no conflict on append-only files; semantic conflicts invisible
+- Block all knowledge writes until reviewed — too restrictive, slows single-developer mode
+
+**Reasoning:** Structural detection catches the most dangerous case (same decision recorded differently) deterministically. Semantic conflicts are rarer and less dangerous (both versions coexist). The detection is zero-cost (one grep per write) and zero-risk (false positive = contested entry reviewed, no data loss).
+
+## D-222: Metrics Retention and Annual Aggregation
+
+**Date:** 2026-04-04
+**Status:** Accepted
+
+**Context:** Monthly metrics files (`monthly-{YYYY-MM}.yaml`) accumulate without limit. After 5 years: 60 files. No degradation in file size, but no aggregation for long-term trends.
+
+**Decision:** Retention policy with annual rollup:
+- `config.yaml` field: `metrics_retention_months: 12` (default)
+- On new monthly file creation: check count of monthly files
+- If count > retention limit: aggregate oldest months into `annual-{YYYY}.yaml` (one summary line per month: composite_score, task_count, avg_duration)
+- Delete aggregated monthly files
+- Annual files are permanent (tiny, ~500 bytes per year)
+
+Trigger: Shell code in `completion.sh` (runs after every task completion, already writes metrics).
+
+**Alternatives rejected:**
+- No retention — acceptable for 1-2 years, degrades after that
+- Delete without aggregation — loses long-term trend data
+- Quarterly aggregation — adds complexity for marginal benefit
+
+**Reasoning:** Annual granularity is sufficient for long-term trend analysis. Monthly detail preserved for recent 12 months. Total overhead: ~40 lines of shell, runs once per task completion.
+
+## D-223: Progressive Bootstrap for Large Projects
+
+**Date:** 2026-04-04
+**Status:** Accepted
+
+**Context:** Bootstrap (`/moira:init`) assumes <5000 files. On monorepos (10K+ files): scanner agents may hit budget limits, convention scanning reads too many samples, pattern detection is shallow.
+
+**Decision:** Progressive bootstrap mode:
+- `task-init.sh` preflight counts project files (`find . -type f | wc -l`, excluding .git, node_modules, etc.)
+- If >5000 files: set `bootstrap_mode: progressive` in preflight output
+- Progressive mode changes:
+  1. Pre-collection (bash) collects Ariadne clusters as scanning units instead of directories
+  2. Scanner budgets reduced further (explorers read pre-collected data first)
+  3. Knowledge entries tagged `partial_scan: true` if budget exceeded mid-scan
+  4. Subsequent task explorations incrementally fill knowledge gaps (lazy scanning)
+
+**Acknowledged limitation:** What the scanner agent reads within its budget is fundamentally an LLM decision (probabilistic). Pre-collection and budget limits are deterministic guardrails, not guarantees of scan quality.
+
+**Alternatives rejected:**
+- Block init on large projects — unhelpful
+- Always deep scan — budget explosion
+- Require manual knowledge seeding — poor UX
+
+**Reasoning:** Progressive mode provides best-effort knowledge with deterministic budget control. Lazy scanning fills gaps over time through normal task execution. The system starts incomplete but functional, which is strictly better than failing or timing out.
+
+## D-224: Enhanced Ariadne Freshness Advisory
+
+**Date:** 2026-04-04
+**Status:** Accepted
+
+**Context:** `graph_stale` check in preflight is binary (stale/not stale). On fast-moving projects, a graph 5 commits stale is fine; 50 commits stale is risky. No quantification, no actionable recommendation.
+
+**Decision:** Graduated freshness advisory:
+- Preflight calculates commits since last graph build: `git log --oneline .ariadne/ | head -1` vs `git log --oneline | wc -l` (or `git rev-list` if available)
+- Three levels: `info` (1-10 commits), `warning` (11-30 commits), `high` (31+ commits)
+- For `medium+` tasks with `high` staleness: classification gate advisory recommends rebuild
+- NOT a blocker — stale graph is better than no graph
+
+**Alternatives rejected:**
+- Auto-rebuild before pipeline — rebuild can be slow (30s+ on large projects), must be user choice
+- Block pipeline on stale graph — overly restrictive
+- Ignore staleness — blast-radius estimates become unreliable silently
+
+**Reasoning:** Graduated advisory gives users actionable information without forcing decisions. The `high` threshold at 31+ commits is conservative — most architectural changes happen gradually.
+
+## D-225: Developer Identity in Task State
+
+**Date:** 2026-04-04
+**Status:** Accepted
+
+**Context:** Task state has no developer attribution. Can't track per-developer patterns (retry rates, budget usage) or correlate locks with active sessions.
+
+**Decision:** Record developer identity:
+- Source: `git config user.name`, fallback to `$USER`, fallback to `"unknown"`
+- Written by: `task-init.sh` at scaffold time (shell, deterministic)
+- Stored in: `status.yaml` field `developer: "Alice"`
+- Used by: metrics aggregation (optional per-developer grouping), lock files (D-220), stale lock detection
+- Privacy: developer name stays in gitignored state files. Committed metrics use anonymous aggregates unless `developer_tracking: team` in config
+
+**Alternatives rejected:**
+- Use email instead of name — more privacy-sensitive, harder to read in logs
+- Require explicit config — friction for solo developers
+- No identity at all — can't correlate locks with sessions, can't track team patterns
+
+**Reasoning:** `git config user.name` is universally available, already part of developer's git identity, and requires zero configuration. Privacy preserved by keeping identity in gitignored state.
+
+## D-226: Defer File Locking to Post-V1
+
+**Date:** 2026-04-04
+**Status:** Accepted
+**Defers:** D-220 (File-Per-Lock Multi-Developer Locking)
+
+**Context:** D-220 designed a file-per-lock system with 5 mechanisms across 4 hooks (creation in agent-done, checking in pipeline-dispatch, release in session-cleanup, stale detection in task-init, cleanup at preflight). Analysis during Phase 20 planning revealed the cost-benefit is unfavorable:
+
+1. **Git already handles file conflicts.** Two developers modifying the same file → standard merge conflict at push/pull time. Every developer knows this workflow. Moira provides architecture.md and plan.md for both tasks, giving merge reviewers full context.
+2. **Per-session locks don't solve cross-developer conflicts.** Locks in gitignored `state/locks/` are invisible to other developers. The only per-session use case (decomposition sub-task overlap) is already prevented by orchestrator-controlled dispatch order.
+3. **~150 lines of shell + 20 test assertions** for earlier detection of a non-destructive event (merge conflict ≠ data loss).
+
+**Decision:** Remove lock enforcement from Phase 20. Keep `reserved-files.txt` in Daedalus artifact contract (useful for impact analysis and future lock system). If merge conflicts become a practical problem in team usage, revisit with real evidence.
+
+**What is removed:** Lock creation (agent-done.sh), lock checking (pipeline-dispatch.sh), lock release (session-cleanup.sh), stale lock detection (task-init.sh), locks.schema.yaml, locks/ directory.
+
+**What is kept:** `reserved-files.txt` artifact from planner (used by impact analysis, potential future lock system).
+
+**Reasoning:** Engineering effort should be proportional to actual pain. Git merge conflicts are a solved problem. Lock enforcement adds complexity for marginal benefit. Defer until team usage produces evidence of need.

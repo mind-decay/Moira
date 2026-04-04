@@ -36,14 +36,62 @@ if [[ -f "$state_dir/current.yaml" ]]; then
 fi
 
 case "$step_status" in
-  completed|checkpointed)
+  completed)
+    # Read task_id BEFORE deleting current.yaml (needed for cleanup references)
+    task_id=""
+    if [[ -f "$state_dir/current.yaml" ]]; then
+      task_id=$(grep '^task_id:' "$state_dir/current.yaml" 2>/dev/null | sed 's/^task_id:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+    fi
+
     # Clean exit — remove all session artifacts
+    rm -f "$state_dir/.session-lock" 2>/dev/null || true
+    rm -f "$state_dir/.guard-active" 2>/dev/null || true
+    rm -rf "$state_dir/subtasks" 2>/dev/null || true
+    rm -f "$state_dir/.guard-stale" 2>/dev/null || true
+    # Legacy cleanup (D-198: pipeline-tracker.state removed)
+    rm -f "$state_dir/pipeline-tracker.state" 2>/dev/null || true
+    rm -f "$state_dir/pipeline-tracker-sub-*.state" 2>/dev/null || true
+
+    # Task cleanup + metrics retention (D-219, D-222)
+    # Triggered from deterministic hook, not LLM-dispatched completion.sh
+    _moira_home="${MOIRA_HOME:-$HOME/.claude/moira}"
+    if [[ -f "$_moira_home/lib/completion.sh" ]]; then
+      # shellcheck source=../lib/completion.sh
+      source "$_moira_home/lib/completion.sh" 2>/dev/null || true
+
+      # Read retention config
+      _config_file="${state_dir}/../config.yaml"
+      _retention_days=30
+      _retention_months=12
+      if [[ -f "$_config_file" ]]; then
+        _rd=$(awk '/task_retention_days:/{print $2;exit}' "$_config_file" 2>/dev/null | tr -d '"' 2>/dev/null) || true
+        [[ -n "$_rd" && "$_rd" =~ ^[0-9]+$ ]] && _retention_days="$_rd"
+        _rm=$(awk '/metrics_retention_months:/{print $2;exit}' "$_config_file" 2>/dev/null | tr -d '"' 2>/dev/null) || true
+        [[ -n "$_rm" && "$_rm" =~ ^[0-9]+$ ]] && _retention_months="$_rm"
+      fi
+
+      # Task cleanup
+      if type moira_task_cleanup &>/dev/null; then
+        moira_task_cleanup "$state_dir" "$_retention_days" 2>/dev/null || true
+      fi
+
+      # Metrics retention
+      if type moira_metrics_retention &>/dev/null; then
+        moira_metrics_retention "$state_dir/metrics" "$_retention_months" 2>/dev/null || true
+      fi
+    fi
+
+    # Delete current.yaml last (after all reads)
+    rm -f "$state_dir/current.yaml" 2>/dev/null || true
+    ;;
+  checkpointed)
+    # Checkpointed exit — clean session artifacts only, preserve state for resume
     rm -f "$state_dir/.session-lock" 2>/dev/null || true
     rm -f "$state_dir/.guard-active" 2>/dev/null || true
     rm -rf "$state_dir/subtasks" 2>/dev/null || true
     rm -f "$state_dir/current.yaml" 2>/dev/null || true
     rm -f "$state_dir/.guard-stale" 2>/dev/null || true
-    # Legacy cleanup (D-198: pipeline-tracker.state removed)
+    # Legacy cleanup
     rm -f "$state_dir/pipeline-tracker.state" 2>/dev/null || true
     rm -f "$state_dir/pipeline-tracker-sub-*.state" 2>/dev/null || true
     ;;

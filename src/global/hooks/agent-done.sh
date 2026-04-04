@@ -59,9 +59,31 @@ fi
 # No dispatched role = not a tracked pipeline dispatch
 [[ -z "$role" || "$role" == "null" ]] && exit 0
 
-# Skip non-pipeline roles
+# Skip non-pipeline roles (but process special hooks first)
 case "$role" in
-  reflector|auditor) exit 0 ;;
+  reflector)
+    # Knowledge archival trigger (D-218) — runs before skip
+    _moira_home="${MOIRA_HOME:-$HOME/.claude/moira}"
+    if [[ -f "$_moira_home/lib/knowledge.sh" ]]; then
+      # shellcheck source=../lib/knowledge.sh
+      source "$_moira_home/lib/knowledge.sh" 2>/dev/null || true
+      if type moira_knowledge_archive_rotate &>/dev/null; then
+        _knowledge_dir="${state_dir%/state}/knowledge"
+        if [[ -d "$_knowledge_dir" ]]; then
+          # Read max_entries from config (default 20)
+          _max_entries=20
+          _config_file="${state_dir}/../config.yaml"
+          if [[ -f "$_config_file" ]]; then
+            _cfg_val=$(awk '/^knowledge:/{found=1;next} found && /^[^ ]/{found=0} found && /archival_max_entries:/{print $2;exit}' "$_config_file" 2>/dev/null | tr -d '"' | tr -d "'" 2>/dev/null) || true
+            [[ -n "$_cfg_val" && "$_cfg_val" =~ ^[0-9]+$ ]] && _max_entries="$_cfg_val"
+          fi
+          moira_knowledge_archive_rotate "$_knowledge_dir" "decisions" "$_max_entries" 2>/dev/null || true
+          moira_knowledge_archive_rotate "$_knowledge_dir" "patterns" "$_max_entries" 2>/dev/null || true
+        fi
+      fi
+    fi
+    exit 0 ;;
+  auditor) exit 0 ;;
 esac
 
 # --- Read current step from current.yaml ---

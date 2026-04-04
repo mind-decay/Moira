@@ -35,6 +35,11 @@ moira_task_init() {
   # Truncate description for status.yaml (max 100 chars)
   local short_desc="${description:0:100}"
 
+  # Developer identity (D-225): git name → $USER → "unknown"
+  local developer
+  developer=$(git config user.name 2>/dev/null) || developer=""
+  [[ -z "$developer" ]] && developer="${USER:-unknown}"
+
   # Create task directory
   mkdir -p "$task_dir"
 
@@ -42,7 +47,7 @@ moira_task_init() {
   cat > "$task_dir/manifest.yaml" << EOF
 task_id: "${task_id}"
 pipeline: null
-developer: "user"
+developer: "${developer}"
 checkpoint: null
 created_at: "${timestamp}"
 EOF
@@ -51,7 +56,7 @@ EOF
   cat > "$task_dir/status.yaml" << EOF
 task_id: "${task_id}"
 description: "${short_desc}"
-developer: "user"
+developer: "${developer}"
 created_at: "${timestamp}"
 gates: []
 retries:
@@ -119,6 +124,35 @@ EOF
   echo "$task_id"
 }
 
+# ── moira_preflight_project_size <project_dir> ───────────────────────
+# Count project files, return "standard" or "progressive".
+# Early termination: stops counting at 5001 (O(threshold) not O(N)).
+# Excludes: .git, node_modules, .moira, .ariadne, vendor, dist, build.
+moira_preflight_project_size() {
+  local project_dir="$1"
+  [[ -d "$project_dir" ]] || { echo "standard"; return 0; }
+
+  local count
+  # Subshell with +o pipefail: find | head triggers SIGPIPE on find which pipefail
+  # treats as failure. This is expected behavior, not an error.
+  count=$(set +o pipefail; find "$project_dir" -type f \
+    -not -path '*/.git/*' \
+    -not -path '*/node_modules/*' \
+    -not -path '*/.moira/*' \
+    -not -path '*/.ariadne/*' \
+    -not -path '*/vendor/*' \
+    -not -path '*/dist/*' \
+    -not -path '*/build/*' \
+    -not -path '*/.next/*' \
+    2>/dev/null | head -5001 | wc -l | tr -d ' ') || count=0
+
+  if [[ "$count" -gt 5000 ]]; then
+    echo "progressive"
+  else
+    echo "standard"
+  fi
+}
+
 # ── moira_preflight_collect <state_dir> ────────────────────────────────
 # Gather all init-time context the orchestrator needs, output as key=value lines.
 # Called by task-submit.sh after moira_task_init(). Values injected via additionalContext.
@@ -147,16 +181,38 @@ moira_preflight_collect() {
     fi
   fi
 
+  # Graduated graph freshness (D-224)
+  local graph_freshness="info"
+  local graph_commits_since=0
+
   if [[ "$graph_enabled" == "true" && -f "${project_dir}/.ariadne/graph/graph.json" ]]; then
     graph_available="true"
 
-    # Check staleness: compare meta.json timestamp vs latest git commit
+    # Check staleness: compare meta.json timestamp vs latest git commit (backward compat)
     if [[ -f "${project_dir}/.ariadne/graph/meta.json" ]]; then
       local meta_ts git_ts
       meta_ts=$(stat -f '%m' "${project_dir}/.ariadne/graph/meta.json" 2>/dev/null || stat -c '%Y' "${project_dir}/.ariadne/graph/meta.json" 2>/dev/null) || meta_ts=0
       git_ts=$(git -C "$project_dir" log -1 --format='%ct' 2>/dev/null) || git_ts=0
       if [[ "$meta_ts" -gt 0 && "$git_ts" -gt 0 && "$git_ts" -gt "$meta_ts" ]]; then
         graph_stale="true"
+      fi
+
+      # Graduated freshness: count commits since last graph build
+      local last_graph_commit
+      last_graph_commit=$(git -C "$project_dir" log -1 --format='%H' -- .ariadne/ 2>/dev/null) || last_graph_commit=""
+      if [[ -n "$last_graph_commit" ]]; then
+        graph_commits_since=$(git -C "$project_dir" rev-list --count "${last_graph_commit}..HEAD" 2>/dev/null) || graph_commits_since=0
+      else
+        # .ariadne/ has no git history — treat as high staleness
+        graph_commits_since=999
+      fi
+
+      if [[ "$graph_commits_since" -le 10 ]]; then
+        graph_freshness="info"
+      elif [[ "$graph_commits_since" -le 30 ]]; then
+        graph_freshness="warning"
+      else
+        graph_freshness="high"
       fi
     fi
   fi
@@ -229,19 +285,25 @@ moira_preflight_collect() {
     fi
   fi
 
-  # --- Stale locks ---
-  local stale_locks=""
-  local locks_file="${state_dir}/../config/locks.yaml"
-  if [[ -f "$locks_file" ]]; then
-    local now_ts
-    now_ts=$(date +%s 2>/dev/null) || now_ts=0
-    # Simple TTL check: look for ttl: lines and compare with created_at
-    # This is a best-effort check — locks.yaml structure may vary
-    local lock_count
-    lock_count=$(grep -c '^  ttl:' "$locks_file" 2>/dev/null) || lock_count=0
-    if [[ "$lock_count" -gt 0 ]]; then
-      stale_locks="$lock_count lock(s) found — check TTL manually"
+  # --- Task cleanup safety net (D-219) ---
+  # SessionEnd may not have fired after SIGKILL/power loss. Run cleanup here as fallback.
+  if [[ -f "${_MOIRA_TASK_INIT_LIB_DIR}/completion.sh" ]]; then
+    source "${_MOIRA_TASK_INIT_LIB_DIR}/completion.sh" 2>/dev/null || true
+    if type moira_task_cleanup &>/dev/null; then
+      local _retention_days=30
+      if [[ -f "$config_file" ]]; then
+        local _rd
+        _rd=$(awk '/task_retention_days:/{print $2;exit}' "$config_file" 2>/dev/null | tr -d '"' | tr -d "'" 2>/dev/null) || true
+        [[ -n "$_rd" && "$_rd" =~ ^[0-9]+$ ]] && _retention_days="$_rd"
+      fi
+      moira_task_cleanup "$state_dir" "$_retention_days" 2>/dev/null || true
     fi
+  fi
+
+  # --- Bootstrap mode (D-223) ---
+  local bootstrap_mode="standard"
+  if command -v moira_preflight_project_size &>/dev/null; then
+    bootstrap_mode=$(moira_preflight_project_size "$project_dir" 2>/dev/null) || bootstrap_mode="standard"
   fi
 
   # --- Orphaned state ---
@@ -262,6 +324,8 @@ moira_preflight_collect() {
   cat << EOF
 graph_available=${graph_available}
 graph_stale=${graph_stale}
+graph_freshness=${graph_freshness}
+graph_commits_since=${graph_commits_since}
 quality_mode=${quality_mode}
 evolution_target=${evolution_target}
 bench_mode=${bench_mode}
@@ -272,7 +336,7 @@ checkpointed=${checkpointed}
 checkpointed_task=${checkpointed_task}
 checkpointed_step=${checkpointed_step}
 stale_knowledge_count=${stale_knowledge_count}
-stale_locks=${stale_locks}
+bootstrap_mode=${bootstrap_mode}
 orphaned_state=${orphaned_state}
 EOF
 }

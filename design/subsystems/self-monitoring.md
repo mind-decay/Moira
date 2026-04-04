@@ -32,9 +32,9 @@ Also injects `permissions.allow` for `/.moira/**` (Read/Write/Edit) so subagents
 | `compact-reinject.sh` | SessionStart (compact) | Inject | Re-inject pipeline state after compaction |
 | `agent-inject.sh` | SubagentStart | Inject | Response contract + rules in every agent |
 | `agent-output-validate.sh` | SubagentStop | BLOCK | Validate agent output has STATUS line |
-| `agent-done.sh` | SubagentStop | Audit | Record agent completion in state |
+| `agent-done.sh` | SubagentStop | Audit | Record agent completion in state + knowledge archival trigger (D-218) |
 | `graph-validate.sh` | TaskCompleted | Audit | Validate graph consistency after task |
-| `session-cleanup.sh` | SessionEnd | Cleanup | Clean transient state on session end (incl. current.yaml, .guard-stale) |
+| `session-cleanup.sh` | SessionEnd | Cleanup | Clean transient state, task state cleanup (D-219), metrics retention (D-222) |
 
 ### Layer 1: `allowed-tools` in command frontmatter (PREVENTION)
 

@@ -115,3 +115,47 @@ Metrics feed into audit system:
 - Declining first-pass rate → investigate what changed
 
 These appear as audit recommendations, not automatic changes.
+
+## Retention Policy (D-222)
+
+Monthly metrics files accumulate indefinitely without management. Retention policy prevents unbounded growth.
+
+### Configuration
+
+```yaml
+# .moira/config/config.yaml
+metrics_retention_months: 12  # default
+```
+
+### Annual Aggregation
+
+When a new monthly file is created, shell code in `completion.sh` checks total monthly file count:
+
+1. Count `monthly-*.yaml` files
+2. If count > `metrics_retention_months`: identify oldest months beyond retention window
+3. Aggregate each expired month into `annual-{YYYY}.yaml`:
+   ```yaml
+   # .moira/state/metrics/annual-2025.yaml
+   year: 2025
+   months:
+     - period: "2025-01"
+       tasks_total: 47
+       composite_score: 78
+       avg_duration_sec: 340
+     - period: "2025-02"
+       tasks_total: 52
+       composite_score: 81
+       avg_duration_sec: 310
+   ```
+4. Delete aggregated monthly files
+5. Annual files are permanent (~500 bytes per year)
+
+### Trigger
+
+Shell code in `completion.sh` — runs after every task completion (already writes monthly metrics). Deterministic, zero new infrastructure.
+
+### `/moira metrics` Impact
+
+- Recent data (< retention window): full monthly detail available
+- Historical data (> retention window): annual summary only
+- `/moira metrics compare` uses monthly files when available, falls back to annual summary

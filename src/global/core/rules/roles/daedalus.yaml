@@ -128,6 +128,11 @@ output_structure: |
   Verify: {concrete command to prove completion}
   Done: {measurable success criteria}
 
+  After writing plan.md, also write reserved-files.txt: one file path per line of files
+  your plan modifies. Include ONLY files that appear in FILES TO MODIFY across all steps.
+  Paths must be relative to project root, no leading "./". If no files are modified
+  (analysis-only task), omit reserved-files.txt. This artifact is used for impact analysis.
+
 response_format: |
   STATUS: success|failure|blocked|budget_exceeded
   SUMMARY: <1-2 sentences, factual>

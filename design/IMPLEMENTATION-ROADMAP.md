@@ -20,7 +20,7 @@ Based on dependency analysis. Each phase builds on previous.
   - `status.yaml` — per-task status (gitignored)
   - `manifest.yaml` — checkpoint for resume (gitignored)
   - `queue.yaml` — epic task queue (gitignored)
-  - `locks.yaml` — multi-developer locks (committed, in config/, D-033)
+  - `locks.yaml` — multi-developer locks (committed, in config/, D-033; superseded by file-per-lock D-220 in Phase 20)
 - State management (read/write/validate for all schemas above)
 - Task ID generation
 - `install.sh` — copies files to `~/.claude/moira/` + `~/.claude/commands/moira/`
@@ -717,6 +717,159 @@ Pipeline YAML and orchestrator updated for new flow: fewer batches, no per-phase
 
 ---
 
+## Phase 20: Team Readiness — Scalability & Multi-Developer Hardening
+
+**Goal:** Close all identified gaps for reliable multi-developer usage and long-term scalability. Every enforcement mechanism is mechanical (hooks/shell), not prompt-based.
+
+**Depends on:** Phase 8 (hooks), Phase 12 (checkpoint/resume, epic decomposition), Phase 19 (mechanical enforcement pattern).
+
+**Context (D-218–D-225, D-226):** Systematic analysis revealed 8 gaps: unbounded knowledge growth without automatic archival trigger, no task state cleanup, deferred file locking (D-068), no knowledge conflict detection, no metrics retention, bootstrap fails on large projects, Ariadne freshness advisory too weak, no developer identity. File locking (D-220) deferred per D-226 — git merge conflicts are sufficient; lock enforcement adds complexity for marginal benefit. Remaining 7 solutions use existing hook infrastructure — no new hooks created, only extensions to existing ones.
+
+**Risk classification:** YELLOW (hook behavior changes, new shell functions in existing libraries). No constitutional impact — pipeline structure, gate authority, and agent boundaries unchanged.
+
+### Impact Analysis
+
+Shell scripts are not indexed by Ariadne. Manual caller analysis via grep:
+
+**knowledge.sh** (13 callers): `rules.sh`, `completion.sh`, `graph.sh`, `bootstrap.sh`, `task-init.sh`, `completion.md` (skill), `reflection.md` (skill), `test-knowledge-system.sh`, `test-quality-map-lifecycle.sh`, `test-rules-assembly.sh`, `cli/moira`. Critical risk: `moira_knowledge_write()` modification (conflict check) must be scoped strictly to `decisions|patterns` + `L2` level via guard clause — `graph.sh` writes `quality-map/L1` and `project-model/L0`, `bootstrap.sh` writes `project-model`, skills call `moira_knowledge_write` for various types. Unscoped conflict check would break all of these.
+
+**completion.sh** (3 callers): `completion.md` (skill), `test-metrics-audit.sh`. New caller: `session-cleanup.sh` (must verify `_MOIRA_COMPLETION_LIB_DIR` resolves correctly when sourced from hook context via `BASH_SOURCE[0]`).
+
+**task-init.sh** (3 callers): `task-submit.sh` (hook), `test-preflight.sh`, `orchestrator.md` (documents preflight fields). Adding new output fields (`graph_freshness`, `graph_commits_since`, `bootstrap_mode`) is additive-safe. Removing `stale_locks` is safe — `test-preflight.sh` doesn't assert on it, `task-submit.sh` passes raw output. `orchestrator.md` field list needs update.
+
+**session-cleanup.sh**: Only called by Claude Code harness. Splitting `completed|checkpointed` case is the highest-risk change — must regression-test that `checkpointed` exit still cleans session artifacts.
+
+**agent-done.sh**: Only called by Claude Code harness. CRITICAL: line 64 `reflector|auditor) exit 0` skips reflector before any new code would execute. Archival trigger must be placed BEFORE the skip case, or reflector must be restructured to: run archival → exit 0. This is a structural change, not additive.
+
+### Reliability Patterns Applied
+
+**WAL (Write-Ahead Log) for task cleanup (1.3):** Intent marker `.cleanup-{task_id}` written before archive. On crash recovery at preflight: check markers → retry incomplete cleanup. Prevents data loss if crash between archive and delete.
+
+**Guard clause for conflict check (1.2b):** Conflict detection in `moira_knowledge_write()` scoped via `if [[ "$level" == "L2" && (decisions|patterns) ]]`. All other callers (graph.sh, bootstrap.sh, skills) bypass guard unchanged. f(x) unchanged for all existing call sites.
+
+**Early termination for project size (1.5):** `find ... | head -5001 | wc -l` — O(threshold) not O(N). On 100K-file monorepo: 0.1s vs 5s.
+
+**Idempotency (all cleanup functions):** Every function must satisfy f(f(x)) = f(x). Critical because dual trigger (session-cleanup + preflight) may invoke same cleanup twice. archive_rotate: already idempotent (counts headers). task_cleanup: check dir exists before each op. metrics_retention: check `grep -q "period:"` before append.
+
+**Monotonic sort safety (1.4):** Monthly files use `date +%Y-%m` (zero-padded). Lexicographic sort == chronological sort. Verified in metrics.sh:83.
+
+### Chunk 1: Foundation — Shell Library Functions (no hook changes)
+
+New functions in existing libraries. Pure shell, testable in isolation.
+
+**Tasks:**
+- [ ] 1.1: `knowledge.sh` — add `moira_knowledge_conflict_check()` function. Takes header string + full.md path. Returns 0 if no conflict, 1 if duplicate header found. Uses `grep -cxF` (exact line match, fixed string — safe for headers with regex specials like `()`, `.`).
+- [ ] 1.2: `knowledge.sh` — add `moira_knowledge_write_contested()` function. Writes entry to `contested.md` with both versions + task IDs + timestamps. Uses awk for existing entry extraction (literal header match, no regex interpretation). Handles 3+ conflicting versions by appending.
+- [ ] 1.2b: `knowledge.sh` — add guard clause to `moira_knowledge_write()` for conflict detection. SCOPED: only fires when `level == "L2"` AND `ktype` is `decisions` or `patterns`. Extracts first `^## ` header from content file, calls `moira_knowledge_conflict_check`. On conflict → calls `moira_knowledge_write_contested`, returns 0. All other call paths (graph.sh quality-map/L1, bootstrap.sh project-model/L0, skills) bypass guard unchanged.
+- [ ] 1.3: `completion.sh` — add `moira_task_cleanup()` function. WAL pattern: write `.cleanup-{task_id}` intent marker → archive manifest → verify archive → delete task dir → remove marker. Preflight recovery: scan intent markers, retry incomplete cleanups. Status filter: only `completed` (never checkpointed/in_progress). Epoch comparison with macOS/Linux dual-platform fallback (pattern from agent-done.sh:100-103). Cap at 10 tasks per invocation to prevent hook timeout.
+- [ ] 1.4: `completion.sh` — add `moira_metrics_retention()` function. Counts monthly files, aggregates oldest to annual YAML, deletes aggregated monthly files. Idempotent: checks `grep -q "period: \"$period\""` before append to annual file. Reads `metrics_retention_months` from config (default 12).
+- [ ] 1.5: `task-init.sh` — add `moira_preflight_project_size()` function. Early termination: `find ... | head -5001 | wc -l`. Threshold 5000 (D-223). Excludes .git, node_modules, .moira, .ariadne, vendor, dist, build.
+- [ ] 1.6: `task-init.sh` — extend `moira_preflight_collect()`: replace binary `graph_stale` with graduated freshness. `git rev-list --count {last_graph_commit}..HEAD` → info (1-10) / warning (11-30) / high (31+). Keep `graph_stale` for backward compat, add `graph_freshness` and `graph_commits_since`. Remove legacy `stale_locks` check (was for old locks.yaml).
+- [ ] 1.7: `task-init.sh` — extend `moira_task_init()` scaffold to write `developer` field to `status.yaml`. Source: `git config user.name` → `$USER` → `"unknown"` (fallback chain, handle empty git name).
+- [ ] 1.8: `roles/daedalus.yaml` — add `reserved-files.txt` to artifact contract (output section). One file path per line of files the plan intends to modify. Used for impact analysis. If absent → graceful degradation, not failure.
+
+**Files:** `src/global/lib/knowledge.sh`, `src/global/lib/completion.sh`, `src/global/lib/task-init.sh`, `src/global/core/rules/roles/daedalus.yaml`
+**Commit:** `moira(foundation): team readiness shell library functions (D-218–D-225)`
+
+### Chunk 2: Hook Integration — agent-done.sh Extension (D-218)
+
+Extend existing `agent-done.sh` (SubagentStop) with knowledge archival trigger.
+
+**Tasks:**
+- [ ] 2.1: Restructure reflector skip in agent-done.sh (line 64): change `reflector|auditor) exit 0 ;;` to give reflector its own case branch that runs archival trigger before exit. Source `knowledge.sh`, read `knowledge.archival_max_entries` from config (default 20), call `moira_knowledge_archive_rotate` for `decisions` and `patterns`, then `exit 0`. Silent on failure (`|| true` on every call, MUST NOT fail pattern per D-218). Auditor skip unchanged.
+
+**Files:** `src/global/hooks/agent-done.sh`
+**Commit:** `moira(hooks): knowledge archival trigger in agent-done (D-218)`
+
+### Chunk 3: Hook Integration — session-cleanup.sh + task-init.sh (D-219, D-222, D-224)
+
+Extend cleanup and preflight hooks.
+
+**Tasks:**
+- [ ] 3.1: `session-cleanup.sh` — split `completed|checkpointed)` into two separate case branches. `completed`: read task_id BEFORE deleting current.yaml, call `moira_task_cleanup()` for eligible old tasks and `moira_metrics_retention()`, then existing cleanup. `checkpointed`: only clean session artifacts (existing behavior, unchanged). Source `completion.sh` for cleanup functions — verify `_MOIRA_COMPLETION_LIB_DIR` resolves via `BASH_SOURCE[0]` in hook context.
+- [ ] 3.2: `task-init.sh` preflight — call `moira_task_cleanup()` as safety net (SessionEnd may not have fired after SIGKILL/power loss). Also scan WAL intent markers (`.cleanup-*`) for crash recovery.
+- [ ] 3.3: `task-init.sh` preflight — include `bootstrap_mode` (standard/progressive) and graduated `graph_freshness` level in output.
+- [ ] 3.4: `orchestrator.md` — update preflight field list (line ~200): add `graph_freshness`, `graph_commits_since`, `bootstrap_mode`; remove `stale_locks`.
+
+Note: Task cleanup and metrics retention are triggered ONLY from deterministic hooks (`session-cleanup.sh` + `task-init.sh` safety net). NOT from `completion.sh` (LLM-dispatched, probabilistic). This ensures execution even if completion agent fails or is skipped.
+
+**Files:** `src/global/hooks/session-cleanup.sh`, `src/global/lib/task-init.sh`, `src/global/skills/orchestrator.md`
+**Commit:** `moira(hooks): task cleanup, metrics retention, freshness (D-219, D-222, D-224)`
+
+### Chunk 4: Schema & Config Updates
+
+**Tasks:**
+- [ ] 4.1: Add `task_retention_days: 30` to `config.schema.yaml` and default `config.yaml`
+- [ ] 4.2: Add `metrics_retention_months: 12` to `config.schema.yaml` and default `config.yaml`
+- [ ] 4.3: Add `developer_tracking: local` to `config.schema.yaml` (values: `local` | `team`)
+- [ ] 4.4: Add `bootstrap_mode` field to `config.schema.yaml` (values: `standard` | `progressive`)
+
+**Files:** `src/schemas/config.schema.yaml`, `src/global/lib/scaffold.sh`
+**Commit:** `moira(foundation): schema and config for team readiness (D-219, D-222–D-225)`
+
+### Chunk 5: Tests
+
+Three-level verification strategy:
+
+**Level 1 — Unit tests on synthetic data** (automated, in CI):
+All library functions tested with temp dirs, controlled inputs, deterministic assertions.
+Hook behavior tested via JSON pipe simulation (pattern from existing test-hooks-functional.sh).
+
+**Level 2 — Smoke test on real project** (manual, after all chunks):
+Run one `/moira:task` on Moira project. Verify: developer field in status.yaml, graph_freshness in preflight output, archival trigger if reflector runs. Run `run-all.sh` for regression.
+
+**Level 3 — Edge case verification** (manual, selective):
+Create 25+ decisions in full.md → run task → verify archival. Ctrl+C mid-task → new session → verify WAL recovery.
+
+**Known blind spots:**
+- Linux `date -d` fallback: code review only (tests run on macOS)
+- Real project size performance: `find | head -5001` on 100K files not testable synthetically
+- Claude Code hook JSON format: simulated, not live harness
+
+**Tasks:**
+- [ ] 5.1: `test-knowledge-archival.sh` — rotation creates batch, preserves count, crash recovery, preflight trigger, config max_entries (~10 assertions)
+- [ ] 5.2: `test-task-cleanup.sh` — status filtering (completed/checkpointed/in_progress), retention period, archive-then-delete order, WAL intent markers + recovery, epoch comparison, missing manifest, idempotency (double-invoke produces no duplicate archives), cap at 10 tasks (~18 assertions)
+- [ ] 5.3: `test-knowledge-conflict.sh` — header collision, different headers pass, substring non-match (`"## Decision: Use PostgreSQL"` vs `"## Decision: Use PostgreSQL Connection Pooling"`), contested format, guard clause bypass for non-decisions types (quality-map L1), guard clause bypass for L0 levels (~12 assertions)
+- [ ] 5.4: `test-metrics-retention.sh` — annual aggregation, deletion, config respect, partial year append, idempotency (double-aggregate same month → no duplicate entry) (~10 assertions)
+- [ ] 5.5: `test-bootstrap-progressive.sh` — threshold detection, mode setting (~6 assertions)
+- [ ] 5.6: `test-graph-freshness.sh` — graduated levels (info/warning/high), commit count thresholds, backward compat (graph_stale still emitted), no .ariadne dir fallback (~6 assertions)
+- [ ] 5.7: `test-developer-identity.sh` — git name, $USER fallback, unknown fallback, empty git name fallback (~6 assertions)
+- [ ] 5.8: `test-hooks-functional.sh` additions — archival trigger: simulate SubagentStop with `dispatched_role=reflector` + 25 knowledge entries → verify archival fired (archive/batch-*.md created). Session cleanup completed vs checkpointed: verify completed branch runs task cleanup, checkpointed branch does NOT. Reflector early-exit restructure: verify reflector still exits after archival (no state recording side effects) (~6 scenarios)
+- [ ] 5.9: Regression: full `run-all.sh` passes
+
+**Files:** `src/tests/tier1/test-knowledge-archival.sh`, `src/tests/tier1/test-task-cleanup.sh`, `src/tests/tier1/test-knowledge-conflict.sh`, `src/tests/tier1/test-metrics-retention.sh`, `src/tests/tier1/test-bootstrap-progressive.sh`, `src/tests/tier1/test-graph-freshness.sh`, `src/tests/tier1/test-developer-identity.sh`, `src/tests/tier1/test-hooks-functional.sh`
+**Commit:** `moira(quality): tier 1 tests for team readiness (D-218, D-219, D-221–D-225)`
+
+### Dependency Graph
+
+```
+Chunk 1 (library functions)
+   ├──→ Chunk 2 (agent-done archival)     ──→ Chunk 5 (tests)
+   ├──→ Chunk 3 (cleanup + preflight)     ──→ Chunk 5
+   └──→ Chunk 4 (schemas)                 ──→ Chunk 5
+```
+
+Chunks 2, 3, 4 can execute in parallel after Chunk 1. Chunk 5 after all others.
+
+### Acceptance Criteria
+
+- [ ] Knowledge archival triggers mechanically after reflector + at preflight (max_entries from config, default 20)
+- [ ] Completed tasks older than retention period are cleaned at session end + next session start
+- [ ] WAL intent markers enable crash recovery for interrupted cleanup
+- [ ] Knowledge header conflicts detected and redirected to `contested.md`
+- [ ] Conflict check guard clause does NOT fire for non-decisions/patterns types or L0/L1 levels
+- [ ] Metrics retained per policy with annual aggregation (idempotent)
+- [ ] Bootstrap mode detected for large projects (early termination at 5001 files)
+- [ ] Ariadne freshness shows graduated levels (graph_stale preserved for backward compat)
+- [ ] Developer identity recorded in task state
+- [ ] orchestrator.md preflight field list up to date
+- [ ] session-cleanup.sh `checkpointed` branch preserves existing behavior (regression)
+- [ ] All existing Tier 1 tests pass (regression)
+- [ ] 7 new test files + hook functional additions with ~74 assertions pass
+- [ ] Level 2 smoke test: one real `/moira:task` verifies developer identity + graph freshness in live harness
+
+---
+
 ## Testing Strategy
 
 Three-layer architecture woven across phases (D-023):
@@ -758,7 +911,10 @@ System is complete when:
 - [ ] Audit identifies real issues
 - [ ] Metrics show improvement trends over time
 - [ ] Resume works without quality degradation
-- [ ] Multiple developers can work concurrently
+- [ ] Multiple developers can work concurrently (file locking, knowledge conflict detection, developer identity)
+- [ ] Knowledge base auto-archives when threshold exceeded
+- [ ] Task state cleaned automatically with configurable retention
+- [ ] Metrics aggregated annually beyond retention window
 - [ ] Ariadne (project graph) integration works with/without binary (graceful degradation)
 - [ ] Agents use graph data for navigation and impact analysis
 - [ ] Explorer token usage reduced by 50%+ with graph
