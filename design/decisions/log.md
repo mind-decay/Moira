@@ -2863,3 +2863,25 @@ Trigger: Shell code in `completion.sh` (runs after every task completion, alread
 **What is kept:** `reserved-files.txt` artifact from planner (used by impact analysis, potential future lock system).
 
 **Reasoning:** Engineering effort should be proportional to actual pain. Git merge conflicts are a solved problem. Lock enforcement adds complexity for marginal benefit. Defer until team usage produces evidence of need.
+
+## D-227: Completion Cleanup Preserve-List
+
+**Date:** 2026-04-04
+**Status:** Accepted
+**Supersedes:** Implicit delete-allowlist approach in moira_completion_cleanup
+
+**Context:** Completion cleanup used a delete-allowlist: an explicit list of files to remove from the task directory after pipeline completion. This caused multiple failures discovered during real task execution on the Ariadne project:
+
+1. `reflection.md` was in the delete list, so reflection output was destroyed immediately after being written
+2. `telemetry.yaml` was never created because `moira_yaml_set` requires pre-existing files — no code created the file first
+3. The allowlist required manual maintenance — every new artifact type needed to be added, and permanent records could accidentally end up in the list
+4. `moira_task_cleanup` (retention-based) deleted entire task directories including permanent records without archiving them
+
+**Decision:** Invert to preserve-list approach: explicitly protect permanent records (`status.yaml`, `telemetry.yaml`, `reflection.md`, `current.yaml`), delete everything else. Create `telemetry.yaml` via `touch` before writing. Archive `status.yaml` and `telemetry.yaml` during retention cleanup (alongside existing `manifest.yaml` archival). Add explicit NEVER prohibitions in completion.md skill to prevent LLM agent from manually deleting files.
+
+**Alternatives rejected:**
+- Fix allowlist by removing `reflection.md` — same class of bug would recur with future artifact types
+- Archive all artifacts — wastes disk, most artifacts are truly ephemeral
+- Rely only on prompt prohibitions — LLM compliance is not guaranteed (see feedback_llm_compliance memory)
+
+**Reasoning:** Preserve-list is defensive by default — new artifacts are auto-cleaned without code changes, permanent records are explicitly protected. Combined with mechanical enforcement (`touch` for file creation, shell-level archival) rather than relying on LLM compliance alone.

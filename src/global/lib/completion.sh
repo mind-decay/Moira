@@ -39,6 +39,9 @@ moira_completion_finalize() {
   local telemetry_file="${task_dir}/telemetry.yaml"
   local moira_home="${MOIRA_HOME:-$HOME/.claude/moira}"
 
+  # Ensure telemetry file exists before writing (moira_yaml_set requires pre-existing file)
+  touch "$telemetry_file"
+
   # ── Step 1: Completion summary (output to stdout for display) ──
   echo "## Completion Summary"
   echo ""
@@ -315,6 +318,13 @@ moira_task_cleanup() {
       fi
     fi
 
+    # Archive permanent records (status + telemetry) alongside manifest
+    for perm_file in status.yaml telemetry.yaml; do
+      if [[ -f "${task_dir}${perm_file}" ]] && [[ ! -f "${archive_dir}/${task_id}-${perm_file}" ]]; then
+        cp "${task_dir}${perm_file}" "${archive_dir}/${task_id}-${perm_file}" 2>/dev/null || true
+      fi
+    done
+
     # Delete task dir
     rm -rf "$task_dir" 2>/dev/null || true
 
@@ -408,7 +418,8 @@ moira_metrics_retention() {
 
 # ── moira_completion_cleanup <task_id> <state_dir> [pipeline_type] ────
 # Delete pipeline artifacts from a completed task directory.
-# Preserves status.yaml and telemetry.yaml (permanent records).
+# Preserves permanent records: status.yaml, telemetry.yaml, reflection.md.
+# Uses preserve-list approach: explicitly protected files survive, everything else is deleted.
 # Returns 0 on success (warnings go to stderr).
 # Returns 1 only for path traversal violations.
 moira_completion_cleanup() {
@@ -429,61 +440,40 @@ moira_completion_cleanup() {
     return 0
   fi
 
-  # Delete allowlisted files (explicit list)
-  local -a cleanup_files=(
-    classification.md
-    exploration.md
-    architecture.md
-    plan.md
-    implementation.md
-    review.md
-    testing.md
+  # Preserve-list: these files MUST survive cleanup
+  local -a preserve_files=(
+    status.yaml
+    telemetry.yaml
     reflection.md
-    requirements.md
-    test-results.md
-    input.md
-    manifest.yaml
+    current.yaml
   )
-  for f in "${cleanup_files[@]}"; do
-    rm -f "${task_dir}/${f}"
-  done
 
-  # Delete variant files (glob patterns)
-  local -a cleanup_globs=(
-    "review-tweak-*.md"
-    "tweak-*.md"
-    "implementation-batch*.md"
-    "batch-*-report.md"
-    "alternatives.md"
-    "context.md"
-    "tweak-xref.md"
-  )
-  for pattern in "${cleanup_globs[@]}"; do
-    # shellcheck disable=SC2086
-    rm -f ${task_dir}/${pattern} 2>/dev/null
-  done
-
-  # Delete allowlisted directories
-  local -a cleanup_dirs=(instructions findings phases)
-  for d in "${cleanup_dirs[@]}"; do
-    if [[ -d "${task_dir}/${d}" ]]; then
-      rm -rf "${task_dir}/${d}"
+  # Delete all files NOT in preserve list
+  local filename
+  for filepath in "${task_dir}"/*; do
+    [[ -e "$filepath" ]] || continue
+    if [[ -f "$filepath" ]]; then
+      filename=$(basename "$filepath")
+      local preserved=false
+      for pf in "${preserve_files[@]}"; do
+        if [[ "$filename" == "$pf" ]]; then
+          preserved=true
+          break
+        fi
+      done
+      if [[ "$preserved" == "false" ]]; then
+        rm -f "$filepath"
+      fi
+    elif [[ -d "$filepath" ]]; then
+      rm -rf "$filepath"
     fi
   done
 
-  # Delete current.yaml (pipeline state no longer needed)
+  # Delete global current.yaml (pipeline state no longer needed)
   rm -f "${state_dir}/current.yaml"
 
   # Epic cleanup (conditional)
   if [[ "$pipeline_type" == "epic" ]]; then
-    rm -f "${task_dir}/queue.yaml"
-    # Delete subtask directories
-    local subtask_dir
-    for subtask_dir in "${task_dir}"/subtask-*; do
-      if [[ -d "$subtask_dir" ]]; then
-        rm -rf "$subtask_dir"
-      fi
-    done
     # Delete global queue pointer if it matches this epic
     if [[ -f "${state_dir}/queue.yaml" ]]; then
       local queue_epic_id

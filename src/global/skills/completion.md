@@ -28,6 +28,12 @@ Completion Action: done
 - **Read** — templates and state files (for reflection prompt assembly)
 - **Agent** — Mnemosyne dispatch only (for background/deep/epic reflection)
 
+## Prohibitions
+
+- **NEVER** use `rm`, `rmdir`, or any file/directory deletion command in Bash — all cleanup is handled exclusively by `moira_completion_cleanup`
+- **NEVER** delete, move, or modify files in the task directory outside of the shell library calls
+- **NEVER** delete `status.yaml`, `telemetry.yaml`, or `reflection.md` under any circumstances — these are permanent records
+
 ---
 
 ## Processing

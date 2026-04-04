@@ -461,6 +461,7 @@ moira_yaml_validate() {
         enum_found = 0
         for (j = 1; j <= n_enum; j++) {
           gsub(/^[[:space:]]+|[[:space:]]+$/, "", enum_vals[j])
+          gsub(/^["'"'"']+|["'"'"']+$/, "", enum_vals[j])
           if (value == enum_vals[j]) { enum_found = 1; break }
         }
         if (!enum_found) {

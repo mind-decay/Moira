@@ -67,6 +67,22 @@ assert_exit_code() {
   fi
 }
 
+assert_file_not_exists() {
+  if [[ ! -f "$1" ]]; then
+    pass "$2"
+  else
+    fail "$2: file should not exist: $1"
+  fi
+}
+
+assert_dir_not_exists() {
+  if [[ ! -d "$1" ]]; then
+    pass "$2"
+  else
+    fail "$2: directory should not exist: $1"
+  fi
+}
+
 test_summary() {
   local total=$((PASSES + FAILURES))
   echo ""
