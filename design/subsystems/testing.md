@@ -18,10 +18,10 @@ Automated testing system for Moira that provides objective metrics on both orche
 
 ## Architecture
 
-### Three Layers
+### Four Layers
 
 ```
-Layer 1: Structural Verifier
+Layer 1: Structural Verifier (Tier 1)
   Purpose: deterministic checks on Moira integrity
   Tools: bash + grep + yaml-parse
   Cost: 0 Claude tokens
@@ -32,6 +32,28 @@ Layer 1: Structural Verifier
     - Agent contract compliance
     - Rules consistency
     - File structure validation
+
+Layer 1.5: Functional Tests (Tier 1.5)
+  Purpose: test library functions with real data in isolated tmpdirs
+  Tools: bash + source libs + assertions
+  Cost: 0 Claude tokens
+  Speed: seconds (~5s for full suite)
+  Location: src/tests/tier1.5/
+  Checks:
+    - yaml-utils: get/set/validate/init/block_append at all depths
+    - state: transitions, gates, agent logging, retries, completion
+    - knowledge: read/write, freshness decay math, conflict detection
+    - budget: estimation, overflow detection, agent budget lookup chain
+    - task-id: generation, increment, zero-padding, overflow
+  Key differences from Tier 1:
+    - Sources from src/global/lib/ (source tree, not installed copy)
+    - Calls actual functions with test data, asserts return values
+    - Catches logic regressions, not just structural integrity
+  Conventions:
+    - One test file per library: test-fn-{library}.sh
+    - Regression tests tagged: # Regression: D-NNN — description
+    - Uses test-helpers-functional.sh (extends tier1/test-helpers.sh)
+    - run_fn helper captures stdout/stderr/exit for clean assertions
 
 Layer 2: Behavioral Bench
   Purpose: end-to-end testing of Moira on controlled tasks
@@ -375,17 +397,22 @@ minimum_effect_size:
 
 ## Tiered Testing
 
-### Three Tiers
+### Four Tiers
 
 ```
-Tier 1: Structural Smoke       Cost: 0 tokens    Time: ~5 sec
-  Bash scripts. Always runs on any change.
+Tier 1:   Structural Smoke       Cost: 0 tokens    Time: ~5 sec
+  Bash scripts. File existence, YAML structure, pattern matching.
 
-Tier 2: Targeted Bench          Cost: low         Time: ~5-15 min
+Tier 1.5: Functional Tests       Cost: 0 tokens    Time: ~5 sec
+  Bash scripts. Sources real lib functions, calls with test data,
+  asserts return values and side effects in isolated tmpdirs.
+  Run: bash src/tests/tier1.5/run-all.sh [filter]
+
+Tier 2:   Targeted Bench         Cost: low         Time: ~5-15 min
   3-5 tests targeting changed component.
   LLM-judge only on affected metrics.
 
-Tier 3: Full Bench              Cost: high        Time: ~30-60 min
+Tier 3:   Full Bench             Cost: high        Time: ~30-60 min
   Full test suite across entire matrix.
   All rubrics, all fixtures, all pipeline types.
 ```
@@ -403,7 +430,12 @@ tier_1:  # structural smoke only
   - lock_system_change   # D-220: file-per-lock
   - cleanup_logic_change # D-219: task state cleanup
 
-tier_2:  # structural + targeted bench
+tier_1_5:  # structural + functional (always runs with tier_1)
+  - lib_logic_change     # any change to src/global/lib/
+  - schema_change        # changes to src/schemas/
+  - bug_fix              # every bugfix gets a regression test
+
+tier_2:  # structural + functional + targeted bench
   - agent_prompt_change:
       run_tests_tagged: [changed_agent_role]
   - quality_checklist_change:
@@ -425,6 +457,75 @@ tier_3:  # structural + full bench
   - constitution_amendment
   - major_version_release
 ```
+
+### Tier 1.5 Details
+
+#### Source Resolution
+
+Tier 1.5 tests ALWAYS source from `src/global/lib/` (source tree), never from `$MOIRA_HOME/lib/` (installed copy). This is the critical difference from Tier 1 tests which operate on the installed location. The test helpers set:
+
+```bash
+SRC_LIB_DIR="$SRC_DIR/src/global/lib"
+export MOIRA_SCHEMA_DIR="$SRC_DIR/src/schemas"
+export MOIRA_HOME="$TEMP_DIR/moira-home"  # isolated fake
+```
+
+#### Test Files
+
+```
+src/tests/tier1.5/
+├── run-all.sh                    # runner with optional filter arg
+├── test-helpers-functional.sh    # extends tier1/test-helpers.sh
+├── test-fn-yaml-utils.sh        # 48 assertions: get/set/validate/init/block_append
+├── test-fn-state.sh             # 84 assertions: current/transition/gate/agent/retry/completion
+├── test-fn-knowledge.sh         # 60 assertions: read/write/decay/freshness/conflict/archive
+├── test-fn-budget.sh            # 32 assertions: estimation/overflow/lookup/recording
+├── test-fn-task-id.sh           # 10 assertions: generation/increment/overflow
+├── test-fn-markdown-utils.sh    # section extraction
+├── test-fn-task-init.sh         # project size detection
+├── test-fn-retry.sh             # Markov retry decisions, cost, outcome recording
+├── test-fn-quality.sh           # verdict, mode management, cooldown
+├── test-fn-checkpoint.sh        # create, validate, resume, cleanup
+├── test-fn-epic.sh              # DAG validation, scheduling, progress
+├── test-fn-completion.sh        # cleanup, log rotation
+├── test-fn-upgrade.sh           # version check, diff, snapshot
+├── test-fn-scaffold.sh          # global/project scaffold
+├── test-fn-log-rotation.sh      # rotation thresholds
+├── test-fn-audit.sh             # trigger check, template selection, findings
+├── test-fn-reflection.sh        # history, proposals, deep counter
+├── test-fn-mcp.sh               # registry, servers, tools, token estimates
+├── test-fn-settings-merge.sh    # hooks, MCP, statusline merge
+├── test-fn-bench.sh             # zones, SPRT, CUSUM, BH correction
+└── test-fn-judge.sh             # composite score, normalization, calibration
+```
+
+Total: 424 assertions across 21 test files, 0 tokens, ~10 seconds.
+
+#### Adding Regression Tests
+
+When a bug is found and fixed, add a test to the corresponding library file:
+
+```bash
+# ── Regression: D-228 — yaml_get trailing space after inline comments ──
+# moira_yaml_get must strip trailing whitespace after removing inline comments
+cat > "$TEMP_DIR/regression.yaml" << 'EOF'
+name: value  # comment
+EOF
+run_fn moira_yaml_get "$TEMP_DIR/regression.yaml" "name"
+assert_output_equals "$FN_STDOUT" "value" "regression D-228: no trailing space"
+```
+
+#### Extending Coverage
+
+To add tests for a new library:
+
+1. Create `test-fn-{library}.sh` in `src/tests/tier1.5/`
+2. Source `test-helpers-functional.sh` (provides all assertions + `run_fn`)
+3. Source the library: `source "$SRC_LIB_DIR/{library}.sh"`
+4. Write tests using `run_fn` + `assert_*` pattern
+5. End with `test_summary`
+
+The runner auto-discovers `test-fn-*.sh` files — no registration needed.
 
 ### Tier Auto-Detection
 

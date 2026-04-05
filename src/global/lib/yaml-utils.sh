@@ -76,6 +76,8 @@ moira_yaml_get() {
   {
     # Remove trailing comments (but not inside strings)
     gsub(/[[:space:]]#[^"'"'"']*$/, "")
+    # Strip trailing whitespace left after comment removal
+    gsub(/[[:space:]]+$/, "")
 
     # Count leading spaces
     match($0, /^[[:space:]]*/);
@@ -301,24 +303,51 @@ _moira_yaml_append() {
     local tmpfile
     tmpfile=$(mktemp)
     awk -v p1="$p1" -v p2="$p2" -v p3="$p3" -v val="$value" '
-    BEGIN { in_p1=0; in_p2=0; inserted=0; last_child_line=0 }
+    BEGIN { in_p1=0; in_p2=0; inserted=0; last_child_line=0; p1_found=0; p2_found=0 }
     {
       lines[NR] = $0;
       match($0, /^[[:space:]]*/);
       indent = RLENGTH;
       line = substr($0, indent + 1);
-      if (indent == 0 && line ~ "^" p1 ":") { in_p1=1; in_p2=0 }
+      if (indent == 0 && line ~ "^" p1 ":") { in_p1=1; in_p2=0; p1_found=1 }
       if (indent == 0 && in_p1 && !(line ~ "^" p1 ":")) { in_p1=0; in_p2=0 }
-      if (in_p1 && indent == 2 && line ~ "^" p2 ":") { in_p2=1; last_child_line=NR }
+      if (in_p1 && indent == 2 && line ~ "^" p2 ":") { in_p2=1; p2_found=1; last_child_line=NR }
       if (in_p1 && indent == 2 && in_p2 && !(line ~ "^" p2 ":")) { in_p2=0 }
       if (in_p1 && in_p2 && indent >= 4) { last_child_line=NR }
     }
     END {
-      for (i=1; i<=NR; i++) {
-        print lines[i];
-        if (i == last_child_line && !inserted) {
-          print "    " p3 ": " val;
-          inserted=1;
+      if (!p1_found) {
+        # Neither p1 nor p2 exist — append all three levels
+        for (i=1; i<=NR; i++) print lines[i];
+        print p1 ":";
+        print "  " p2 ":";
+        print "    " p3 ": " val;
+      } else if (!p2_found) {
+        # p1 exists but p2 does not — find end of p1 section, append p2.p3
+        last_p1=0;
+        for (i=1; i<=NR; i++) {
+          match(lines[i], /^[[:space:]]*/);
+          ind = RLENGTH;
+          ln = substr(lines[i], ind + 1);
+          if (ind == 0 && ln ~ "^" p1 ":") { last_p1=i }
+          if (last_p1 > 0 && i > last_p1 && ind >= 2) { last_p1=i }
+        }
+        for (i=1; i<=NR; i++) {
+          print lines[i];
+          if (i == last_p1 && !inserted) {
+            print "  " p2 ":";
+            print "    " p3 ": " val;
+            inserted=1;
+          }
+        }
+      } else {
+        # Both p1 and p2 exist — append p3 under p2
+        for (i=1; i<=NR; i++) {
+          print lines[i];
+          if (i == last_child_line && !inserted) {
+            print "    " p3 ": " val;
+            inserted=1;
+          }
         }
       }
     }' "$file" > "$tmpfile"
