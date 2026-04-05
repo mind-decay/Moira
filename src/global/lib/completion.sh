@@ -208,9 +208,6 @@ _moira_completion_rotate_log() {
   local archive_path="${log_path}.archive"
   local lines_to_archive=$(( line_count - keep_lines ))
 
-  # Discard older lines (no archive — stale data wastes context)
-  head -n "$lines_to_archive" "$log_path" > /dev/null 2>/dev/null || true
-
   # Keep only recent lines
   local tmpfile
   tmpfile=$(mktemp)

@@ -26,7 +26,7 @@ fields:
   step:
     type: string
     required: false
-    enum: [classification, exploration, analysis, architecture, plan, implementation, review, testing, reflection, decomposition, integration, completion, gather, scope, depth_checkpoint, organize, synthesis]
+    enum: [classification, exploration, analysis, architecture, plan, plan_check, implementation, review, testing, reflection, decomposition, integration, completion, gather, scope, depth_checkpoint, organize, synthesis]
     default: null
   step_status:
     type: enum

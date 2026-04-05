@@ -55,7 +55,7 @@ _moira_budget_get_agent_budget() {
 
   # Try role definition YAML fallback
   if [[ -z "$budget" ]]; then
-    local role_file="${HOME}/.claude/moira/core/rules/roles/${role}.yaml"
+    local role_file="${MOIRA_HOME:-$HOME/.claude/moira}/core/rules/roles/${role}.yaml"
     if [[ -f "$role_file" ]]; then
       budget=$(moira_yaml_get "$role_file" "budget" 2>/dev/null) || true
     fi

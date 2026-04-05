@@ -13,6 +13,8 @@ _MOIRA_RULES_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 source "${_MOIRA_RULES_LIB_DIR}/yaml-utils.sh"
 # shellcheck source=knowledge.sh
 source "${_MOIRA_RULES_LIB_DIR}/knowledge.sh"
+# shellcheck source=mcp.sh
+source "${_MOIRA_RULES_LIB_DIR}/mcp.sh"
 
 # ── moira_rules_load_layer <layer_number> <source_path> ──────────────
 # Load a single rule layer from file. Outputs structured content to stdout.
