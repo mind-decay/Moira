@@ -128,23 +128,36 @@ moira_completion_finalize() {
   # ── Step 10: Write quality final result ──
   moira_yaml_set "$telemetry_file" "quality.final_result" "$completion_action"
 
+  # Error log helper (D-229)
+  _completion_log_error() {
+    printf '%s completion: %s (task=%s)\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" "$1" "$task_id" >> "${state_dir}/errors.log" 2>/dev/null || true
+  }
+
   # ── Step 11: Aggregate quality data ──
-  moira_quality_aggregate_task "$task_dir" 2>/dev/null || true
+  if ! moira_quality_aggregate_task "$task_dir" 2>/dev/null; then
+    _completion_log_error "quality_aggregate_task failed"
+  fi
 
   # ── Step 12: Tick evolution cooldown ──
-  moira_quality_tick_cooldown "$config_path" 2>/dev/null || true
+  if ! moira_quality_tick_cooldown "$config_path" 2>/dev/null; then
+    _completion_log_error "quality_tick_cooldown failed"
+  fi
 
   # ── Step 13: Handle evolve mode ──
   local quality_mode
   quality_mode=$(moira_yaml_get "$config_path" "quality.mode" 2>/dev/null) || quality_mode="conform"
   if [[ "$quality_mode" == "evolve" ]]; then
-    moira_quality_complete_evolve "$config_path" 2>/dev/null || true
+    if ! moira_quality_complete_evolve "$config_path" 2>/dev/null; then
+      _completion_log_error "quality_complete_evolve failed"
+    fi
   fi
 
   # ── Step 14: Update quality map ──
   local quality_map_dir="${state_dir}/../knowledge/quality-map"
   if [[ -d "$quality_map_dir" ]]; then
-    moira_knowledge_update_quality_map "$task_dir" "$quality_map_dir" 2>/dev/null || true
+    if ! moira_knowledge_update_quality_map "$task_dir" "$quality_map_dir" 2>/dev/null; then
+      _completion_log_error "knowledge_update_quality_map failed"
+    fi
   fi
 
   # ── Step 15: Handle MCP telemetry ──

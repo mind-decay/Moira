@@ -2885,3 +2885,29 @@ Trigger: Shell code in `completion.sh` (runs after every task completion, alread
 - Rely only on prompt prohibitions — LLM compliance is not guaranteed (see feedback_llm_compliance memory)
 
 **Reasoning:** Preserve-list is defensive by default — new artifacts are auto-cleaned without code changes, permanent records are explicitly protected. Combined with mechanical enforcement (`touch` for file creation, shell-level archival) rather than relying on LLM compliance alone.
+
+## D-228: Canonical Role→Agent Name Mapping
+
+**Date:** 2026-04-05
+**Status:** Accepted
+
+**Context:** Moira uses two naming schemes: role names (explorer, analyst, classifier) and agent names (hermes, athena, apollo). Role YAML files are named by agent name (`roles/hermes.yaml`), but multiple callers passed role names where agent names were expected:
+
+1. `pipeline-dispatch.sh:418` passed role ("explorer") to `preflight_assemble_agent()` which looked for `roles/explorer.yaml` — file not found, instruction assembly silently failed
+2. `budget.sh:58` built `roles/${role}.yaml` path — same failure when called with role names
+3. `pipeline-stop-guard.sh` blocked gate-pending pauses — no check for `gate_pending` field, treating normal gate waits as premature exits
+
+Tests missed all three bugs because: (a) preflight assembly was only structurally tested (`assert_file_contains`), never functionally invoked; (b) stop guard tests never created `gate_pending` scenarios; (c) budget role file lookup had no test at all.
+
+**Decision:**
+1. Add `_role_to_agent()` mapping function in `pipeline-dispatch.sh` and `_moira_budget_role_to_agent()` in `budget.sh` — each caller maps role→agent before file lookups
+2. Add `gate_pending` check to `pipeline-stop-guard.sh` — when a gate is active, stop is a normal pause, not premature exit
+3. Add error logging (`errors.log`) to `task-submit.sh`, `agent-done.sh`, and `completion.sh` for critical silent failure paths
+4. Add functional tests (`test-fn-preflight-assemble.sh`, `test-fn-integration-seams.sh`) that invoke functions with real arguments and verify outputs — not just structural `assert_file_contains`
+
+**Alternatives rejected:**
+- Rename role files to use role names (`explorer.yaml` instead of `hermes.yaml`) — breaks existing references throughout the system, agent names are the canonical file identifiers
+- Single shared mapping function in a common lib — hooks must be self-contained (no library dependencies for D-198 hooks), so each hook needs its own inline mapping
+- Global error handler instead of per-call logging — too complex for hooks that must be fast and cannot fail
+
+**Reasoning:** The root cause is a missing contract at integration seams: callers assumed one naming convention, callees assumed another. Adding explicit mapping at each call site is more robust than documentation alone. Error logging makes silent failures visible. Functional tests prevent regression by testing the actual integration path, not just code structure.

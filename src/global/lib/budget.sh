@@ -30,6 +30,25 @@ _MOIRA_BUDGET_DEFAULTS_scribe=80000
 _MOIRA_BUDGET_DEFAULT_MAX_LOAD=70
 _MOIRA_BUDGET_ORCHESTRATOR_CAPACITY=1000000
 
+# Map role name → agent name for role file lookups (D-229)
+# Role files are named by agent name (hermes.yaml), not role name (explorer.yaml)
+_moira_budget_role_to_agent() {
+  case "$1" in
+    classifier)  echo "apollo" ;;
+    explorer)    echo "hermes" ;;
+    analyst)     echo "athena" ;;
+    architect)   echo "metis" ;;
+    planner)     echo "daedalus" ;;
+    implementer) echo "hephaestus" ;;
+    reviewer)    echo "themis" ;;
+    tester)      echo "aletheia" ;;
+    reflector)   echo "mnemosyne" ;;
+    auditor)     echo "argus" ;;
+    scribe)      echo "calliope" ;;
+    *)           echo "$1" ;;  # already an agent name or unknown
+  esac
+}
+
 # Orchestrator estimation constants (D-058)
 _MOIRA_BUDGET_ORCH_BASE_OVERHEAD=15000
 _MOIRA_BUDGET_ORCH_PER_STEP=500
@@ -54,8 +73,11 @@ _moira_budget_get_agent_budget() {
   fi
 
   # Try role definition YAML fallback
+  # Role files are named by agent name, not role name (D-229)
   if [[ -z "$budget" ]]; then
-    local role_file="${MOIRA_HOME:-$HOME/.claude/moira}/core/rules/roles/${role}.yaml"
+    local agent_name
+    agent_name=$(_moira_budget_role_to_agent "$role")
+    local role_file="${MOIRA_HOME:-$HOME/.claude/moira}/core/rules/roles/${agent_name}.yaml"
     if [[ -f "$role_file" ]]; then
       budget=$(moira_yaml_get "$role_file" "budget" 2>/dev/null) || true
     fi

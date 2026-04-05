@@ -77,8 +77,12 @@ case "$role" in
             _cfg_val=$(awk '/^knowledge:/{found=1;next} found && /^[^ ]/{found=0} found && /archival_max_entries:/{print $2;exit}' "$_config_file" 2>/dev/null | tr -d '"' | tr -d "'" 2>/dev/null) || true
             [[ -n "$_cfg_val" && "$_cfg_val" =~ ^[0-9]+$ ]] && _max_entries="$_cfg_val"
           fi
-          moira_knowledge_archive_rotate "$_knowledge_dir" "decisions" "$_max_entries" 2>/dev/null || true
-          moira_knowledge_archive_rotate "$_knowledge_dir" "patterns" "$_max_entries" 2>/dev/null || true
+          if ! moira_knowledge_archive_rotate "$_knowledge_dir" "decisions" "$_max_entries" 2>/dev/null; then
+            printf '%s agent-done: knowledge_archive_rotate failed for decisions\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" >> "$state_dir/errors.log" 2>/dev/null || true
+          fi
+          if ! moira_knowledge_archive_rotate "$_knowledge_dir" "patterns" "$_max_entries" 2>/dev/null; then
+            printf '%s agent-done: knowledge_archive_rotate failed for patterns\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" >> "$state_dir/errors.log" 2>/dev/null || true
+          fi
         fi
       fi
     fi
@@ -131,24 +135,38 @@ if [[ -n "$step_started" && "$step_started" != "null" ]]; then
   fi
 fi
 
+# --- Error logging helper (D-229) ---
+_done_log_error() {
+  local ts
+  ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || ts="unknown"
+  printf '%s agent-done: %s\n' "$ts" "$1" >> "$state_dir/errors.log" 2>/dev/null || true
+}
+
 # --- Record agent completion via state.sh ---
 moira_home="${MOIRA_HOME:-$HOME/.claude/moira}"
 if [[ -f "$moira_home/lib/state.sh" ]]; then
   # shellcheck source=../lib/state.sh
-  source "$moira_home/lib/state.sh" 2>/dev/null || exit 0
+  if ! source "$moira_home/lib/state.sh" 2>/dev/null; then
+    _done_log_error "failed to source state.sh — agent history not recorded"
+    # Fall through to budget injection (don't exit)
+  else
+    # Escape summary for YAML (replace double quotes)
+    safe_summary=$(echo "$agent_summary" | sed 's/"/\\"/g' 2>/dev/null) || safe_summary="$agent_summary"
 
-  # Escape summary for YAML (replace double quotes)
-  safe_summary=$(echo "$agent_summary" | sed 's/"/\\"/g' 2>/dev/null) || safe_summary="$agent_summary"
-
-  if type moira_state_agent_done &>/dev/null; then
-    moira_state_agent_done "$current_step" "$role" "$agent_status" "$duration_sec" "0" "$safe_summary" "$state_dir" 2>/dev/null || true
+    if type moira_state_agent_done &>/dev/null; then
+      if ! moira_state_agent_done "$current_step" "$role" "$agent_status" "$duration_sec" "0" "$safe_summary" "$state_dir" 2>/dev/null; then
+        _done_log_error "state_agent_done failed: step=$current_step role=$role status=$agent_status"
+      fi
+    fi
   fi
 fi
 
 # --- Clear dispatched_role from current.yaml (D-198: consolidated) ---
 if [[ -f "$state_dir/current.yaml" ]]; then
   if grep -q '^dispatched_role:' "$state_dir/current.yaml" 2>/dev/null; then
-    sed -i.bak 's|^dispatched_role:.*|dispatched_role: null|' "$state_dir/current.yaml" 2>/dev/null
+    if ! sed -i.bak 's|^dispatched_role:.*|dispatched_role: null|' "$state_dir/current.yaml" 2>/dev/null; then
+      _done_log_error "failed to clear dispatched_role"
+    fi
     rm -f "$state_dir/current.yaml.bak" 2>/dev/null
   fi
 fi

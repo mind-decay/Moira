@@ -101,18 +101,31 @@ if [[ -f "$state_dir/current.yaml" ]]; then
   fi
 fi
 
+# --- Error logging helper (D-229) ---
+_log_error() {
+  local ts
+  ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || ts="unknown"
+  printf '%s task-submit: %s\n' "$ts" "$1" >> "$state_dir/errors.log" 2>/dev/null || true
+}
+
 # --- Source task-init and scaffold ---
 moira_home="${MOIRA_HOME:-$HOME/.claude/moira}"
 if [[ ! -f "$moira_home/lib/task-init.sh" ]]; then
-  exit 0  # task-init not installed — fallback to manual scaffold
+  _log_error "task-init.sh not found at $moira_home/lib/task-init.sh"
+  exit 0
 fi
 
 # shellcheck source=../lib/task-init.sh
-source "$moira_home/lib/task-init.sh" 2>/dev/null || exit 0
+if ! source "$moira_home/lib/task-init.sh" 2>/dev/null; then
+  _log_error "failed to source task-init.sh"
+  exit 0
+fi
 
-task_id=$(moira_task_init "$description" "$size_hint" "$state_dir" 2>/dev/null) || exit 0
-
-[[ -z "$task_id" ]] && exit 0
+task_id=$(moira_task_init "$description" "$size_hint" "$state_dir" 2>/dev/null)
+if [[ $? -ne 0 || -z "$task_id" ]]; then
+  _log_error "moira_task_init failed for description='${description:0:80}'"
+  exit 0
+fi
 
 # --- Collect preflight context (D-199) ---
 preflight=""
@@ -124,9 +137,13 @@ fi
 apollo_instruction=""
 if [[ -f "$moira_home/lib/preflight-assemble.sh" ]]; then
   # shellcheck source=../lib/preflight-assemble.sh
-  source "$moira_home/lib/preflight-assemble.sh" 2>/dev/null || true
-  if command -v moira_preflight_assemble_apollo &>/dev/null; then
-    apollo_instruction=$(moira_preflight_assemble_apollo "$task_id" "$state_dir" 2>/dev/null) || apollo_instruction=""
+  if ! source "$moira_home/lib/preflight-assemble.sh" 2>/dev/null; then
+    _log_error "failed to source preflight-assemble.sh"
+  elif command -v moira_preflight_assemble_apollo &>/dev/null; then
+    apollo_instruction=$(moira_preflight_assemble_apollo "$task_id" "$state_dir" 2>&1) || {
+      _log_error "preflight_assemble_apollo failed for task=$task_id"
+      apollo_instruction=""
+    }
   fi
 fi
 

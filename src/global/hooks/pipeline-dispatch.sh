@@ -84,18 +84,51 @@ esac
 role=$(echo "$description" | grep -oE '\([a-z_]+\)' | head -1 | tr -d '()' 2>/dev/null) || true
 [[ -z "$role" ]] && exit 0
 
+# --- Map role → agent name (for file lookups) ---
+# Role files are named by agent name (hermes.yaml), not role name (explorer.yaml)
+_role_to_agent() {
+  case "$1" in
+    classifier)  echo "apollo" ;;
+    explorer)    echo "hermes" ;;
+    analyst)     echo "athena" ;;
+    architect)   echo "metis" ;;
+    planner)     echo "daedalus" ;;
+    implementer) echo "hephaestus" ;;
+    reviewer)    echo "themis" ;;
+    tester)      echo "aletheia" ;;
+    reflector)   echo "mnemosyne" ;;
+    auditor)     echo "argus" ;;
+    scribe)      echo "calliope" ;;
+    *)           echo "$1" ;;  # passthrough for unknown
+  esac
+}
+
+# --- Error logging helper (D-229) ---
+_dispatch_log_error() {
+  local ts
+  ts=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || ts="unknown"
+  printf '%s pipeline-dispatch: %s\n' "$ts" "$1" >> "$state_dir/errors.log" 2>/dev/null || true
+}
+
 # Always-allowed roles (outside pipeline step sequence)
 case "$role" in
   reflector)
     # Record reflection dispatch for stop-guard (D-211)
     current_file="$state_dir/current.yaml"
     if [[ -f "$current_file" ]]; then
-      # Inline _yaml_set not yet defined here — use simple append/sed
       if grep -q "^reflection_dispatched:" "$current_file" 2>/dev/null; then
-        sed -i.bak 's|^reflection_dispatched:.*|reflection_dispatched: true|' "$current_file" 2>/dev/null
+        if ! sed -i.bak 's|^reflection_dispatched:.*|reflection_dispatched: true|' "$current_file" 2>/dev/null; then
+          _dispatch_log_error "CRITICAL: failed to write reflection_dispatched (sed)"
+        fi
         rm -f "${current_file}.bak" 2>/dev/null
       else
-        printf 'reflection_dispatched: true\n' >> "$current_file" 2>/dev/null
+        if ! printf 'reflection_dispatched: true\n' >> "$current_file" 2>/dev/null; then
+          _dispatch_log_error "CRITICAL: failed to append reflection_dispatched"
+        fi
+      fi
+      # Verify write succeeded
+      if ! grep -q "^reflection_dispatched: true" "$current_file" 2>/dev/null; then
+        _dispatch_log_error "CRITICAL: reflection_dispatched not verified after write"
       fi
     fi
     exit 0 ;;
@@ -108,10 +141,14 @@ _yaml_set() {
   local escaped_value
   escaped_value=$(printf '%s' "$value" | sed 's|[&/\\|]|\\&|g' 2>/dev/null) || escaped_value="$value"
   if grep -q "^${key}:" "$file" 2>/dev/null; then
-    sed -i.bak "s|^${key}:.*|${key}: ${escaped_value}|" "$file" 2>/dev/null
+    if ! sed -i.bak "s|^${key}:.*|${key}: ${escaped_value}|" "$file" 2>/dev/null; then
+      _dispatch_log_error "failed to write ${key} to ${file}"
+    fi
     rm -f "${file}.bak" 2>/dev/null
   else
-    printf '%s: %s\n' "$key" "$value" >> "$file" 2>/dev/null
+    if ! printf '%s: %s\n' "$key" "$value" >> "$file" 2>/dev/null; then
+      _dispatch_log_error "failed to append ${key} to ${file}"
+    fi
   fi
 }
 
@@ -383,9 +420,12 @@ if [[ -n "$step" ]]; then
   moira_home="${MOIRA_HOME:-$HOME/.claude/moira}"
   if [[ -f "$moira_home/lib/state.sh" ]]; then
     # shellcheck source=../lib/state.sh
-    source "$moira_home/lib/state.sh" 2>/dev/null || true
-    if type moira_state_transition &>/dev/null; then
-      moira_state_transition "$step" "in_progress" "$state_dir" 2>/dev/null || true
+    if ! source "$moira_home/lib/state.sh" 2>/dev/null; then
+      _dispatch_log_error "failed to source state.sh"
+    elif type moira_state_transition &>/dev/null; then
+      if ! moira_state_transition "$step" "in_progress" "$state_dir" 2>/dev/null; then
+        _dispatch_log_error "state_transition failed: step=$step"
+      fi
     fi
   fi
 fi
@@ -406,16 +446,20 @@ case "$role" in
     task_id=$(_yaml_get "$current_file" "task_id") || true
     if [[ -n "$task_id" && "$task_id" != "null" ]]; then
       local_task_dir="$state_dir/tasks/$task_id"
-      instruction_file="$local_task_dir/instructions/${role}.md"
+      agent_name=$(_role_to_agent "$role")
+      instruction_file="$local_task_dir/instructions/${agent_name}.md"
 
       # Only assemble if instruction file doesn't exist yet
       if [[ ! -f "$instruction_file" ]]; then
         moira_home="${MOIRA_HOME:-$HOME/.claude/moira}"
         if [[ -f "$moira_home/lib/preflight-assemble.sh" ]]; then
           # shellcheck source=../lib/preflight-assemble.sh
-          source "$moira_home/lib/preflight-assemble.sh" 2>/dev/null || true
-          if command -v moira_preflight_assemble_agent &>/dev/null; then
-            moira_preflight_assemble_agent "$role" "$task_id" "$state_dir" >/dev/null 2>&1 || true
+          if ! source "$moira_home/lib/preflight-assemble.sh" 2>/dev/null; then
+            _dispatch_log_error "failed to source preflight-assemble.sh"
+          elif command -v moira_preflight_assemble_agent &>/dev/null; then
+            if ! moira_preflight_assemble_agent "$agent_name" "$task_id" "$state_dir" >/dev/null 2>&1; then
+              _dispatch_log_error "preflight_assemble_agent failed: agent=$agent_name task=$task_id"
+            fi
           fi
         fi
       fi

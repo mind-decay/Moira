@@ -72,12 +72,18 @@ moira_checkpoint_create() {
     done < "$status_file"
   fi
 
-  # Git state
+  # Git state (warn if unavailable — resume validation depends on this)
   local git_branch=""
   git_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || true
+  if [[ -z "$git_branch" ]]; then
+    echo "Warning: git branch not available — resume validation will be limited" >&2
+  fi
 
   local git_head=""
   git_head=$(git rev-parse HEAD 2>/dev/null) || true
+  if [[ -z "$git_head" ]]; then
+    echo "Warning: git HEAD not available — resume validation will be limited" >&2
+  fi
 
   # Files modified since task start
   # Try to read pre-task HEAD from status.yaml for accurate diff

@@ -40,10 +40,11 @@ find_state_dir() {
 state_dir=$(find_state_dir) || exit 0
 
 # --- Config check: hooks.budget_tracking_enabled ---
+# Default: enabled (budget tracking runs unless explicitly disabled)
 config_file="${state_dir%/state}/config.yaml"
 if [[ -f "$config_file" ]]; then
-  budget_val=$(grep 'budget_tracking_enabled' "$config_file" 2>/dev/null | head -1) || true
-  if [[ "$budget_val" == *"false"* ]]; then
+  budget_val=$(grep 'budget_tracking_enabled' "$config_file" 2>/dev/null | head -1 | sed 's/.*budget_tracking_enabled:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+  if [[ "$budget_val" == "false" ]]; then
     exit 0
   fi
 fi
@@ -65,7 +66,9 @@ case "$tool_name" in
 esac
 
 # --- Log to budget-tool-usage.log ---
-echo "$timestamp $tool_name ${file_path:--} ${file_size:-0}" >> "$state_dir/budget-tool-usage.log" 2>/dev/null || true
+if ! echo "$timestamp $tool_name ${file_path:--} ${file_size:-0}" >> "$state_dir/budget-tool-usage.log" 2>/dev/null; then
+  printf '%s budget-track: failed to write tool usage log\n' "$timestamp" >> "$state_dir/errors.log" 2>/dev/null || true
+fi
 
 # --- Extract real context usage from transcript (D-177) ---
 if command -v jq &>/dev/null; then
@@ -80,7 +83,9 @@ if command -v jq &>/dev/null; then
       cache_read=$(echo "$usage_json" | jq -r '.cache_read_input_tokens // 0' 2>/dev/null) || cache_read=0
       total=$(( input_tok + cache_create + cache_read ))
       if [[ "$total" -gt 0 ]]; then
-        echo "$total" > "$state_dir/context-actual-tokens.txt" 2>/dev/null || true
+        if ! echo "$total" > "$state_dir/context-actual-tokens.txt" 2>/dev/null; then
+          printf '%s budget-track: failed to write context-actual-tokens.txt\n' "$timestamp" >> "$state_dir/errors.log" 2>/dev/null || true
+        fi
       fi
     fi
   fi

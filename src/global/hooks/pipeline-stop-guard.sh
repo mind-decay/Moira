@@ -43,6 +43,14 @@ fi
 current_file="$state_dir/current.yaml"
 [[ ! -f "$current_file" ]] && exit 0
 
+# --- Gate pending check (D-229) ---
+# When a gate is active and awaiting user input, the session "stop" is actually
+# a normal pause for user response — not a premature exit. Allow it.
+gate_pending=$(grep '^gate_pending:' "$current_file" 2>/dev/null | sed 's/^gate_pending:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
+if [[ -n "$gate_pending" && "$gate_pending" != "null" && "$gate_pending" != "" ]]; then
+  exit 0
+fi
+
 subtask_mode=$(grep '^subtask_mode:' "$current_file" 2>/dev/null | sed 's/^subtask_mode:[[:space:]]*//' | tr -d '"' | tr -d "'" 2>/dev/null) || true
 
 # Per-subtask state: check ALL active subtask files for pending flags

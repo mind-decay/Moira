@@ -339,6 +339,54 @@ fi
 rm -rf "$tmpdir"
 
 # ═══════════════════════════════════════════════════════════════════════
+# Gate pending bypass (D-228/D-229)
+# ═══════════════════════════════════════════════════════════════════════
+
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-stop-guard.sh" "gate_pending" "stop-guard: checks gate_pending (D-229)"
+
+# Functional: gate_pending allows stop (normal gate pause, not premature exit)
+tmpdir=$(mktemp -d)
+mkdir -p "$tmpdir/.moira/state"
+touch "$tmpdir/.moira/state/.guard-active"
+printf 'task_id: test-001\npipeline: standard\nstep: classification\nstep_status: in_progress\ngate_pending: classification\n' > "$tmpdir/.moira/state/current.yaml"
+output=$(cd "$tmpdir" && echo '{}' | bash "$MOIRA_HOME/hooks/pipeline-stop-guard.sh" 2>/dev/null) || true
+if echo "$output" | grep -q "block" 2>/dev/null; then
+  fail "D-229: gate_pending should bypass stop guard"
+else
+  pass "D-229: gate_pending bypasses stop guard"
+fi
+rm -rf "$tmpdir"
+
+# Functional: gate_pending=null does NOT bypass
+tmpdir=$(mktemp -d)
+mkdir -p "$tmpdir/.moira/state"
+touch "$tmpdir/.moira/state/.guard-active"
+printf 'task_id: test-001\npipeline: standard\nstep: implementation\nstep_status: in_progress\ngate_pending: null\nreview_pending: true\n' > "$tmpdir/.moira/state/current.yaml"
+output=$(cd "$tmpdir" && echo '{}' | bash "$MOIRA_HOME/hooks/pipeline-stop-guard.sh" 2>/dev/null) || true
+if echo "$output" | grep -q "review" 2>/dev/null; then
+  pass "D-229: gate_pending=null enforces normally"
+else
+  fail "D-229: gate_pending=null should still enforce blocks"
+fi
+rm -rf "$tmpdir"
+
+# ═══════════════════════════════════════════════════════════════════════
+# Role→agent name mapping (D-228)
+# ═══════════════════════════════════════════════════════════════════════
+
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "_role_to_agent" "pipeline-dispatch.sh: has role→agent mapping (D-228)"
+assert_file_contains "$MOIRA_HOME/hooks/pipeline-dispatch.sh" "agent_name.*_role_to_agent" "pipeline-dispatch.sh: uses mapping for preflight assembly"
+assert_file_contains "$MOIRA_HOME/lib/budget.sh" "_moira_budget_role_to_agent" "budget.sh: has role→agent mapping (D-228)"
+
+# ═══════════════════════════════════════════════════════════════════════
+# Error logging (D-228)
+# ═══════════════════════════════════════════════════════════════════════
+
+assert_file_contains "$MOIRA_HOME/hooks/task-submit.sh" "errors.log" "task-submit.sh: logs errors (D-228)"
+assert_file_contains "$MOIRA_HOME/hooks/agent-done.sh" "errors.log" "agent-done.sh: logs errors (D-228)"
+assert_file_contains "$MOIRA_HOME/lib/completion.sh" "errors.log" "completion.sh: logs errors (D-228)"
+
+# ═══════════════════════════════════════════════════════════════════════
 # Reflector dispatch tracking
 # ═══════════════════════════════════════════════════════════════════════
 
